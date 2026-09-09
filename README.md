@@ -168,12 +168,6 @@ Please read our [CONTRIBUTING.md](CONTRIBUTING.md) to get started!
 
 ---
 
-## 📜 License
-
-This project is licensed under the **Apache 2.0 License**. Datasets are distributed under **CC BY-SA 4.0**.
-
----
-
 ## 🏛️ Organized by SynhalaAI
 
 Developed and maintained with ❤️ by **[SynhalaAI](https://github.com/SynhalaAI)** — empowering the Sinhala language in the era of Artificial General Intelligence.
