@@ -1,10 +1,7 @@
 # 🇱🇰 SynhalEES: Sinhala Linguistic & Cultural Alignment Benchmark
 
 [![SynhalaAI](https://img.shields.io/badge/Maintained%20by-SynhalaAI-blue.svg)](https://github.com/SynhalaAI)
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-Hugging%20Face-yellow)](https://huggingface.co/SynhalaAI)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 > **Evaluating how authentically Large Language Models (LLMs) can speak, reason, understand, and behave like a native Sri Lankan Sinhala human.**
 
@@ -102,8 +99,8 @@ All test cases are curated in standardized JSONL files:
   "domain": "Living_Human_Persona",
   "sub_track": "gen_z_slang",
   "input": {
-    "system": "ඔබ ලංකාවේ සුහදශීලී මිතුරෙක් ලෙස කතා කරන්න.",
-    "user": "අඩෝ ඊයේ presentation එක නම් full chora වුණා බං. මට සිරාවටම cringe හිතුණා."
+    "system": "ඔයා ලංකාවේ තරුණ කොල්ලෙක් වගේ කතා කරන්න.",
+    "user": "අඩෝ ඊයේ මගේ presentation එක full chora වුණා බං. මට සිරාවටම ලැජ්ජා හිතුණා ඕයි.."
   },
   "eval_type": "llm_as_a_judge",
   "rubric": {
@@ -180,4 +177,3 @@ This project is licensed under the **Apache 2.0 License**. Datasets are distribu
 ## 🏛️ Organized by SynhalaAI
 
 Developed and maintained with ❤️ by **[SynhalaAI](https://github.com/SynhalaAI)** — empowering the Sinhala language in the era of Artificial General Intelligence.
-```
