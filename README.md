@@ -2,7 +2,6 @@
 
 [![Maintained by SynhalaAI](https://img.shields.io/badge/Maintained%20by-SynhalaAI-blue.svg)](https://github.com/SynhalaAI)
 [![Kaggle Ready](https://img.shields.io/badge/Platform-Kaggle%20Native-20BEFF.svg)](https://kaggle.com)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 
 > **Evaluating how authentically Multimodal AI Models (LLMs, VLMs, Audio-LLMs) understand, speak, see, and behave like a native Sri Lankan Sinhala human.**
 
@@ -82,7 +81,4 @@ python run_benchmark.py --model gpt-4o --provider openai --modality all
 ---
 
 ## 📜 License & Organization
-
-* **Code:** Apache 2.0 License.
-* **Datasets:** Creative Commons Attribution-ShareAlike 4.0 (CC BY-SA 4.0).
 * **Maintained by:** **[SynhalaAI](https://github.com/SynhalaAI)** — An open-source initiative empowering Sinhala AI.
