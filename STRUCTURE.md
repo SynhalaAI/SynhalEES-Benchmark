@@ -48,6 +48,7 @@ SynhalEES/
 │   └── env.py                                 # Kaggle/Local environment detector
 │
 ├── run_benchmark.py                           # CLI Entry point
+├── CONTRIBUTING.md                            # Contribution guide
 └── README.md
 ```
 

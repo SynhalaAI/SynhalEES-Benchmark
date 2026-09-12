@@ -81,5 +81,13 @@ python run_benchmark.py --model gpt-4o --provider openai --modality all
 
 ---
 
+## 🤝 Contributing
+
+Contributions are welcome — data, code, or feedback. See
+[`CONTRIBUTING.md`](CONTRIBUTING.md) for the full guide and Definition of Done.
+Every pillar folder is a small, reviewable PR — no giant CSVs.
+
+---
+
 ## 📜 License & Organization
 * **Maintained by:** **[SynhalaAI](https://github.com/SynhalaAI)** — An open-source initiative empowering Sinhala AI.
