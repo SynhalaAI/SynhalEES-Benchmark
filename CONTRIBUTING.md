@@ -10,6 +10,10 @@ All contributions — data, code, or docs — are welcome.
 
 ### 1. Data contributions (the biggest need!)
 
+> 🧑 **Human-first:** Only human-created data is accepted.
+> **Do NOT use AI to generate data** — no AI-written or synthetic rows, period.
+> Every row must be written/collected by a real person.
+
 - Pick any pillar folder under `benchmark_data/<slug>/`.
 - Add rows to the pillar's CSVs following the exact schemas in
   [`STRUCTURE.md`](STRUCTURE.md) section 5:
