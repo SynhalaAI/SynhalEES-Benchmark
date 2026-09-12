@@ -17,23 +17,24 @@ Developed by **[SynhalaAI](https://github.com/SynhalaAI)**, **SynhalEES** is the
 
 ## 🏛️ The 15 Core Pillars
 
-SynhalEES evaluates AI systems across 15 self-contained modular pillars:
+SynhalEES evaluates AI systems across 15 self-contained modular pillars.
+Folder slug (`benchmark_data/<slug>/`) is the canonical ID — display title is aligned 1:1 with `STRUCTURE.md`:
 
-1. **Buddhist Culture & Rituals (බෞද්ධ සංස්කෘතිය සහ සිරිත්)**
-2. **Pali Language & Gatha (පාලි භාෂාව සහ ගාථා)**
-3. **Classical Literature & Old Sinhala (සම්භාව්‍ය සාහිත්‍යය සහ පුරාතන සිංහල)**
-4. **Folk & Classical Kavi (ජන කවි සහ සම්භාව්‍ය කවි)**
-5. **Sinhala Songs & Metaphors (ගීත සාහිත්‍යය සහ උපමා)**
-6. **Daily Spoken Sinhala (දෛනික කථන සිංහල)**
-7. **Gen Z Slang & Vernacular (නව පරපුරේ බස)**
-8. **Profanity Nuance: Banter vs Abuse (කුණුහරුප සහ අපහාස)**
-9. **Singlish & Short Messaging (සිංග්ලිෂ් සහ කෙටි පණිවිඩ)**
-10. **Regional Dialects: Southern, Up-Country, Rajarata (ප්‍රාදේශීය ව්‍යවහාර)**
-11. **Astrology & Folk Beliefs (ජන විශ්වාස සහ ශාන්තිකර්ම)**
-12. **Memes, Troll & Sarcasm (මීම්ස්, අපහාස සහ උපහාසය)**
-13. **Multi-ethnic Loanwords (දෙමළ/මුස්ලිම්/යටත්විජිත ණයට ගත් වචන)**
-14. **Culinary & Kitchen Nuances (දේශීය ඉවුම් පිහුම් සහ කුස්සියේ වහර)**
-15. **Official & Media Sinhala (නිල රාජ්‍ය සහ මාධ්‍ය භාෂාව)**
+1. **Buddhist Culture & Rituals (බෞද්ධ සංස්කෘතිය සහ සිරිත්)** — `01_buddhist_culture`
+2. **Pali Language & Gatha (පාලි භාෂාව සහ ගාථා)** — `02_pali_gatha`
+3. **Classical Literature & Old Sinhala (සම්භාව්‍ය සාහිත්‍යය සහ පුරාතන සිංහල)** — `03_classical_literature`
+4. **Folk & Classical Kavi (ජන කවි සහ සම්භාව්‍ය කවි)** — `04_folk_kavi`
+5. **Sinhala Sindu — Songs & Metaphors (ගීත සාහිත්‍යය සහ උපමා)** — `05_sinhala_sindu`
+6. **Daily Spoken Sinhala (දෛනික කථන සිංහල)** — `06_daily_spoken`
+7. **Gen Z Slang & Vernacular (නව පරපුරේ බස)** — `07_genz_slang`
+8. **Profanity Nuance: Banter vs Abuse (කුණුහරුප සහ අපහාස)** — `08_profanity_nuance`
+9. **Singlish & Short Messaging (සිංග්ලිෂ් සහ කෙටි පණිවිඩ)** — `09_singlish_sms`
+10. **Regional Dialects: Southern, Up-Country (Kandy), Rajarata (ප්‍රාදේශීය ව්‍යවහාර)** — `10_regional_dialects`
+11. **Astrology & Folk Beliefs (ජන විශ්වාස සහ ශාන්තිකර්ම)** — `11_astrology_beliefs`
+12. **Memes & Humor — Troll & Sarcasm (මීම්ස්, අපහාස සහ උපහාසය)** — `12_memes_humor`
+13. **Multi-ethnic Loanwords: Tamil / Muslim / Colonial (දෙමළ/මුස්ලිම්/යටත්විජිත ණයට ගත් වචන)** — `13_multiethnic_loanwords`
+14. **Culinary & Kitchen Nuances (දේශීය ඉවුම් පිහුම් සහ කුස්සියේ වහර)** — `14_culinary_kitchen`
+15. **Official & Media Sinhala (නිල රාජ්‍ය සහ මාධ්‍ය භාෂාව)** — `15_official_media`
 
 > 📌 **Detailed technical specifications, folder mapping, and dataset schemas can be found in [`STRUCTURE.md`](STRUCTURE.md).**
 

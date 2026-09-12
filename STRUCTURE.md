@@ -38,9 +38,13 @@ SynhalEES/
 │   └── 15_official_media/                     # Gazettes, official letters, news scripts
 │
 ├── synhalees/                                 # Core Python Package
+│   ├── __init__.py                            # Public API (env helpers, version)
 │   ├── data/                                  # Data Loaders & Registry
+│   │   └── __init__.py
 │   ├── models/                                # Model Adapters (HF, APIs, Whisper)
+│   │   └── __init__.py
 │   ├── evaluators/                            # Scoring Engines (Exact Match, Judge, WER)
+│   │   └── __init__.py
 │   └── env.py                                 # Kaggle/Local environment detector
 │
 ├── run_benchmark.py                           # CLI Entry point
