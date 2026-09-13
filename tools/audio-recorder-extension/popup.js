@@ -88,6 +88,7 @@ function addRecordingCard(blob, extension) {
     <audio class="player-audio" src="${url}" preload="metadata"></audio>
     <div class="player-row">
       <button class="play-btn">▶ Play</button>
+      <button class="replay-btn">↺ Replay</button>
       <span class="time-label">0:00 / 0:00</span>
     </div>
     <canvas class="waveform-canvas" width="300" height="50"></canvas>
@@ -111,6 +112,7 @@ function addRecordingCard(blob, extension) {
 
   const audioEl = card.querySelector('.player-audio');
   const playBtn = card.querySelector('.play-btn');
+  const replayBtn = card.querySelector('.replay-btn');
   const timeLabelEl = card.querySelector('.time-label');
   const waveformCanvas = card.querySelector('.waveform-canvas');
   const startSlider = card.querySelector('.trim-start');
@@ -144,10 +146,43 @@ function addRecordingCard(blob, extension) {
   // all change the element state — deriving the label from events means it
   // can never drift out of sync (the old manual text sets could).
   const setPlayBtn = (playing) => { playBtn.textContent = playing ? '⏸ Stop' : '▶ Play'; };
-  audioEl.addEventListener('play', () => setPlayBtn(true));
-  audioEl.addEventListener('pause', () => setPlayBtn(false));
-  audioEl.addEventListener('ended', () => setPlayBtn(false));
-  audioEl.addEventListener('emptied', () => setPlayBtn(false));
+
+  // ===== Playhead indicator (drawn on the waveform) =====
+  let playheadFrac = null; // null until the clip has been played/seeked
+  let playheadRaf = 0;
+
+  function updatePlayhead() {
+    const dur = audioDuration();
+    if (dur > 0 && isFinite(audioEl.currentTime)) {
+      playheadFrac = Math.min(1, Math.max(0, audioEl.currentTime / dur));
+    } else {
+      playheadFrac = null;
+    }
+  }
+
+  // rAF loop keeps the playhead smooth (~60fps); timeupdate alone is ~4fps.
+  function startPlayheadLoop() {
+    stopPlayheadLoop();
+    const tick = () => {
+      updatePlayhead();
+      renderWave();
+      playheadRaf = requestAnimationFrame(tick);
+    };
+    playheadRaf = requestAnimationFrame(tick);
+  }
+
+  function stopPlayheadLoop() {
+    if (playheadRaf) {
+      cancelAnimationFrame(playheadRaf);
+      playheadRaf = 0;
+    }
+  }
+
+  audioEl.addEventListener('play', () => { setPlayBtn(true); startPlayheadLoop(); });
+  audioEl.addEventListener('pause', () => { setPlayBtn(false); stopPlayheadLoop(); updatePlayhead(); renderWave(); });
+  audioEl.addEventListener('ended', () => { setPlayBtn(false); stopPlayheadLoop(); updatePlayhead(); renderWave(); });
+  audioEl.addEventListener('emptied', () => { setPlayBtn(false); stopPlayheadLoop(); playheadFrac = null; renderWave(); });
+  audioEl.addEventListener('seeked', () => { updatePlayhead(); if (audioEl.paused) renderWave(); });
 
   audioEl.addEventListener('loadedmetadata', () => {
     if (isFinite(audioEl.duration) && audioEl.duration > 0) {
@@ -178,6 +213,7 @@ function addRecordingCard(blob, extension) {
   }
 
   audioEl.addEventListener('timeupdate', () => {
+    updatePlayhead();
     const dur = audioDuration();
     timeLabelEl.textContent = `${formatTime(audioEl.currentTime * 1000)} / ${formatTime(dur * 1000)}`;
     // Stop playback automatically once it reaches the trim end marker.
@@ -208,6 +244,21 @@ function addRecordingCard(blob, extension) {
     }
   });
 
+  // Replay: jump back to the trim start and play again (works while playing too).
+  replayBtn.addEventListener('click', () => {
+    const dur = audioDuration();
+    audioEl.currentTime = (startSlider.value / 1000) * dur;
+    updatePlayhead();
+    renderWave();
+    const playPromise = audioEl.play();
+    if (playPromise && typeof playPromise.catch === 'function') {
+      playPromise.catch((err) => {
+        console.error('Playback failed:', err);
+        setPlayBtn(false);
+      });
+    }
+  });
+
   // ===== Waveform: cached peaks + crop-selection highlight =====
 
   // Decodes once and caches per-column peaks, then paints the waveform with
@@ -224,7 +275,7 @@ function addRecordingCard(blob, extension) {
   }
 
   function renderWave() {
-    renderWaveform(waveformCanvas, wavePeaks, startSlider.value / 1000, endSlider.value / 1000);
+    renderWaveform(waveformCanvas, wavePeaks, startSlider.value / 1000, endSlider.value / 1000, playheadFrac);
   }
 
   function syncSliderLabels() {
@@ -318,6 +369,7 @@ function addRecordingCard(blob, extension) {
 
       startSlider.value = 0;
       endSlider.value = 1000;
+      playheadFrac = null;
 
       await loadWaveform(); // recompute peaks for the trimmed clip
       syncSliderLabels();
@@ -362,10 +414,11 @@ async function computeWaveformPeaks(blob, width) {
 }
 
 // Paints the cached waveform bars, then darkens the parts that Trim & Save
-// will crop away (everything outside [startFrac, endFrac]) and marks the
-// selection edges. This is the "what will be cropped" visual the sliders
-// and the waveform drag both feed into.
-function renderWaveform(canvas, peaks, startFrac, endFrac) {
+// will crop away (everything outside [startFrac, endFrac]), marks the
+// selection edges, and draws the playback playhead when one is active.
+// This is the "what will be cropped" visual the sliders, the waveform drag
+// and the playhead loop all feed into.
+function renderWaveform(canvas, peaks, startFrac, endFrac, playheadFrac = null) {
   const ctx = canvas.getContext('2d');
   const width = canvas.width;
   const height = canvas.height;
@@ -394,6 +447,17 @@ function renderWaveform(canvas, peaks, startFrac, endFrac) {
   ctx.fillStyle = '#f5a623';
   if (startX > 0 && startX < width) ctx.fillRect(startX - 1, 0, 1, height);
   if (endX > 0 && endX < width) ctx.fillRect(Math.min(endX, width - 1), 0, 1, height);
+
+  // Playhead: red line showing the current playback position, on top of
+  // the bars, the crop dimming and the edge markers.
+  if (playheadFrac !== null && playheadFrac !== undefined && isFinite(playheadFrac)) {
+    const playX = Math.round(playheadFrac * width);
+    if (playX >= 0 && playX < width) {
+      ctx.fillStyle = '#ff5252';
+      ctx.fillRect(playX, 0, 2, height);
+      ctx.fillRect(playX - 1, 0, 4, 2); // small cap on top for visibility
+    }
+  }
 }
 
 // Decodes the given blob, slices it between startSec/endSec, and re-encodes
