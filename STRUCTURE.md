@@ -134,6 +134,19 @@ VIS_01_001,dana_bowl_01.jpg,"මේ පින්තූරේ තියෙන ප
 VIS_12_004,meme_bus_04.png,"මේ මීම් එකේ ජෝර්ක් එක මොකක්ද?","humor_explanation",llm_judge
 ```
 
+> **OCR exception (`question` may be empty):** for image-OCR rows
+> (`eval_type = "wer"`), the `question` column may be left **empty** — the
+> benchmark loader then injects the standard OCR prompt
+> **`මේ රූපයේ තියෙන පාඨය හරියටම ලියන්න.`** automatically, so contributors
+> don't have to repeat the same transcription prompt on every row. This
+> applies only to `wer` rows: `exact_match`, `llm_judge` and
+> `classification` rows must always carry an image-specific `question`,
+> because the script cannot infer what to ask about a given image.
+>
+> ```csv
+> VIS_02_003,03.jpg,,ධම්මං සරණං ගච්ඡාමි,wer
+> ```
+
 ### C. Audio Schema (`audio/audio.csv`)
 Located inside each pillar directory (e.g., `benchmark_data/10_regional_dialects/audio/audio.csv`):
 ```csv
