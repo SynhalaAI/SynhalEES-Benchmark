@@ -19,7 +19,7 @@ SynhalEES/
 │   │   │   ├── images/
 │   │   │   └── vision.csv
 │   │   └── audio/                             # Audio (Pirith chanting, sermons)
-│   │       ├── wavs/
+│   │       ├── mp3s/
 │   │       └── audio.csv
 │   │
 │   ├── 02_pali_gatha/                         # Dhamma verses & Pali OCR/Audio
@@ -138,6 +138,6 @@ VIS_12_004,meme_bus_04.png,"මේ මීම් එකේ ජෝර්ක් එ
 Located inside each pillar directory (e.g., `benchmark_data/10_regional_dialects/audio/audio.csv`):
 ```csv
 id,audio_file,ground_truth,eval_type
-AUD_10_001,southern_accent_01.wav,"මොකෝ බොල තෝ දුවන්නේ",wer
-AUD_08_003,shouting_anger_03.wav,"aggressive_abuse",classification
+AUD_10_001,southern_accent_01.mp3,"මොකෝ බොල තෝ දුවන්නේ",wer
+AUD_08_003,shouting_anger_03.mp3,"aggressive_abuse",classification
 ```

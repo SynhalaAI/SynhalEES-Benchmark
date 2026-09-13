@@ -15,7 +15,7 @@ This applies to:
 
 - ✅ New pillar folders under `benchmark_data/` (e.g. renaming `06_daily_spoken/`)
 - ✅ New top-level directories or files (e.g. `synhalees/`, `run_benchmark.py`, `LICENSE`)
-- ✅ New sub-structures inside existing folders (e.g. `vision/images/`, `audio/wavs/`)
+- ✅ New sub-structures inside existing folders (e.g. `vision/images/`, `audio/mp3s/`)
 - ✅ File renames / moves that change the tree shape
 
 When in doubt: update the tree. `STRUCTURE.md` is the authoritative blueprint —
