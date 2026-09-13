@@ -38,6 +38,7 @@ const sourceSelect = document.getElementById('sourceSelect');
 const formatSelect = document.getElementById('formatSelect');
 const autoDetectToggle = document.getElementById('autoDetectToggle');
 const autoStatus = document.getElementById('autoStatus');
+const alwaysOnTopToggle = document.getElementById('alwaysOnTopToggle');
 
 // A tabCapture stream ID (if any) is handed to us via URL params by
 // background.js at the moment the extension icon was clicked — this is
@@ -58,6 +59,7 @@ if (tabCaptureError) {
 
 // ===== Helpers =====
 function formatTime(ms) {
+  if (!isFinite(ms) || ms < 0) return '--:--';
   const totalSeconds = Math.floor(ms / 1000);
   const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
   const seconds = String(totalSeconds % 60).padStart(2, '0');
@@ -118,10 +120,17 @@ function addRecordingCard(blob, extension) {
   const trimBtn = card.querySelector('.btn-trim');
   const removeBtn = card.querySelector('.btn-remove');
 
-  drawWaveform(blob, waveformCanvas);
-
   // Track every object URL created for this card so we can revoke them on removal.
   const objectUrls = [url];
+
+  let duration = 0;        // resolved once metadata (or the Infinity hack) loads
+  let wavePeaks = null;    // cached min/max per column — avoids re-decoding on redraws
+  let dragState = null;    // { startFrac, curFrac } while a crop drag is in progress
+
+  // audioDuration() falls back to the resolved `duration` while the element
+  // still reports a non-finite duration (MediaRecorder webm quirk).
+  const audioDuration = () =>
+    isFinite(audioEl.duration) && audioEl.duration > 0 ? audioEl.duration : duration;
 
   removeBtn.addEventListener('click', () => {
     audioEl.pause();
@@ -130,63 +139,163 @@ function addRecordingCard(blob, extension) {
     card.remove();
   });
 
-  let duration = 0;
+  // ===== Play button state is driven entirely by the media element =====
+  // Auto-stop at trim end, natural end, src swaps and failed play() calls
+  // all change the element state — deriving the label from events means it
+  // can never drift out of sync (the old manual text sets could).
+  const setPlayBtn = (playing) => { playBtn.textContent = playing ? '⏸ Stop' : '▶ Play'; };
+  audioEl.addEventListener('play', () => setPlayBtn(true));
+  audioEl.addEventListener('pause', () => setPlayBtn(false));
+  audioEl.addEventListener('ended', () => setPlayBtn(false));
+  audioEl.addEventListener('emptied', () => setPlayBtn(false));
 
   audioEl.addEventListener('loadedmetadata', () => {
-    duration = audioEl.duration || 0;
+    if (isFinite(audioEl.duration) && audioEl.duration > 0) {
+      duration = audioEl.duration;
+    } else {
+      fixInfiniteDuration();
+      return;
+    }
     timeLabelEl.textContent = `0:00 / ${formatTime(duration * 1000)}`;
     endLabel.textContent = formatTime(duration * 1000);
+    syncSliderLabels();
   });
+
+  // MediaRecorder-produced webm blobs often report Infinity duration until
+  // the element is seeked past the end; this standard workaround forces
+  // Chrome to discover the real duration.
+  function fixInfiniteDuration() {
+    const discover = () => {
+      audioEl.removeEventListener('timeupdate', discover);
+      if (isFinite(audioEl.duration) && audioEl.duration > 0) duration = audioEl.duration;
+      try { audioEl.currentTime = 0; } catch (e) { /* ignore */ }
+      timeLabelEl.textContent = `0:00 / ${formatTime(duration * 1000)}`;
+      endLabel.textContent = formatTime(duration * 1000);
+      syncSliderLabels();
+    };
+    audioEl.addEventListener('timeupdate', discover);
+    try { audioEl.currentTime = 1e101; } catch (e) { /* ignore */ }
+  }
 
   audioEl.addEventListener('timeupdate', () => {
-    timeLabelEl.textContent = `${formatTime(audioEl.currentTime * 1000)} / ${formatTime(duration * 1000)}`;
-  });
-
-  audioEl.addEventListener('ended', () => {
-    playBtn.textContent = '▶ Play';
+    const dur = audioDuration();
+    timeLabelEl.textContent = `${formatTime(audioEl.currentTime * 1000)} / ${formatTime(dur * 1000)}`;
+    // Stop playback automatically once it reaches the trim end marker.
+    // (The button label is kept honest by the play/pause events above.)
+    if (dur > 0 && audioEl.currentTime >= (endSlider.value / 1000) * dur) {
+      audioEl.pause();
+    }
   });
 
   playBtn.addEventListener('click', () => {
     if (audioEl.paused) {
       // Play only within the selected trim range
-      const startTime = (startSlider.value / 1000) * duration;
-      if (audioEl.currentTime < startTime || audioEl.currentTime >= (endSlider.value / 1000) * duration) {
+      const dur = audioDuration();
+      const startTime = (startSlider.value / 1000) * dur;
+      if (audioEl.currentTime < startTime || audioEl.currentTime >= (endSlider.value / 1000) * dur) {
         audioEl.currentTime = startTime;
       }
-      audioEl.play();
-      playBtn.textContent = '⏸ Stop';
+      const playPromise = audioEl.play();
+      // play() can reject (e.g. unsupported source) — keep the button honest.
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch((err) => {
+          console.error('Playback failed:', err);
+          setPlayBtn(false);
+        });
+      }
     } else {
       audioEl.pause();
-      playBtn.textContent = '▶ Play';
     }
   });
 
-  // Stop playback automatically once it reaches the trim end marker
-  audioEl.addEventListener('timeupdate', () => {
-    const endTime = (endSlider.value / 1000) * duration;
-    if (audioEl.currentTime >= endTime) {
-      audioEl.pause();
-      playBtn.textContent = '▶ Play';
+  // ===== Waveform: cached peaks + crop-selection highlight =====
+
+  // Decodes once and caches per-column peaks, then paints the waveform with
+  // the to-be-cropped region darkened. Re-decoding on every drag frame would
+  // be far too slow, hence the cache.
+  async function loadWaveform() {
+    try {
+      wavePeaks = await computeWaveformPeaks(blob, waveformCanvas.width);
+    } catch (err) {
+      console.error('Waveform decode failed:', err);
+      wavePeaks = null;
     }
-  });
+    renderWave();
+  }
+
+  function renderWave() {
+    renderWaveform(waveformCanvas, wavePeaks, startSlider.value / 1000, endSlider.value / 1000);
+  }
 
   function syncSliderLabels() {
     if (parseInt(startSlider.value) > parseInt(endSlider.value)) {
       startSlider.value = endSlider.value;
     }
-    startLabel.textContent = formatTime((startSlider.value / 1000) * duration * 1000);
-    endLabel.textContent = formatTime((endSlider.value / 1000) * duration * 1000);
+    startLabel.textContent = formatTime((startSlider.value / 1000) * audioDuration() * 1000);
+    endLabel.textContent = formatTime((endSlider.value / 1000) * audioDuration() * 1000);
   }
 
-  startSlider.addEventListener('input', syncSliderLabels);
-  endSlider.addEventListener('input', syncSliderLabels);
+  // Pushes a [startFrac, endFrac] selection (0..1) into the sliders, labels
+  // and waveform highlight — one code path shared by drag + sliders.
+  function syncTrim(startFrac, endFrac) {
+    startSlider.value = String(Math.round(startFrac * 1000));
+    endSlider.value = String(Math.round(endFrac * 1000));
+    syncSliderLabels();
+    renderWave();
+  }
+
+  // Drag directly on the waveform with the crosshair cursor to choose the
+  // region Trim & Save keeps; everything outside it is shown darkened.
+  const pointerFrac = (e) => {
+    const rect = waveformCanvas.getBoundingClientRect();
+    if (!rect.width) return 0;
+    return Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+  };
+
+  waveformCanvas.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    try { waveformCanvas.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+    const frac = pointerFrac(e);
+    dragState = { startFrac: frac, curFrac: frac };
+    syncTrim(frac, frac);
+  });
+
+  waveformCanvas.addEventListener('pointermove', (e) => {
+    if (!dragState) return;
+    dragState.curFrac = pointerFrac(e);
+    const a = Math.min(dragState.startFrac, dragState.curFrac);
+    const b = Math.max(dragState.startFrac, dragState.curFrac);
+    syncTrim(a, b);
+  });
+
+  waveformCanvas.addEventListener('pointerup', () => {
+    if (!dragState) return;
+    const a = Math.min(dragState.startFrac, dragState.curFrac);
+    const b = Math.max(dragState.startFrac, dragState.curFrac);
+    dragState = null;
+    if (b - a < 0.01) {
+      // Plain click (no real drag) — reset back to the full clip.
+      syncTrim(0, 1);
+      return;
+    }
+    syncTrim(a, b);
+  });
+
+  waveformCanvas.addEventListener('pointercancel', () => {
+    dragState = null;
+    renderWave();
+  });
+
+  startSlider.addEventListener('input', () => { syncSliderLabels(); renderWave(); });
+  endSlider.addEventListener('input', () => { syncSliderLabels(); renderWave(); });
 
   trimBtn.addEventListener('click', async () => {
     trimBtn.disabled = true;
     trimBtn.textContent = 'Trimming...';
     try {
-      const startTime = (startSlider.value / 1000) * duration;
-      const endTime = (endSlider.value / 1000) * duration;
+      const dur = audioDuration();
+      const startTime = (startSlider.value / 1000) * dur;
+      const endTime = (endSlider.value / 1000) * dur;
       const trimmedBlob = await trimAudioBlob(blob, startTime, endTime, extension);
       const trimmedUrl = URL.createObjectURL(trimmedBlob);
       objectUrls.push(trimmedUrl);
@@ -200,6 +309,7 @@ function addRecordingCard(blob, extension) {
 
       // Replace the player + download link with the trimmed version
       audioEl.src = trimmedUrl;
+      setPlayBtn(false); // the src swap aborts any playback — keep the button in sync
       const downloadLink = card.querySelector('.btn-download');
       downloadLink.href = trimmedUrl;
       downloadLink.download = `recording-trimmed-${Date.now()}.${outExt}`;
@@ -208,9 +318,9 @@ function addRecordingCard(blob, extension) {
 
       startSlider.value = 0;
       endSlider.value = 1000;
-      startLabel.textContent = '0:00';
 
-      drawWaveform(blob, waveformCanvas);
+      await loadWaveform(); // recompute peaks for the trimmed clip
+      syncSliderLabels();
     } catch (err) {
       console.error(err);
       alert('Trim failed: ' + err.message);
@@ -218,31 +328,23 @@ function addRecordingCard(blob, extension) {
     trimBtn.disabled = false;
     trimBtn.textContent = 'Trim & Save';
   });
+
+  loadWaveform();
 }
 
-// Decodes a blob and draws its amplitude waveform onto the given canvas.
-async function drawWaveform(blob, canvas) {
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  let audioBuffer;
-  try {
-    const arrayBuffer = await blob.arrayBuffer();
-    const tempCtx = new (window.AudioContext || window.webkitAudioContext)();
-    audioBuffer = await tempCtx.decodeAudioData(arrayBuffer);
-    tempCtx.close();
-  } catch (err) {
-    console.error('Waveform decode failed:', err);
-    return;
-  }
+// Decodes a blob once and computes per-column min/max peaks for the
+// waveform. The result is cached per card so redraws (crop drags, slider
+// sync) don't re-decode the audio every frame.
+async function computeWaveformPeaks(blob, width) {
+  const arrayBuffer = await blob.arrayBuffer();
+  const tempCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const audioBuffer = await tempCtx.decodeAudioData(arrayBuffer);
+  tempCtx.close();
 
   const rawData = audioBuffer.getChannelData(0);
-  const width = canvas.width;
-  const height = canvas.height;
-  const midY = height / 2;
   const samplesPerPixel = Math.floor(rawData.length / width) || 1;
-
-  ctx.fillStyle = '#8ab4f8';
+  const mins = new Float32Array(width);
+  const maxs = new Float32Array(width);
 
   for (let x = 0; x < width; x++) {
     const start = x * samplesPerPixel;
@@ -253,10 +355,45 @@ async function drawWaveform(blob, canvas) {
       if (sample < min) min = sample;
       if (sample > max) max = sample;
     }
+    mins[x] = min;
+    maxs[x] = max;
+  }
+  return { mins, maxs };
+}
+
+// Paints the cached waveform bars, then darkens the parts that Trim & Save
+// will crop away (everything outside [startFrac, endFrac]) and marks the
+// selection edges. This is the "what will be cropped" visual the sliders
+// and the waveform drag both feed into.
+function renderWaveform(canvas, peaks, startFrac, endFrac) {
+  const ctx = canvas.getContext('2d');
+  const width = canvas.width;
+  const height = canvas.height;
+  const midY = height / 2;
+  ctx.clearRect(0, 0, width, height);
+  if (!peaks) return;
+
+  ctx.fillStyle = '#8ab4f8';
+  for (let x = 0; x < width; x++) {
+    const min = peaks.mins[x];
+    const max = peaks.maxs[x];
     const barHeight = Math.max(1, (max - min) * midY);
     const y = midY - (max * midY);
     ctx.fillRect(x, y, 1, barHeight);
   }
+
+  const startX = Math.round(startFrac * width);
+  const endX = Math.round(endFrac * width);
+
+  // Darken the region that will be cropped away.
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+  if (startX > 0) ctx.fillRect(0, 0, startX, height);
+  if (endX < width) ctx.fillRect(endX, 0, width - endX, height);
+
+  // Bright markers on the selection boundaries.
+  ctx.fillStyle = '#f5a623';
+  if (startX > 0 && startX < width) ctx.fillRect(startX - 1, 0, 1, height);
+  if (endX > 0 && endX < width) ctx.fillRect(Math.min(endX, width - 1), 0, 1, height);
 }
 
 // Decodes the given blob, slices it between startSec/endSec, and re-encodes
@@ -675,3 +812,124 @@ autoDetectToggle.addEventListener('change', () => {
     }
   }
 });
+
+// ===== Always on top (Document Picture-in-Picture) =====
+// Chrome exposes no API to mark an extension window always-on-top, so the
+// UI is moved into a Document Picture-in-Picture window, which the OS keeps
+// floating above other windows. Only the DOM moves — the recorder, the
+// timer and playback all keep running from this document.
+//
+// The original extension window cannot be *closed* (closing the opener
+// would unload the PiP document too), so it is *minimized* while the
+// floating window is active and restored when always-on-top ends. Without
+// this the user ends up with two recorder windows — the original one blank.
+let recorderWinId = null;
+let recorderWinRestoreState = 'normal';
+let pipMovedNodes = null;
+
+// Remembers the original window's state and minimizes it so only the
+// floating always-on-top window stays visible.
+async function saveAndMinimizeRecorderWindow() {
+  try {
+    const win = await chrome.windows.getCurrent();
+    recorderWinId = win.id;
+    recorderWinRestoreState = win.state === 'maximized' ? 'maximized' : 'normal';
+    await chrome.windows.update(win.id, { state: 'minimized' });
+    return true;
+  } catch (err) {
+    console.error('Could not minimize the recorder window:', err);
+    recorderWinId = null;
+    return false;
+  }
+}
+
+// Brings the original window back from the taskbar. Best-effort: if the
+// user closed it manually in the meantime the error is swallowed — the UI
+// nodes are restored into this document either way.
+function restoreRecorderWindow() {
+  if (recorderWinId === null) return;
+  const winId = recorderWinId;
+  const state = recorderWinRestoreState;
+  recorderWinId = null;
+  try {
+    chrome.windows.update(winId, { state, focused: true }, () => {
+      void chrome.runtime.lastError; // window may already be gone — ignore
+    });
+  } catch (err) { /* ignore */ }
+}
+
+// ===== Always on top (Document Picture-in-Picture) =====
+// Chrome exposes no API to mark an extension window always-on-top, so the
+// UI is moved into a Document Picture-in-Picture window, which the OS keeps
+// floating above other windows. Only the DOM moves — the recorder, the
+// timer and playback all keep running from this document.
+let pipWindow = null;
+
+alwaysOnTopToggle.addEventListener('change', async () => {
+  if (alwaysOnTopToggle.checked) {
+    await enterAlwaysOnTop();
+  } else {
+    exitAlwaysOnTop();
+  }
+});
+
+async function enterAlwaysOnTop() {
+  if (pipWindow) return;
+
+  if (!('documentPictureInPicture' in window)) {
+    statusEl.textContent = 'Always on top needs Chrome 116 or newer.';
+    alwaysOnTopToggle.checked = false;
+    return;
+  }
+
+  try {
+    pipWindow = await window.documentPictureInPicture.requestWindow({ width: 400, height: 660 });
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = 'Could not open the always-on-top window: ' + (err.message || err);
+    alwaysOnTopToggle.checked = false;
+    return;
+  }
+
+  // Mirror the page styles into the PiP document.
+  document.querySelectorAll('style').forEach((styleEl) => {
+    const copy = pipWindow.document.createElement('style');
+    copy.textContent = styleEl.textContent;
+    pipWindow.document.head.appendChild(copy);
+  });
+  const override = pipWindow.document.createElement('style');
+  override.textContent =
+    'body { width: 100% !important; height: 100%; display: flex; flex-direction: column; }';
+  pipWindow.document.head.appendChild(override);
+
+  // Adopting an <audio> into another document can pause it — remember the
+  // playing ones so they can be resumed right after the move.
+  const wasPlaying = [...document.querySelectorAll('audio.player-audio')].filter((a) => !a.paused);
+
+  pipMovedNodes = [...document.body.children].filter((n) => n.tagName === 'DIV');
+  pipMovedNodes.forEach((n) => pipWindow.document.body.appendChild(n));
+  wasPlaying.forEach((a) => { if (a.paused) a.play().catch(() => {}); });
+
+  pipWindow.document.title = 'Simple Audio Recorder — Always on top';
+  await saveAndMinimizeRecorderWindow();
+  statusEl.textContent = 'Always on top enabled.';
+
+  // The user closed the floating window — restore the original window and
+  // move the UI back home.
+  pipWindow.addEventListener('pagehide', () => {
+    pipWindow = null;
+    alwaysOnTopToggle.checked = false;
+    restoreRecorderWindow();
+    if (!pipMovedNodes) return;
+    pipMovedNodes.forEach((n) => document.body.appendChild(n));
+    pipMovedNodes = null;
+    statusEl.textContent = 'Always on top disabled.';
+  });
+}
+
+function exitAlwaysOnTop() {
+  if (!pipWindow) return;
+  const win = pipWindow;
+  pipWindow = null;
+  win.close(); // the 'pagehide' handler restores the UI
+}
