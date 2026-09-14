@@ -23,8 +23,8 @@ Folder slug (`benchmark_data/<slug>/`) is the canonical ID — display title is 
 1. **Buddhist Culture & Rituals (බෞද්ධ සංස්කෘතිය සහ සිරිත්)** — `01_buddhist_culture`
 2. **Pali Language & Gatha (පාලි භාෂාව සහ ගාථා)** — `02_pali_gatha`
 3. **Classical Literature & Old Sinhala (සම්භාව්‍ය සාහිත්‍යය සහ පුරාතන සිංහල)** — `03_classical_literature`
-4. **Folk & Classical Kavi (ජන කවි සහ සම්භාව්‍ය කවි)** — `04_folk_kavi`
-5. **Sinhala Sindu — Songs & Metaphors (ගීත සාහිත්‍යය සහ උපමා)** — `05_sinhala_sindu`
+4. **Kavi & Sindu — Poetry & Song (ජන කවි, සම්භාව්‍ය කවි සහ සිංහල සිංදු)** — `04_kavi_sindu`
+5. **Sinhala Grammar & Writing (සිංහල ව්‍යාකරණ ලේඛනය)** — `05_sinhala_grammar`
 6. **Daily Spoken Sinhala (දෛනික කථන සිංහල)** — `06_daily_spoken`
 7. **Gen Z Slang & Vernacular (නව පරපුරේ බස)** — `07_genz_slang`
 8. **Profanity Nuance: Banter vs Abuse (කුණුහරුප සහ අපහාස)** — `08_profanity_nuance`

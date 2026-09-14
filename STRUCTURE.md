@@ -24,8 +24,8 @@ SynhalEES/
 │   │
 │   ├── 02_pali_gatha/                         # Dhamma verses & Pali OCR/Audio
 │   ├── 03_classical_literature/               # Jataka tales & temple murals
-│   ├── 04_folk_kavi/                          # Folk poetry, meters, chanting
-│   ├── 05_sinhala_sindu/                      # Lyricism, metaphors, instruments
+│   ├── 04_kavi_sindu/                         # Kavi & Sinhala songs — meters, metaphors, instruments
+│   ├── 05_sinhala_grammar/                    # Sinhala grammar rules & writing (ව්‍යාකරණ ලේඛනය)
 │   ├── 06_daily_spoken/                       # Everyday chats & conversational voice
 │   ├── 07_genz_slang/                         # Modern slang, TikTok text, voice notes
 │   ├── 08_profanity_nuance/                   # Friendly banter vs. toxic abuse
@@ -100,8 +100,8 @@ When creating a dataset item, use this 3-question decision flow to determine the
 | `01_buddhist_culture` | Text, Vision, Audio | `exact_match` | `exact_match` | `wer` |
 | `02_pali_gatha` | Text, Vision, Audio | `exact_match` | `wer` (OCR) | `wer` |
 | `03_classical_literature` | Text, Vision, Audio | `exact_match` | `exact_match` | `wer` |
-| `04_folk_kavi` | Text, Vision, Audio | `exact_match` | `wer` (OCR) | `classification` (Meter) |
-| `05_sinhala_sindu` | Text, Vision, Audio | `llm_judge` | `exact_match` | `classification` (Emotion) |
+| `04_kavi_sindu` | Text, Vision, Audio | `exact_match` / `llm_judge` | `wer` (OCR) / `exact_match` | `classification` (Meter/Emotion) |
+| `05_sinhala_grammar` | Text, Vision, Audio | `exact_match` / `llm_judge` | `wer` (OCR) / `exact_match` | `wer` (Dictation) |
 | `06_daily_spoken` | Text, Vision, Audio | `llm_judge` | `llm_judge` | `wer` (ASR) |
 | `07_genz_slang` | Text, Vision, Audio | `llm_judge` | `llm_judge` | `wer` (ASR) |
 | `08_profanity_nuance` | Text, Vision, Audio | `classification` | `classification` | `classification` (Tone) |
