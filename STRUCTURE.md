@@ -102,7 +102,7 @@ When creating a dataset item, use this 3-question decision flow to determine the
 | `03_classical_literature` | Text, Vision, Audio | `exact_match` | `exact_match` | `wer` |
 | `04_kavi_sindu` | Text, Vision, Audio | `exact_match` / `llm_judge` | `wer` (OCR) / `exact_match` | `classification` (Meter/Emotion) |
 | `05_sinhala_grammar` | Text, Vision, Audio | `exact_match` / `llm_judge` | `wer` (OCR) / `exact_match` | `wer` (Dictation) |
-| `06_daily_spoken` | Text, Vision, Audio | `llm_judge` | `llm_judge` | `wer` (ASR) |
+| `06_daily_spoken` | Text, Vision, Audio | `classification` | `llm_judge` | `wer` (ASR) |
 | `07_genz_slang` | Text, Vision, Audio | `llm_judge` | `llm_judge` | `wer` (ASR) |
 | `08_profanity_nuance` | Text, Vision, Audio | `classification` | `classification` | `classification` (Tone) |
 | `09_singlish_sms` | Text, Vision, Audio | `llm_judge` | `wer` (OCR) | `wer` |
