@@ -128,6 +128,7 @@ function addRecordingCard(blob, extension) {
   let duration = 0;        // resolved once metadata (or the Infinity hack) loads
   let wavePeaks = null;    // cached min/max per column — avoids re-decoding on redraws
   let dragState = null;    // { startFrac, curFrac } while a crop drag is in progress
+  let savedTrim = null;    // selection snapshot while a plain click seeks (restored on pointerup)
 
   // audioDuration() falls back to the resolved `duration` while the element
   // still reports a non-finite duration (MediaRecorder webm quirk).
@@ -150,6 +151,7 @@ function addRecordingCard(blob, extension) {
   // ===== Playhead indicator (drawn on the waveform) =====
   let playheadFrac = null; // null until the clip has been played/seeked
   let playheadRaf = 0;
+  let playStartFrac = null; // where playback started — gates trim-end auto-stop
 
   function updatePlayhead() {
     const dur = audioDuration();
@@ -216,9 +218,17 @@ function addRecordingCard(blob, extension) {
     updatePlayhead();
     const dur = audioDuration();
     timeLabelEl.textContent = `${formatTime(audioEl.currentTime * 1000)} / ${formatTime(dur * 1000)}`;
-    // Stop playback automatically once it reaches the trim end marker.
+    // Stop playback automatically once it reaches the trim end marker —
+    // but only when playback started INSIDE the selection. Starting from a
+    // waveform click beyond the trim end keeps playing to the end of the
+    // clip instead of instantly pausing.
     // (The button label is kept honest by the play/pause events above.)
-    if (dur > 0 && audioEl.currentTime >= (endSlider.value / 1000) * dur) {
+    const startLimit = playStartFrac === null ? 0 : playStartFrac;
+    if (
+      dur > 0 &&
+      startLimit < (endSlider.value / 1000) &&
+      audioEl.currentTime >= (endSlider.value / 1000) * dur
+    ) {
       audioEl.pause();
     }
   });
@@ -231,6 +241,7 @@ function addRecordingCard(blob, extension) {
       if (audioEl.currentTime < startTime || audioEl.currentTime >= (endSlider.value / 1000) * dur) {
         audioEl.currentTime = startTime;
       }
+      if (dur > 0) playStartFrac = audioEl.currentTime / dur;
       const playPromise = audioEl.play();
       // play() can reject (e.g. unsupported source) — keep the button honest.
       if (playPromise && typeof playPromise.catch === 'function') {
@@ -248,6 +259,7 @@ function addRecordingCard(blob, extension) {
   replayBtn.addEventListener('click', () => {
     const dur = audioDuration();
     audioEl.currentTime = (startSlider.value / 1000) * dur;
+    if (dur > 0) playStartFrac = audioEl.currentTime / dur;
     updatePlayhead();
     renderWave();
     const playPromise = audioEl.play();
@@ -308,6 +320,7 @@ function addRecordingCard(blob, extension) {
     try { waveformCanvas.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
     const frac = pointerFrac(e);
     dragState = { startFrac: frac, curFrac: frac };
+    savedTrim = { start: parseInt(startSlider.value, 10), end: parseInt(endSlider.value, 10) };
     syncTrim(frac, frac);
   });
 
@@ -325,8 +338,32 @@ function addRecordingCard(blob, extension) {
     const b = Math.max(dragState.startFrac, dragState.curFrac);
     dragState = null;
     if (b - a < 0.01) {
-      // Plain click (no real drag) — reset back to the full clip.
-      syncTrim(0, 1);
+      // Plain click (no real drag) — restore the selection the user had,
+      // then seek to the clicked spot and play from there. The playhead
+      // stays exactly where the user clicked.
+      if (savedTrim) {
+        startSlider.value = String(savedTrim.start);
+        endSlider.value = String(savedTrim.end);
+        syncSliderLabels();
+      }
+      savedTrim = null;
+      const dur = audioDuration();
+      if (dur <= 0) {
+        renderWave();
+        return; // duration not known yet — nothing to seek
+      }
+      const frac = Math.min(1, Math.max(0, a));
+      audioEl.currentTime = frac * dur;
+      playStartFrac = frac;
+      updatePlayhead();
+      renderWave();
+      const playPromise = audioEl.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch((err) => {
+          console.error('Playback failed:', err);
+          setPlayBtn(false);
+        });
+      }
       return;
     }
     syncTrim(a, b);
@@ -334,7 +371,20 @@ function addRecordingCard(blob, extension) {
 
   waveformCanvas.addEventListener('pointercancel', () => {
     dragState = null;
+    if (savedTrim) {
+      startSlider.value = String(savedTrim.start);
+      endSlider.value = String(savedTrim.end);
+      syncSliderLabels();
+      savedTrim = null;
+    }
     renderWave();
+  });
+
+  // Double-click resets the crop selection back to the full clip
+  // (single click now seeks/plays instead).
+  waveformCanvas.addEventListener('dblclick', () => {
+    savedTrim = null;
+    syncTrim(0, 1);
   });
 
   startSlider.addEventListener('input', () => { syncSliderLabels(); renderWave(); });
