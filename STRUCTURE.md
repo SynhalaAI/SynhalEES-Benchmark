@@ -27,12 +27,12 @@ SynhalEES/
 │   ├── 04_kavi_sindu/                         # Kavi & Sinhala songs — meters, metaphors, instruments
 │   ├── 05_sinhala_grammar/                    # Sinhala grammar rules & writing (ව්‍යාකරණ ලේඛනය)
 │   ├── 06_daily_spoken/                       # Everyday chats & conversational voice
-│   ├── 07_genz_slang/                         # Modern slang, TikTok text, voice notes
+│   ├── 07_figurative_sinhala/                 # Wordplay, hidden meanings & similes
 │   ├── 08_profanity_nuance/                   # Friendly banter vs. toxic abuse
 │   ├── 09_singlish_sms/                       # WhatsApp shorthand & chat screenshots
 │   ├── 10_regional_dialects/                  # Southern, Kandy, Rajarata accents
 │   ├── 11_astrology_beliefs/                  # Horoscopes, Rahu time, Thovil masks
-│   ├── 12_memes_humor/                        # Sinhala photo memes & dubbing parodies
+│   ├── 12_general_knowledge/                  # Sri Lanka general knowledge & national symbols
 │   ├── 13_multiethnic_loanwords/              # Tamil/Malay/Colonial loan terms
 │   ├── 14_culinary_kitchen/                   # Cooking terminology & food dishes
 │   └── 15_official_media/                     # Gazettes, official letters, news scripts
@@ -103,12 +103,12 @@ When creating a dataset item, use this 3-question decision flow to determine the
 | `04_kavi_sindu` | Text, Vision, Audio | `exact_match` / `llm_judge` | `wer` (OCR) / `exact_match` | `classification` (Meter/Emotion) |
 | `05_sinhala_grammar` | Text, Vision, Audio | `exact_match` / `llm_judge` | `wer` (OCR) / `exact_match` | `wer` (Dictation) |
 | `06_daily_spoken` | Text, Vision, Audio | `classification` | `llm_judge` | `wer` (ASR) |
-| `07_genz_slang` | Text, Vision, Audio | `llm_judge` | `llm_judge` | `wer` (ASR) |
+| `07_figurative_sinhala` | Text, Vision, Audio | `classification` | `exact_match` | `exact_match` (figurative) |
 | `08_profanity_nuance` | Text, Vision, Audio | `classification` | `classification` | `classification` (Tone) |
 | `09_singlish_sms` | Text, Vision, Audio | `llm_judge` | `wer` (OCR) | `wer` |
 | `10_regional_dialects` | Text, Vision, Audio | `exact_match` | `exact_match` | `wer` (Regional ASR) |
 | `11_astrology_beliefs` | Text, Vision, Audio | `exact_match` | `exact_match` | `classification` |
-| `12_memes_humor` | Text, Vision, Audio | `llm_judge` | `llm_judge` | `llm_judge` |
+| `12_general_knowledge` | Text, Vision, Audio | `exact_match` / `classification` | `exact_match` | `exact_match` / `wer` |
 | `13_multiethnic_loanwords` | Text, Vision, Audio | `exact_match` | `exact_match` | `wer` |
 | `14_culinary_kitchen` | Text, Vision, Audio | `exact_match` | `exact_match` | `wer` |
 | `15_official_media` | Text, Vision, Audio | `llm_judge` | `wer` (Doc OCR) | `wer` |
@@ -150,7 +150,15 @@ VIS_12_004,meme_bus_04.png,"මේ මීම් එකේ ජෝර්ක් එ
 ### C. Audio Schema (`audio/audio.csv`)
 Located inside each pillar directory (e.g., `benchmark_data/10_regional_dialects/audio/audio.csv`):
 ```csv
-id,audio_file,ground_truth,eval_type
-AUD_10_001,southern_accent_01.mp3,"මොකෝ බොල තෝ දුවන්නේ",wer
-AUD_08_003,shouting_anger_03.mp3,"aggressive_abuse",classification
+id,audio_file,question,ground_truth,eval_type
+AUD_10_001,southern_accent_01.mp3,,"මොකෝ බොල තෝ දුවන්නේ",wer
+AUD_07_001,hidden_meaning_01.mp3,මේ කතාවෙන් ඇත්තටම කියන්නේ මොකක්ද?,අතපාසා ඉල්ලීම,exact_match
+AUD_08_003,shouting_anger_03.mp3,,"aggressive_abuse",classification
 ```
+
+> **Optional `question` column:** empty (or omitted) on `wer` rows -> the
+> loader injects the default transcription prompt
+> **`මේ ශ්‍රව්‍යයේ ඇහෙන දේ හරියටම ලියන්න.`** automatically. Comprehension
+> rows (`exact_match`, `classification`, `llm_judge`) must always carry a
+> question, because the audio alone does not say what to ask (e.g. what
+> the hidden meaning of a spoken figure of speech is).
