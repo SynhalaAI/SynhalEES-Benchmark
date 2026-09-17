@@ -32,7 +32,7 @@ Folder slug (`benchmark_data/<slug>/`) is the canonical ID — display title is 
 10. **Regional Dialects: Southern, Up-Country (Kandy), Rajarata (ප්‍රාදේශීය ව්‍යවහාර)** — `10_regional_dialects`
 11. **Astrology & Folk Beliefs (ජන විශ්වාස සහ ශාන්තිකර්ම)** — `11_astrology_beliefs`
 12. **General Knowledge (ශ්‍රී ලංකා සාමාන්‍ය දැනුම)** — `12_general_knowledge`
-13. **Multi-ethnic Loanwords: Tamil / Muslim / Colonial (දෙමළ/මුස්ලිම්/යටත්විජිත ණයට ගත් වචන)** — `13_multiethnic_loanwords`
+13. **Sri Lanka Law & Legal Sinhala (ශ්‍රී ලංකා නීතිය සහ නීතිමය සිංහල)** — `13_sri_lanka_law`
 14. **Culinary & Kitchen Nuances (දේශීය ඉවුම් පිහුම් සහ කුස්සියේ වහර)** — `14_culinary_kitchen`
 15. **Official & Media Sinhala (නිල රාජ්‍ය සහ මාධ්‍ය භාෂාව)** — `15_official_media`
 

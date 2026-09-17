@@ -33,7 +33,7 @@ SynhalEES/
 │   ├── 10_regional_dialects/                  # Southern, Kandy, Rajarata accents
 │   ├── 11_astrology_beliefs/                  # Horoscopes, Rahu time, Thovil masks
 │   ├── 12_general_knowledge/                  # Sri Lanka general knowledge & national symbols
-│   ├── 13_multiethnic_loanwords/              # Tamil/Malay/Colonial loan terms
+│   ├── 13_sri_lanka_law/                       # Sri Lanka legal system & legal Sinhala
 │   ├── 14_culinary_kitchen/                   # Cooking terminology & food dishes
 │   └── 15_official_media/                     # Gazettes, official letters, news scripts
 │
@@ -109,7 +109,7 @@ When creating a dataset item, use this 3-question decision flow to determine the
 | `10_regional_dialects` | Text, Vision, Audio | `exact_match` | `exact_match` | `wer` (Regional ASR) |
 | `11_astrology_beliefs` | Text, Vision, Audio | `exact_match` | `exact_match` | `classification` |
 | `12_general_knowledge` | Text, Vision, Audio | `exact_match` / `classification` | `exact_match` | `exact_match` / `wer` |
-| `13_multiethnic_loanwords` | Text, Vision, Audio | `exact_match` | `exact_match` | `wer` |
+| `13_sri_lanka_law` | Text, Vision, Audio | `exact_match` / `classification` | `exact_match` | `exact_match` / `wer` |
 | `14_culinary_kitchen` | Text, Vision, Audio | `exact_match` | `exact_match` | `wer` |
 | `15_official_media` | Text, Vision, Audio | `llm_judge` | `wer` (Doc OCR) | `wer` |
 
