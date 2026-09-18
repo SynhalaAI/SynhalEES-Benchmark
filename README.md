@@ -34,7 +34,7 @@ Folder slug (`benchmark_data/<slug>/`) is the canonical ID — display title is 
 12. **General Knowledge (ශ්‍රී ලංකා සාමාන්‍ය දැනුම)** — `12_general_knowledge`
 13. **Sri Lanka Law & Legal Sinhala (ශ්‍රී ලංකා නීතිය සහ නීතිමය සිංහල)** — `13_sri_lanka_law`
 14. **Culinary & Kitchen Nuances (දේශීය ඉවුම් පිහුම් සහ කුස්සියේ වහර)** — `14_culinary_kitchen`
-15. **Official & Media Sinhala (නිල රාජ්‍ය සහ මාධ්‍ය භාෂාව)** — `15_official_media`
+15. **Numbers & Basic Maths (සිංහල අංක සහ මූලික ගණිතය)** — `15_numbers_maths`
 
 > 📌 **Detailed technical specifications, folder mapping, and dataset schemas can be found in [`STRUCTURE.md`](STRUCTURE.md).**
 

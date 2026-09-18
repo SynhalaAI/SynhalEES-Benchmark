@@ -35,7 +35,7 @@ SynhalEES/
 │   ├── 12_general_knowledge/                  # Sri Lanka general knowledge & national symbols
 │   ├── 13_sri_lanka_law/                       # Sri Lanka legal system & legal Sinhala
 │   ├── 14_culinary_kitchen/                   # Cooking terminology & food dishes
-│   └── 15_official_media/                     # Gazettes, official letters, news scripts
+│   └── 15_numbers_maths/                      # Numbers, counting & basic maths in Sinhala
 │
 ├── synhalees/                                 # Core Python Package
 │   ├── __init__.py                            # Public API (env helpers, version)
@@ -111,7 +111,7 @@ When creating a dataset item, use this 3-question decision flow to determine the
 | `12_general_knowledge` | Text, Vision, Audio | `exact_match` / `classification` | `exact_match` | `exact_match` / `wer` |
 | `13_sri_lanka_law` | Text, Vision, Audio | `exact_match` / `classification` | `exact_match` | `exact_match` / `wer` |
 | `14_culinary_kitchen` | Text, Vision, Audio | `exact_match` | `exact_match` | `wer` |
-| `15_official_media` | Text, Vision, Audio | `llm_judge` | `wer` (Doc OCR) | `wer` |
+| `15_numbers_maths` | Text, Vision, Audio | `exact_match` / `classification` | `exact_match` | `exact_match` / `wer` |
 
 ---
 
