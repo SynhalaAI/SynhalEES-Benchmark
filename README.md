@@ -3,15 +3,24 @@
 [![Maintained by SynhalaAI](https://img.shields.io/badge/Maintained%20by-SynhalaAI-blue.svg)](https://github.com/SynhalaAI)
 [![Kaggle Ready](https://img.shields.io/badge/Platform-Kaggle%20Native-20BEFF.svg)](https://kaggle.com)
 
-> **Evaluating how authentically Multimodal AI Models (LLMs, VLMs, Audio-LLMs) understand, speak, see, and behave like a native Sri Lankan Sinhala human.**
+> **Measuring how authentically Multimodal AI Models (LLMs, VLMs, Audio-LLMs) THINK as a native Sri Lankan Sinhala human — reasoning in Sinhala, seeing the world through Sinhala eyes, and speaking like a native — not like a translated English machine.**
 
 ---
 
 ## 📖 Overview
 
-Standard AI benchmarks test models using translated English datasets, creating models that speak unnatural, robotic Sinhala and completely miss local cultural nuances, slang, and context.
+Standard AI benchmarks test models using translated English datasets. The result: models that don't just *speak* robotic Sinhala — they **think in English and translate**. They miss the humor behind a meme, the hidden meaning inside a kavi, the line between friendly banter and abuse, and the cultural reflexes every native Sinhala human grows up with.
 
-Developed by **[SynhalaAI](https://github.com/SynhalaAI)**, **SynhalEES** is the first tri-modal benchmark (**Text, Vision, Audio**) designed from the ground up for the Sinhala linguistic and cultural sphere. It evaluates models across **15 distinct cultural and linguistic pillars**—ranging from sacred Pali stanzas and classical literature to wordplay and hidden meanings, Singlish SMS, regional accents, and local culinary wisdom.
+Developed by **[SynhalaAI](https://github.com/SynhalaAI)**, **SynhalEES** is the first tri-modal benchmark (**Text, Vision, Audio**) built to answer one question: **does a model think as a Sinhala human — or does it merely translate English thoughts into Sinhala words?**
+
+It probes a model's native reasoning across **15 distinct cultural and linguistic pillars**—ranging from sacred Pali stanzas and classical literature to wordplay and hidden meanings, Singlish SMS, regional accents, and local culinary wisdom. Each pillar measures whether the model's *thought process* is natively Sinhala: Does it get the joke the way a Colombo teen does? Feel the empathy a village elder would? Know instinctively when "තෝ බල්ලෙක්" is banter and when it is an insult?
+
+### 🧠 What "thinking as Sinhalese" means
+
+- **Reason in Sinhala, not through English** — idioms, ව්‍යංග්‍යාර්ථ (hidden meanings), and similes must be understood from within the language itself.
+- **Cultural instincts, not trivia** — knowing *why* a ritual is performed matters more than reciting *what* it is.
+- **Native pragmatics** — tone, register, banter-vs-abuse, regional dialects, and Singlish must be handled the way a native speaker would react.
+- **Multimodal like a native** — look at a temple image, hear a dialect accent, or read a chat screenshot, and respond with local context — not generic, translated answers.
 
 ---
 

@@ -4,6 +4,11 @@ Thanks for your interest in improving the Sinhala benchmark! 🎉
 All contributions — data, code, or docs — are welcome.
 **Please read [`AGENTS.md`](AGENTS.md) first**: it defines the rules every change must follow.
 
+> 🧠 **Our mission:** measuring how well AI models **think as Sinhalese** — reasoning
+> natively inside the Sinhala language and culture, not translating English thoughts.
+> Every row you contribute teaches a model to think a little more like a native
+> Sinhala human.
+
 ---
 
 ## 🤝 How to contribute
@@ -13,6 +18,12 @@ All contributions — data, code, or docs — are welcome.
 > 🧑 **Human-first:** Only human-created data is accepted.
 > **Do NOT use AI to generate data** — no AI-written or synthetic rows, period.
 > Every row must be written/collected by a real person.
+
+> 🧠 **What makes a good row?** Contribute items that test **native Sinhala thinking** —
+> idioms, hidden meanings (ව්‍යංග්‍යාර්ථ), banter-vs-abuse tone, dialect logic, cultural
+> instincts, everyday empathy — not translated-English trivia. If a translated-English
+> model could answer your row correctly *without* understanding Sinhala culture, the
+> row isn't testing what this benchmark exists for.
 
 - Pick any pillar folder under `benchmark_data/<slug>/`.
 - Add rows to the pillar's CSVs following the exact schemas in
