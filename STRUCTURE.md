@@ -38,16 +38,23 @@ SynhalEES/
 │   └── 15_numbers_maths/                      # Numbers, counting & basic maths in Sinhala
 │
 ├── synhalees/                                 # Core Python Package
-│   ├── __init__.py                            # Public API (env helpers, version)
+│   ├── __init__.py                            # Public API (data loaders, env helpers, lazy SynhalEESBenchmark)
 │   ├── data/                                  # Data Loaders & Registry
 │   │   └── __init__.py
-│   ├── models/                                # Model Adapters (HF, APIs, Whisper)
+│   ├── models/                                # Model adapters (Ollama, OpenRouter, Gemini, OpenAI, Anthropic)
 │   │   └── __init__.py
-│   ├── evaluators/                            # Scoring Engines (Exact Match, Judge, WER)
+│   ├── evaluators/                            # Scoring engines (exact match, WER, classification, judge)
 │   │   └── __init__.py
-│   └── env.py                                 # Kaggle/Local environment detector
+│   ├── env.py                                 # Kaggle/Local environment detector
+│   └── runner.py                              # Checkpointed runner + SynhalEESBenchmark (resume-safe)
 │
-├── run_benchmark.py                           # CLI Entry point
+├── kaggle/                                      # Kaggle Benchmarks tasks (optional leaderboard path)
+│   ├── generate_tasks.py                        # regenerates the 17 task files
+│   ├── synhalees_task.py                        # all-in-one master task (15 pillars, text)
+│   └── tasks/                                   # 17 generated: 15 pillars (text) + vision + audio
+├── .gitignore                                 # runs/, __pycache__, lock files
+├── pyproject.toml                             # pip install -e . packaging
+├── run_benchmark.py                           # CLI entry point (checkpointed API runner)
 ├── CONTRIBUTING.md                            # Contribution guide
 └── README.md
 ```

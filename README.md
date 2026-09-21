@@ -1,7 +1,7 @@
 # 🇱🇰 SynhalEES: The Multimodal Sinhala Cultural Benchmark
 
 [![Maintained by SynhalaAI](https://img.shields.io/badge/Maintained%20by-SynhalaAI-blue.svg)](https://github.com/SynhalaAI)
-[![Kaggle Ready](https://img.shields.io/badge/Platform-Kaggle%20Native-20BEFF.svg)](https://kaggle.com)
+[![Providers](https://img.shields.io/badge/Providers-Ollama%20%C2%B7%20OpenRouter%20%C2%B7%20Gemini%20%C2%B7%20OpenAI-blue.svg)]()
 
 > **Measuring how authentically Multimodal AI Models (LLMs, VLMs, Audio-LLMs) THINK as a native Sri Lankan Sinhala human — reasoning in Sinhala, seeing the world through Sinhala eyes, and speaking like a native — not like a translated English machine.**
 
@@ -49,44 +49,63 @@ Folder slug (`benchmark_data/<slug>/`) is the canonical ID — display title is 
 
 ---
 
-## ⚡ Kaggle-Native Quickstart
+## ⚡ Quickstart (API-driven, no GPU needed)
 
-SynhalEES is designed to run natively inside **Kaggle Notebooks** with zero setup, leveraging free T4/P100 GPUs.
+SynhalEES talks **directly to chat-LLM APIs** -- pure-stdlib HTTP, zero third-party
+dependencies, with crash-safe checkpointing built in.
 
-### 1. Run via Kaggle Notebook
-Open a Kaggle Notebook and run:
-
+### 1. Install
 ```bash
-# 1. Clone repository
-!git clone https://github.com/SynhalaAI/SynhalEES.git
-%cd SynhalEES
-!pip install -q -e .
+git clone https://github.com/SynhalaAI/SynhalEES-Benchmark.git
+cd SynhalEES-Benchmark
+pip install -e .
 ```
 
-### 2. Run Open-Source Models (e.g., Llama-3 on GPU)
+### 2. Pick a provider
+| Provider | Model spec | API key env var |
+|---|---|---|
+| Ollama (local, free) | `ollama:llama3.1:8b` | -- none -- |
+| OpenRouter | `openrouter:openai/gpt-4o-mini` | `OPENROUTER_API_KEY` |
+| Gemini | `gemini:gemini-2.5-flash` | `GEMINI_API_KEY` |
+| OpenAI | `openai:gpt-4o` | `OPENAI_API_KEY` |
+| Anthropic (no audio) | `anthropic:claude-sonnet-4-5` | `ANTHROPIC_API_KEY` |
+
+### 3. Run from Python
 ```python
 from synhalees import SynhalEESBenchmark
 
-# Initialize on Kaggle GPU
 benchmark = SynhalEESBenchmark(
-    model_name="meta-llama/Meta-Llama-3-8B-Instruct",
-    modalities=["text", "vision", "audio"],
-    device="cuda"
+    "gemini:gemini-2.5-flash",
+    judge_model="gemini:gemini-2.5-pro",   # optional; defaults to the same model
+    modalities=["text"],                   # add "vision", "audio" once media is committed
 )
-
-# Run complete evaluation
 results = benchmark.run()
-
-# Save Kaggle submission
-results.save_submission("/kaggle/working/submission.csv")
 results.print_scorecard()
+results.save_submission("submission.csv")
 ```
 
-### 3. Run Closed-Source Models (e.g., GPT-4o via Kaggle Secrets)
-Add your `OPENAI_API_KEY` to Kaggle Secrets, then run:
+### 4. Run from the CLI
 ```bash
-python run_benchmark.py --model gpt-4o --provider openai --modality all
+python run_benchmark.py --model ollama:llama3.1:8b --pillars 01_buddhist_culture
 ```
+
+### Optional: Kaggle leaderboard
+Want a public leaderboard on Kaggle Benchmarks instead? The task file in
+[`kaggle/synhalees_task.py`](kaggle/synhalees_task.py) is push-ready -- with a
+Kaggle API token (`kaggle.json`) the whole flow runs from the terminal:
+`kaggle b t push` -> `kaggle b t run` -> `kaggle b t publish`.
+Runs are server-side, so closing your laptop will not interrupt them.
+
+For per-pillar leaderboards, `kaggle/tasks/` holds **17 generated task files**
+(15 pillars on text + 1 vision + 1 audio); regenerate with
+`python kaggle/generate_tasks.py` and push all with
+`Get-ChildItem kaggle/tasks/*.py | % { kaggle b t push $_.FullName }`.
+Note: vision/audio tasks need the media files committed first.
+
+### Crash-safe resume
+Every item is appended to `runs/checkpoint.jsonl` the moment it completes.
+If the run is interrupted (Ctrl+C, quota, network), **rerun the same command** --
+completed items are skipped automatically. Use `--fresh` to start over.
 
 ---
 
