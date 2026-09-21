@@ -52,10 +52,27 @@ SynhalEES/
 │   ├── generate_tasks.py                        # regenerates the 17 task files
 │   ├── synhalees_task.py                        # all-in-one master task (15 pillars, text)
 │   └── tasks/                                   # 17 generated: 15 pillars (text) + vision + audio
+│
+├── logo/                                        # Brand assets (logo & cover art)
+│   ├── logo.png                                 # Primary logo
+│   ├── logo.jpg / logo.af                       # JPG export + Affinity source file
+│   └── cover.jpg / cover.af                     # Cover art + Affinity source file
+│
+├── tools/                                       # Data-collection helper tools
+│   └── audio-recorder-extension/                # Chrome MV3 mic recorder (for audio pillar data)
+│       ├── manifest.json                        # Extension manifest (Simple Audio Recorder)
+│       ├── background.js                        # Service worker
+│       ├── popup.html / popup.js                # Recorder UI
+│       ├── recorder-worklet.js                  # Audio capture worklet
+│       ├── lame.min.js                          # MP3 encoder
+│       └── icon16.png / icon48.png / icon128.png
+│
 ├── .gitignore                                 # runs/, __pycache__, lock files
 ├── pyproject.toml                             # pip install -e . packaging
 ├── run_benchmark.py                           # CLI entry point (checkpointed API runner)
+├── AGENTS.md                                  # AI-agent / contributor conventions
 ├── CONTRIBUTING.md                            # Contribution guide
+├── STRUCTURE.md                               # This file — technical spec
 └── README.md
 ```
 
