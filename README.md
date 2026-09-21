@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="logo/cover.jpg" alt="SynhalEES Benchmark — The Multimodal Sinhala Cultural Benchmark" width="100%"/>
+</p>
+
 # 🇱🇰 SynhalEES: The Multimodal Sinhala Cultural Benchmark
 
 [![Maintained by SynhalaAI](https://img.shields.io/badge/Maintained%20by-SynhalaAI-blue.svg)](https://github.com/SynhalaAI)
