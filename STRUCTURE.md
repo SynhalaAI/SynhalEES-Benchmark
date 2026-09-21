@@ -70,8 +70,6 @@ SynhalEES/
 ├── .gitignore                                 # runs/, __pycache__, lock files
 ├── pyproject.toml                             # pip install -e . packaging
 ├── run_benchmark.py                           # CLI entry point (checkpointed API runner)
-├── LICENSE.md                                 # SORL v1.0 (research-only, non-commercial) + scope
-├── NOTICE.md                                  # Third-party media attribution register
 ├── AGENTS.md                                  # AI-agent / contributor conventions
 ├── CONTRIBUTING.md                            # Contribution guide
 ├── STRUCTURE.md                               # This file — technical spec
