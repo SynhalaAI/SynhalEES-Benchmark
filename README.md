@@ -122,5 +122,5 @@ Every pillar folder is a small, reviewable PR — no giant CSVs.
 ---
 
 ## 📜 License & Organization
-* **License:** This project is licensed under the **[SynhalaAI Open Research License (SORL)](https://github.com/SynhalaAI/SynhalaAI-Open-Research-License-SORL)** - research & non-commercial use only, with attribution.
+* **License:** This project is licensed under the **[SynhalaAI Sovereign Research License (SSRL-1.0)](https://github.com/SynhalaAI/License/blob/main/SSRL.md)** - a sovereign public trust license open exclusively to Sri Lankan citizens and Sri Lankan academic/non-profit institutions, for non-commercial research only. Commercial use is permanently prohibited.
 * **Maintained by:** **[SynhalaAI](https://github.com/SynhalaAI)** - An open-source initiative empowering Sinhala AI.
