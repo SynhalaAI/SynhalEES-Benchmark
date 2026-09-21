@@ -122,4 +122,6 @@ Every pillar folder is a small, reviewable PR — no giant CSVs.
 ---
 
 ## 📜 License & Organization
-* **Maintained by:** **[SynhalaAI](https://github.com/SynhalaAI)** — An open-source initiative empowering Sinhala AI.
+* **License:** Original code & datasets are under the **[SynhalaAI Open Research License (SORL) v1.0](LICENSE.md)** - **research & non-commercial use only**, with attribution. Commercial use requires prior written permission from SKY PRODUCTION.
+* **Third-party media:** Some images/audio are publicly sourced third-party content - original licenses apply (see [`NOTICE.md`](NOTICE.md)); rights holders can request credit changes or removal via [issues](https://github.com/SynhalaAI/SynhalEES-Benchmark/issues).
+* **Maintained by:** **[SynhalaAI](https://github.com/SynhalaAI)** - An open-source initiative empowering Sinhala AI.
