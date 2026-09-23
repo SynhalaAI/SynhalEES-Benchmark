@@ -11,7 +11,8 @@
     updated: "",
     mode: "overall",          // overall | text | vision | audio
     pillar: "",               // "" = overall, else pillar slug
-    compare: [],              // model names in the comparison table (3-6)
+    compare: [],              // rival model names in the comparison table (2-5)
+    featured: "",             // pinned first column — always gets crown styling (UI-only emphasis)
     sortKey: "score",
     sortDir: -1,
     search: "",
@@ -302,11 +303,18 @@
   function renderCompare() {
     var tbl = $("#compare-table");
     if (!tbl) return;
-    var models = state.models.filter(function (m) {
-      return state.compare.indexOf(m.name) !== -1;
+    // featured model always leads the table; rivals follow in picker order
+    var models = [];
+    var featModel = null;
+    state.models.forEach(function (m) { if (m.name === state.featured) featModel = m; });
+    if (featModel) models.push(featModel);
+    state.compare.forEach(function (n) {
+      if (n === state.featured) return;
+      state.models.forEach(function (m) { if (m.name === n) models.push(m); });
     });
+    tbl.classList.toggle("has-featured", !!featModel);
     var rows = compareRows();
-    var wins = {}, topWins = 0;
+    var wins = {}; // honest row-win counts — never altered
 
     models.forEach(function (m) { wins[m.name] = 0; });
     rows.forEach(function (r) {
@@ -321,7 +329,6 @@
         if (r.get(m) === best) wins[m.name]++;
       });
     });
-    models.forEach(function (m) { if (wins[m.name] > topWins) topWins = wins[m.name]; });
 
     var metricCount = 0;
     rows.forEach(function (r) { if (!r.group) metricCount++; });
@@ -329,11 +336,11 @@
     var html = "<thead><tr><th class='cmp-rowhead' scope='col'><span class='cmp-metriccount'>" +
       metricCount + " metrics</span></th>";
     models.forEach(function (m) {
-      var feat = topWins > 0 && wins[m.name] === topWins;
+      var feat = m.name === state.featured;
       var logo = providerLogo(m.provider);
       html += "<th scope='col' class='cmp-model" + (feat ? " cmp-featured" : "") + "'>" +
         "<span class='cmp-model-box'>" +
-        (logo ? "<img src='" + logo + "' alt='' class='cmp-logo' onerror=\"this.style.display='none'\"/>" : "") +
+        (logo ? logo : "") +
         "<span class='cmp-name'>" + m.name + "</span>" +
         "<span class='cmp-provider'>" + m.provider + "</span>" +
         "<span class='cmp-wins" + (feat ? " top" : "") + "'>" +
@@ -355,12 +362,12 @@
       var hasBest = n >= 2;
       html += "<tr" + (r.hero ? " class='cmp-hero'" : "") + "><th scope='row' class='cmp-rowhead'>" +
         (r.icon ? "<span class='cmp-ico'>" + SVG_OPEN + ICONS[r.icon] + "</svg></span>" : "") +
-        "<span class='cmp-rtext'><span class='cmp-rlabel'>" + r.label + "</span>" +
+        "<span class='cmp-rtext'><span class='cmp-rlabel' title='" + esc(r.label) + "'>" + esc(r.label) + "</span>" +
         (r.sub ? "<span class='cmp-rsub'>" + r.sub + "</span>" : "") +
         "</span></th>";
       models.forEach(function (m) {
         var v = r.get(m);
-        var feat = topWins > 0 && wins[m.name] === topWins;
+        var feat = m.name === state.featured;
         var cls = "";
         if (hasBest && v === best) cls += " cmp-best";
         if (v == null) cls += " cmp-null";
@@ -377,13 +384,13 @@
     var list = $("#compare-picker-list");
     if (!list) return;
     var cbs = list.querySelectorAll("input[type=checkbox]");
-    var atMax = state.compare.length >= CMP_MAX;
-    var atMin = state.compare.length <= CMP_MIN;
+    var atMax = state.compare.length >= CMP_MAX - 1; // -1: featured model fills the first slot
+    var atMin = state.compare.length <= CMP_MIN - 1;
     for (var i = 0; i < cbs.length; i++) {
       cbs[i].disabled = (atMax && !cbs[i].checked) || (atMin && cbs[i].checked);
     }
     var cnt = $("#compare-count");
-    if (cnt) cnt.textContent = state.compare.length + " of " + CMP_MAX + " selected \u00b7 min " + CMP_MIN;
+    if (cnt) cnt.textContent = "1 featured \u00b7 " + state.compare.length + " of " + (CMP_MAX - 1) + " rivals";
   }
 
   function flashCompareLimit() {
@@ -397,18 +404,45 @@
   function buildComparePicker() {
     var list = $("#compare-picker-list");
     if (!list) return;
+    // featured-model dropdown (single choice; change handler bound once)
+    var fsel = $("#compare-featured");
+    if (fsel) {
+      fsel.innerHTML = "";
+      state.models.forEach(function (m) {
+        var opt = document.createElement("option");
+        opt.value = m.name;
+        opt.textContent = m.name;
+        if (m.name === state.featured) opt.selected = true;
+        fsel.appendChild(opt);
+      });
+      if (!fsel.dataset.bound) {
+        fsel.dataset.bound = "1";
+        fsel.addEventListener("change", function () {
+          state.featured = fsel.value;
+          state.compare = state.compare.filter(function (n) { return n !== state.featured; });
+          // top up rivals if the new featured model was one of them
+          for (var i = 0; i < state.models.length && state.compare.length < CMP_MIN - 1; i++) {
+            var nm = state.models[i].name;
+            if (nm !== state.featured && state.compare.indexOf(nm) === -1) state.compare.push(nm);
+          }
+          buildComparePicker();
+          renderCompare();
+        });
+      }
+    }
     list.innerHTML = "";
     state.models.forEach(function (m) {
+      if (m.name === state.featured) return; // pinned via the featured dropdown above
       var item = document.createElement("label");
       item.className = "pk-item";
       var cb = document.createElement("input");
       cb.type = "checkbox";
       cb.checked = state.compare.indexOf(m.name) !== -1;
       cb.addEventListener("change", function () {
-        if (cb.checked && state.compare.length >= CMP_MAX) {
+        if (cb.checked && state.compare.length >= CMP_MAX - 1) {
           cb.checked = false; flashCompareLimit(); return;
         }
-        if (!cb.checked && state.compare.length <= CMP_MIN) {
+        if (!cb.checked && state.compare.length <= CMP_MIN - 1) {
           cb.checked = true; flashCompareLimit(); return;
         }
         if (cb.checked) state.compare.push(m.name);
@@ -417,13 +451,12 @@
         renderCompare();
       });
       item.appendChild(cb);
+      // providerLogo() returns ready-made HTML (<img> or fallback chip), not a URL
       var logo = providerLogo(m.provider);
       if (logo) {
-        var img = document.createElement("img");
-        img.src = logo;
-        img.alt = "";
-        img.onerror = function () { img.style.display = "none"; };
-        item.appendChild(img);
+        var logoWrap = document.createElement("span");
+        logoWrap.innerHTML = logo;
+        item.appendChild(logoWrap);
       }
       var span = document.createElement("span");
       span.textContent = m.name;
@@ -693,7 +726,8 @@
         if (p) p.hidden = true;
       });
       $("#compare-reset").addEventListener("click", function () {
-        state.compare = state.models.slice(0, CMP_MIN).map(function (m) { return m.name; });
+        state.featured = state.models.length ? state.models[0].name : "";
+        state.compare = state.models.slice(1, CMP_MIN).map(function (m) { return m.name; });
         buildComparePicker();
         renderCompare();
       });
@@ -742,7 +776,8 @@
     bindEvents();
     renderTable();
     renderPillarGrid();
-    state.compare = state.models.slice(0, CMP_MIN).map(function (m) { return m.name; });
+    state.featured = state.models.length ? state.models[0].name : "";
+    state.compare = state.models.slice(1, CMP_MIN).map(function (m) { return m.name; });
     buildComparePicker();
     renderCompare();
     state.bootAnim = false; // later re-renders (sort/filter/search) don't re-animate
