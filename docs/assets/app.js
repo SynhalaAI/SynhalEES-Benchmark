@@ -11,6 +11,7 @@
     updated: "",
     mode: "overall",          // overall | text | vision | audio
     pillar: "",               // "" = overall, else pillar slug
+    compare: [],              // model names in the comparison table (3-6)
     sortKey: "score",
     sortDir: -1,
     search: "",
@@ -270,6 +271,167 @@
     requestAnimationFrame(step);
   }
 
+  /* ---------- head-to-head comparison table ---------- */
+
+  var CMP_MIN = 3, CMP_MAX = 6;
+
+  function compareRows() {
+    var rows = [
+      { label: "Overall", sub: "Mean of available modalities", hero: true,
+        get: function (m) { return m.overall; } },
+      { group: "Modalities" },
+      { label: "Text", sub: "All 15 pillars, text-only",
+        get: function (m) { return m.modalities.text; } },
+      { label: "Vision", sub: "Image + Sinhala prompt",
+        get: function (m) { return m.modalities.vision; } },
+      { label: "Audio", sub: "Spoken Sinhala prompts",
+        get: function (m) { return m.modalities.audio; } },
+      { group: "Pillars \u2014 15" }
+    ];
+    state.pillars.forEach(function (p) {
+      rows.push({
+        label: p.slug.slice(0, 2) + " \u00b7 " + p.title_en,
+        sub: p.title_si,
+        icon: p.slug,
+        get: function (m) { return m.pillars[p.slug]; }
+      });
+    });
+    return rows;
+  }
+
+  function renderCompare() {
+    var tbl = $("#compare-table");
+    if (!tbl) return;
+    var models = state.models.filter(function (m) {
+      return state.compare.indexOf(m.name) !== -1;
+    });
+    var rows = compareRows();
+    var wins = {}, topWins = 0;
+
+    models.forEach(function (m) { wins[m.name] = 0; });
+    rows.forEach(function (r) {
+      if (r.group) return;
+      var best = -Infinity, n = 0;
+      models.forEach(function (m) {
+        var v = r.get(m);
+        if (v != null) { n++; if (v > best) best = v; }
+      });
+      if (n < 2) return; // need at least two scores to crown a row winner
+      models.forEach(function (m) {
+        if (r.get(m) === best) wins[m.name]++;
+      });
+    });
+    models.forEach(function (m) { if (wins[m.name] > topWins) topWins = wins[m.name]; });
+
+    var metricCount = 0;
+    rows.forEach(function (r) { if (!r.group) metricCount++; });
+
+    var html = "<thead><tr><th class='cmp-rowhead' scope='col'><span class='cmp-metriccount'>" +
+      metricCount + " metrics</span></th>";
+    models.forEach(function (m) {
+      var feat = topWins > 0 && wins[m.name] === topWins;
+      var logo = providerLogo(m.provider);
+      html += "<th scope='col' class='cmp-model" + (feat ? " cmp-featured" : "") + "'>" +
+        "<span class='cmp-model-box'>" +
+        (logo ? "<img src='" + logo + "' alt='' class='cmp-logo' onerror=\"this.style.display='none'\"/>" : "") +
+        "<span class='cmp-name'>" + m.name + "</span>" +
+        "<span class='cmp-provider'>" + m.provider + "</span>" +
+        "<span class='cmp-wins" + (feat ? " top" : "") + "'>" +
+        SVG_OPEN + ICONS.crown + "</svg>" + wins[m.name] + " wins</span>" +
+        "</span></th>";
+    });
+    html += "</tr></thead><tbody>";
+
+    rows.forEach(function (r) {
+      if (r.group) {
+        html += "<tr class='cmp-group'><td colspan='" + (models.length + 1) + "'>" + r.group + "</td></tr>";
+        return;
+      }
+      var best = -Infinity, n = 0;
+      models.forEach(function (m) {
+        var v = r.get(m);
+        if (v != null) { n++; if (v > best) best = v; }
+      });
+      var hasBest = n >= 2;
+      html += "<tr" + (r.hero ? " class='cmp-hero'" : "") + "><th scope='row' class='cmp-rowhead'>" +
+        (r.icon ? "<span class='cmp-ico'>" + SVG_OPEN + ICONS[r.icon] + "</svg></span>" : "") +
+        "<span class='cmp-rtext'><span class='cmp-rlabel'>" + r.label + "</span>" +
+        (r.sub ? "<span class='cmp-rsub'>" + r.sub + "</span>" : "") +
+        "</span></th>";
+      models.forEach(function (m) {
+        var v = r.get(m);
+        var feat = topWins > 0 && wins[m.name] === topWins;
+        var cls = "";
+        if (hasBest && v === best) cls += " cmp-best";
+        if (v == null) cls += " cmp-null";
+        if (feat) cls += " cmp-featured";
+        html += "<td class='" + cls.trim() + "'>" + (v == null ? "\u2014" : fmt(v)) + "</td>";
+      });
+      html += "</tr>";
+    });
+    html += "</tbody>";
+    tbl.innerHTML = html;
+  }
+
+  function updateComparePickerState() {
+    var list = $("#compare-picker-list");
+    if (!list) return;
+    var cbs = list.querySelectorAll("input[type=checkbox]");
+    var atMax = state.compare.length >= CMP_MAX;
+    var atMin = state.compare.length <= CMP_MIN;
+    for (var i = 0; i < cbs.length; i++) {
+      cbs[i].disabled = (atMax && !cbs[i].checked) || (atMin && cbs[i].checked);
+    }
+    var cnt = $("#compare-count");
+    if (cnt) cnt.textContent = state.compare.length + " of " + CMP_MAX + " selected \u00b7 min " + CMP_MIN;
+  }
+
+  function flashCompareLimit() {
+    var cnt = $("#compare-count");
+    if (!cnt) return;
+    cnt.classList.remove("flash");
+    void cnt.offsetWidth; // restart the animation
+    cnt.classList.add("flash");
+  }
+
+  function buildComparePicker() {
+    var list = $("#compare-picker-list");
+    if (!list) return;
+    list.innerHTML = "";
+    state.models.forEach(function (m) {
+      var item = document.createElement("label");
+      item.className = "pk-item";
+      var cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = state.compare.indexOf(m.name) !== -1;
+      cb.addEventListener("change", function () {
+        if (cb.checked && state.compare.length >= CMP_MAX) {
+          cb.checked = false; flashCompareLimit(); return;
+        }
+        if (!cb.checked && state.compare.length <= CMP_MIN) {
+          cb.checked = true; flashCompareLimit(); return;
+        }
+        if (cb.checked) state.compare.push(m.name);
+        else state.compare = state.compare.filter(function (n) { return n !== m.name; });
+        updateComparePickerState();
+        renderCompare();
+      });
+      item.appendChild(cb);
+      var logo = providerLogo(m.provider);
+      if (logo) {
+        var img = document.createElement("img");
+        img.src = logo;
+        img.alt = "";
+        img.onerror = function () { img.style.display = "none"; };
+        item.appendChild(img);
+      }
+      var span = document.createElement("span");
+      span.textContent = m.name;
+      item.appendChild(span);
+      list.appendChild(item);
+    });
+    updateComparePickerState();
+  }
   /* ---------- modal + radar chart ---------- */
 
   function openModal(m) {
@@ -511,9 +673,31 @@
       if (e.target === $("#modal")) $("#modal").hidden = true;
     });
     document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape") $("#modal").hidden = true;
+      if (e.key === "Escape") {
+        $("#modal").hidden = true;
+        var cp = $("#compare-picker");
+        if (cp) cp.hidden = true;
+      }
     });
 
+    var cmpBtn = $("#compare-pick");
+    if (cmpBtn) {
+      cmpBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var p = $("#compare-picker");
+        p.hidden = !p.hidden;
+      });
+      $("#compare-picker").addEventListener("click", function (e) { e.stopPropagation(); });
+      document.addEventListener("click", function () {
+        var p = $("#compare-picker");
+        if (p) p.hidden = true;
+      });
+      $("#compare-reset").addEventListener("click", function () {
+        state.compare = state.models.slice(0, CMP_MIN).map(function (m) { return m.name; });
+        buildComparePicker();
+        renderCompare();
+      });
+    }
     $("#theme-toggle").addEventListener("click", function () {
       var html = document.documentElement;
       var next = html.getAttribute("data-theme") === "light" ? "dark" : "light";
@@ -558,6 +742,9 @@
     bindEvents();
     renderTable();
     renderPillarGrid();
+    state.compare = state.models.slice(0, CMP_MIN).map(function (m) { return m.name; });
+    buildComparePicker();
+    renderCompare();
     state.bootAnim = false; // later re-renders (sort/filter/search) don't re-animate
   }
 
