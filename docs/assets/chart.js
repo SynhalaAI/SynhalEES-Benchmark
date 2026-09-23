@@ -217,6 +217,21 @@
       var file = logoFile(m.provider);
       var img = file ? logoImg(file) : null;
       if (img) {
+        // dark mode: black glyphs (OpenAI, Anthropic) vanish on the navy
+        // background, so paint a white rounded badge behind every logo
+        var darkTheme = document.documentElement.getAttribute("data-theme") !== "light";
+        if (darkTheme) {
+          var bx = cx - 12, by = plotB + 5, bs = 24, br = 6;
+          ctx.fillStyle = "#ffffff";
+          ctx.beginPath();
+          ctx.moveTo(bx + br, by);
+          ctx.arcTo(bx + bs, by, bx + bs, by + bs, br);
+          ctx.arcTo(bx + bs, by + bs, bx, by + bs, br);
+          ctx.arcTo(bx, by + bs, bx, by, br);
+          ctx.arcTo(bx, by, bx + bs, by, br);
+          ctx.closePath();
+          ctx.fill();
+        }
         ctx.drawImage(img, cx - 9, plotB + 8, 18, 18);
       } else {
         ctx.fillStyle = col;
