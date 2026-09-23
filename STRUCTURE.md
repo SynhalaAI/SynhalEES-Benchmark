@@ -71,11 +71,12 @@ SynhalEES/
 │       └── icon16.png / icon48.png / icon128.png
 │
 ├── docs/                                        # Static leaderboard website (GitHub Pages)
-│   ├── index.html                               # Leaderboard page (table, pillar champions, radar detail)
+│   ├── index.html                               # Leaderboard page (table, comparison chart, pillar champions, radar detail)
 │   ├── .nojekyll                                # Disable Jekyll processing on Pages
 │   └── assets/
 │       ├── style.css                            # SynhalaAI theme (logo navy #2B3044 + red #C62828)
 │       ├── app.js                               # Vanilla JS: sorting, modality tabs, pillar filter, radar chart
+│       ├── chart.js                             # AA-style comparison bar chart (metric tabs, org filter, model picker, max 25 bars)
 │       ├── logo.png                             # Logo copy for Pages (Pages serves only docs/)
 │       ├── icon.png                             # Favicon copy for Pages
 │       ├── logos/                                   # Provider brand icons (SVG, simple-icons)
