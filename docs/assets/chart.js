@@ -85,6 +85,19 @@
     return null;
   }
 
+  // brand icon for the watermark badge (PNG with its own light background)
+  var brandIcon = null;
+  function brandImg() {
+    if (brandIcon === "error") return null;
+    if (brandIcon) return brandIcon.complete && brandIcon.naturalWidth ? brandIcon : null;
+    var img = new Image();
+    img.src = "assets/icon.png";
+    img.onload = function () { draw(); };
+    img.onerror = function () { brandIcon = "error"; draw(); };
+    brandIcon = img;
+    return null;
+  }
+
   /* ---------- helpers ---------- */
 
   function $(sel) { return document.querySelector(sel); }
@@ -184,10 +197,16 @@
     ctx.fillStyle = textCol;
     ctx.fillText("SynhalEES", wmX - benchW, wmY);
     var synW = ctx.measureText("SynhalEES").width;
-    ctx.fillStyle = "#E04545";           // SynhalaAI brand red accent dot
-    ctx.beginPath();
-    ctx.arc(wmX - benchW - synW - 9, wmY, 3.5, 0, Math.PI * 2);
-    ctx.fill();
+    var bimg = brandImg();
+    if (bimg) {
+      // SB brand icon badge (has its own light bg, works on dark mode too)
+      ctx.drawImage(bimg, wmX - benchW - synW - 17, wmY - 7, 14, 14);
+    } else {
+      ctx.fillStyle = "#E04545";         // fallback: SynhalaAI brand red accent dot
+      ctx.beginPath();
+      ctx.arc(wmX - benchW - synW - 9, wmY, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
     var n = rows.length;
     var slot = (W - padL - padR) / n;
     var barW = Math.min(64, slot * 0.62);
