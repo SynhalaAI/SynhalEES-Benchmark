@@ -150,7 +150,7 @@
     }
 
     var padL = 38, padR = 10, padT = 26;
-    var logoH = 22, nameH = 96;                 // bottom band: logos + rotated names
+    var logoH = 32, nameH = 96;                 // bottom band: logos + rotated names
     var plotB = H - logoH - nameH - 6;
     var plotH = plotB - padT;
     var maxV = Math.max.apply(null, rows.map(metricOf));
