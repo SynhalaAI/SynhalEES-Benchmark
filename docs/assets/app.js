@@ -190,17 +190,26 @@
       var best = null;
       state.models.forEach(function (m) {
         var v = m.pillars[p.slug];
-        if (v != null && (!best || v > best.v)) best = { v: v, name: m.name };
+        if (v != null && (!best || v > best.v)) best = { v: v, name: m.name, provider: m.provider };
       });
       var card = document.createElement("button");
       card.className = "pillar-card";
       card.type = "button";
       card.innerHTML =
-        "<h4>" + icon(p.slug) + "<span>" + esc(p.title_en) + "</span></h4>" +
-        "<div class=\"si\">" + esc(p.title_si) + "</div>" +
+        "<span class=\"pc-top\">" +
+          "<span class=\"pc-icon\">" + icon(p.slug) + "</span>" +
+          "<span class=\"pc-titles\">" +
+            "<span class=\"pc-title\">" + esc(p.title_en) + "</span>" +
+            "<span class=\"pc-si\">" + esc(p.title_si) + "</span>" +
+          "</span>" +
+          "<span class=\"pc-num\" aria-hidden=\"true\">" + esc(p.slug.slice(0, 2)) + "</span>" +
+        "</span>" +
         (best
-          ? "<div class=\"champ\"><span class=\"who\">" + icon("crown") + "" + esc(best.name) + "</span><span class=\"val\">" + best.v.toFixed(1) + "</span></div>"
-          : "<div class=\"champ\"><span class=\"who na\">No data yet</span></div>");
+          ? "<span class=\"pc-champ\"><span class=\"who\">" + providerLogo(best.provider) + icon("crown") +
+            "<span class=\"who-name\">" + esc(best.name) + "</span></span>" +
+            "<span class=\"pc-val\">" + best.v.toFixed(1) + "</span></span>" +
+            "<span class=\"pc-bar\"><span style=\"width:" + Math.max(0, Math.min(100, best.v)).toFixed(1) + "%\"></span></span>"
+          : "<span class=\"pc-champ\"><span class=\"who na\">No data yet</span></span>");
       card.addEventListener("click", function () {
         state.pillar = p.slug;
         $("#pillar-select").value = p.slug;
