@@ -113,6 +113,25 @@ completed items are skipped automatically. Use `--fresh` to start over.
 
 ---
 
+## 🏆 Leaderboard
+
+The public model leaderboard lives in [`docs/`](docs/index.html) — a static,
+GitHub Pages-ready site (no build step). Enable it via
+**Settings → Pages → Deploy from branch → `main` / `docs`**, and it appears at
+`https://synhalaai.github.io/SynhalEES-Benchmark/`.
+
+Update the data after running models:
+
+```bash
+# aggregate one or more submission CSVs (model,provider,date,pillar,modality,score)
+python tools/build_leaderboard.py submissions/*.csv
+
+# or regenerate clearly-marked placeholder data
+python tools/build_leaderboard.py --demo
+```
+
+---
+
 ## 🤝 Contributing
 
 Contributions are welcome — data, code, or feedback. See

@@ -1,0 +1,572 @@
+/* SynhalEES Leaderboard — vanilla JS, no build step, no dependencies. */
+(function () {
+  "use strict";
+
+  var state = {
+    radarModel: null,   // model shown in the modal (for radar hover)
+    radarHover: -1,     // hovered radar vertex index (-1 = none)
+    pillars: [],
+    models: [],
+    demo: false,
+    updated: "",
+    mode: "overall",          // overall | text | vision | audio
+    pillar: "",               // "" = overall, else pillar slug
+    sortKey: "score",
+    sortDir: -1,
+    search: "",
+    bootAnim: true          // first-load entrance animations
+  };
+
+  function $(sel) { return document.querySelector(sel); }
+
+  /* ---------- inline SVG icons (Lucide-style, no emoji) ---------- */
+
+  var SVG_OPEN = "<svg class='icon' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'>";
+  var ICONS = {
+    "01_buddhist_culture": "<path d='M12 4v2'/><path d='M9.5 6h5'/><path d='M6 21v-2a6 6 0 0 1 12 0v2'/><path d='M4 21h16'/>",
+    "02_pali_gatha": "<path d='M19 17V5a2 2 0 0 0-2-2H4'/><path d='M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v3a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v3'/>",
+    "03_classical_literature": "<path d='M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z'/><path d='M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z'/>",
+    "04_kavi_sindu": "<path d='M9 18V5l12-2v13'/><circle cx='6' cy='18' r='3'/><circle cx='18' cy='16' r='3'/>",
+    "05_sinhala_grammar": "<path d='M12 20h9'/><path d='M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z'/>",
+    "06_daily_spoken": "<path d='M7.9 20A9 9 0 1 0 4 16.1L2 22Z'/>",
+    "07_figurative_sinhala": "<path d='M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z'/><path d='M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z'/>",
+    "08_profanity_nuance": "<path d='m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z'/><path d='M12 9v4'/><path d='M12 17h.01'/>",
+    "09_singlish_sms": "<rect width='14' height='20' x='5' y='2' rx='2' ry='2'/><path d='M12 18h.01'/>",
+    "10_regional_dialects": "<path d='M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z'/><path d='M15 5.764v15'/><path d='M9 3.236v15'/>",
+    "11_astrology_beliefs": "<path d='M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z'/><path d='M19 3v4'/><path d='M21 5h-4'/>",
+    "12_general_knowledge": "<path d='M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z'/><line x1='4' x2='4' y1='22' y2='15'/>",
+    "13_sri_lanka_law": "<path d='m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z'/><path d='m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z'/><path d='M7 21h10'/><path d='M12 3v18'/><path d='M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2'/>",
+    "14_culinary_kitchen": "<path d='M2 12h20'/><path d='M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8'/><path d='m4 8 16-4'/><path d='m8.86 6.78-.45-1.81a2 2 0 0 1 1.45-2.43l1.94-.48a2 2 0 0 1 2.43 1.46l.45 1.8'/>",
+    "15_numbers_maths": "<path d='M18 7V5a1 1 0 0 0-1-1H6.5a.5.5 0 0 0-.4.8l4.5 6a2 2 0 0 1 0 2.4l-4.5 6a.5.5 0 0 0 .4.8H17a1 1 0 0 0 1-1v-2'/>",
+    "crown": "<path d='M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.735H5.81a1 1 0 0 1-.957-.735L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z'/><path d='M5 21h14'/>",
+    "sun": "<circle cx='12' cy='12' r='4'/><path d='M12 2v2'/><path d='M12 20v2'/><path d='m4.93 4.93 1.41 1.41'/><path d='m17.66 17.66 1.41 1.41'/><path d='M2 12h2'/><path d='M20 12h2'/><path d='m6.34 17.66-1.41 1.41'/><path d='m19.07 4.93-1.41 1.41'/>",
+    "moon": "<path d='M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z'/>",
+  };
+
+  function icon(name) {
+    return SVG_OPEN + (ICONS[name] || "") + "</svg>";
+  }
+  /* ---------- provider logos (brand SVGs in assets/logos/) ---------- */
+
+  // provider name (normalized to lowercase alnum) -> svg file in assets/logos/.
+  // To support a new organization: drop its <slug>.svg into assets/logos/
+  // and add one line here. Unmapped providers get a red initial chip.
+  var PROVIDER_LOGOS = {
+    google: "google",
+    openai: "openai",
+    anthropic: "anthropic",
+    meta: "meta", facebook: "meta", llama: "meta",
+    mistralai: "mistralai", mistral: "mistralai",
+    deepseek: "deepseek",
+    alibaba: "alibabacloud", alibabacloud: "alibabacloud", qwen: "alibabacloud",
+    amazon: "amazonwebservices", aws: "amazonwebservices", amazonwebservices: "amazonwebservices",
+    microsoft: "microsoft", azure: "microsoft",
+    ibm: "ibm", watsonx: "ibm",
+    perplexity: "perplexity",
+    xiaomi: "xiaomi",
+    synhalaai: "synhalaAI"
+  };
+
+  function providerLogo(name) {
+    // full name first ("Ollama / Meta" -> "ollamameta"), then parts right-to-left
+    // so the brand org ("meta") wins over a runner/host prefix ("ollama")
+    var key = String(name).toLowerCase().replace(/[^a-z0-9]/g, "");
+    var file = PROVIDER_LOGOS[key];
+    if (!file) {
+      var parts = String(name).toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+      for (var i = parts.length - 1; i >= 0; i--) {
+        file = PROVIDER_LOGOS[parts[i]];
+        if (file) break;
+      }
+    }
+    if (file) {
+      return "<img class='prov-logo' src='assets/logos/" + file + ".svg' alt='' loading='lazy' onerror='this.remove()'>";
+    }
+    return "<span class='prov-chip' aria-hidden='true'>" + esc(String(name).charAt(0).toUpperCase()) + "</span>";
+  }
+
+  function setThemeIcon(theme) {
+    $("#theme-toggle").innerHTML = icon(theme === "light" ? "moon" : "sun");
+  }
+
+
+  function fetchJSON(url) {
+    return fetch(url).then(function (r) {
+      if (!r.ok) throw new Error("Failed to load " + url);
+      return r.json();
+    });
+  }
+
+  function scoreOf(m) {
+    if (state.pillar) return m.pillars[state.pillar] != null ? m.pillars[state.pillar] : null;
+    if (state.mode === "overall") return m.overall;
+    return m.modalities[state.mode];
+  }
+
+  function fmt(v) { return v == null ? "—" : v.toFixed(1); }
+
+  function medal(rank) {
+    return rank <= 3
+      ? "<span class='rank-badge r" + rank + "'>" + rank + "</span>"
+      : String(rank);
+  }
+
+  /* ---------- rendering ---------- */
+
+  function renderTable() {
+    var body = $("#lb-body");
+    body.innerHTML = "";
+
+    var rows = state.models.filter(function (m) {
+      return m.name.toLowerCase().indexOf(state.search) !== -1 && scoreOf(m) != null;
+    });
+
+    rows.sort(function (a, b) {
+      var k = state.sortKey, va, vb;
+      if (k === "name" || k === "provider" || k === "date") {
+        va = a[k]; vb = b[k];
+        return va < vb ? -state.sortDir : va > vb ? state.sortDir : 0;
+      }
+      va = k === "score" ? scoreOf(a) : (k === "rank" ? 0 : a.modalities[k]);
+      vb = k === "score" ? scoreOf(b) : (k === "rank" ? 0 : b.modalities[k]);
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      return (va - vb) * state.sortDir;
+    });
+
+    $("#empty-state").hidden = rows.length > 0;
+
+    var best = rows.length ? Math.max.apply(null, rows.map(scoreOf)) : -1;
+
+    rows.forEach(function (m, i) {
+      var s = scoreOf(m);
+      var tr = document.createElement("tr");
+      tr.innerHTML =
+        "<td class=\"num medal\">" + medal(i + 1) + "</td>" +
+        "<td><span class=\"model-name\">" + esc(m.name) + "</span>" +
+        "<div class=\"scorebar\"><span style=\"width:" + s + "%\"></span></div></td>" +
+        "<td class=\"provider\">" + providerLogo(m.provider) + esc(m.provider) + "</td>" +
+        "<td class=\"num\"><span class=\"score-pill" + (s === best ? " top" : "") + "\">" + fmt(s) + "</span></td>" +
+        "<td class=\"num\">" + fmt(m.modalities.text) + "</td>" +
+        "<td class=\"num\">" + fmt(m.modalities.vision) + "</td>" +
+        "<td class=\"num\">" + fmt(m.modalities.audio) + "</td>" +
+        "<td class=\"num na\">" + esc(m.date) + "</td>";
+      tr.addEventListener("click", function () { openModal(m); });
+      body.appendChild(tr);
+    });
+
+    // first-load cascade (rows animate in once on page open)
+    if (state.bootAnim) {
+      body.classList.add("rows-boot");
+      Array.prototype.forEach.call(body.children, function (tr, i) {
+        tr.style.animationDelay = (i * 45) + "ms";
+      });
+    }
+
+    var label = state.pillar
+      ? pillarTitle(state.pillar)
+      : state.mode.charAt(0).toUpperCase() + state.mode.slice(1) + " Score";
+    // keep the sort-arrow svg: update only the label span inside the th
+    var sc = $("#score-col"), scLabel = sc.querySelector(".th-label");
+    if (scLabel) scLabel.textContent = label; else sc.textContent = label;
+  }
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function pillarTitle(slug) {
+    for (var i = 0; i < state.pillars.length; i++) {
+      if (state.pillars[i].slug === slug) return state.pillars[i].title_en;
+    }
+    return slug;
+  }
+  function renderPillarGrid() {
+    var grid = $("#pillar-grid");
+    grid.innerHTML = "";
+    state.pillars.forEach(function (p) {
+      var best = null;
+      state.models.forEach(function (m) {
+        var v = m.pillars[p.slug];
+        if (v != null && (!best || v > best.v)) best = { v: v, name: m.name };
+      });
+      var card = document.createElement("button");
+      card.className = "pillar-card";
+      card.type = "button";
+      card.innerHTML =
+        "<h4>" + icon(p.slug) + "<span>" + esc(p.title_en) + "</span></h4>" +
+        "<div class=\"si\">" + esc(p.title_si) + "</div>" +
+        (best
+          ? "<div class=\"champ\"><span class=\"who\">" + icon("crown") + "" + esc(best.name) + "</span><span class=\"val\">" + best.v.toFixed(1) + "</span></div>"
+          : "<div class=\"champ\"><span class=\"who na\">No data yet</span></div>");
+      card.addEventListener("click", function () {
+        state.pillar = p.slug;
+        $("#pillar-select").value = p.slug;
+        renderTable();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+      grid.appendChild(card);
+    });
+
+    // first-load cascade
+    if (state.bootAnim) {
+      grid.classList.add("grid-boot");
+      Array.prototype.forEach.call(grid.children, function (card, i) {
+        card.style.animationDelay = (i * 35) + "ms";
+      });
+    }
+  }
+
+  // Progressive draw: vertices grow out ONE BY ONE, lowest score first,
+  // highest last -- so strong pillars travel further and finish the reveal.
+  function animateRadar(canvas, pillars, model) {
+    var reduce = window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce || !window.requestAnimationFrame) { drawRadar(canvas, pillars, model, null); return; }
+
+    // start order: ascending score
+    var order = [];
+    for (var i = 0; i < pillars.length; i++) {
+      var v = model.pillars[pillars[i].slug];
+      order.push([v == null ? -1 : v, i]);
+    }
+    order.sort(function (a, b) { return a[0] - b[0]; });
+    var startAt = [];
+    for (var j = 0; j < order.length; j++) startAt[order[j][1]] = j;
+
+    var STEP = 90, GROW = 550;                 // ms: stagger per vertex / grow time
+    var total = STEP * (pillars.length - 1) + GROW;
+    var t0 = null;
+    function step(ts) {
+      var modal = $("#modal");
+      if (!modal || modal.hidden) return; // stop pulsing once the modal closes
+      if (t0 === null) t0 = ts;
+      var e = ts - t0;
+      if (e >= total) {
+        // fully grown: keep looping so top-pillar dots keep beating
+        drawRadar(canvas, pillars, model, null, state.radarHover, ts);
+      } else {
+        var vp = [];
+        for (var k = 0; k < pillars.length; k++) {
+          var pe = e - startAt[k] * STEP;
+          var p = pe <= 0 ? 0 : Math.min(1, pe / GROW);
+          vp.push(1 - Math.pow(1 - p, 3)); // easeOutCubic
+        }
+        drawRadar(canvas, pillars, model, vp, -1, null);
+      }
+      requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  /* ---------- modal + radar chart ---------- */
+
+  function openModal(m) {
+    $("#modal-title").textContent = m.name;
+    $("#modal-sub").innerHTML =
+      providerLogo(m.provider) + esc(m.provider) + " · Overall " + fmt(m.overall) +
+      " · Text " + fmt(m.modalities.text) +
+      " · Vision " + fmt(m.modalities.vision) +
+      " · Audio " + fmt(m.modalities.audio);
+
+    var entries = state.pillars.map(function (p) {
+      return { p: p, v: m.pillars[p.slug] };
+    }).filter(function (e) { return e.v != null; });
+    entries.sort(function (a, b) { return b.v - a.v; });
+    var top = entries.slice(0, 3).map(function (e) {
+      return "<div>" + icon(e.p.slug) + " <strong>" + esc(e.p.title_en) + "</strong> — " + e.v.toFixed(1) + "</div>";
+    }).join("");
+    $("#modal-best").innerHTML = top ? "Strongest pillars:" + top : "No pillar data.";
+
+    state.radarModel = m;
+    state.radarHover = -1;
+    $("#modal").hidden = false;
+    animateRadar($("#radar"), state.pillars, m);
+  }
+
+  // vertProg: per-vertex growth 0..1 (null = fully drawn). Vertices animate
+  // one at a time -- lowest score first, so high scores travel furthest.
+  function drawRadar(canvas, pillars, model, vertProg, hoverIdx, pulseT) {
+    if (vertProg === undefined) vertProg = null;
+    if (hoverIdx === undefined) hoverIdx = -1;
+    if (pulseT === undefined) pulseT = null;
+    var ctx = canvas.getContext("2d");
+    var W = canvas.width, H = canvas.height;
+    var cx = W / 2, cy = H / 2 + 8, R = Math.min(W, H) / 2 - 58;
+    var n = pillars.length;
+    var dark = document.documentElement.getAttribute("data-theme") !== "light";
+    var colGrid = dark ? "#3a4157" : "#d9dce6";
+    var colText = dark ? "#9aa1b5" : "#5b6274";
+
+    // per-vertex progress (null input = all fully grown)
+    var vp = [], progSum = 0;
+    for (var pi = 0; pi < n; pi++) {
+      var pv = vertProg ? vertProg[pi] : 1;
+      vp.push(pv);
+      progSum += pv;
+    }
+    var progMean = progSum / n;
+
+    ctx.clearRect(0, 0, W, H);
+
+    // concentric rings
+    [0.25, 0.5, 0.75, 1].forEach(function (f) {
+      ctx.beginPath();
+      for (var i = 0; i <= n; i++) {
+        var a = (Math.PI * 2 * i) / n - Math.PI / 2;
+        var x = cx + Math.cos(a) * R * f, y = cy + Math.sin(a) * R * f;
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = colGrid;
+      ctx.stroke();
+    });
+
+    // spokes + labels
+    ctx.font = "11px Inter, sans-serif";
+    ctx.fillStyle = colText;
+    for (var i = 0; i < n; i++) {
+      var a = (Math.PI * 2 * i) / n - Math.PI / 2;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R);
+      ctx.strokeStyle = colGrid;
+      ctx.stroke();
+      var lx = cx + Math.cos(a) * (R + 26), ly = cy + Math.sin(a) * (R + 26);
+      ctx.textAlign = Math.abs(Math.cos(a)) < 0.3 ? "center" : Math.cos(a) > 0 ? "left" : "right";
+      ctx.fillText(pillars[i].slug.slice(0, 2), lx, ly + 4);
+    }
+
+    // data polygon (each vertex grows out on its own schedule)
+    ctx.beginPath();
+    for (var j = 0; j <= n; j++) {
+      var idx = j % n;
+      var v = model.pillars[pillars[idx].slug];
+      var f = (v == null ? 0 : v / 100) * vp[idx];
+      var ang = (Math.PI * 2 * j) / n - Math.PI / 2;
+      var px = cx + Math.cos(ang) * R * f, py = cy + Math.sin(ang) * R * f;
+      j === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fillStyle = "rgba(198, 40, 40, " + (0.30 * progMean).toFixed(3) + ")";
+    ctx.fill();
+    ctx.strokeStyle = "#e53935";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // top-3 strongest pillar indices (get a gold pulse)
+    var topSet = {};
+    var scored = [];
+    for (var t2 = 0; t2 < n; t2++) {
+      var sv = model.pillars[pillars[t2].slug];
+      if (sv != null) scored.push([sv, t2]);
+    }
+    scored.sort(function (a, b) { return b[0] - a[0]; });
+    for (var t3 = 0; t3 < Math.min(3, scored.length); t3++) topSet[scored[t3][1]] = true;
+
+    // heartbeat curve: two thumps (lub-dub) per cycle
+    function heartbeat(ph) {
+      return Math.exp(-Math.pow((ph - 0.12) / 0.05, 2)) +
+             0.55 * Math.exp(-Math.pow((ph - 0.30) / 0.07, 2));
+    }
+
+    // vertex nodes (pop in once the polygon has mostly grown)
+    var verts = [];
+    for (var k = 0; k < n; k++) {
+      var vv = model.pillars[pillars[k].slug];
+      var ff = (vv == null ? 0 : vv / 100) * vp[k];
+      var aa = (Math.PI * 2 * k) / n - Math.PI / 2;
+      var vx = cx + Math.cos(aa) * R * ff, vy = cy + Math.sin(aa) * R * ff;
+      var isTop = !!topSet[k];
+      verts.push({ x: vx, y: vy, p: pillars[k], v: vv, top: isTop });
+      if (vp[k] > 0.85) {
+        var dotT = Math.min(1, (vp[k] - 0.85) / 0.15);
+        var rr = (hoverIdx === k ? 5 : isTop ? 4 : 3);
+
+        // strongest pillars: the dots beat like a heart, all in sync (1.2s cycle)
+        if (isTop && vp[k] === 1 && pulseT != null) {
+          var ph = (pulseT / 1000 % 1.2) / 1.2;
+          rr *= 1 + 0.5 * heartbeat(ph);
+        }
+
+        ctx.beginPath();
+        ctx.arc(vx, vy, rr * dotT, 0, Math.PI * 2);
+        ctx.fillStyle = hoverIdx === k ? "#ff6f60" : isTop ? "#f5b301" : "#e53935";
+        ctx.fill();
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = dark ? "#10131c" : "#ffffff";
+        ctx.stroke();
+      }
+    }
+    canvas._radarVerts = verts;
+  }
+  /* ---------- events ---------- */
+
+  function bindEvents() {
+    document.querySelectorAll("#modality-tabs .tab").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        document.querySelectorAll("#modality-tabs .tab").forEach(function (b) {
+          b.classList.remove("active");
+        });
+        btn.classList.add("active");
+        state.mode = btn.getAttribute("data-mode");
+        state.pillar = "";
+        $("#pillar-select").value = "";
+        renderTable();
+      });
+    });
+
+    $("#pillar-select").addEventListener("change", function (e) {
+      state.pillar = e.target.value;
+      renderTable();
+    });
+
+    $("#search").addEventListener("input", function (e) {
+      state.search = e.target.value.toLowerCase();
+      renderTable();
+    });
+
+    document.querySelectorAll("#leaderboard th").forEach(function (th) {
+      th.addEventListener("click", function () {
+        var key = th.getAttribute("data-sort");
+        if (key === "rank") return;
+        if (state.sortKey === key) state.sortDir *= -1;
+        else { state.sortKey = key; state.sortDir = key === "name" || key === "provider" ? 1 : -1; }
+        document.querySelectorAll("#leaderboard th").forEach(function (h) {
+          h.classList.remove("sorted-desc", "sorted-asc");
+        });
+        th.classList.add(state.sortDir === -1 ? "sorted-desc" : "sorted-asc");
+        renderTable();
+        // sweep animation: rows fade back in after a re-sort
+        var body2 = $("#lb-body");
+        body2.classList.remove("rows-sort");
+        void body2.offsetWidth; // restart the CSS animation
+        body2.classList.add("rows-sort");
+        setTimeout(function () { body2.classList.remove("rows-sort"); }, 400);
+      });
+    });
+
+    // radar vertex hover -> tooltip with pillar name + score
+    var radarCanvas = $("#radar");
+    radarCanvas.addEventListener("mousemove", function (e) {
+      var verts = radarCanvas._radarVerts;
+      if (!verts || !state.radarModel) return;
+      var rect = radarCanvas.getBoundingClientRect();
+      var mx = (e.clientX - rect.left) * radarCanvas.width / rect.width;
+      var my = (e.clientY - rect.top) * radarCanvas.height / rect.height;
+      var hit = -1;
+      for (var i = 0; i < verts.length; i++) {
+        var dx = mx - verts[i].x, dy = my - verts[i].y;
+        if (dx * dx + dy * dy < 14 * 14) { hit = i; break; }
+      }
+      var tip = $("#radar-tip");
+      if (hit >= 0) {
+        var vt = verts[hit];
+        tip.innerHTML = "<strong>" + esc(vt.p.title_en) + "</strong><span>" +
+          (vt.v == null ? "No data" : vt.v.toFixed(1) + " / 100") + "</span>" +
+          (vt.top ? "<em>Strongest pillar</em>" : "");
+        tip.classList.toggle("gold", !!vt.top);
+        tip.hidden = false;
+        var crect = radarCanvas.parentNode.getBoundingClientRect();
+        tip.style.left = (e.clientX - crect.left) + "px";
+        tip.style.top = (e.clientY - crect.top - 12) + "px";
+        radarCanvas.style.cursor = "pointer";
+        if (state.radarHover !== hit) {
+          state.radarHover = hit;
+          drawRadar(radarCanvas, state.pillars, state.radarModel, null, hit);
+        }
+      } else {
+        tip.hidden = true;
+        tip.classList.remove("gold");
+        radarCanvas.style.cursor = "";
+        if (state.radarHover !== -1) {
+          state.radarHover = -1;
+          drawRadar(radarCanvas, state.pillars, state.radarModel, null);
+        }
+      }
+    });
+    radarCanvas.addEventListener("mouseleave", function () {
+      var tip2 = $("#radar-tip");
+      tip2.hidden = true;
+      tip2.classList.remove("gold");
+      radarCanvas.style.cursor = "";
+      if (state.radarHover !== -1 && state.radarModel) {
+        state.radarHover = -1;
+        drawRadar(radarCanvas, state.pillars, state.radarModel, null);
+      }
+    });
+
+    $("#modal-close").addEventListener("click", function () { $("#modal").hidden = true; });
+    $("#modal").addEventListener("click", function (e) {
+      if (e.target === $("#modal")) $("#modal").hidden = true;
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") $("#modal").hidden = true;
+    });
+
+    $("#theme-toggle").addEventListener("click", function () {
+      var html = document.documentElement;
+      var next = html.getAttribute("data-theme") === "light" ? "dark" : "light";
+      html.setAttribute("data-theme", next);
+      setThemeIcon(next);
+      try { localStorage.setItem("synhalees-theme", next); } catch (e) {}
+    });
+  }
+
+  function restoreTheme() {
+    try {
+      var t = localStorage.getItem("synhalees-theme");
+      if (t) {
+        document.documentElement.setAttribute("data-theme", t);
+        setThemeIcon(t);
+      }
+    } catch (e) {}
+  }
+
+  /* ---------- boot ---------- */
+
+  function start(pillars, lb) {
+    state.pillars = pillars;
+    state.models = lb.models || [];
+    state.demo = !!lb.demo;
+    state.updated = lb.updated || "";
+
+    if (state.demo) $("#demo-badge").hidden = false;
+    $("#updated-line").textContent = state.updated
+      ? "Last updated: " + state.updated + " · " + state.models.length + " models ranked"
+      : "";
+
+    var sel = $("#pillar-select");
+    state.pillars.forEach(function (p) {
+      var opt = document.createElement("option");
+      opt.value = p.slug;
+      opt.textContent = p.slug.slice(0, 2) + " — " + p.title_en;
+      sel.appendChild(opt);
+    });
+
+    restoreTheme();
+    bindEvents();
+    renderTable();
+    renderPillarGrid();
+    state.bootAnim = false; // later re-renders (sort/filter/search) don't re-animate
+  }
+
+  // Data scripts (assets/data/*.js) work everywhere, including file://.
+  // Fall back to fetch() for the GitHub Pages / HTTP case.
+  if (window.SYNHALEES_PILLARS && window.SYNHALEES_LEADERBOARD) {
+    start(window.SYNHALEES_PILLARS, window.SYNHALEES_LEADERBOARD);
+  } else {
+    Promise.all([
+      fetchJSON("assets/data/pillars.json"),
+      fetchJSON("assets/data/leaderboard.json")
+    ]).then(function (results) {
+      start(results[0], results[1]);
+    }).catch(function (err) {
+      console.error(err);
+      $("#empty-state").hidden = false;
+      $("#empty-state").textContent =
+        "Could not load leaderboard data. Rebuild it with: python tools/build_leaderboard.py --demo";
+    });
+  }
+})();
