@@ -173,6 +173,21 @@
       ctx.fillStyle = mutedCol;
       ctx.fillText(String(g), padL - 7, gy);
     }
+
+    // subtle brand watermark in the top-right corner (AA-style attribution)
+    var wmX = W - padR, wmY = 13;
+    ctx.font = "600 12px Inter, sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillStyle = mutedCol;
+    ctx.fillText(" Benchmark", wmX, wmY);
+    var benchW = ctx.measureText(" Benchmark").width;
+    ctx.fillStyle = textCol;
+    ctx.fillText("SynhalEES", wmX - benchW, wmY);
+    var synW = ctx.measureText("SynhalEES").width;
+    ctx.fillStyle = "#E04545";           // SynhalaAI brand red accent dot
+    ctx.beginPath();
+    ctx.arc(wmX - benchW - synW - 9, wmY, 3.5, 0, Math.PI * 2);
+    ctx.fill();
     var n = rows.length;
     var slot = (W - padL - padR) / n;
     var barW = Math.min(64, slot * 0.62);
