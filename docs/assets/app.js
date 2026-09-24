@@ -997,8 +997,8 @@
     var btn = $("#model-filter-btn");
     if (btn) {
       btn.textContent = shown === state.models.length
-        ? "Models"
-        : "Models (" + shown + "/" + state.models.length + ")";
+        ? "Compare"
+        : "Compare (" + shown + "/" + state.models.length + ")";
       btn.classList.toggle("on", shown !== state.models.length);
     }
   }
