@@ -34,6 +34,9 @@ from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "tools"))
+from build_leaderboard import pretty_model, pretty_provider  # noqa: E402
+
 HEADER = ["model", "provider", "date", "pillar", "modality", "score"]
 
 
@@ -113,7 +116,8 @@ def print_report(runs: list[dict]) -> None:
         errs = sum(1 for r in run["records"] if r.get("error"))
         acc = accuracy(run["records"])
         summary.append((acc, run))
-        print(f"{run['model'][:37]:<38}{run['provider'][:11]:<12}"
+        print(f"{pretty_model(run['model'])[:37]:<38}"
+              f"{pretty_provider(run['provider'], run['model'])[:11]:<12}"
               f"{len(run['records']):>6}{errs:>8}{acc:>9.1%}")
     summary.sort(reverse=True, key=lambda pair: pair[0])
 
@@ -132,7 +136,7 @@ def print_report(runs: list[dict]) -> None:
         for pillar in pillars:
             rows = by_pillar.get(pillar)
             cells += f"{accuracy(rows):>6.0%}" if rows else f"{'-':>6}"
-        print(f"{run['model'][:29]:<30}{cells}")
+        print(f"{pretty_model(run['model'])[:29]:<30}{cells}")
 
 
 def main() -> int:

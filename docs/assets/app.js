@@ -56,6 +56,7 @@
   // and add one line here. Unmapped providers get a red initial chip.
   var PROVIDER_LOGOS = {
     google: "google",
+    gemini: "google",
     openai: "openai",
     anthropic: "anthropic",
     meta: "meta", facebook: "meta", llama: "meta",

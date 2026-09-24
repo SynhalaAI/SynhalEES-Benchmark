@@ -46,6 +46,106 @@ PILLARS = [
     ("15_numbers_maths", "Numbers & Basic Maths", "සිංහල අංක සහ මූලික ගණිතය", "🔢"),
 ]
 
+# Runner spec prefixes -> human-readable org names shown on the site.
+PROVIDER_DISPLAY = {
+    "gemini": "Google",
+    "google": "Google",
+    "openai": "OpenAI",
+    "openrouter": "OpenRouter",
+    "anthropic": "Anthropic",
+    "ollama": "Ollama / Meta",
+    "together": "Together AI",
+    "deepseek": "DeepSeek",
+}
+
+# API model ids -> display names. Unknown ids are prettified generically.
+MODEL_DISPLAY = {
+    "gemini-3.5-flash-lite": "Gemini 3.5 Flash Lite",
+    "gemini-3.5-flash": "Gemini 3.5 Flash",
+    "gemini-3.5-pro": "Gemini 3.5 Pro",
+    "gemini-2.5-flash-lite": "Gemini 2.5 Flash Lite",
+    "gemini-2.5-flash": "Gemini 2.5 Flash",
+    "gemini-2.5-pro": "Gemini 2.5 Pro",
+    "gpt-4o": "GPT-4o",
+    "gpt-4o-mini": "GPT-4o mini",
+    "gpt-4.1": "GPT-4.1",
+    "gpt-4.1-mini": "GPT-4.1 mini",
+    "claude-sonnet-4-5": "Claude Sonnet 4.5",
+    "claude-opus-4-1": "Claude Opus 4.1",
+    "claude-3-5-haiku": "Claude 3.5 Haiku",
+}
+
+
+# Tokens in a model id that reveal WHO BUILT the model. The API host
+# (openrouter, together, ollama...) is only a reseller, so the brand is
+# taken from the model id first: openrouter:openai/gpt-4o -> "OpenAI".
+BRAND_TOKENS = (
+    ("gemini", "Google"),
+    ("gemma", "Google"),
+    ("palm", "Google"),
+    ("bison", "Google"),
+    ("gpt", "OpenAI"),
+    ("o1", "OpenAI"),
+    ("o3", "OpenAI"),
+    ("o4", "OpenAI"),
+    ("davinci", "OpenAI"),
+    ("claude", "Anthropic"),
+    ("llama", "Meta"),
+    ("qwen", "Alibaba"),
+    ("mistral", "Mistral AI"),
+    ("mixtral", "Mistral AI"),
+    ("magistral", "Mistral AI"),
+    ("deepseek", "DeepSeek"),
+    ("command", "Cohere"),
+    ("grok", "xAI"),
+    ("nova", "Amazon"),
+    ("titan", "Amazon"),
+    ("jamba", "AI21 Labs"),
+)
+
+
+def pretty_provider(host: str, model_id: str = "") -> str:
+    """Org that BUILT the model, not the API host.
+
+    ``pretty_provider("openrouter", "openai/gpt-4o-mini")`` -> ``"OpenAI"``;
+    ``pretty_provider("gemini", "gemini-2.5-flash")`` -> ``"Google"``;
+    ``pretty_provider("ollama", "llama3.1:8b")`` -> ``"Meta"``.
+    """
+    haystack = (model_id or "").lower()
+    best: tuple[int, str] | None = None
+    for token, brand in BRAND_TOKENS:
+        pos = haystack.find(token)
+        if pos >= 0 and (best is None or pos < best[0]):
+            best = (pos, brand)
+    if best:
+        return best[1]
+    key = (host or "").strip()
+    return PROVIDER_DISPLAY.get(key.lower(), key or "Unknown")
+
+
+def pretty_model(name: str) -> str:
+    """``"gemini-3.5-flash-lite"`` -> ``"Gemini 3.5 Flash Lite"``."""
+    raw = (name or "").strip()
+    if raw in MODEL_DISPLAY:
+        return MODEL_DISPLAY[raw]
+    words = raw.replace("_", "-").split("-")
+    fixed = {"gpt": "GPT", "llama": "Llama", "qwen": "Qwen",
+             "mistral": "Mistral", "deepseek": "DeepSeek", "claude": "Claude",
+             "gemini": "Gemini", "o1": "o1", "o3": "o3"}
+    out = []
+    for i, word in enumerate(words):
+        low = word.lower()
+        if i == 0 and low in fixed:
+            out.append(fixed[low])
+        elif low in {"lite", "mini", "pro", "flash", "turbo", "max", "chat"}:
+            out.append(low if low in {"mini", "pro", "lite", "max"} else low.capitalize())
+        elif any(ch.isdigit() for ch in word):
+            out.append(word.upper() if low in {"4o", "4k"} else word)
+        else:
+            out.append(word.capitalize())
+    return " ".join(out).strip() or "Unknown"
+
+
 # (name, provider, base_ability, modality support flags)
 DEMO_MODELS = [
     ("Gemini 2.5 Pro", "Google", 0.82, ("text", "vision", "audio")),
@@ -120,8 +220,8 @@ def build_real(csv_paths: list[Path]) -> dict:
             for row in csv.DictReader(fh):
                 key = row["model"]
                 entry = acc.setdefault(key, {
-                    "name": key,
-                    "provider": row.get("provider", ""),
+                    "name": pretty_model(key),
+                    "provider": pretty_provider(row.get("provider", ""), key),
                     "date": row.get("date", str(date.today())),
                     "modalities": {"text": None, "vision": None, "audio": None},
                     "pillars": {},
