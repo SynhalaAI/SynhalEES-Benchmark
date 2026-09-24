@@ -69,7 +69,7 @@
     synhalaai: "synhalaAI"
   };
 
-  function providerLogo(name) {
+  function providerLogoFile(name) {
     // full name first ("Ollama / Meta" -> "ollamameta"), then parts right-to-left
     // so the brand org ("meta") wins over a runner/host prefix ("ollama")
     var key = String(name).toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -81,6 +81,11 @@
         if (file) break;
       }
     }
+    return file || null;
+  }
+
+  function providerLogo(name) {
+    var file = providerLogoFile(name);
     if (file) {
       return "<img class='prov-logo' src='assets/logos/" + file + ".svg' alt='' loading='lazy' onerror='this.remove()'>";
     }
@@ -623,11 +628,38 @@
     ctx.textAlign = "right";
     ctx.fillText("github.com/SynhalaAI/SynhalEES-Benchmark", x0 + tableW, y + HEAD_H + bodyH + 28);
 
-    // download
-    var a = document.createElement("a");
-    a.download = "synhalees-head-to-head.png";
-    a.href = canvas.toDataURL("image/png");
-    a.click();
+    // provider logos: preload embedded data URLs (they never taint the canvas,
+    // even on file://), paint them over the initial chips, then download
+    var logoFiles = {};
+    models.forEach(function (m) { var f = providerLogoFile(m.provider); if (f) logoFiles[f] = 1; });
+    var logoKeys = Object.keys(logoFiles);
+    if (!logoKeys.length) { finish(); return; }
+    var pending = logoKeys.length, logoImgs = {};
+    logoKeys.forEach(function (f) {
+      var img = new Image();
+      img.onload = function () { logoImgs[f] = img; if (--pending === 0) { drawLogos(); finish(); } };
+      img.onerror = function () { if (--pending === 0) { drawLogos(); finish(); } };
+      img.src = (window.SYNHALEES_LOGOS && window.SYNHALEES_LOGOS[f]) ||
+                "assets/logos/" + f + ".svg";
+    });
+    function drawLogos() {
+      models.forEach(function (m, ci) {
+        var img = logoImgs[providerLogoFile(m.provider)];
+        if (!img) return;  // unmapped provider: keep the initial chip
+        var midX = hx + ci * colW + colW / 2;
+        ctx.fillStyle = "#ffffff";  // white chip so colored logos read on the dark card
+        rrect(midX - 13, y + 12, 26, 26, 7);
+        ctx.fill();
+        ctx.drawImage(img, midX - 10, y + 15, 20, 20);
+      });
+    }
+    function finish() {
+      var a = document.createElement("a");
+      a.download = "synhalees-head-to-head.png";
+      try { a.href = canvas.toDataURL("image/png"); }
+      catch (e) { alert("Export failed. If you opened this page via file://, try a local server instead."); return; }
+      a.click();
+    }
   }
 
   function buildComparePicker() {
