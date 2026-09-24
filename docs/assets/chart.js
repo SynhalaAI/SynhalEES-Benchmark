@@ -144,12 +144,12 @@
     return state.models.length ? state.models[0].name : "";
   }
 
-  function draw() {
-    var canvas = $("#chart");
+  function draw(opts) {
+    var canvas = (opts && opts.canvas) || $("#chart");
     if (!canvas || !state.models.length) return;
-    var W = canvas.parentElement.clientWidth;
-    var H = 460;
-    var dpr = window.devicePixelRatio || 1;
+    var W = (opts && opts.width) || canvas.parentElement.clientWidth;
+    var H = (opts && opts.height) || 460;
+    var dpr = (opts && opts.dpr) || window.devicePixelRatio || 1;
     canvas.width = W * dpr;
     canvas.height = H * dpr;
     canvas.style.width = W + "px";
@@ -210,7 +210,7 @@
     ctx.fillStyle = textCol;
     ctx.fillText("SynhalEES", wmX - benchW, wmY);
     var synW = ctx.measureText("SynhalEES").width;
-    var bimg = brandImg();
+    var bimg = (opts && opts.noImgs) ? null : brandImg();
     if (bimg) {
       // SB brand icon badge (has its own light bg, works on dark mode too)
       ctx.drawImage(bimg, wmX - benchW - synW - 17, wmY - 7, 14, 14);
@@ -275,7 +275,7 @@
       // provider logo (or initial dot) under the axis
       var cx = padL + slot * i + slot / 2;
       var file = logoFile(m.provider);
-      var img = file ? logoImg(file) : null;
+      var img = (file && !(opts && opts.noImgs)) ? logoImg(file) : null;
       if (img) {
         // dark mode: black glyphs (OpenAI, Anthropic) vanish on the navy
         // background, so paint a white rounded badge behind every logo
@@ -367,35 +367,45 @@
 
   // Renders the current chart view (same filters + highlight as on screen)
   // onto an offscreen canvas with the section background and a title line.
+  // file:// pages taint any canvas that drew a local SVG/PNG image, so on a
+  // SecurityError we retry with placeholder dots instead of brand images.
   function exportChartPNG() {
     var src = $("#chart");
     if (!src || !state.models.length) return;
     var dpr = window.devicePixelRatio || 1;
+    var W = src.parentElement.clientWidth, H = 460;
     var padX = 24 * dpr, padT = 18 * dpr, titleH = 30 * dpr, padB = 16 * dpr;
-    var c = document.createElement("canvas");
-    c.width = src.width + padX * 2;
-    c.height = src.height + padT + titleH + padB;
-    var ctx = c.getContext("2d");
-    ctx.fillStyle = cssVar("--navy") || "#2b3044";
-    ctx.fillRect(0, 0, c.width, c.height);
-    var shown = visibleModels();
-    var title = "SynhalEES \u2014 " + METRIC_LABEL[st.metric] + " Comparison \u00b7 " +
-      shown.length + " of " + poolSize() + " models";
-    var feat = featuredName();
-    if (feat && shown.some(function (m) { return m.name === feat; })) {
-      title += " \u00b7 Featured: " + feat;
+
+    function buildPng(skipImgs) {
+      var chartC = document.createElement("canvas");
+      draw({ canvas: chartC, width: W, height: H, dpr: dpr, noImgs: skipImgs });
+      var c = document.createElement("canvas");
+      c.width = chartC.width + padX * 2;
+      c.height = chartC.height + padT + titleH + padB;
+      var ctx = c.getContext("2d");
+      ctx.fillStyle = cssVar("--navy") || "#2b3044";
+      ctx.fillRect(0, 0, c.width, c.height);
+      var shown = visibleModels();
+      var title = "SynhalEES \u2014 " + METRIC_LABEL[st.metric] + " Comparison \u00b7 " +
+        shown.length + " of " + poolSize() + " models";
+      var feat = featuredName();
+      if (feat && shown.some(function (m) { return m.name === feat; })) {
+        title += " \u00b7 Featured: " + feat;
+      }
+      ctx.fillStyle = cssVar("--text") || "#eef0f6";
+      ctx.font = "700 " + Math.round(15 * dpr) + "px Inter, sans-serif";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText(title, padX, padT + titleH / 2);
+      ctx.drawImage(chartC, padX, padT + titleH);
+      return c.toDataURL("image/png");
     }
-    ctx.fillStyle = cssVar("--text") || "#eef0f6";
-    ctx.font = "700 " + Math.round(15 * dpr) + "px Inter, sans-serif";
-    ctx.textAlign = "left";
-    ctx.textBaseline = "middle";
-    ctx.fillText(title, padX, padT + titleH / 2);
-    ctx.drawImage(src, padX, padT + titleH);
+
     var url;
-    try { url = c.toDataURL("image/png"); }
+    try { url = buildPng(false); }
     catch (e) {
-      alert("PNG export is blocked on file:// pages. Serve the docs folder over http(s) and retry.");
-      return;
+      try { url = buildPng(true); }
+      catch (e2) { alert("PNG export failed in this browser."); return; }
     }
     var a = document.createElement("a");
     a.download = "synhalees-" + st.metric + "-comparison.png";
