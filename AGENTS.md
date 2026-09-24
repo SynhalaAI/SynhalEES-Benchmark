@@ -44,6 +44,26 @@ Rules:
 - `eval_type` must be one of exactly: `exact_match`, `llm_judge`, `wer`, `classification`.
 - Assign `eval_type` using the decision tree in `STRUCTURE.md` section 3.
 
+## 🖼️ Provider Logos & `docs/assets/logo-data.js`
+
+The static site embeds provider logos and the brand icon as data URLs in
+`docs/assets/logo-data.js` so canvas PNG exports keep their icons on `file://`
+pages. **This file is generated - never edit it by hand.**
+
+- **Add a logo:** drop `<slug>.svg` into `docs/assets/logos/`, add the
+  provider -> slug mapping in **both** `docs/assets/chart.js` and
+  `docs/assets/app.js` (`PROVIDER_LOGOS`), then run
+  `python tools/build_logo_data.py`.
+- **Edit/replace a logo** (`docs/assets/logos/*.svg` or `docs/assets/icon.png`):
+  run `python tools/build_logo_data.py` and commit the regenerated
+  `logo-data.js` **in the same commit** as the source change.
+- **Staleness detection:** `logo-data.js` carries a `SOURCE-SHA256` checksum of
+  its sources. CI (`.github/workflows/logo-data.yml`) runs
+  `python tools/build_logo_data.py --check` on every push/PR and **fails** when
+  the embedded data is stale. Run the check locally before committing.
+- Pillow is optional (it only downscales raster-wrapped SVGs);
+  `pip install pillow` keeps the generated file small.
+
 ## ✍️ Sinhala Content
 
 - Keep Sinhala text **Unicode (UTF-8)** at all times — `.gitattributes`/`.editorconfig`
@@ -63,4 +83,5 @@ Rules:
 - [ ] Pillar names aligned across README.md, STRUCTURE.md, and folder slugs
 - [ ] CSVs (if added) match the schemas in `STRUCTURE.md` section 5
 - [ ] `eval_type` values are from the allowed set of 4
+- [ ] Logo/icon changes regenerate `docs/assets/logo-data.js` (`python tools/build_logo_data.py --check` passes)
 - [ ] Sinhala text is valid UTF-8 with diacritics preserved
