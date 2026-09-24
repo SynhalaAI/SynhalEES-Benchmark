@@ -14,6 +14,46 @@ import kaggle_benchmarks as kbench
 from synhalees import data as syn_data
 from synhalees.evaluators import score_response
 
+# pip installs only the synhalees package; benchmark_data/ lives at the repo
+# root and does NOT ship inside site-packages, so list_pillars() cannot find
+# it. Bootstrap the CSVs from the public repo into /tmp and override data_dir.
+import io
+import urllib.request
+from pathlib import Path
+
+REPO_RAW = "https://raw.githubusercontent.com/SynhalaAI/SynhalEES-Benchmark/main"
+_PILLARS = (
+    "01_buddhist_culture",
+    "02_pali_gatha",
+    "03_classical_literature",
+    "04_kavi_sindu",
+    "05_sinhala_grammar",
+    "06_daily_spoken",
+    "07_figurative_sinhala",
+    "08_profanity_nuance",
+    "09_singlish_sms",
+    "10_regional_dialects",
+    "11_astrology_beliefs",
+    "12_general_knowledge",
+    "13_sri_lanka_law",
+    "14_culinary_kitchen",
+    "15_numbers_maths",
+)
+
+DATA_ROOT = Path("/tmp/synhalees_benchmark_data")
+for _p in _PILLARS:
+    _f = DATA_ROOT / _p / "text.csv"
+    if not _f.is_file():
+        _f.parent.mkdir(parents=True, exist_ok=True)
+        _f.write_text(
+            urllib.request.urlopen(
+                f"{REPO_RAW}/benchmark_data/{_p}/text.csv", timeout=60
+            ).read().decode("utf-8"),
+            encoding="utf-8",
+        )
+
+syn_data._DEFAULT_DATA_DIR = DATA_ROOT
+
 PILLAR = '07_figurative_sinhala'  # None -> all pillars
 MODALITY = "text"
 
