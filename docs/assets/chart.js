@@ -233,6 +233,15 @@
       var isFeat = hasFeatured && m.name === featured;
       var col = hasFeatured ? (isFeat ? featRed : mutedCol) : barColor(m.provider);
 
+      // full-height background column behind the featured bar so it is
+      // easy to spot at a glance (same pattern as the reference leaderboard)
+      if (isFeat) {
+        ctx.globalAlpha = document.documentElement.getAttribute("data-theme") !== "light" ? 0.14 : 0.08;
+        ctx.fillStyle = featRed;
+        ctx.fillRect(padL + slot * i + 1, padT, slot - 2, plotH);
+        ctx.globalAlpha = 1;
+      }
+
       // bar with rounded top (rivals dimmed when a featured model is shown)
       ctx.fillStyle = col;
       if (hasFeatured && !isFeat) ctx.globalAlpha = 0.55;
