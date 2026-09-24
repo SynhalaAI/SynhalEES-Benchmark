@@ -461,7 +461,7 @@
         opt.textContent = m.name;
         featSel.appendChild(opt);
       });
-      if (state.models.length) featSel.value = state.models[0].name;
+      // default stays "" ("No highlight") - every bar keeps its provider color
       featSel.addEventListener("change", draw);
     }
 

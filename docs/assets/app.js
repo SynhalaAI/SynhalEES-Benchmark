@@ -119,16 +119,10 @@
       : String(rank);
   }
 
-  /* ---------- rendering ---------- */
-
-  function renderTable() {
-    var body = $("#lb-body");
-    body.innerHTML = "";
-
+  function tableRows() {
     var rows = state.models.filter(function (m) {
       return !state.hidden[m.name] && m.name.toLowerCase().indexOf(state.search) !== -1 && scoreOf(m) != null;
     });
-
     rows.sort(function (a, b) {
       var k = state.sortKey, va, vb;
       if (k === "name" || k === "provider" || k === "date") {
@@ -141,6 +135,22 @@
       if (vb == null) return -1;
       return (va - vb) * state.sortDir;
     });
+    return rows;
+  }
+
+  function scoreLabel() {
+    return state.pillar
+      ? pillarTitle(state.pillar)
+      : state.mode.charAt(0).toUpperCase() + state.mode.slice(1) + " Score";
+  }
+
+  /* ---------- rendering ---------- */
+
+  function renderTable() {
+    var body = $("#lb-body");
+    body.innerHTML = "";
+
+    var rows = tableRows();
 
     $("#empty-state").hidden = rows.length > 0;
     // data exists but every row is filtered out (search box / Models dropdown)
@@ -175,9 +185,7 @@
       });
     }
 
-    var label = state.pillar
-      ? pillarTitle(state.pillar)
-      : state.mode.charAt(0).toUpperCase() + state.mode.slice(1) + " Score";
+    var label = scoreLabel();
     // keep the sort-arrow svg: update only the label span inside the th
     var sc = $("#score-col"), scLabel = sc.querySelector(".th-label");
     if (scLabel) scLabel.textContent = label; else sc.textContent = label;
@@ -667,6 +675,226 @@
     }
   }
 
+  // Leaderboard table export: same pipeline as exportComparePNG, but renders
+  // exactly what the on-screen table shows (tab + pillar + search + Models
+  // filter + sort order all respected via tableRows()).
+  function exportTablePNG() {
+    var rows = tableRows();
+    if (!rows.length) return;
+    var scoreLbl = scoreLabel();
+
+    var cs = getComputedStyle(document.documentElement);
+    function cv(n, fb) { var v = cs.getPropertyValue(n).trim(); return v || fb; }
+    var C = {
+      bg: cv("--navy-deep", "#1d2230"), card: cv("--navy-card", "#262b3c"),
+      navy: cv("--navy", "#20253a"), alt: cv("--row-alt", "#232838"),
+      text: cv("--text", "#eef0f6"), muted: cv("--muted", "#9aa1b5"),
+      border: cv("--border", "#3a4157"), red: cv("--red-bright", "#e53935")
+    };
+    var FONT = "'Inter', 'Noto Sans Sinhala', system-ui, sans-serif";
+    var PAD = 36, SCALE = 2; // 2x for high-DPI / social-media quality
+    var TITLE_H = 70, HEAD_H = 42, ROW_H = 46, FOOT_H = 42;
+
+    var canvas = document.createElement("canvas");
+    var ctx = canvas.getContext("2d");
+
+    function fitText(t, maxW) {
+      if (ctx.measureText(t).width <= maxW) return t;
+      while (t.length > 1 && ctx.measureText(t + "\u2026").width > maxW) t = t.slice(0, -1);
+      return t + "\u2026";
+    }
+    function rrect(x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    // columns mirror the on-screen thead: # | Model | Provider | score | Text | Vision | Audio | Date
+    ctx.font = "700 13.5px " + FONT;
+    var nameW = 0, provW = 0, dateW = 0;
+    rows.forEach(function (m) {
+      nameW = Math.max(nameW, ctx.measureText(m.name).width);
+      provW = Math.max(provW, ctx.measureText(m.provider).width);
+      dateW = Math.max(dateW, ctx.measureText(m.date || "\u2014").width);
+    });
+    var cols = [
+      { label: "#", w: 52, align: "right" },
+      { label: "Model", w: Math.ceil(nameW) + 26, align: "left" },
+      { label: "Provider", w: Math.ceil(provW) + 62, align: "left" },
+      { label: scoreLbl, w: Math.max(88, Math.ceil(ctx.measureText(scoreLbl).width) + 26), align: "right" },
+      { label: "Text", w: 68, align: "right" },
+      { label: "Vision", w: 68, align: "right" },
+      { label: "Audio", w: 68, align: "right" },
+      { label: "Date", w: Math.max(92, Math.ceil(dateW) + 22), align: "right" }
+    ];
+    var tableW = 0;
+    cols.forEach(function (c) { tableW += c.w; });
+    var bodyH = rows.length * ROW_H;
+    var W = PAD * 2 + tableW;
+    var H = PAD + TITLE_H + HEAD_H + bodyH + FOOT_H + 14;
+
+    canvas.width = W * SCALE;
+    canvas.height = H * SCALE;
+    ctx.scale(SCALE, SCALE);
+    ctx.textBaseline = "alphabetic";
+
+    // page background + title block (same pattern as the compare export)
+    ctx.fillStyle = C.bg;
+    ctx.fillRect(0, 0, W, H);
+    var x0 = PAD, y = PAD;
+    ctx.textAlign = "left";
+    ctx.font = "800 22px " + FONT;
+    ctx.fillStyle = C.red;
+    ctx.fillText("SynhalEES", x0, y + 24);
+    var tw = ctx.measureText("SynhalEES").width;
+    ctx.fillStyle = C.text;
+    ctx.fillText(" Benchmark", x0 + tw, y + 24);
+    ctx.font = "600 12px " + FONT;
+    ctx.fillStyle = C.muted;
+    ctx.fillText("LLM Leaderboard \u00b7 " + scoreLbl + " \u00b7 " + rows.length + " of " + state.models.length + " models", x0, y + 46);
+    var stamp = state.updated || "";
+    if (state.demo) stamp = (stamp ? stamp + " \u00b7 " : "") + "DEMO DATA";
+    if (stamp) {
+      ctx.textAlign = "right";
+      ctx.fillText(stamp, x0 + tableW, y + 46);
+      ctx.textAlign = "left";
+    }
+    y += TITLE_H;
+
+    // table card (clip so the header/zebra fills keep the rounded corners)
+    ctx.fillStyle = C.card;
+    rrect(x0, y, tableW, HEAD_H + bodyH, 12);
+    ctx.fill();
+    ctx.save();
+    rrect(x0, y, tableW, HEAD_H + bodyH, 12);
+    ctx.clip();
+
+    // header row
+    ctx.fillStyle = C.navy;
+    ctx.fillRect(x0, y, tableW, HEAD_H);
+    var cx = x0;
+    ctx.font = "800 10px " + FONT;
+    ctx.fillStyle = C.muted;
+    cols.forEach(function (c) {
+      ctx.textAlign = c.align;
+      ctx.fillText(c.label.toUpperCase(), c.align === "right" ? cx + c.w - 12 : cx + 12, y + 26);
+      cx += c.w;
+    });
+    ctx.fillStyle = C.border;
+    ctx.fillRect(x0, y + HEAD_H - 1, tableW, 1);
+
+    // body rows - identical data and order to the on-screen table
+    var best = rows.length ? Math.max.apply(null, rows.map(scoreOf)) : -Infinity;
+    var MEDAL = { 1: "#f5c542", 2: "#c3cad6", 3: "#c97e4a" };
+    rows.forEach(function (m, ri) {
+      var ry = y + HEAD_H + ri * ROW_H;
+      if (ri % 2 === 1) { ctx.fillStyle = C.alt; ctx.fillRect(x0, ry, tableW, ROW_H); }
+      var cy = ry + ROW_H / 2 + 4.5;
+      var cxx = x0;
+      // rank (gold/silver/bronze disc for the top 3, like .rank-badge)
+      var rank = ri + 1;
+      if (MEDAL[rank]) {
+        ctx.fillStyle = MEDAL[rank];
+        ctx.beginPath();
+        ctx.arc(cxx + cols[0].w - 24, ry + ROW_H / 2, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#1d2230";
+      } else {
+        ctx.fillStyle = C.muted;
+      }
+      ctx.textAlign = "center";
+      ctx.font = "800 11.5px " + FONT;
+      ctx.fillText(String(rank), cxx + cols[0].w - 24, ry + ROW_H / 2 + 4);
+      cxx += cols[0].w;
+      // model name + mini score bar
+      var sv = scoreOf(m);
+      ctx.textAlign = "left";
+      ctx.font = "700 13.5px " + FONT;
+      ctx.fillStyle = C.text;
+      ctx.fillText(fitText(m.name, cols[1].w - 26), cxx + 12, cy - 2);
+      if (sv != null) {
+        ctx.fillStyle = C.border;
+        ctx.fillRect(cxx + 12, ry + ROW_H - 11, cols[1].w - 26, 3);
+        ctx.fillStyle = C.red;
+        ctx.fillRect(cxx + 12, ry + ROW_H - 11, (cols[1].w - 26) * Math.min(100, Math.max(0, sv)) / 100, 3);
+      }
+      cxx += cols[1].w;
+      // provider (real logo painted later over this white chip)
+      m._lx = cxx + 12; m._ly = ry + (ROW_H - 22) / 2;
+      ctx.fillStyle = "#ffffff";
+      rrect(m._lx, m._ly, 22, 22, 6);
+      ctx.fill();
+      ctx.fillStyle = C.muted;
+      ctx.font = "800 11px " + FONT;
+      ctx.textAlign = "center";
+      ctx.fillText(m.provider.charAt(0).toUpperCase(), m._lx + 11, m._ly + 15);
+      ctx.textAlign = "left";
+      ctx.font = "400 12.5px " + FONT;
+      ctx.fillText(fitText(m.provider, cols[2].w - 62), cxx + 42, cy);
+      cxx += cols[2].w;
+      // score (best gets the red accent, like .score-pill.top) + modality numbers
+      var vals = [sv, m.modalities.text, m.modalities.vision, m.modalities.audio];
+      vals.forEach(function (v, vi) {
+        ctx.textAlign = "right";
+        ctx.font = (vi === 0 ? "800" : "600") + " 13px " + FONT;
+        ctx.fillStyle = v == null ? C.muted : (vi === 0 && v === best ? C.red : C.text);
+        ctx.fillText(fmt(v), cxx + cols[3 + vi].w - 12, cy);
+        cxx += cols[3 + vi].w;
+      });
+      // date
+      ctx.textAlign = "right";
+      ctx.font = "400 12px " + FONT;
+      ctx.fillStyle = C.muted;
+      ctx.fillText(m.date || "\u2014", cxx + cols[7].w - 12, cy);
+    });
+    ctx.restore();
+
+    // footer
+    ctx.textAlign = "left";
+    ctx.fillStyle = C.muted;
+    ctx.font = "600 11px " + FONT;
+    ctx.fillText("SynhalEES Benchmark" + (state.demo ? " \u00b7 demo data" : ""), x0, y + HEAD_H + bodyH + 28);
+    ctx.textAlign = "right";
+    ctx.fillText("github.com/SynhalaAI/SynhalEES-Benchmark", x0 + tableW, y + HEAD_H + bodyH + 28);
+
+    // provider logos: preload embedded data URLs (they never taint the canvas,
+    // even on file://), paint them over the initial chips, then download
+    var logoFiles = {};
+    rows.forEach(function (m) { var f = providerLogoFile(m.provider); if (f) logoFiles[f] = 1; });
+    var logoKeys = Object.keys(logoFiles);
+    if (!logoKeys.length) { finish(); return; }
+    var pending = logoKeys.length, logoImgs = {};
+    logoKeys.forEach(function (f) {
+      var img = new Image();
+      img.onload = function () { logoImgs[f] = img; if (--pending === 0) { drawLogos(); finish(); } };
+      img.onerror = function () { if (--pending === 0) { drawLogos(); finish(); } };
+      img.src = (window.SYNHALEES_LOGOS && window.SYNHALEES_LOGOS[f]) ||
+                "assets/logos/" + f + ".svg";
+    });
+    function drawLogos() {
+      rows.forEach(function (m) {
+        var img = logoImgs[providerLogoFile(m.provider)];
+        if (!img || m._lx == null) return;  // unmapped provider: keep the initial chip
+        ctx.fillStyle = "#ffffff";
+        rrect(m._lx, m._ly, 22, 22, 6);
+        ctx.fill();
+        ctx.drawImage(img, m._lx + 3, m._ly + 3, 16, 16);
+      });
+    }
+    function finish() {
+      rows.forEach(function (m) { delete m._lx; delete m._ly; });
+      var a = document.createElement("a");
+      a.download = "synhalees-leaderboard.png";
+      try { a.href = canvas.toDataURL("image/png"); }
+      catch (e) { alert("Export failed. If you opened this page via file://, try a local server instead."); return; }
+      a.click();
+    }
+  }
+
   function buildComparePicker() {
     var list = $("#compare-picker-list");
     if (!list) return;
@@ -1045,6 +1273,8 @@
       var expBtn = $("#compare-export");
       if (expBtn) expBtn.addEventListener("click", exportComparePNG);
     }
+    var lbExp = $("#lb-export");
+    if (lbExp) lbExp.addEventListener("click", exportTablePNG);
     var mfBtn = $("#model-filter-btn");
     if (mfBtn) {
       mfBtn.addEventListener("click", function (e) {
@@ -1052,6 +1282,10 @@
         var p = $("#model-filter");
         p.hidden = !p.hidden;
         mfBtn.setAttribute("aria-expanded", p.hidden ? "false" : "true");
+        if (!p.hidden) {
+          var s = $("#model-filter-search");
+          if (s) { s.value = ""; s.dispatchEvent(new Event("input")); s.focus(); }
+        }
       });
       $("#model-filter").addEventListener("click", function (e) { e.stopPropagation(); });
       document.addEventListener("click", function () {
@@ -1069,6 +1303,16 @@
         buildModelFilter();
         renderTable();
       });
+      var mfSearch = $("#model-filter-search");
+      if (mfSearch) {
+        mfSearch.addEventListener("input", function () {
+          var q = mfSearch.value.trim().toLowerCase();
+          var items = document.querySelectorAll("#model-filter-list .pk-item");
+          Array.prototype.forEach.call(items, function (it) {
+            it.hidden = !!q && it.textContent.toLowerCase().indexOf(q) === -1;
+          });
+        });
+      }
     }
 
     $("#theme-toggle").addEventListener("click", function () {
