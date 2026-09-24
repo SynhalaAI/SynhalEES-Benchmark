@@ -75,6 +75,17 @@ def load_run(run_dir: Path) -> dict | None:
     }
 
 
+def error_count(run: dict) -> int:
+    return sum(1 for r in run["records"] if r.get("error"))
+
+
+def is_broken(run: dict) -> bool:
+    """True when every single item failed with an API error (bad key, no SSL,
+    wrong model id...). Such a run carries no signal and is excluded by
+    default instead of publishing a misleading 0% score."""
+    return bool(run["records"]) and error_count(run) == len(run["records"])
+
+
 def accuracy(rows: list[dict]) -> float:
     return sum(1 for r in rows if r.get("is_correct")) / len(rows) if rows else 0.0
 
@@ -130,6 +141,8 @@ def main() -> int:
     )
     ap.add_argument("--runs-dir", type=Path, default=ROOT / "runs",
                     help="Root of per-model run folders (default: runs/).")
+    ap.add_argument("--include-broken", action="store_true",
+                    help="also publish runs where every item errored")
     ap.add_argument("--out", type=Path, default=None,
                     help="Combined CSV (default: <runs-dir>/all_submissions.csv).")
     args = ap.parse_args()
@@ -139,11 +152,16 @@ def main() -> int:
               file=sys.stderr)
         return 1
     runs = []
+    broken = []
     for child in sorted(args.runs_dir.iterdir()):
         if child.is_dir():
             run = load_run(child)
             if run:
-                runs.append(run)
+                (broken if is_broken(run) and not args.include_broken else runs).append(run)
+    for run in broken:
+        print(f"WARNING: skipping {run['dir']} -- all {len(run['records'])} items "
+              f"failed with API errors (bad key/SSL/model id?). Fix and rerun, or "
+              f"pass --include-broken to publish it anyway.")
     if not runs:
         print(f"ERROR: no runs with a checkpoint.jsonl found in {args.runs_dir}.",
               file=sys.stderr)
