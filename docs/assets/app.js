@@ -401,6 +401,235 @@
     cnt.classList.add("flash");
   }
 
+  /* ---------- PNG export (canvas-rendered, dependency-free, safe on file://) ---------- */
+
+  var CROWN_D = [
+    "M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.735H5.81a1 1 0 0 1-.957-.735L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z",
+    "M5 21h14"
+  ];
+
+  function exportComparePNG() {
+    // same ordering as the on-screen table: featured model first, then rivals
+    var models = [];
+    state.models.forEach(function (m) { if (m.name === state.featured) models.push(m); });
+    state.compare.forEach(function (n) {
+      if (n === state.featured) return;
+      state.models.forEach(function (m) { if (m.name === n) models.push(m); });
+    });
+    if (models.length < 2) return;
+    var rows = compareRows();
+
+    // honest row-win counts (identical logic to renderCompare)
+    var wins = {};
+    models.forEach(function (m) { wins[m.name] = 0; });
+    rows.forEach(function (r) {
+      if (r.group) return;
+      var best = -Infinity, n = 0;
+      models.forEach(function (m) { var v = r.get(m); if (v != null) { n++; if (v > best) best = v; } });
+      if (n < 2) return;
+      models.forEach(function (m) { if (r.get(m) === best) wins[m.name]++; });
+    });
+
+    var cs = getComputedStyle(document.documentElement);
+    function cv(n, fb) { var v = cs.getPropertyValue(n).trim(); return v || fb; }
+    var C = {
+      bg: cv("--navy-deep", "#1d2230"), card: cv("--navy-card", "#262b3c"),
+      alt: cv("--row-alt", "#232838"), text: cv("--text", "#eef0f6"),
+      muted: cv("--muted", "#9aa1b5"), border: cv("--border", "#3a4157"),
+      red: cv("--red-bright", "#e53935"), gold: cv("--gold", "#f5b301")
+    };
+    var FONT = "'Inter', 'Noto Sans Sinhala', system-ui, sans-serif";
+    var PAD = 36, SCALE = 2; // 2x for high-DPI / social-media quality
+    var HEAD_H = 106, ROW_H = 44, HERO_H = 52, GROUP_H = 26, TITLE_H = 70, FOOT_H = 42;
+
+    var canvas = document.createElement("canvas");
+    var ctx = canvas.getContext("2d");
+
+    function fitText(t, maxW) {
+      if (ctx.measureText(t).width <= maxW) return t;
+      while (t.length > 1 && ctx.measureText(t + "\u2026").width > maxW) t = t.slice(0, -1);
+      return t + "\u2026";
+    }
+    function rrect(x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+    function drawCrown(x, y, color) {
+      var s = 11 / 24;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(s, s);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      for (var i = 0; i < CROWN_D.length; i++) ctx.stroke(new Path2D(CROWN_D[i]));
+      ctx.restore();
+    }
+
+    // column widths measured from real text
+    ctx.font = "700 12.5px " + FONT;
+    var labelW = 0;
+    rows.forEach(function (r) { if (!r.group) labelW = Math.max(labelW, ctx.measureText(r.label).width); });
+    labelW = Math.min(Math.ceil(labelW) + 26, 250);
+    ctx.font = "800 15px " + FONT;
+    var nameW = 0;
+    models.forEach(function (m) { nameW = Math.max(nameW, ctx.measureText(m.name).width); });
+    var colW = Math.max(116, Math.ceil(nameW) + 32);
+
+    var tableW = labelW + models.length * colW;
+    var bodyH = 0;
+    rows.forEach(function (r) { bodyH += r.group ? GROUP_H : (r.hero ? HERO_H : ROW_H); });
+    var W = PAD * 2 + tableW;
+    var H = PAD + TITLE_H + HEAD_H + bodyH + FOOT_H + 14;
+
+    canvas.width = W * SCALE;
+    canvas.height = H * SCALE;
+    ctx.scale(SCALE, SCALE);
+    ctx.textBaseline = "alphabetic";
+
+    // page background + title block
+    ctx.fillStyle = C.bg;
+    ctx.fillRect(0, 0, W, H);
+    var x0 = PAD, y = PAD;
+    ctx.textAlign = "left";
+    ctx.font = "800 22px " + FONT;
+    ctx.fillStyle = C.red;
+    ctx.fillText("SynhalEES", x0, y + 24);
+    var tw = ctx.measureText("SynhalEES").width;
+    ctx.fillStyle = C.text;
+    ctx.fillText(" Benchmark", x0 + tw, y + 24);
+    ctx.font = "600 12px " + FONT;
+    ctx.fillStyle = C.muted;
+    ctx.fillText("Head-to-Head Comparison \u00b7 Sinhala LLM evaluation across 15 pillars", x0, y + 46);
+    var stamp = state.updated || "";
+    if (state.demo) stamp = (stamp ? stamp + " \u00b7 " : "") + "DEMO DATA";
+    if (stamp) {
+      ctx.textAlign = "right";
+      ctx.fillText(stamp, x0 + tableW, y + 46);
+      ctx.textAlign = "left";
+    }
+    y += TITLE_H;
+
+    // table card
+    ctx.fillStyle = C.card;
+    rrect(x0, y, tableW, HEAD_H + bodyH, 12);
+    ctx.fill();
+
+    var hx = x0 + labelW, ty = y;
+
+    // ---- header: provider chip, name, provider, wins pill ----
+    models.forEach(function (m, ci) {
+      var cx = hx + ci * colW, midX = cx + colW / 2;
+      var feat = m.name === state.featured;
+      ctx.fillStyle = C.alt;
+      rrect(midX - 13, ty + 12, 26, 26, 7);
+      ctx.fill();
+      ctx.textAlign = "center";
+      ctx.fillStyle = C.muted;
+      ctx.font = "800 13px " + FONT;
+      ctx.fillText(m.provider.charAt(0).toUpperCase(), midX, ty + 30);
+      ctx.fillStyle = C.text;
+      ctx.font = "800 15px " + FONT;
+      ctx.fillText(fitText(m.name, colW - 14), midX, ty + 58);
+      ctx.fillStyle = C.muted;
+      ctx.font = "400 11px " + FONT;
+      ctx.fillText(fitText(m.provider, colW - 14), midX, ty + 75);
+      // wins pill — gold for the featured model (UI-only emphasis; counts stay honest)
+      ctx.font = "700 10.5px " + FONT;
+      var pillTxt = wins[m.name] + " wins";
+      var pw = ctx.measureText(pillTxt).width + 36;
+      var px = midX - pw / 2, py = ty + 82;
+      if (feat) { ctx.fillStyle = C.gold; rrect(px, py, pw, 18, 9); ctx.fill(); }
+      else { ctx.strokeStyle = C.border; ctx.lineWidth = 1; rrect(px, py, pw, 18, 9); ctx.stroke(); }
+      drawCrown(px + 9, py + 3.5, feat ? "#1d2230" : C.muted);
+      ctx.fillStyle = feat ? "#1d2230" : C.muted;
+      ctx.textAlign = "left";
+      ctx.fillText(pillTxt, px + 24, py + 13);
+    });
+
+    ty += HEAD_H;
+    ctx.fillStyle = C.border;
+    ctx.fillRect(x0, ty - 1, tableW, 1);
+
+    // ---- body rows (group headers + metric rows) ----
+    rows.forEach(function (r) {
+      if (r.group) {
+        ctx.fillStyle = C.alt;
+        ctx.fillRect(x0, ty, tableW, GROUP_H);
+        ctx.fillStyle = C.muted;
+        ctx.font = "800 10px " + FONT;
+        ctx.textAlign = "left";
+        ctx.fillText(r.group.toUpperCase(), x0 + 14, ty + 17);
+        ty += GROUP_H;
+        return;
+      }
+      var rh = r.hero ? HERO_H : ROW_H;
+      var cy = ty + rh / 2;
+      var sub = r.hero ? null : r.sub;
+      ctx.textAlign = "left";
+      ctx.fillStyle = C.text;
+      ctx.font = (r.hero ? "800 15px " : "700 12.5px ") + FONT;
+      ctx.fillText(fitText(r.label, labelW - 20), x0 + 14, sub ? cy - 2 : cy + 4.5);
+      if (sub) {
+        ctx.fillStyle = C.muted;
+        ctx.font = "400 10.5px " + FONT;
+        ctx.fillText(fitText(sub, labelW - 20), x0 + 14, cy + 13);
+      }
+      var best = -Infinity, n = 0;
+      models.forEach(function (m) { var v = r.get(m); if (v != null) { n++; if (v > best) best = v; } });
+      var hasBest = n >= 2;
+      models.forEach(function (m, ci) {
+        var cx = hx + ci * colW;
+        var v = r.get(m);
+        var feat = m.name === state.featured;
+        var isBest = hasBest && v === best;
+        if (isBest) {
+          // full-strength red for the featured column, dimmed for rivals
+          ctx.fillStyle = feat ? "rgba(198, 40, 40, .24)" : "rgba(198, 40, 40, .08)";
+          ctx.fillRect(cx, ty, colW, rh);
+        }
+        var weight = r.hero ? 800 : (isBest ? (feat ? 800 : 600) : 600);
+        ctx.font = weight + " " + (r.hero ? 15 : 13) + "px " + FONT;
+        ctx.fillStyle = v == null ? C.muted : C.text;
+        ctx.textAlign = "center";
+        ctx.fillText(v == null ? "\u2014" : v.toFixed(1), cx + colW / 2, cy + 4.5);
+      });
+      ty += rh;
+    });
+
+    // featured column frame drawn on top of all rows
+    var fci = -1;
+    models.forEach(function (m, i) { if (m.name === state.featured) fci = i; });
+    if (fci >= 0) {
+      var fx = hx + fci * colW, fh = HEAD_H + bodyH;
+      ctx.fillStyle = C.red;
+      ctx.fillRect(fx, y, 1.5, fh);
+      ctx.fillRect(fx + colW - 1.5, y, 1.5, fh);
+      ctx.fillRect(fx, y, colW, 3);
+      ctx.fillRect(fx, y + fh - 2, colW, 2);
+    }
+
+    // footer
+    ctx.textAlign = "left";
+    ctx.fillStyle = C.muted;
+    ctx.font = "600 11px " + FONT;
+    ctx.fillText("SynhalEES Benchmark" + (state.demo ? " \u00b7 demo data" : ""), x0, y + HEAD_H + bodyH + 28);
+    ctx.textAlign = "right";
+    ctx.fillText("github.com/SynhalaAI/SynhalEES-Benchmark", x0 + tableW, y + HEAD_H + bodyH + 28);
+
+    // download
+    var a = document.createElement("a");
+    a.download = "synhalees-head-to-head.png";
+    a.href = canvas.toDataURL("image/png");
+    a.click();
+  }
+
   function buildComparePicker() {
     var list = $("#compare-picker-list");
     if (!list) return;
@@ -731,6 +960,9 @@
         buildComparePicker();
         renderCompare();
       });
+
+      var expBtn = $("#compare-export");
+      if (expBtn) expBtn.addEventListener("click", exportComparePNG);
     }
     $("#theme-toggle").addEventListener("click", function () {
       var html = document.documentElement;
