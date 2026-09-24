@@ -238,7 +238,8 @@
       if (isFeat) {
         ctx.globalAlpha = document.documentElement.getAttribute("data-theme") !== "light" ? 0.14 : 0.08;
         ctx.fillStyle = featRed;
-        ctx.fillRect(padL + slot * i + 1, padT, slot - 2, plotH);
+        var bandW = Math.min(slot - 2, barW * 1.4);  // hug the bar, not the whole slot
+        ctx.fillRect(x + (barW - bandW) / 2, padT, bandW, plotH);
         ctx.globalAlpha = 1;
       }
 
