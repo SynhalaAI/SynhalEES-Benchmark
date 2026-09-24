@@ -16,6 +16,7 @@
     sortKey: "score",
     sortDir: -1,
     search: "",
+    hidden: {},             // model names unchecked in the Models filter dropdown
     bootAnim: true          // first-load entrance animations
   };
 
@@ -125,7 +126,7 @@
     body.innerHTML = "";
 
     var rows = state.models.filter(function (m) {
-      return m.name.toLowerCase().indexOf(state.search) !== -1 && scoreOf(m) != null;
+      return !state.hidden[m.name] && m.name.toLowerCase().indexOf(state.search) !== -1 && scoreOf(m) != null;
     });
 
     rows.sort(function (a, b) {
@@ -142,6 +143,10 @@
     });
 
     $("#empty-state").hidden = rows.length > 0;
+    // data exists but every row is filtered out (search box / Models dropdown)
+    if (!rows.length && state.models.length) {
+      $("#empty-state").textContent = "No models match the current search / model filter.";
+    }
 
     var best = rows.length ? Math.max.apply(null, rows.map(scoreOf)) : -1;
 
@@ -726,6 +731,48 @@
     });
     updateComparePickerState();
   }
+  function buildModelFilter() {
+    var list = $("#model-filter-list");
+    if (!list) return;
+    list.innerHTML = "";
+    state.models.forEach(function (m) {
+      var item = document.createElement("label");
+      item.className = "pk-item";
+      var cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = !state.hidden[m.name];
+      cb.addEventListener("change", function () {
+        if (cb.checked) delete state.hidden[m.name];
+        else state.hidden[m.name] = true;
+        updateModelFilterCount();
+        renderTable();
+      });
+      item.appendChild(cb);
+      // providerLogo() returns ready-made HTML (<img> or fallback chip), not a URL
+      var logoWrap = document.createElement("span");
+      logoWrap.innerHTML = providerLogo(m.provider);
+      item.appendChild(logoWrap);
+      var span = document.createElement("span");
+      span.textContent = m.name;
+      item.appendChild(span);
+      list.appendChild(item);
+    });
+    updateModelFilterCount();
+  }
+
+  function updateModelFilterCount() {
+    var shown = state.models.filter(function (m) { return !state.hidden[m.name]; }).length;
+    var cnt = $("#model-filter-count");
+    if (cnt) cnt.textContent = shown + " / " + state.models.length + " shown";
+    var btn = $("#model-filter-btn");
+    if (btn) {
+      btn.textContent = shown === state.models.length
+        ? "Models"
+        : "Models (" + shown + "/" + state.models.length + ")";
+      btn.classList.toggle("on", shown !== state.models.length);
+    }
+  }
+
   /* ---------- modal + radar chart ---------- */
 
   function openModal(m) {
@@ -971,6 +1018,8 @@
         $("#modal").hidden = true;
         var cp = $("#compare-picker");
         if (cp) cp.hidden = true;
+        var mf2 = $("#model-filter");
+        if (mf2) mf2.hidden = true;
       }
     });
 
@@ -996,6 +1045,32 @@
       var expBtn = $("#compare-export");
       if (expBtn) expBtn.addEventListener("click", exportComparePNG);
     }
+    var mfBtn = $("#model-filter-btn");
+    if (mfBtn) {
+      mfBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var p = $("#model-filter");
+        p.hidden = !p.hidden;
+        mfBtn.setAttribute("aria-expanded", p.hidden ? "false" : "true");
+      });
+      $("#model-filter").addEventListener("click", function (e) { e.stopPropagation(); });
+      document.addEventListener("click", function () {
+        var p = $("#model-filter");
+        if (p) p.hidden = true;
+      });
+      $("#model-filter-all").addEventListener("click", function () {
+        state.hidden = {};
+        buildModelFilter();
+        renderTable();
+      });
+      $("#model-filter-none").addEventListener("click", function () {
+        state.hidden = {};
+        state.models.forEach(function (m) { state.hidden[m.name] = true; });
+        buildModelFilter();
+        renderTable();
+      });
+    }
+
     $("#theme-toggle").addEventListener("click", function () {
       var html = document.documentElement;
       var next = html.getAttribute("data-theme") === "light" ? "dark" : "light";
@@ -1042,6 +1117,7 @@
     renderPillarGrid();
     state.featured = state.models.length ? state.models[0].name : "";
     state.compare = state.models.slice(1, CMP_MIN).map(function (m) { return m.name; });
+    buildModelFilter();
     buildComparePicker();
     renderCompare();
     state.bootAnim = false; // later re-renders (sort/filter/search) don't re-animate
