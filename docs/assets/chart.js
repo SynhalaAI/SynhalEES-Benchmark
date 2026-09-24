@@ -134,12 +134,13 @@
 
   /* ---------- drawing ---------- */
 
-  // Featured model (synced with the compare table's dropdown): its bar gets
-  // the SynhalaAI red while every rival bar is dimmed to a neutral tone --
-  // same emphasis pattern as the compare table + PNG export.
+  // Featured model (picked via the chart's own dropdown, independent of
+  // the head-to-head compare table): its bar gets the SynhalaAI red while
+  // every rival bar is dimmed to a neutral tone -- same emphasis pattern
+  // as the compare table + PNG export.
   function featuredName() {
-    var fsel = $("#compare-featured");
-    if (fsel && fsel.value) return fsel.value;
+    var fsel = $("#chart-featured");
+    if (fsel) return fsel.value;   // "" = "No highlight"
     return state.models.length ? state.models[0].name : "";
   }
 
@@ -395,6 +396,23 @@
       });
     });
 
+    // featured-model selector (independent of the head-to-head compare's one)
+    var featSel = $("#chart-featured");
+    if (featSel) {
+      var noneOpt = document.createElement("option");
+      noneOpt.value = "";
+      noneOpt.textContent = "No highlight";
+      featSel.appendChild(noneOpt);
+      state.models.forEach(function (m) {
+        var opt = document.createElement("option");
+        opt.value = m.name;
+        opt.textContent = m.name;
+        featSel.appendChild(opt);
+      });
+      if (state.models.length) featSel.value = state.models[0].name;
+      featSel.addEventListener("change", draw);
+    }
+
     // organization filter
     var provSel = $("#chart-provider");
     var provs = {};
@@ -488,9 +506,6 @@
     if (!state.models.length) { $("#chart-section").hidden = true; return; }
     buildControls();
     bindTooltip();
-    // re-highlight when the compare table's featured-model dropdown changes
-    var fsel = $("#compare-featured");
-    if (fsel) fsel.addEventListener("change", draw);
     draw();
 
     window.addEventListener("resize", draw);
