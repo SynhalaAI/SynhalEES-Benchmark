@@ -61,6 +61,7 @@ SynhalEES/
 │   └── cover.jpg / cover.af                     # Cover art + Affinity source file
 │
 ├── tools/                                       # Data-collection helper tools
+│   ├── compare_runs.py                        # Compares runs/<model-slug>/ folders -> runs/all_submissions.csv + matrix report
 │   ├── build_leaderboard.py                     # Aggregates submission CSVs -> docs/assets/data/*.json (or --demo)
 │   ├── build_logo_data.py                       # Regenerates docs/assets/logo-data.js (--check = staleness guard, CI-enforced)
 │   └── audio-recorder-extension/                # Chrome MV3 mic recorder (for audio pillar data)
@@ -94,6 +95,7 @@ SynhalEES/
 │   └── workflows/
 │       └── logo-data.yml                        # Fails when docs/assets/logo-data.js is stale (SOURCE-SHA256 check)
 │
+├── runs/                                      # Gitignored: one folder per model (checkpoint.jsonl, submission.csv, meta.json)
 ├── .gitignore                                 # runs/, __pycache__, lock files
 ├── pyproject.toml                             # pip install -e . packaging
 ├── run_benchmark.py                           # CLI entry point (checkpointed API runner)

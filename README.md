@@ -85,7 +85,7 @@ benchmark = SynhalEESBenchmark(
 )
 results = benchmark.run()
 results.print_scorecard()
-results.save_submission("submission.csv")
+results.save_submission("runs/<model-slug>/submission.csv")
 ```
 
 ### 4. Run from the CLI
@@ -106,10 +106,24 @@ For per-pillar leaderboards, `kaggle/tasks/` holds **17 generated task files**
 `Get-ChildItem kaggle/tasks/*.py | % { kaggle b t push $_.FullName }`.
 Note: vision/audio tasks need the media files committed first.
 
+### Per-model run folders
+Every run gets its own folder, so different models never overwrite each other:
+
+```
+runs/<model-slug>/
+  checkpoint.jsonl   # raw per-item records: prompt, response, ground truth, score, error
+  submission.csv     # scorecard: model,provider,date,pillar,modality,score (0-100)
+  meta.json          # model, provider, date, item count, overall, error count
+```
+
+Override with `--runs-dir`, `--checkpoint` or `--output` if you need to.
+
 ### Crash-safe resume
-Every item is appended to `runs/checkpoint.jsonl` the moment it completes.
-If the run is interrupted (Ctrl+C, quota, network), **rerun the same command** --
-completed items are skipped automatically. Use `--fresh` to start over.
+Every item is appended to `runs/<model-slug>/checkpoint.jsonl` the moment it
+completes. If the run is interrupted (Ctrl+C, quota, network), **rerun the same
+command** -- completed items are skipped automatically. Use `--fresh` to start
+over. Items that ended in an API error count as wrong answers: delete those
+lines from the checkpoint (or rerun with `--fresh`) once the problem is fixed.
 
 ---
 
@@ -123,12 +137,19 @@ GitHub Pages-ready site (no build step). Enable it via
 Update the data after running models:
 
 ```bash
-# aggregate one or more submission CSVs (model,provider,date,pillar,modality,score)
-python tools/build_leaderboard.py submissions/*.csv
+# 1. compare every run under runs/ and merge them into one CSV
+python tools/compare_runs.py
+
+# 2. build the leaderboard from that CSV (model,provider,date,pillar,modality,score)
+python tools/build_leaderboard.py runs/all_submissions.csv
 
 # or regenerate clearly-marked placeholder data
 python tools/build_leaderboard.py --demo
 ```
+
+`tools/compare_runs.py` prints a per-model summary (overall accuracy, item
+count, API errors) plus a pillar x model accuracy matrix, so you can see which
+model is strong on which pillar before publishing.
 
 ---
 

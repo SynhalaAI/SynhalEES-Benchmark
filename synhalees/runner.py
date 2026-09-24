@@ -19,8 +19,10 @@ from __future__ import annotations
 import csv
 import json
 import os
+import re
 import threading
 from dataclasses import dataclass, field
+from datetime import date
 from pathlib import Path
 from typing import Any, Iterable, Iterator
 
@@ -31,6 +33,16 @@ from .evaluators import (
     score_response,
 )
 from .models import APIModelError, BaseModel, get_model
+
+
+def model_slug(spec: str) -> str:
+    """Filesystem-safe folder name for a model spec.
+
+    ``"openrouter:openai/gpt-4o-mini"`` -> ``"openrouter__openai-gpt-4o-mini"``.
+    Keeps one run directory per model so results never overwrite each other.
+    """
+    slug = re.sub(r"[^A-Za-z0-9._-]+", "-", spec.strip())
+    return slug.strip("-") or "model"
 
 
 def item_key(pillar: str, modality: str, item_id: str) -> str:
@@ -130,6 +142,8 @@ class BenchmarkResults:
     records: list[dict[str, Any]]
     model_name: str
     pillars: list[str] = field(default_factory=list)
+    provider: str = ""
+    run_date: str = field(default_factory=lambda: str(date.today()))
 
     @property
     def score(self) -> float:
@@ -164,16 +178,34 @@ class BenchmarkResults:
             print("-" * 44)
         print(f"{'OVERALL':<28}{len(self.records):>6}{self.score:>9.1%}\n")
 
+    def cell_rows(self) -> list[tuple[str, str, int, float]]:
+        """(pillar, modality, n_items, accuracy) for every pillar x modality."""
+        grouped: dict[tuple[str, str], list[dict[str, Any]]] = {}
+        for record in self.records:
+            key = (record["pillar"], record.get("modality", "text"))
+            grouped.setdefault(key, []).append(record)
+        return [
+            (pillar, modality, len(rows),
+             sum(1 for r in rows if r.get("is_correct")) / len(rows))
+            for (pillar, modality), rows in sorted(grouped.items())
+        ]
+
     def save_submission(self, path: str | Path) -> Path:
-        """Write the scorecard as a CSV."""
+        """Write the scorecard in the leaderboard schema.
+
+        Columns: ``model,provider,date,pillar,modality,score`` with ``score``
+        as a 0-100 percentage, exactly what ``tools/build_leaderboard.py``
+        consumes. One file per model -- never merge different models here.
+        """
         out = Path(path)
         out.parent.mkdir(parents=True, exist_ok=True)
         with open(out, "w", encoding="utf-8", newline="") as handle:
             writer = csv.writer(handle)
-            writer.writerow(["pillar", "n_items", "accuracy"])
-            for pillar, n, acc in self.scorecard_rows():
-                writer.writerow([pillar, n, f"{acc:.4f}"])
-            writer.writerow(["OVERALL", len(self.records), f"{self.score:.4f}"])
+            writer.writerow(["model", "provider", "date", "pillar",
+                             "modality", "score"])
+            for pillar, modality, n, acc in self.cell_rows():
+                writer.writerow([self.model_name, self.provider, self.run_date,
+                                 pillar, modality, f"{acc * 100:.1f}"])
         return out
 
 class SynhalEESBenchmark:
@@ -201,6 +233,7 @@ class SynhalEESBenchmark:
         checkpoint: str | Path | None = "runs/checkpoint.jsonl",
         fresh: bool = False,
     ) -> None:
+        self.model_spec = model if isinstance(model, str) else None
         self.model = get_model(model) if isinstance(model, str) else model
         self.judge_model = (
             get_model(judge_model) if isinstance(judge_model, str) else judge_model
@@ -269,10 +302,12 @@ class SynhalEESBenchmark:
             r for k, r in sorted(self.store.records.items())
             if k.split("/")[0] in self.pillars
         ]
+        provider = (self.model_spec or "").partition(":")[0]
         return BenchmarkResults(
             records=records,
             model_name=self.model.name,
             pillars=self.pillars,
+            provider=provider or "unknown",
         )
 
 
@@ -282,4 +317,5 @@ __all__ = [
     "SynhalEESBenchmark",
     "item_key",
     "iter_items",
+    "model_slug",
 ]
