@@ -134,6 +134,15 @@
 
   /* ---------- drawing ---------- */
 
+  // Featured model (synced with the compare table's dropdown): its bar gets
+  // the SynhalaAI red while every rival bar is dimmed to a neutral tone --
+  // same emphasis pattern as the compare table + PNG export.
+  function featuredName() {
+    var fsel = $("#compare-featured");
+    if (fsel && fsel.value) return fsel.value;
+    return state.models.length ? state.models[0].name : "";
+  }
+
   function draw() {
     var canvas = $("#chart");
     if (!canvas || !state.models.length) return;
@@ -152,6 +161,9 @@
     var textCol = cssVar("--text") || "#eef0f6";
     var mutedCol = cssVar("--muted") || "#9aa1b5";
     var borderCol = cssVar("--border") || "#3a4157";
+    var featured = featuredName();
+    var hasFeatured = rows.some(function (m) { return m.name === featured; });
+    var featRed = cssVar("--red-bright") || "#E04545";
 
     if (!rows.length) {
       ctx.fillStyle = mutedCol;
@@ -218,10 +230,12 @@
       var x = padL + slot * i + (slot - barW) / 2;
       var h = (v / yMax) * plotH;
       var y = plotB - h;
-      var col = barColor(m.provider);
+      var isFeat = hasFeatured && m.name === featured;
+      var col = hasFeatured ? (isFeat ? featRed : mutedCol) : barColor(m.provider);
 
-      // bar with rounded top
+      // bar with rounded top (rivals dimmed when a featured model is shown)
       ctx.fillStyle = col;
+      if (hasFeatured && !isFeat) ctx.globalAlpha = 0.55;
       var r = Math.min(6, barW / 3);
       ctx.beginPath();
       ctx.moveTo(x, y + r);
@@ -231,16 +245,17 @@
       ctx.lineTo(x, plotB);
       ctx.closePath();
       ctx.fill();
+      ctx.globalAlpha = 1;
 
       // value label: inside the bar when it fits, else above it
       var label = String(Math.round(v));
       ctx.font = "700 13px Inter, sans-serif";
       ctx.textAlign = "center";
       if (h > 30 && barW >= 26) {
-        ctx.fillStyle = "#fff";
+        ctx.fillStyle = hasFeatured && !isFeat ? textCol : "#fff";
         ctx.fillText(label, x + barW / 2, y + 18);
       } else {
-        ctx.fillStyle = textCol;
+        ctx.fillStyle = hasFeatured && !isFeat ? mutedCol : textCol;
         ctx.fillText(label, x + barW / 2, y - 6);
       }
 
@@ -281,8 +296,8 @@
       ctx.save();
       ctx.translate(cx + 4, plotB + logoH + 12);
       ctx.rotate(-Math.PI / 4);
-      ctx.fillStyle = textCol;
-      ctx.font = "11px Inter, sans-serif";
+      ctx.fillStyle = hasFeatured ? (isFeat ? featRed : mutedCol) : textCol;
+      ctx.font = (isFeat ? "700 " : "") + "11px Inter, sans-serif";
       ctx.textAlign = "right";
       var nm = m.name.length > 22 ? m.name.slice(0, 21) + "..." : m.name;
       ctx.fillText(nm, 0, 0);
@@ -463,6 +478,9 @@
     if (!state.models.length) { $("#chart-section").hidden = true; return; }
     buildControls();
     bindTooltip();
+    // re-highlight when the compare table's featured-model dropdown changes
+    var fsel = $("#compare-featured");
+    if (fsel) fsel.addEventListener("change", draw);
     draw();
 
     window.addEventListener("resize", draw);
