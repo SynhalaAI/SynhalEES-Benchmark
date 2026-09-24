@@ -1028,6 +1028,190 @@
     animateRadar($("#radar"), state.pillars, m);
   }
 
+  // Model detail-card export: brand header, provider/model header, modality
+  // score strip, the radar chart (re-rendered offscreen via drawRadar at 2x),
+  // strongest pillars and the standard footer. Same download pipeline as
+  // exportTablePNG / exportComparePNG.
+  function exportModalPNG(m) {
+    if (!m) return;
+    var cs = getComputedStyle(document.documentElement);
+    function cv(n, fb) { var v = cs.getPropertyValue(n).trim(); return v || fb; }
+    var C = {
+      bg: cv("--navy-deep", "#1d2230"), card: cv("--navy-card", "#262b3c"),
+      text: cv("--text", "#eef0f6"), muted: cv("--muted", "#9aa1b5"),
+      border: cv("--border", "#3a4157"), red: cv("--red-bright", "#e53935")
+    };
+    var FONT = "'Inter', 'Noto Sans Sinhala', system-ui, sans-serif";
+    var PAD = 36, SCALE = 2; // 2x for high-DPI / social-media quality
+    var CONTENT_W = 560;
+    var TITLE_H = 70, HEAD_H = 64, SCORE_H = 40, RADAR_W = 520, RADAR_H = 420;
+    var BEST_LINE_H = 22, FOOT_H = 42;
+
+    var canvas = document.createElement("canvas");
+    var ctx = canvas.getContext("2d");
+
+    function fitText(t, maxW) {
+      if (ctx.measureText(t).width <= maxW) return t;
+      while (t.length > 1 && ctx.measureText(t + "\u2026").width > maxW) t = t.slice(0, -1);
+      return t + "\u2026";
+    }
+    function rrect(x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    // strongest pillars (same ranking the modal shows)
+    var entries = state.pillars.map(function (p) {
+      return { p: p, v: m.pillars[p.slug] };
+    }).filter(function (e) { return e.v != null; });
+    entries.sort(function (a, b) { return b.v - a.v; });
+    var top3 = entries.slice(0, 3);
+
+    var bestH = top3.length ? 20 + (top3.length + 1) * BEST_LINE_H : 0;
+    var cardH = HEAD_H + SCORE_H + RADAR_H + 12 + bestH;
+    var W = PAD * 2 + CONTENT_W;
+    var H = PAD + TITLE_H + cardH + FOOT_H + 14;
+
+    canvas.width = W * SCALE;
+    canvas.height = H * SCALE;
+    ctx.scale(SCALE, SCALE);
+    ctx.textBaseline = "alphabetic";
+
+    // page background + title block (same pattern as the table export)
+    ctx.fillStyle = C.bg;
+    ctx.fillRect(0, 0, W, H);
+    var x0 = PAD, y = PAD;
+    ctx.textAlign = "left";
+    ctx.font = "800 22px " + FONT;
+    ctx.fillStyle = C.red;
+    ctx.fillText("SynhalEES", x0, y + 24);
+    var tw = ctx.measureText("SynhalEES").width;
+    ctx.fillStyle = C.text;
+    ctx.fillText(" Benchmark", x0 + tw, y + 24);
+    ctx.font = "600 12px " + FONT;
+    ctx.fillStyle = C.muted;
+    ctx.fillText("Model Report \u00b7 Sinhala LLM evaluation across 15 pillars", x0, y + 46);
+    var stamp = state.updated || "";
+    if (state.demo) stamp = (stamp ? stamp + " \u00b7 " : "") + "DEMO DATA";
+    if (stamp) {
+      ctx.textAlign = "right";
+      ctx.fillText(stamp, x0 + CONTENT_W, y + 46);
+      ctx.textAlign = "left";
+    }
+    y += TITLE_H;
+
+    // card
+    ctx.fillStyle = C.card;
+    rrect(x0, y, CONTENT_W, cardH, 12);
+    ctx.fill();
+
+    // header: provider chip (real logo painted later) + model name + provider
+    var chipX = x0 + 18, chipY = y + 18;
+    ctx.fillStyle = "#ffffff";
+    rrect(chipX, chipY, 28, 28, 7);
+    ctx.fill();
+    ctx.textAlign = "center";
+    ctx.fillStyle = C.muted;
+    ctx.font = "800 13px " + FONT;
+    ctx.fillText(m.provider.charAt(0).toUpperCase(), chipX + 14, chipY + 19);
+    ctx.textAlign = "left";
+    ctx.fillStyle = C.text;
+    ctx.font = "800 17px " + FONT;
+    ctx.fillText(fitText(m.name, CONTENT_W - 100), chipX + 42, chipY + 13);
+    ctx.fillStyle = C.muted;
+    ctx.font = "400 12px " + FONT;
+    ctx.fillText(fitText(m.provider, CONTENT_W - 100), chipX + 42, chipY + 32);
+
+    // modality score strip: Overall | Text | Vision | Audio
+    var sy = y + HEAD_H;
+    ctx.fillStyle = C.border;
+    ctx.fillRect(x0, sy - 8, CONTENT_W, 1);
+    var stats = [
+      ["Overall", m.overall], ["Text", m.modalities.text],
+      ["Vision", m.modalities.vision], ["Audio", m.modalities.audio]
+    ];
+    var segW = CONTENT_W / stats.length;
+    stats.forEach(function (st, i) {
+      var midX = x0 + segW * i + segW / 2;
+      ctx.textAlign = "center";
+      ctx.fillStyle = i === 0 ? C.red : C.text;
+      ctx.font = "800 15px " + FONT;
+      ctx.fillText(st[1] == null ? "\u2014" : st[1].toFixed(1), midX, sy + 16);
+      ctx.fillStyle = C.muted;
+      ctx.font = "700 9.5px " + FONT;
+      ctx.fillText(st[0].toUpperCase(), midX, sy + 31);
+    });
+
+    // radar chart: re-render offscreen at export scale, then blit 1:1 (crisp)
+    var radarCv = document.createElement("canvas");
+    radarCv.width = RADAR_W * SCALE;
+    radarCv.height = RADAR_H * SCALE;
+    radarCv._radarScale = SCALE;
+    drawRadar(radarCv, state.pillars, m);
+    var rx = x0 + (CONTENT_W - RADAR_W) / 2, ry = sy + SCORE_H;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(radarCv, rx * SCALE, ry * SCALE);
+    ctx.restore();
+
+    // strongest pillars list
+    if (top3.length) {
+      var by = ry + RADAR_H + 12;
+      ctx.textAlign = "left";
+      ctx.fillStyle = C.muted;
+      ctx.font = "600 12px " + FONT;
+      ctx.fillText("Strongest pillars:", x0 + 18, by + 12);
+      top3.forEach(function (e, i) {
+        var ly = by + 12 + (i + 1) * BEST_LINE_H;
+        ctx.fillStyle = C.text;
+        ctx.font = "700 12.5px " + FONT;
+        ctx.fillText(fitText(e.p.title_en, CONTENT_W - 120), x0 + 18, ly);
+        ctx.textAlign = "right";
+        ctx.fillText(e.v.toFixed(1), x0 + CONTENT_W - 18, ly);
+        ctx.textAlign = "left";
+      });
+    }
+
+    // footer
+    ctx.textAlign = "left";
+    ctx.fillStyle = C.muted;
+    ctx.font = "600 11px " + FONT;
+    ctx.fillText("SynhalEES Benchmark" + (state.demo ? " \u00b7 demo data" : ""), x0, y + cardH + 28);
+    ctx.textAlign = "right";
+    ctx.fillText("github.com/SynhalaAI/SynhalEES-Benchmark", x0 + CONTENT_W, y + cardH + 28);
+
+    // provider logo: preload the embedded data URL (never taints the canvas,
+    // even on file://), paint it over the initial chip, then download
+    var logoFile = providerLogoFile(m.provider);
+    if (!logoFile) { finish(); return; }
+    var img = new Image();
+    img.onload = function () {
+      ctx.fillStyle = "#ffffff";
+      rrect(chipX, chipY, 28, 28, 7);
+      ctx.fill();
+      ctx.drawImage(img, chipX + 4, chipY + 4, 20, 20);
+      finish();
+    };
+    img.onerror = finish;
+    img.src = (window.SYNHALEES_LOGOS && window.SYNHALEES_LOGOS[logoFile]) ||
+              "assets/logos/" + logoFile + ".svg";
+
+    function finish() {
+      var slug = m.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "model";
+      var a = document.createElement("a");
+      a.download = "synhalees-" + slug + "-model.png";
+      try { a.href = canvas.toDataURL("image/png"); }
+      catch (e) { alert("Export failed. If you opened this page via file://, try a local server instead."); return; }
+      document.body.appendChild(a); // some browsers ignore .click() on detached anchors
+      a.click();
+      a.remove();
+    }
+  }
   // vertProg: per-vertex growth 0..1 (null = fully drawn). Vertices animate
   // one at a time -- lowest score first, so high scores travel furthest.
   function drawRadar(canvas, pillars, model, vertProg, hoverIdx, pulseT) {
@@ -1035,7 +1219,9 @@
     if (hoverIdx === undefined) hoverIdx = -1;
     if (pulseT === undefined) pulseT = null;
     var ctx = canvas.getContext("2d");
-    var W = canvas.width, H = canvas.height;
+    var scl = canvas._radarScale || 1; // PNG export renders at 2x; on-screen stays 1x
+    if (scl !== 1) ctx.setTransform(scl, 0, 0, scl, 0, 0);
+    var W = canvas.width / scl, H = canvas.height / scl;
     var cx = W / 2, cy = H / 2 + 8, R = Math.min(W, H) / 2 - 58;
     var n = pillars.length;
     var dark = document.documentElement.getAttribute("data-theme") !== "light";
@@ -1240,6 +1426,7 @@
     });
 
     $("#modal-close").addEventListener("click", function () { $("#modal").hidden = true; });
+    $("#modal-export").addEventListener("click", function () { exportModalPNG(state.radarModel); });
     $("#modal").addEventListener("click", function (e) {
       if (e.target === $("#modal")) $("#modal").hidden = true;
     });
