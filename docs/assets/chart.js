@@ -363,6 +363,46 @@
       }
     });
   }
+  /* ---------- PNG export ---------- */
+
+  // Renders the current chart view (same filters + highlight as on screen)
+  // onto an offscreen canvas with the section background and a title line.
+  function exportChartPNG() {
+    var src = $("#chart");
+    if (!src || !state.models.length) return;
+    var dpr = window.devicePixelRatio || 1;
+    var padX = 24 * dpr, padT = 18 * dpr, titleH = 30 * dpr, padB = 16 * dpr;
+    var c = document.createElement("canvas");
+    c.width = src.width + padX * 2;
+    c.height = src.height + padT + titleH + padB;
+    var ctx = c.getContext("2d");
+    ctx.fillStyle = cssVar("--navy") || "#2b3044";
+    ctx.fillRect(0, 0, c.width, c.height);
+    var shown = visibleModels();
+    var title = "SynhalEES \u2014 " + METRIC_LABEL[st.metric] + " Comparison \u00b7 " +
+      shown.length + " of " + poolSize() + " models";
+    var feat = featuredName();
+    if (feat && shown.some(function (m) { return m.name === feat; })) {
+      title += " \u00b7 Featured: " + feat;
+    }
+    ctx.fillStyle = cssVar("--text") || "#eef0f6";
+    ctx.font = "700 " + Math.round(15 * dpr) + "px Inter, sans-serif";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText(title, padX, padT + titleH / 2);
+    ctx.drawImage(src, padX, padT + titleH);
+    var url;
+    try { url = c.toDataURL("image/png"); }
+    catch (e) {
+      alert("PNG export is blocked on file:// pages. Serve the docs folder over http(s) and retry.");
+      return;
+    }
+    var a = document.createElement("a");
+    a.download = "synhalees-" + st.metric + "-comparison.png";
+    a.href = url;
+    a.click();
+  }
+
   /* ---------- controls ---------- */
 
   function poolSize() {
@@ -373,7 +413,7 @@
 
   function updateCountLabel() {
     var el = $("#chart-count");
-    if (el) el.textContent = poolSize() + " models";
+    if (el) el.textContent = "/ " + poolSize();
   }
 
   function updatePickBtn() {
@@ -434,7 +474,7 @@
     [5, 10, 15, 20, MAX_BARS].forEach(function (n) {
       var opt = document.createElement("option");
       opt.value = n;
-      opt.textContent = n + " of";
+      opt.textContent = "Top " + n;
       if (n === MAX_BARS) opt.selected = true;
       limSel.appendChild(opt);
     });
@@ -506,6 +546,8 @@
     if (!state.models.length) { $("#chart-section").hidden = true; return; }
     buildControls();
     bindTooltip();
+    var expBtn = $("#chart-export");
+    if (expBtn) expBtn.addEventListener("click", exportChartPNG);
     draw();
 
     window.addEventListener("resize", draw);
