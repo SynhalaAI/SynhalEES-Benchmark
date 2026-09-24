@@ -78,7 +78,9 @@
     if (hit === "error") return null;
     if (hit) return hit.complete && hit.naturalWidth ? hit : null;
     var img = new Image();
-    img.src = "assets/logos/" + file + ".svg";
+    // embedded data URL first: it never taints the canvas (file:// safe export)
+    img.src = (window.SYNHALEES_LOGOS && window.SYNHALEES_LOGOS[file]) ||
+              "assets/logos/" + file + ".svg";
     img.onload = function () { draw(); };
     img.onerror = function () { imgCache[file] = "error"; draw(); };
     imgCache[file] = img;
@@ -91,7 +93,7 @@
     if (brandIcon === "error") return null;
     if (brandIcon) return brandIcon.complete && brandIcon.naturalWidth ? brandIcon : null;
     var img = new Image();
-    img.src = "assets/icon.png";
+    img.src = window.SYNHALEES_BRAND_ICON || "assets/icon.png";
     img.onload = function () { draw(); };
     img.onerror = function () { brandIcon = "error"; draw(); };
     brandIcon = img;

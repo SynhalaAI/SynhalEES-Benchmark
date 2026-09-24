@@ -77,6 +77,7 @@ SynhalEES/
 │       ├── style.css                            # SynhalaAI theme (logo navy #2B3044 + red #C62828)
 │       ├── app.js                               # Vanilla JS: sorting, modality tabs, pillar filter, radar chart
 │       ├── chart.js                             # AA-style comparison bar chart (metric tabs, org filter, model picker, max 25 bars)
+│       ├── logo-data.js                         # GENERATED: provider logos + brand icon as data URLs (taint-free PNG export on file://)
 │       ├── logo.png                             # Logo copy for Pages (Pages serves only docs/)
 │       ├── icon.png                             # Favicon copy for Pages
 │       ├── logos/                                   # Provider brand icons (SVG, simple-icons)
