@@ -891,7 +891,9 @@
       a.download = "synhalees-leaderboard.png";
       try { a.href = canvas.toDataURL("image/png"); }
       catch (e) { alert("Export failed. If you opened this page via file://, try a local server instead."); return; }
+      document.body.appendChild(a); // some browsers ignore .click() on detached anchors
       a.click();
+      a.remove();
     }
   }
 
