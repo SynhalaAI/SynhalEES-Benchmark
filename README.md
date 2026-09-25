@@ -88,9 +88,29 @@ results.print_scorecard()
 results.save_submission("runs/<model-slug>/submission.csv")
 ```
 
-### 4. Run from the CLI
+### 4. One CLI for everything
+`pip install -e .` installs a single `synhalees` command (also
+`python -m synhalees`); each subcommand forwards its flags to the underlying
+script, so nothing has to be memorized twice:
+
+| Command | Does |
+|---|---|
+| `synhalees run --model <spec> [...]` | run the benchmark locally (`synhalees run --help` shows the flags) |
+| `synhalees compare` | per-model summary + pillar x model matrix (`runs/all_submissions.csv`) |
+| `synhalees build [--check]` | regenerate `docs/assets/data/*` from `submissions/` (`--check` = CI gate) |
+| `synhalees logos [--check]` | regenerate `docs/assets/logo-data.js` |
+| `synhalees publish <model-slug>` | `runs/<slug>/submission.csv` -> `submissions/`, rebuild + verify |
+| `synhalees check` | every local gate in one go (logos, leaderboard, compile) |
+| `synhalees kaggle gen` | regenerate the 17 task files |
+| `synhalees kaggle push [task]` | upload task file(s); default: all 17 |
+| `synhalees kaggle run <task> -m <model>` | start a server-side run |
+| `synhalees kaggle status/logs/publish <task>` | inspect / publish the Kaggle side |
+| `synhalees kaggle pull <task>` | artifacts -> `kaggle-results/` (the `-o` is forced) |
+| `synhalees kaggle import <task>` | single-pillar Kaggle results -> `submissions/<slug>.csv` + rebuild |
+
 ```bash
-python run_benchmark.py --model ollama:llama3.1:8b --pillars 01_buddhist_culture
+synhalees run --model ollama:llama3.1:8b --pillars 01_buddhist_culture
+python run_benchmark.py --model ...   # the script form still works
 ```
 
 ### Optional: Kaggle leaderboard
@@ -100,6 +120,7 @@ Kaggle API token (`kaggle.json`) the whole flow runs from the terminal:
 `kaggle b t push` -> `kaggle b t run` -> `kaggle b t publish`, then pull the
 artifacts with `kaggle b t download <task-slug> -o kaggle-results` (gitignored --
 outputs never land in the repo root).
+The unified CLI wraps the same flow: `synhalees kaggle push|run|status|publish|pull|import`.
 Runs are server-side, so closing your laptop will not interrupt them.
 
 For per-pillar leaderboards, `kaggle/tasks/` holds **17 generated task files**

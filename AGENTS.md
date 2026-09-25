@@ -73,6 +73,7 @@ pages. **This file is generated - never edit it by hand.**
 - **Publishing a run:** copy `runs/<model-slug>/submission.csv` to
   `submissions/<model-slug>.csv`, then run `python tools/build_leaderboard.py`
   and commit the CSV **and** the regenerated `docs/assets/data/*` together.
+  (`python -m synhalees publish <model-slug>` does all three steps).
 - **Only publishable runs** go in `submissions/`: no numbers produced with a
   personal or paid API key that the project cannot re-verify or publish.
 - **Staleness detection:** CI (`.github/workflows/leaderboard.yml`) runs

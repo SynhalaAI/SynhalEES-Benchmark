@@ -39,6 +39,8 @@ SynhalEES/
 │
 ├── synhalees/                                 # Core Python Package
 │   ├── __init__.py                            # Public API (data loaders, env helpers, lazy SynhalEESBenchmark)
+│   ├── __main__.py                            # python -m synhalees -> the unified CLI
+│   ├── cli.py                                 # unified CLI: run/compare/build/publish/check/kaggle *
 │   ├── data/                                  # Data Loaders & Registry
 │   │   └── __init__.py
 │   ├── models/                                # Model adapters (Ollama, OpenRouter, Gemini, OpenAI, Anthropic)
@@ -100,7 +102,7 @@ SynhalEES/
 ├── kaggle-results/                            # Gitignored: Kaggle Benchmarks pulls (kaggle b t download -o kaggle-results/<task>/<ver>/<model>/<run-id>/)
 ├── submissions/                                 # COMMITTED: one <model-slug>.csv per model -- the published site data source
 │   └── README.md                                  # scorecard schema + publication rules
-├── .gitignore                                 # runs/, kaggle-results/, __pycache__, lock files
+├── .gitignore                                 # runs/, kaggle-results/, __pycache__, packaging artifacts, lock files
 ├── pyproject.toml                             # pip install -e . packaging
 ├── run_benchmark.py                           # CLI entry point (checkpointed API runner)
 ├── AGENTS.md                                  # AI-agent / contributor conventions

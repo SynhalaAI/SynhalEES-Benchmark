@@ -71,6 +71,7 @@ PROVIDER_DISPLAY = {
     "ollama": "Ollama / Meta",
     "together": "Together AI",
     "deepseek": "DeepSeek",
+    "kaggle": "Kaggle", 
 }
 
 # API model ids -> display names. Unknown ids are prettified generically.

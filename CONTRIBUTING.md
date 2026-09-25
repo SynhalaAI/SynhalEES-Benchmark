@@ -56,6 +56,9 @@ python tools/build_leaderboard.py            # regenerate docs/assets/data/*
 python tools/build_leaderboard.py --check    # must pass (CI runs this)
 ```
 
+`python -m synhalees publish <model-slug>` does the copy + rebuild +
+`--check` in one step (and `python -m synhalees check` runs every gate).
+
 Only **publishable** runs belong in `submissions/`: no results produced with a
 personal or paid API key that the project cannot re-verify or publish. Never
 hand-edit `docs/assets/data/*` - it is generated. See
