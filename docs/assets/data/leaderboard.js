@@ -1,1 +1,1 @@
-window.SYNHALEES_LEADERBOARD = {"demo": false, "updated": "2026-09-24", "models": [{"name": "Gemini 3.5 Flash Lite", "provider": "Google", "date": "2026-09-24", "modalities": {"text": 60.0, "vision": 100.0, "audio": 80.0}, "pillars": {"05_sinhala_grammar": 80.0}, "overall": 80.0}]};
+window.SYNHALEES_LEADERBOARD = {"demo": false, "updated": "", "models": []};
