@@ -6,14 +6,17 @@ Loads ``benchmark_data/<slug>/`` per STRUCTURE.md section 5:
 - ``vision/vision.csv``  -> VisionItem (id, image_file, question, ground_truth, eval_type)
 - ``audio/audio.csv``    -> AudioItem  (id, audio_file, ground_truth, eval_type)
 
-Vision rows with ``eval_type = "wer"`` may leave ``question`` empty (the OCR
-exception in STRUCTURE.md section 5B): the loader then injects
-``DEFAULT_OCR_PROMPT`` so callers always receive a ready-to-use prompt.
-Non-OCR rows must carry an image-specific question and are validated.
+Vision rows with ``eval_type = "wer"`` may leave ``question`` empty -- or
+omit the column entirely on wer-only files (the OCR exception in
+STRUCTURE.md section 5B): the loader then injects ``DEFAULT_OCR_PROMPT`` so
+callers always receive a ready-to-use prompt. Non-OCR rows must carry an
+image-specific question and are validated.
 
 Audio rows behave the same way (STRUCTURE.md section 5C): an empty
 ``question`` on a ``wer`` row injects ``DEFAULT_ASR_PROMPT``; comprehension
-rows (``exact_match`` etc.) must carry their own question.
+rows (``exact_match`` etc.) without a question of their own receive the
+generic ``GENERIC_AUDIO_PROMPT`` (media-first "listen and answer" wording),
+so pillar CSVs never need a question column just to satisfy the loader.
 """
 
 from __future__ import annotations
@@ -29,6 +32,12 @@ DEFAULT_OCR_PROMPT = "මේ රූපයේ තියෙන පාඨය හර
 
 # Default prompt for audio rows without a question: plain transcription.
 DEFAULT_ASR_PROMPT = "මේ ශ්‍රව්‍යයේ ඇහෙන දේ හරියටම ලියන්න."
+
+# Generic prompt injected for audio comprehension rows (exact_match,
+# classification, llm_judge) that carry no question of their own.
+# Media-first "listen and answer" wording: the answer still has to come
+# from the audio. Kept byte-identical with STRUCTURE.md section 5C.
+GENERIC_AUDIO_PROMPT = "මේක අහලා උත්තර දෙන්න."
 
 # The only four eval engines defined by STRUCTURE.md section 2.
 ALLOWED_EVAL_TYPES = frozenset(
@@ -68,7 +77,7 @@ class AudioItem:
     id: str
     audio_file: str
     audio_path: Path
-    question: str  # task prompt; transcription rows receive DEFAULT_ASR_PROMPT
+    question: str  # never empty -- defaults injected when the CSV omits one
     ground_truth: str
     eval_type: str
 
@@ -157,8 +166,8 @@ def load_vision(
 ) -> list[VisionItem]:
     """Load ``vision/vision.csv`` for one pillar.
 
-    Empty questions on ``wer`` (OCR) rows receive ``DEFAULT_OCR_PROMPT``
-    (STRUCTURE.md section 5B). With ``strict=True`` every referenced image
+    Empty (or column-omitted) questions on ``wer`` (OCR) rows receive
+    ``DEFAULT_OCR_PROMPT`` (STRUCTURE.md section 5B). With ``strict=True`` every referenced image
     must exist on disk; set ``strict=False`` to browse in-progress pillars
     whose media has not been committed yet.
     """
@@ -168,10 +177,11 @@ def load_vision(
     for row in _read_csv(path):
         where = f"{pillar}/vision.csv[{row.get('id', '?')}]"
         _require_columns(
-            row, {"id", "image_file", "question", "ground_truth", "eval_type"}, where=where
+            row, {"id", "image_file", "ground_truth", "eval_type"}, where=where
         )
         eval_type = _check_eval_type(row["eval_type"], where=where)
-        question = row["question"].strip()
+        # question is optional: wer-only files may omit the column entirely.
+        question = row.get("question", "").strip()
         if not question:
             if eval_type != "wer":
                 raise ValueError(
@@ -205,7 +215,8 @@ def load_audio(
 
     An optional ``question`` column carries comprehension questions
     (STRUCTURE.md section 5C); empty questions on ``wer`` (transcription)
-    rows receive ``DEFAULT_ASR_PROMPT``.
+    rows receive ``DEFAULT_ASR_PROMPT``; comprehension rows without one
+    receive ``GENERIC_AUDIO_PROMPT``.
 
     With ``strict=True`` every referenced mp3 must exist on disk; set
     ``strict=False`` to browse in-progress pillars.
@@ -221,15 +232,12 @@ def load_audio(
         eval_type = _check_eval_type(row["eval_type"], where=where)
         # Optional question column (STRUCTURE.md section 5C): empty on
         # transcription rows -> default ASR prompt; comprehension rows
-        # (exact_match etc.) must carry their own question.
+        # (exact_match etc.) without one -> GENERIC_AUDIO_PROMPT.
         question = row.get("question", "").strip()
         if not question:
-            if eval_type != "wer":
-                raise ValueError(
-                    f"{where}: non-'wer' audio rows need a question "
-                    "(comprehension task; STRUCTURE.md section 5C)"
-                )
-            question = DEFAULT_ASR_PROMPT
+            question = (
+                DEFAULT_ASR_PROMPT if eval_type == "wer" else GENERIC_AUDIO_PROMPT
+            )
         audio_path = base / "audio" / "mp3s" / row["audio_file"]
         if strict and not audio_path.is_file():
             raise FileNotFoundError(f"{where}: missing audio file {audio_path}")
@@ -265,6 +273,7 @@ __all__ = [
     "ALLOWED_EVAL_TYPES",
     "DEFAULT_ASR_PROMPT",
     "DEFAULT_OCR_PROMPT",
+    "GENERIC_AUDIO_PROMPT",
     "AudioItem",
     "PillarData",
     "TextItem",

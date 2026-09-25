@@ -30,7 +30,7 @@ All contributions — data, code, or docs — are welcome.
   [`STRUCTURE.md`](STRUCTURE.md) section 5:
   - `text.csv` → `id,prompt,ground_truth,eval_type`
   - `vision/vision.csv` → `id,image_file,question,ground_truth,eval_type`
-  - `audio/audio.csv` → `id,audio_file,ground_truth,eval_type`
+  - `audio/audio.csv` → `id,audio_file,ground_truth,eval_type` (optional `question`; the loader injects generic prompts)
 - `eval_type` must be one of exactly: `exact_match`, `llm_judge`, `wer`, `classification`
   (decision tree: [`STRUCTURE.md`](STRUCTURE.md) section 3).
 - Keep Sinhala text in **Unicode UTF-8** — preserve diacritics and ZWJ/ZWNJ exactly.

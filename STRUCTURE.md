@@ -194,7 +194,8 @@ VIS_12_004,meme_bus_04.png,"මේ මීම් එකේ ජෝර්ක් එ
 ```
 
 > **OCR exception (`question` may be empty):** for image-OCR rows
-> (`eval_type = "wer"`), the `question` column may be left **empty** — the
+> (`eval_type = "wer"`), the `question` column may be left **empty** (or the
+> column omitted entirely on wer-only files) — the
 > benchmark loader then injects the standard OCR prompt
 > **`මේ රූපයේ තියෙන පාඨය හරියටම ලියන්න.`** automatically, so contributors
 > don't have to repeat the same transcription prompt on every row. This
@@ -218,9 +219,12 @@ AUD_08_003,shouting_anger_03.mp3,,"aggressive_abuse",classification
 > **Optional `question` column:** empty (or omitted) on `wer` rows -> the
 > loader injects the default transcription prompt
 > **`මේ ශ්‍රව්‍යයේ ඇහෙන දේ හරියටම ලියන්න.`** automatically. Comprehension
-> rows (`exact_match`, `classification`, `llm_judge`) must always carry a
-> question, because the audio alone does not say what to ask (e.g. what
-> the hidden meaning of a spoken figure of speech is).
+> rows (`exact_match`, `classification`, `llm_judge`) may omit it too -> the
+> loader injects the generic media prompt **`මේක අහලා උත්තර දෙන්න.`**
+> (listen and answer), so pillars never need a question column just to
+> satisfy the loader. A row may still carry its own specific question when
+> the task needs one (e.g. what the hidden meaning of a spoken figure of
+> speech is).
 
 ---
 
