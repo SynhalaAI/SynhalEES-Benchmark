@@ -31,6 +31,8 @@ SUBMISSIONS = ROOT / "submissions"
 KG_RESULTS = ROOT / "kaggle-results"
 TASKS_DIR = ROOT / "kaggle" / "tasks"
 HEADER = ["model", "provider", "date", "pillar", "modality", "score"]
+# Kaggle imports add usage telemetry (optional; local runs may omit it).
+EXT_HEADER = HEADER + ["cost_usd", "tokens", "latency_ms"]
 
 
 def sh(argv, cwd=ROOT):
@@ -113,7 +115,7 @@ def resolve_task_name(arg):
 def load_scorecard(path):
     with open(path, newline="", encoding="utf-8-sig") as fh:
         rows = list(csv.reader(fh))
-    if not rows or rows[0] != HEADER:
+    if not rows or rows[0][:len(HEADER)] != HEADER:
         raise SystemExit(f"{path}: expected header {','.join(HEADER)}")
     return rows
 
@@ -227,15 +229,100 @@ def cmd_kaggle_publish(a):
 def cmd_kaggle_pull(a):
     if "-o" in a.args or "--output" in a.args:
         raise SystemExit("drop -o: artifacts always go to kaggle-results/ (repo hygiene)")
+    if a.task in (None, "all"):
+        files = sorted(TASKS_DIR.glob("*.py"))
+        if not files:
+            raise SystemExit(f"no task files in {TASKS_DIR} (run: synhalees kaggle gen)")
+        failed = []
+        for i, f in enumerate(files, 1):
+            name = task_name_for(f)
+            print(f"[{i}/{len(files)}] pulling {name} -> {KG_RESULTS.relative_to(ROOT)}/")
+            rc = sh([kaggle_bin(), "b", "t", "download", name, "-o", str(KG_RESULTS), *a.args])
+            if rc:
+                failed.append(name)
+        if failed:
+            print(f"pull failed for {len(failed)} task(s): {', '.join(failed)}")
+            return 1
+        print(f"pulled {len(files)} task(s) -> {KG_RESULTS.relative_to(ROOT)}/")
+        return 0
     return sh([kaggle_bin(), "b", "t", "download", resolve_task_name(a.task), "-o", str(KG_RESULTS), *a.args])
 
 
+def kaggle_run_usage(result_path):
+    """Cost/tokens/latency for one Kaggle run, from its sibling *.run.json.
+
+    Returns (cost_usd, tokens, avg_latency_ms) or ("", "", "") when the
+    artifact is missing. Costs arrive as nanodollars per token bucket.
+    """
+    runs = sorted(result_path.parent.glob("*.run.json"))
+    if not runs:
+        return "", "", ""
+    try:
+        data = json.loads(runs[0].read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return "", "", ""
+
+    conversations = []
+
+    def walk(node):
+        if isinstance(node, dict):
+            conversations.extend(node.get("conversations") or [])
+            for sub in node.get("subruns") or []:
+                walk(sub)
+        elif isinstance(node, list):
+            for item in node:
+                walk(item)
+
+    walk(data)
+    tokens = 0
+    nanodollars = 0
+    latencies = []
+    for conv in conversations:
+        metrics = conv.get("metrics") or {}
+        if not metrics:
+            continue
+        tokens += int(metrics.get("inputTokens") or 0)
+        tokens += int(metrics.get("outputTokens") or 0)
+        nanodollars += int(metrics.get("inputTokensCostNanodollars") or 0)
+        nanodollars += int(metrics.get("outputTokensCostNanodollars") or 0)
+        latency = metrics.get("totalBackendLatencyMs")
+        if latency:
+            latencies.append(int(latency))
+    if not tokens:
+        return "", "", ""
+    latency_ms = round(sum(latencies) / len(latencies)) if latencies else ""
+    return f"{nanodollars / 1e9:.6f}", str(tokens), str(latency_ms)
+
+
 def cmd_kaggle_import(a):
+    """Import one text task, or every 15 text-pillar tasks with 'all'."""
+    if a.task == "all":
+        if a.slug:
+            raise SystemExit("--slug cannot be used with import all")
+        files = sorted(TASKS_DIR.glob("[0-9][0-9]_*.py")) + [TASKS_DIR / "vision.py", TASKS_DIR / "audio.py"]
+        files = [f for f in files if f.is_file()]
+        if not files:
+            raise SystemExit(f"no text task files in {TASKS_DIR} (run: synhalees kaggle gen)")
+        failed = []
+        for i, f in enumerate(files, 1):
+            slug = task_name_for(f)
+            print(f"[{i}/{len(files)}] importing {slug}")
+            rc = cmd_kaggle_import(argparse.Namespace(
+                task=slug, slug=None, dry_run=a.dry_run, no_pull=a.no_pull))
+            if rc:
+                failed.append(slug)
+        if failed:
+            print(f"import failed for {len(failed)} task(s): {', '.join(failed)}")
+            return 1
+        if not a.dry_run:
+            print(f"imported {len(files)} Kaggle tasks")
+        return 0
     slug = resolve_task_name(a.task)
     pillar = pillar_from_task(slug)
-    if pillar is None:
-        raise SystemExit(f"{slug} is not a single-pillar task; its one overall score cannot be "
-                         "split per pillar (import supports the 15 'synhalees-NN-...' text tasks)")
+    if slug in ("synhalees-vision", "synhalees-audio"):
+        pillar = "__overall__"
+    elif pillar is None:
+        raise SystemExit(f"{slug} is not an importable text pillar or combined vision/audio task")
     task_dir = KG_RESULTS / slug
 
     def collect():
@@ -249,7 +336,7 @@ def cmd_kaggle_import(a):
             name = (info.get("model_info") or {}).get("name") or f.parent.parent.name
             fin = data.get("finished_at") or ""
             if name not in found or fin > found[name][0]:
-                found[name] = (fin, data)
+                found[name] = (fin, data, f)
         return found
 
     newest = collect()
@@ -265,7 +352,7 @@ def cmd_kaggle_import(a):
         raise SystemExit(f"--slug needs exactly one model; found {', '.join(sorted(newest))}")
     planned = []
     for name in sorted(newest):
-        fin, data = newest[name]
+        fin, data, result_path = newest[name]
         score = ((data.get("verifier_result") or {}).get("rewards") or {}).get("score")
         try:
             pct = float(score)
@@ -273,9 +360,13 @@ def cmd_kaggle_import(a):
             raise SystemExit(f"{name}: result.json has no numeric rewards.score")
         model = a.slug or name.split("/")[-1]
         date = (fin or data.get("started_at") or "")[:10]
-        row = [model, "kaggle", date, pillar, "text", f"{round(pct * 100, 1):.1f}"]
+        modality = "vision" if slug == "synhalees-vision" else "audio" if slug == "synhalees-audio" else "text"
+        cost, tokens, latency = kaggle_run_usage(result_path)
+        row = [model, "kaggle", date, pillar, modality, f"{round(pct * 100, 1):.1f}",
+               cost, tokens, latency]
         planned.append(row)
-        print(f"{model:<30} {pillar} text {row[5]:>6} ({date})")
+        usage = f"  ${cost}  {tokens} tok  {latency} ms" if tokens else ""
+        print(f"{model:<30} {modality} overall {row[5]:>6} ({date}){usage}")
     if a.dry_run:
         print("dry run: nothing written")
         return 0
@@ -284,12 +375,14 @@ def cmd_kaggle_import(a):
         keep = []
         if path.is_file():
             keep = [r for r in load_scorecard(path)[1:]
-                    if len(r) == 6 and (r[3], r[4]) != (row[3], row[4])]
+                    if len(r) >= 6 and (r[3], r[4]) != (row[3], row[4])]
         SUBMISSIONS.mkdir(exist_ok=True)
         with open(path, "w", newline="", encoding="utf-8") as fh:
             w = csv.writer(fh)
-            w.writerow(HEADER)
-            w.writerows(keep + [row])
+            w.writerow(EXT_HEADER)
+            for old_row in keep:
+                w.writerow(old_row + [""] * (len(EXT_HEADER) - len(old_row)))
+            w.writerow(row)
         print(f"wrote {path.relative_to(ROOT)} ({len(keep) + 1} rows)")
     code = rebuild_and_check()
     if not code:
@@ -349,12 +442,12 @@ def build_parser():
     p.add_argument("task")
     p.add_argument("args", nargs=argparse.REMAINDER, help="extra flags for kaggle b t publish")
     p.set_defaults(func=cmd_kaggle_publish)
-    p = ks.add_parser("pull", help="download artifacts -> kaggle-results/ (the -o is forced)")
-    p.add_argument("task")
+    p = ks.add_parser("pull", help="download artifacts -> kaggle-results/ (default: all)")
+    p.add_argument("task", nargs="?", default="all", help="task slug or 'all' (default: all)")
     p.add_argument("args", nargs=argparse.REMAINDER, help="extra flags, e.g. -m <model>, -f")
     p.set_defaults(func=cmd_kaggle_pull)
-    p = ks.add_parser("import", help="single-pillar results -> submissions/<slug>.csv (+rebuild)")
-    p.add_argument("task", help="e.g. synhalees-05-sinhala-grammar")
+    p = ks.add_parser("import", help="import one text task or all 15 text tasks -> submissions/*.csv")
+    p.add_argument("task", nargs="?", default="all", help="task slug or all (default: all)")
     p.add_argument("--slug", default=None, help="force the model slug (single model only)")
     p.add_argument("--dry-run", action="store_true", help="print the rows, write nothing")
     p.add_argument("--no-pull", action="store_true", help="use local artifacts only")

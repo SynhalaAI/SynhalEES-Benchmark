@@ -114,6 +114,26 @@
 
   function fmt(v) { return v == null ? "—" : v.toFixed(1); }
 
+  // usage telemetry follows the active filter (pillar -> overall bucket)
+  function usageOf(m) {
+    var u = m.usage || {};
+    var mode = state.pillar ? "overall" : state.mode;
+    return u[mode] || u.overall || null;
+  }
+  function fmtCost(u) {
+    if (!u || u.cost == null) return "\u2014";
+    return "$" + (u.cost < 1 ? u.cost.toFixed(4) : u.cost.toFixed(2));
+  }
+  function fmtTokens(u) {
+    if (!u || u.tokens == null) return "\u2014";
+    if (u.tokens >= 1e6) return (u.tokens / 1e6).toFixed(1) + "M";
+    if (u.tokens >= 1e3) return (u.tokens / 1e3).toFixed(1) + "K";
+    return String(u.tokens);
+  }
+  function fmtLatency(u) {
+    if (!u || u.latency == null) return "\u2014";
+    return u.latency >= 1000 ? (u.latency / 1000).toFixed(1) + "s" : u.latency + "ms";
+  }
   function medal(rank) {
     return rank <= 3
       ? "<span class='rank-badge r" + rank + "'>" + rank + "</span>"
@@ -130,8 +150,14 @@
         va = a[k]; vb = b[k];
         return va < vb ? -state.sortDir : va > vb ? state.sortDir : 0;
       }
-      va = k === "score" ? scoreOf(a) : (k === "rank" ? 0 : a.modalities[k]);
-      vb = k === "score" ? scoreOf(b) : (k === "rank" ? 0 : b.modalities[k]);
+      if (k === "cost" || k === "tokens" || k === "latency") {
+        var ua = usageOf(a), ub = usageOf(b);
+        va = ua && ua[k] != null ? ua[k] : null;
+        vb = ub && ub[k] != null ? ub[k] : null;
+      } else {
+        va = k === "score" ? scoreOf(a) : (k === "rank" ? 0 : a.modalities[k]);
+        vb = k === "score" ? scoreOf(b) : (k === "rank" ? 0 : b.modalities[k]);
+      }
       if (va == null) return 1;
       if (vb == null) return -1;
       return (va - vb) * state.sortDir;
@@ -170,9 +196,9 @@
         "<div class=\"scorebar\"><span style=\"width:" + s + "%\"></span></div></td>" +
         "<td class=\"provider\">" + providerLogo(m.provider) + esc(m.provider) + "</td>" +
         "<td class=\"num\"><span class=\"score-pill" + (s === best ? " top" : "") + "\">" + fmt(s) + "</span></td>" +
-        "<td class=\"num\">" + fmt(m.modalities.text) + "</td>" +
-        "<td class=\"num\">" + fmt(m.modalities.vision) + "</td>" +
-        "<td class=\"num\">" + fmt(m.modalities.audio) + "</td>" +
+        "<td class=\"num\">" + fmtCost(usageOf(m)) + "</td>" +
+        "<td class=\"num\">" + fmtTokens(usageOf(m)) + "</td>" +
+        "<td class=\"num\">" + fmtLatency(usageOf(m)) + "</td>" +
         "<td class=\"num na\">" + esc(m.date) + "</td>";
       tr.addEventListener("click", function () { openModal(m); });
       body.appendChild(tr);
@@ -714,7 +740,7 @@
       ctx.closePath();
     }
 
-    // columns mirror the on-screen thead: # | Model | Provider | score | Text | Vision | Audio | Date
+    // columns mirror the on-screen thead: # | Model | Provider | score | Cost | Tokens | Latency | Date
     ctx.font = "700 13.5px " + FONT;
     var nameW = 0, provW = 0, dateW = 0;
     rows.forEach(function (m) {
@@ -727,9 +753,9 @@
       { label: "Model", w: Math.ceil(nameW) + 26, align: "left" },
       { label: "Provider", w: Math.ceil(provW) + 62, align: "left" },
       { label: scoreLbl, w: Math.max(88, Math.ceil(ctx.measureText(scoreLbl).width) + 26), align: "right" },
-      { label: "Text", w: 68, align: "right" },
-      { label: "Vision", w: 68, align: "right" },
-      { label: "Audio", w: 68, align: "right" },
+      { label: "Cost", w: 76, align: "right" },
+      { label: "Tokens", w: 72, align: "right" },
+      { label: "Latency", w: 76, align: "right" },
       { label: "Date", w: Math.max(92, Math.ceil(dateW) + 22), align: "right" }
     ];
     var tableW = 0;
@@ -837,13 +863,14 @@
       ctx.font = "400 12.5px " + FONT;
       ctx.fillText(fitText(m.provider, cols[2].w - 62), cxx + 42, cy);
       cxx += cols[2].w;
-      // score (best gets the red accent, like .score-pill.top) + modality numbers
-      var vals = [sv, m.modalities.text, m.modalities.vision, m.modalities.audio];
+      // score (best gets the red accent, like .score-pill.top) + usage telemetry
+      var uu = usageOf(m);
+      var vals = [fmt(sv), fmtCost(uu), fmtTokens(uu), fmtLatency(uu)];
       vals.forEach(function (v, vi) {
         ctx.textAlign = "right";
         ctx.font = (vi === 0 ? "800" : "600") + " 13px " + FONT;
-        ctx.fillStyle = v == null ? C.muted : (vi === 0 && v === best ? C.red : C.text);
-        ctx.fillText(fmt(v), cxx + cols[3 + vi].w - 12, cy);
+        ctx.fillStyle = v === "\u2014" ? C.muted : (vi === 0 && sv === best ? C.red : C.text);
+        ctx.fillText(v, cxx + cols[3 + vi].w - 12, cy);
         cxx += cols[3 + vi].w;
       });
       // date
@@ -1571,7 +1598,7 @@
       console.error(err);
       $("#empty-state").hidden = false;
       $("#empty-state").textContent =
-        "Could not load leaderboard data. Rebuild it with: python tools/build_leaderboard.py --demo";
+        "Could not load leaderboard data. Rebuild it with: synhalees build --demo";
     });
   }
 })();

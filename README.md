@@ -5,7 +5,9 @@
 # 🇱🇰 SynhalEES: The Multimodal Sinhala Cultural Benchmark
 
 [![Maintained by SynhalaAI](https://img.shields.io/badge/Maintained%20by-SynhalaAI-blue.svg)](https://github.com/SynhalaAI)
+[![License: SSRL-1.0](https://img.shields.io/badge/License-SSRL--1.0-red.svg)](https://github.com/SynhalaAI/License/blob/main/SSRL.md)
 [![Providers](https://img.shields.io/badge/Providers-Ollama%20%C2%B7%20OpenRouter%20%C2%B7%20Gemini%20%C2%B7%20OpenAI-blue.svg)]()
+[![Live Leaderboard](https://img.shields.io/badge/Live-Leaderboard-brightgreen.svg)](https://synhalaai.github.io/SynhalEES-Benchmark/)
 
 > **Measuring how authentically Multimodal AI Models (LLMs, VLMs, Audio-LLMs) THINK as a native Sri Lankan Sinhala human — reasoning in Sinhala, seeing the world through Sinhala eyes, and speaking like a native — not like a translated English machine.**
 
@@ -168,10 +170,18 @@ lines from the checkpoint (or rerun with `--fresh`) once the problem is fixed.
 
 ## 🏆 Leaderboard
 
-The public model leaderboard lives in [`docs/`](docs/index.html) — a static,
-GitHub Pages-ready site (no build step). Enable it via
-**Settings → Pages → Deploy from branch → `main` / `docs`**, and it appears at
-`https://synhalaai.github.io/SynhalEES-Benchmark/`.
+**👉 [View the live benchmark results](https://synhalaai.github.io/SynhalEES-Benchmark/)**
+
+| | |
+|---|---|
+| 🌐 **Live site** | <https://synhalaai.github.io/SynhalEES-Benchmark/> |
+| 📁 **Source** | [`docs/`](docs/index.html) — static, GitHub Pages-ready site (no build step) |
+| 📊 **Data** | [`submissions/*.csv`](submissions/README.md) |
+
+Deployed automatically by the [GitHub Pages workflow](.github/workflows/pages.yml)
+on every push to `main` (**Settings → Pages → Source: GitHub Actions**).
+The site shows Overall / Text / Vision / Audio scores across all 15 pillars,
+plus cost, token and latency telemetry per model.
 
 Update the data after running models:
 
@@ -212,5 +222,15 @@ Every pillar folder is a small, reviewable PR — no giant CSVs.
 ---
 
 ## 📜 License & Organization
-* **License:** This project is licensed under the **[SynhalaAI Sovereign Research License (SSRL-1.0)](https://github.com/SynhalaAI/License/blob/main/SSRL.md)** - a sovereign public trust license open exclusively to Sri Lankan citizens and Sri Lankan academic/non-profit institutions, for non-commercial research only. Commercial use is permanently prohibited.
+* **License:** This project is licensed under the **[SynhalaAI Sovereign Research License (SSRL-1.0)](https://github.com/SynhalaAI/License-Hub/blob/main/SSRL.md)** - a sovereign public trust license open exclusively to Sri Lankan citizens and Sri Lankan academic/non-profit institutions, for non-commercial research only. Commercial use is permanently prohibited.
 * **Maintained by:** **[SynhalaAI](https://github.com/SynhalaAI)** - An open-source initiative empowering Sinhala AI.
+
+---
+<p align="center">
+  Licensed under <a href="https://github.com/SynhalaAI/License-Hub/blob/main/SSRL.md">SSRL-1.0</a> · Full license text: <a href="https://github.com/SynhalaAI/License-Hub">SynhalaAI/License-Hub</a> · Sri Lanka only, non-commercial research — commercial use permanently prohibited.
+</p>
+<p align="center">
+  <a href="https://github.com/SynhalaAI/License-Hub/blob/main/assets/SSRL%20Banner.jpg">
+    <img src="https://raw.githubusercontent.com/SynhalaAI/License-Hub/main/assets/SSRL%20Banner.jpg" alt="SynhalaAI Sovereign Research License (SSRL-1.0)" width="1000"/>
+  </a>
+</p>

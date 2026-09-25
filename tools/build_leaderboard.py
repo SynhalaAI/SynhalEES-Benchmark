@@ -248,6 +248,21 @@ def demo() -> dict:
             drop = rng.uniform(4, 14)  # multimodal is harder
             modalities[m] = round(max(0.0, text - drop), 1)
         present = [v for v in modalities.values() if v is not None]
+        usage = {
+            "overall": {
+                "cost": round(rng.uniform(0.2, 9.0), 4),
+                "tokens": rng.randint(60_000, 420_000),
+                "latency": rng.randint(700, 5200),
+            },
+        }
+        for m in ("text", "vision", "audio"):
+            if modalities.get(m) is None:
+                continue
+            usage[m] = {
+                "cost": round(usage["overall"]["cost"] * rng.uniform(0.15, 0.6), 4),
+                "tokens": int(usage["overall"]["tokens"] * rng.uniform(0.15, 0.6)),
+                "latency": rng.randint(700, 5200),
+            }
         models.append({
             "name": name,
             "provider": provider,
@@ -255,6 +270,7 @@ def demo() -> dict:
             "overall": round(sum(present) / len(present), 1),
             "modalities": {m: modalities.get(m) for m in ("text", "vision", "audio")},
             "pillars": pillar_scores,
+            "usage": usage,
         })
     models.sort(key=lambda m: m["overall"], reverse=True)
     return {"demo": True, "updated": str(date.today()), "models": models}
@@ -289,6 +305,8 @@ def build_real(csv_paths: list[Path]) -> dict:
                     "modalities": {"text": None, "vision": None, "audio": None},
                     "pillars": {},
                     "_mod": {"text": [], "vision": [], "audio": []},
+                    "_usage": {k: {"cost": [], "tokens": [], "lat": []}
+                               for k in ("overall", "text", "vision", "audio")},
                     "_dates": [],
                 })
                 if row.get("date"):
@@ -298,6 +316,19 @@ def build_real(csv_paths: list[Path]) -> dict:
                 entry["pillars"].setdefault(pillar, []).append(score)
                 if modality in entry["_mod"]:
                     entry["_mod"][modality].append(score)
+                # Optional usage telemetry (Kaggle imports only; may be blank).
+                bucket = entry["_usage"].get(modality)
+                if bucket is not None:
+                    for src, dst in (("cost_usd", "cost"),
+                                     ("tokens", "tokens"),
+                                     ("latency_ms", "lat")):
+                        raw = (row.get(src) or "").strip()
+                        if raw:
+                            bucket[dst].append(float(raw))
+                            if dst != "lat":
+                                entry["_usage"]["overall"][dst].append(float(raw))
+                            else:
+                                entry["_usage"]["overall"][dst].append(float(raw))
     models = []
     for entry in acc.values():
         entry["pillars"] = {p: round(sum(v) / len(v), 1)
@@ -310,6 +341,16 @@ def build_real(csv_paths: list[Path]) -> dict:
         dates = [d for d in entry.pop("_dates", []) if d]
         entry["date"] = max(dates) if dates else entry["date"]
         del entry["_mod"]
+        usage = {}
+        for mode, agg in entry.pop("_usage", {}).items():
+            if not agg["tokens"]:
+                continue
+            usage[mode] = {
+                "cost": round(sum(agg["cost"]), 4),
+                "tokens": int(sum(agg["tokens"])),
+                "latency": round(sum(agg["lat"]) / len(agg["lat"])) if agg["lat"] else None,
+            }
+        entry["usage"] = usage
         models.append(entry)
     models.sort(key=lambda m: m["overall"], reverse=True)
     # Deterministic stamp: the newest run date in the CSVs, never "today",
