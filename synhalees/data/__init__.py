@@ -13,10 +13,12 @@ callers always receive a ready-to-use prompt. Non-OCR rows must carry an
 image-specific question and are validated.
 
 Audio rows behave the same way (STRUCTURE.md section 5C): an empty
-``question`` on a ``wer`` row injects ``DEFAULT_ASR_PROMPT``; comprehension
-rows (``exact_match`` etc.) without a question of their own receive the
-generic ``GENERIC_AUDIO_PROMPT`` (media-first "listen and answer" wording),
-so pillar CSVs never need a question column just to satisfy the loader.
+``question`` on a ``wer`` row injects ``DEFAULT_ASR_PROMPT``; question-less
+``classification`` rows receive ``GENERIC_CLASSIFY_PREFIX`` plus the
+pillar's distinct ground_truth labels (a "listen and choose" option set);
+other comprehension rows receive ``GENERIC_AUDIO_PROMPT`` ("listen and
+answer") -- so pillar CSVs never need a question column just to satisfy
+the loader.
 """
 
 from __future__ import annotations
@@ -33,11 +35,13 @@ DEFAULT_OCR_PROMPT = "මේ රූපයේ තියෙන පාඨය හර
 # Default prompt for audio rows without a question: plain transcription.
 DEFAULT_ASR_PROMPT = "මේ ශ්‍රව්‍යයේ ඇහෙන දේ හරියටම ලියන්න."
 
-# Generic prompt injected for audio comprehension rows (exact_match,
-# classification, llm_judge) that carry no question of their own.
-# Media-first "listen and answer" wording: the answer still has to come
-# from the audio. Kept byte-identical with STRUCTURE.md section 5C.
+# Generic prompts injected for audio rows that carry no question of their
+# own (byte-identical with STRUCTURE.md section 5C): comprehension rows get
+# "listen and answer" wording -- the answer still has to come from the
+# audio; classification rows get "listen and choose" plus the pillar's
+# distinct ground_truth labels as the option set to choose from.
 GENERIC_AUDIO_PROMPT = "මේක අහලා උත්තර දෙන්න."
+GENERIC_CLASSIFY_PREFIX = "මේක අහලා තෝරන්න: "
 
 # The only four eval engines defined by STRUCTURE.md section 2.
 ALLOWED_EVAL_TYPES = frozenset(
@@ -215,29 +219,46 @@ def load_audio(
 
     An optional ``question`` column carries comprehension questions
     (STRUCTURE.md section 5C); empty questions on ``wer`` (transcription)
-    rows receive ``DEFAULT_ASR_PROMPT``; comprehension rows without one
-    receive ``GENERIC_AUDIO_PROMPT``.
+    rows receive ``DEFAULT_ASR_PROMPT``; question-less ``classification``
+    rows receive ``GENERIC_CLASSIFY_PREFIX`` plus the pillar's distinct
+    labels, and other comprehension rows receive ``GENERIC_AUDIO_PROMPT``.
 
     With ``strict=True`` every referenced mp3 must exist on disk; set
     ``strict=False`` to browse in-progress pillars.
     """
     base = _pillar_dir(pillar, data_root)
     path = base / "audio" / "audio.csv"
+    rows = list(_read_csv(path))
+    # Distinct classification labels of this pillar (file order): they turn
+    # the generic "listen and choose" prompt into a real option set.
+    labels: list[str] = []
+    for row in rows:
+        if (row.get("eval_type") or "").strip() == "classification":
+            gt = (row.get("ground_truth") or "").strip()
+            if gt and gt not in labels:
+                labels.append(gt)
+    choose_prompt = (
+        GENERIC_CLASSIFY_PREFIX + ", ".join(labels) if labels else GENERIC_AUDIO_PROMPT
+    )
     items: list[AudioItem] = []
-    for row in _read_csv(path):
+    for row in rows:
         where = f"{pillar}/audio.csv[{row.get('id', '?')}]"
         _require_columns(
             row, {"id", "audio_file", "ground_truth", "eval_type"}, where=where
         )
         eval_type = _check_eval_type(row["eval_type"], where=where)
         # Optional question column (STRUCTURE.md section 5C): empty on
-        # transcription rows -> default ASR prompt; comprehension rows
-        # (exact_match etc.) without one -> GENERIC_AUDIO_PROMPT.
+        # transcription rows -> default ASR prompt; classification rows ->
+        # GENERIC_CLASSIFY_PREFIX + the pillar's labels; other comprehension
+        # rows -> GENERIC_AUDIO_PROMPT.
         question = row.get("question", "").strip()
         if not question:
-            question = (
-                DEFAULT_ASR_PROMPT if eval_type == "wer" else GENERIC_AUDIO_PROMPT
-            )
+            if eval_type == "wer":
+                question = DEFAULT_ASR_PROMPT
+            elif eval_type == "classification":
+                question = choose_prompt
+            else:
+                question = GENERIC_AUDIO_PROMPT
         audio_path = base / "audio" / "mp3s" / row["audio_file"]
         if strict and not audio_path.is_file():
             raise FileNotFoundError(f"{where}: missing audio file {audio_path}")
@@ -274,6 +295,7 @@ __all__ = [
     "DEFAULT_ASR_PROMPT",
     "DEFAULT_OCR_PROMPT",
     "GENERIC_AUDIO_PROMPT",
+    "GENERIC_CLASSIFY_PREFIX",
     "AudioItem",
     "PillarData",
     "TextItem",

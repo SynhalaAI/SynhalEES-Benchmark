@@ -219,9 +219,12 @@ AUD_08_003,shouting_anger_03.mp3,,"aggressive_abuse",classification
 > **Optional `question` column:** empty (or omitted) on `wer` rows -> the
 > loader injects the default transcription prompt
 > **`මේ ශ්‍රව්‍යයේ ඇහෙන දේ හරියටම ලියන්න.`** automatically. Comprehension
-> rows (`exact_match`, `classification`, `llm_judge`) may omit it too -> the
-> loader injects the generic media prompt **`මේක අහලා උත්තර දෙන්න.`**
-> (listen and answer), so pillars never need a question column just to
+> rows (`exact_match`, `classification`, `llm_judge`) may omit it too:
+> `exact_match` / `llm_judge` receive the generic media prompt
+> **`මේක අහලා උත්තර දෙන්න.`** (listen and answer) and `classification`
+> receives **`මේක අහලා තෝරන්න: <label 1>, <label 2>, ...`** -- the pillar's
+> distinct `ground_truth` labels comma-separated, so the model knows the
+> option set to choose from. Pillars never need a question column just to
 > satisfy the loader. A row may still carry its own specific question when
 > the task needs one (e.g. what the hidden meaning of a spoken figure of
 > speech is).
