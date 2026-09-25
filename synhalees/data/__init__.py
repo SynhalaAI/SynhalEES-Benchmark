@@ -30,10 +30,10 @@ from pathlib import Path
 
 # The standard transcription prompt injected for OCR vision rows whose
 # question cell is empty. Kept byte-identical with STRUCTURE.md section 5B.
-DEFAULT_OCR_PROMPT = "මේ රූපයේ තියෙන පාඨය හරියටම ලියන්න."
+DEFAULT_OCR_PROMPT = "මේකේ තියෙන දේ අකුරෙන් ලියන්න."
 
 # Default prompt for audio rows without a question: plain transcription.
-DEFAULT_ASR_PROMPT = "මේ ශ්‍රව්‍යයේ ඇහෙන දේ හරියටම ලියන්න."
+DEFAULT_ASR_PROMPT = "මේකේ ඇහෙන දේ අකුරෙන් ලියන්න."
 
 # Generic prompts injected for audio rows that carry no question of their
 # own (byte-identical with STRUCTURE.md section 5C): comprehension rows get

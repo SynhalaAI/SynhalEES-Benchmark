@@ -197,7 +197,7 @@ VIS_12_004,meme_bus_04.png,"මේ මීම් එකේ ජෝර්ක් එ
 > (`eval_type = "wer"`), the `question` column may be left **empty** (or the
 > column omitted entirely on wer-only files) — the
 > benchmark loader then injects the standard OCR prompt
-> **`මේ රූපයේ තියෙන පාඨය හරියටම ලියන්න.`** automatically, so contributors
+> **`මේකේ තියෙන දේ අකුරෙන් ලියන්න.`** automatically, so contributors
 > don't have to repeat the same transcription prompt on every row. This
 > applies only to `wer` rows: `exact_match`, `llm_judge` and
 > `classification` rows must always carry an image-specific `question`,
@@ -218,7 +218,7 @@ AUD_08_003,shouting_anger_03.mp3,,"aggressive_abuse",classification
 
 > **Optional `question` column:** empty (or omitted) on `wer` rows -> the
 > loader injects the default transcription prompt
-> **`මේ ශ්‍රව්‍යයේ ඇහෙන දේ හරියටම ලියන්න.`** automatically. Comprehension
+> **`මේකේ ඇහෙන දේ අකුරෙන් ලියන්න.`** automatically. Comprehension
 > rows (`exact_match`, `classification`, `llm_judge`) may omit it too:
 > `exact_match` / `llm_judge` receive the generic media prompt
 > **`මේක අහලා උත්තර දෙන්න.`** (listen and answer) and `classification`
