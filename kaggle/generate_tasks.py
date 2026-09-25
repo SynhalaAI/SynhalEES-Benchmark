@@ -19,7 +19,8 @@ an explicit directory and always ``--dry-run`` to preview first.
 Push everything (after ``kaggle b init -y``)::
 
     synhalees kaggle push             # all 17 task files
-    Get-ChildItem kaggle/tasks/*.py | % { kaggle b t push $_.FullName }
+    synhalees kaggle push audio       # one task (uploaded as synhalees-audio)
+    synhalees kaggle push --wait      # all 17, then wait for the builds
 """
 
 from __future__ import annotations

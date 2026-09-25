@@ -3,10 +3,16 @@
 Push & run from the terminal (see the write-kaggle-benchmarks skill):
 
     kaggle b init -y                              # one-time credentials
-    kaggle b t push kaggle/synhalees_task.py      # upload the task
-    kaggle b t run <task-slug> --model <model>    # run server-side
-    kaggle b t status <task-slug>                 # check progress
-    kaggle b t publish <task-slug>                # public leaderboard
+    synhalees kaggle gen                          # regenerate kaggle/tasks/*.py
+    synhalees kaggle push audio                   # upload (task: synhalees-audio)
+    synhalees kaggle run synhalees-audio -m <model>     # run server-side
+    synhalees kaggle status synhalees-audio             # check progress
+    synhalees kaggle publish synhalees-audio            # public leaderboard
+
+The per-pillar tasks under kaggle/tasks/ are the main path (one leaderboard per
+pillar). This file is the all-in-one text task; push it with an explicit name:
+
+    kaggle b t push synhalees-benchmark -f kaggle/synhalees_task.py
 
 The kernel bootstraps the synhalees package from GitHub (requires internet
 enabled on the benchmark kernel). Text modality only for now -- vision/audio

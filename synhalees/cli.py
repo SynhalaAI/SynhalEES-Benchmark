@@ -66,9 +66,11 @@ def task_slug(arg):
 def resolve_task_file(arg):
     """'05_sinhala_grammar' | 'synhalees-05-sinhala-grammar' -> kaggle/tasks/<file>.py"""
     direct = Path(arg)
+    if not direct.is_absolute():
+        direct = ROOT / direct          # every returned path stays absolute
     if direct.suffix == ".py" and direct.is_file():
         return direct
-    name = direct.name.replace("-", "_")
+    name = Path(arg).name.replace("-", "_")
     if name.startswith("synhalees_"):
         name = name[len("synhalees_"):]
     cand = TASKS_DIR / f"{name}.py"
@@ -83,6 +85,29 @@ def pillar_from_task(slug):
     if len(parts) >= 3 and parts[0] == "synhalees" and parts[1].isdigit():
         return parts[1] + "_" + "_".join(parts[2:])
     return None
+
+
+def task_name_for(path):
+    """kaggle/tasks/05_sinhala_grammar.py -> "synhalees-05-sinhala-grammar".
+
+    Kaggle hosts a task under the name passed to "kaggle b t push" (it
+    normalizes "_" to "-"), so this is the single source of truth for every
+    push / run / status / log / publish / download call. The name already in
+    use on Kaggle (synhalees-05-sinhala-grammar) is produced by this rule.
+    """
+    stem = Path(path).stem
+    if stem.startswith("synhalees_"):
+        stem = stem[len("synhalees_"):]
+    return task_slug(f"synhalees_{stem}")
+
+
+def resolve_task_name(arg):
+    """'audio' | 'audio.py' | 'synhalees-audio' -> 'synhalees-audio'."""
+    text = str(arg)
+    if text.lower().endswith(".py"):
+        return task_name_for(text)
+    slug = task_slug(text)
+    return slug if slug.startswith("synhalees-") else task_slug(f"synhalees_{slug}")
 
 
 def load_scorecard(path):
@@ -169,39 +194,44 @@ def cmd_kaggle_push(a):
     files = sorted(TASKS_DIR.glob("*.py")) if a.task in (None, "all") else [resolve_task_file(a.task)]
     if not files:
         raise SystemExit(f"no task files in {TASKS_DIR} (run: synhalees kaggle gen)")
-    rc = 0
-    for f in files:
-        rc = sh([kaggle_bin(), "b", "t", "push", str(f)]) or rc
+    extra = list(a.args)
+    if a.wait:
+        extra.append("--wait")
+    for i, f in enumerate(files, 1):
+        name = task_name_for(f)
+        print(f"[{i}/{len(files)}] {name}  <-  {f.relative_to(ROOT)}")
+        rc = sh([kaggle_bin(), "b", "t", "push", name, "-f", str(f), *extra])
         if rc:
-            break
-    print(f"pushed {files.index(Path(f)) + 1 if not rc else 'stopped after failure in'} file(s)")
-    return rc
+            print(f"stopped: push failed for {name} ({len(files) - i} task(s) left)")
+            return rc
+    print(f"pushed {len(files)} task file(s)")
+    return 0
 
 
 def cmd_kaggle_run(a):
-    return sh([kaggle_bin(), "b", "t", "run", a.task, *a.args])
+    return sh([kaggle_bin(), "b", "t", "run", resolve_task_name(a.task), *a.args])
 
 
 def cmd_kaggle_status(a):
-    return sh([kaggle_bin(), "b", "t", "status", a.task])
+    return sh([kaggle_bin(), "b", "t", "status", resolve_task_name(a.task), *a.args])
 
 
 def cmd_kaggle_logs(a):
-    return sh([kaggle_bin(), "b", "t", "log", a.task, *a.args])
+    return sh([kaggle_bin(), "b", "t", "log", resolve_task_name(a.task), *a.args])
 
 
 def cmd_kaggle_publish(a):
-    return sh([kaggle_bin(), "b", "t", "publish", a.task])
+    return sh([kaggle_bin(), "b", "t", "publish", resolve_task_name(a.task), *a.args])
 
 
 def cmd_kaggle_pull(a):
     if "-o" in a.args or "--output" in a.args:
         raise SystemExit("drop -o: artifacts always go to kaggle-results/ (repo hygiene)")
-    return sh([kaggle_bin(), "b", "t", "download", task_slug(a.task), "-o", str(KG_RESULTS), *a.args])
+    return sh([kaggle_bin(), "b", "t", "download", resolve_task_name(a.task), "-o", str(KG_RESULTS), *a.args])
 
 
 def cmd_kaggle_import(a):
-    slug = task_slug(a.task)
+    slug = resolve_task_name(a.task)
     pillar = pillar_from_task(slug)
     if pillar is None:
         raise SystemExit(f"{slug} is not a single-pillar task; its one overall score cannot be "
@@ -300,6 +330,8 @@ def build_parser():
     p.set_defaults(func=cmd_kaggle_gen)
     p = ks.add_parser("push", help="upload task file(s) (default: all 17)")
     p.add_argument("task", nargs="?", default="all", help="pillar/task slug, .py path, or all")
+    p.add_argument("--wait", action="store_true", help="wait for the server-side build to finish")
+    p.add_argument("args", nargs=argparse.REMAINDER, help="extra flags for kaggle b t push")
     p.set_defaults(func=cmd_kaggle_push)
     p = ks.add_parser("run", help="start a run: synhalees kaggle run <task> -m <model> [...]")
     p.add_argument("task")
@@ -307,6 +339,7 @@ def build_parser():
     p.set_defaults(func=cmd_kaggle_run)
     p = ks.add_parser("status", help="server-side run status")
     p.add_argument("task")
+    p.add_argument("args", nargs=argparse.REMAINDER, help="extra flags, e.g. -m <model>")
     p.set_defaults(func=cmd_kaggle_status)
     p = ks.add_parser("logs", help="fetch run logs: synhalees kaggle logs <task> -m <model>")
     p.add_argument("task")
@@ -314,6 +347,7 @@ def build_parser():
     p.set_defaults(func=cmd_kaggle_logs)
     p = ks.add_parser("publish", help="publish the Kaggle task leaderboard")
     p.add_argument("task")
+    p.add_argument("args", nargs=argparse.REMAINDER, help="extra flags for kaggle b t publish")
     p.set_defaults(func=cmd_kaggle_publish)
     p = ks.add_parser("pull", help="download artifacts -> kaggle-results/ (the -o is forced)")
     p.add_argument("task")
