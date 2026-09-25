@@ -60,6 +60,12 @@ Only **publishable** runs belong in `submissions/`: no results produced with a
 personal or paid API key that the project cannot re-verify or publish. Never
 hand-edit `docs/assets/data/*` - it is generated. See
 [`submissions/README.md`](submissions/README.md) for the full rules.
+
+Kaggle Benchmarks runs store their artifacts server-side; pull them into the
+gitignored outputs folder with
+`kaggle b t download <task-slug> -o kaggle-results`. Download output never
+lands in the repo root (`runs/` and `kaggle-results/` are both ignored).
+
 ### 3. Issues, ideas & questions
 
 - Open a [GitHub Issue](https://github.com/SynhalaAI/SynhalEES-Benchmark/issues)

@@ -82,6 +82,25 @@ pages. **This file is generated - never edit it by hand.**
 - **No CSVs = empty leaderboard** (`models: []`). `--demo` output is a local
   preview only and must never be committed.
 
+## 🧹 Output Hygiene (nothing lands in the repo root)
+
+Every command that produces files must target a dedicated **gitignored**
+outputs folder. The repo root keeps only the tracked top-level files listed
+in `STRUCTURE.md` -- no scratch `.txt` / `.log` / `.csv` dumps, ever.
+
+| output | folder | produced by |
+| --- | --- | --- |
+| local benchmark runs | `runs/<model-slug>/` | `python run_benchmark.py ...` (defaults) |
+| cross-run scorecard + matrix | `runs/all_submissions.csv` | `python tools/compare_runs.py` |
+| Kaggle Benchmarks artifacts | `kaggle-results/` | `kaggle b t download <task-slug> -o kaggle-results` |
+
+- **`kaggle b t download` writes into the current directory when `-o` is
+  omitted -- always pass `-o kaggle-results`.**
+- The only output that leaves these folders is a scorecard copy at
+  `submissions/<model-slug>.csv` (committed, see the rule above).
+- Remove ad-hoc test outputs when finishing a task; `git status --short` must
+  show no unexpected entries at the root.
+
 ---
 
 ## ✍️ Sinhala Content
@@ -106,3 +125,4 @@ pages. **This file is generated - never edit it by hand.**
 - [ ] Logo/icon changes regenerate `docs/assets/logo-data.js` (`python tools/build_logo_data.py --check` passes)
 - [ ] `submissions/*.csv` changes regenerate `docs/assets/data/*` (`python tools/build_leaderboard.py --check` passes)
 - [ ] Sinhala text is valid UTF-8 with diacritics preserved
+- [ ] No new files at the repo root (run outputs -> `runs/`, Kaggle pulls -> `kaggle-results/`)

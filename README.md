@@ -97,7 +97,9 @@ python run_benchmark.py --model ollama:llama3.1:8b --pillars 01_buddhist_culture
 Want a public leaderboard on Kaggle Benchmarks instead? The task file in
 [`kaggle/synhalees_task.py`](kaggle/synhalees_task.py) is push-ready -- with a
 Kaggle API token (`kaggle.json`) the whole flow runs from the terminal:
-`kaggle b t push` -> `kaggle b t run` -> `kaggle b t publish`.
+`kaggle b t push` -> `kaggle b t run` -> `kaggle b t publish`, then pull the
+artifacts with `kaggle b t download <task-slug> -o kaggle-results` (gitignored --
+outputs never land in the repo root).
 Runs are server-side, so closing your laptop will not interrupt them.
 
 For per-pillar leaderboards, `kaggle/tasks/` holds **17 generated task files**

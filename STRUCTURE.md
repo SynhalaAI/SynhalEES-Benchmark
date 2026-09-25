@@ -97,9 +97,10 @@ SynhalEES/
 │       └── leaderboard.yml                     # Fails when docs/assets/data/* drifts from submissions/ (--check)
 │
 ├── runs/                                      # Gitignored: one folder per model (checkpoint.jsonl, submission.csv, meta.json)
+├── kaggle-results/                            # Gitignored: Kaggle Benchmarks pulls (kaggle b t download -o kaggle-results/<task>/<ver>/<model>/<run-id>/)
 ├── submissions/                                 # COMMITTED: one <model-slug>.csv per model -- the published site data source
 │   └── README.md                                  # scorecard schema + publication rules
-├── .gitignore                                 # runs/, __pycache__, lock files
+├── .gitignore                                 # runs/, kaggle-results/, __pycache__, lock files
 ├── pyproject.toml                             # pip install -e . packaging
 ├── run_benchmark.py                           # CLI entry point (checkpointed API runner)
 ├── AGENTS.md                                  # AI-agent / contributor conventions
@@ -227,7 +228,8 @@ The public leaderboard in `docs/` is a static site: **no database and no backend
 Its only data source is a committed folder of per-model scorecards.
 
 ```text
-runs/<model-slug>/submission.csv        # raw run artifacts -- gitignored (per machine)
+runs/<model-slug>/submission.csv              # local run scorecard -- gitignored
+kaggle-results/<task>/<ver>/<model>/<run>/    # Kaggle Benchmarks pull -- gitignored
         |
         |  copy the scorecard, renamed after the model slug
         v
@@ -264,3 +266,10 @@ Rules:
    placeholder rows. `--demo` output is a local preview only -- never commit it.
 6. **Only publishable runs.** No numbers produced with a personal or paid API
    key that the project cannot re-verify or publish.
+
+7. **Kaggle pulls.** Kaggle Benchmarks artifacts are downloaded into the
+   gitignored `kaggle-results/` folder (`kaggle b t download <task-slug> -o
+   kaggle-results`) -- never the repo root. Each run exposes only an overall
+   score, so a task scoped to one pillar maps to one scorecard row;
+   multi-pillar (vision/audio) tasks cannot be split per pillar yet (see
+   `submissions/README.md`).
