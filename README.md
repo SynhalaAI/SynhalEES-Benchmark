@@ -88,46 +88,62 @@ results.print_scorecard()
 results.save_submission("runs/<model-slug>/submission.csv")
 ```
 
-### 4. One CLI for everything
-`pip install -e .` installs a single `synhalees` command (also
-`python -m synhalees`); each subcommand forwards its flags to the underlying
-script, so nothing has to be memorized twice:
-
-| Command | Does |
-|---|---|
-| `synhalees run --model <spec> [...]` | run the benchmark locally (`synhalees run --help` shows the flags) |
-| `synhalees compare` | per-model summary + pillar x model matrix (`runs/all_submissions.csv`) |
-| `synhalees build [--check]` | regenerate `docs/assets/data/*` from `submissions/` (`--check` = CI gate) |
-| `synhalees logos [--check]` | regenerate `docs/assets/logo-data.js` |
-| `synhalees publish <model-slug>` | `runs/<slug>/submission.csv` -> `submissions/`, rebuild + verify |
-| `synhalees check` | every local gate in one go (logos, leaderboard, compile) |
-| `synhalees kaggle gen` | regenerate the 17 task files |
-| `synhalees kaggle push [task]` | upload task file(s); default: all 17 |
-| `synhalees kaggle run <task> -m <model>` | start a server-side run |
-| `synhalees kaggle status/logs/publish <task>` | inspect / publish the Kaggle side |
-| `synhalees kaggle pull <task>` | artifacts -> `kaggle-results/` (the `-o` is forced) |
-| `synhalees kaggle import <task>` | single-pillar Kaggle results -> `submissions/<slug>.csv` + rebuild |
+### 4. Unified All-In-One CLI (`synhalees`)
+Installing the benchmark with `pip install -e .` exposes the unified `synhalees` CLI (or `python -m synhalees`). Everything from running evaluations to Kaggle deployment and leaderboard generation is managed through this single tool:
 
 ```bash
+# Run evaluations locally
+synhalees run --model gemini:gemini-2.5-flash
 synhalees run --model ollama:llama3.1:8b --pillars 01_buddhist_culture
-python run_benchmark.py --model ...   # the script form still works
+synhalees run --model openrouter:openai/gpt-4o-mini --modality text
+
+# Compare runs & view accuracy matrix across models
+synhalees compare
+
+# Publish scorecard to leaderboard and rebuild docs
+synhalees publish gemini-2.5-flash
+
+# Verify all repository checks & CI gates locally
+synhalees check
 ```
 
-### Optional: Kaggle leaderboard
-Want a public leaderboard on Kaggle Benchmarks instead? The task file in
-[`kaggle/synhalees_task.py`](kaggle/synhalees_task.py) is push-ready -- with a
-Kaggle API token (`kaggle.json`) the whole flow runs from the terminal:
-`kaggle b t push` -> `kaggle b t run` -> `kaggle b t publish`, then pull the
-artifacts with `kaggle b t download <task-slug> -o kaggle-results` (gitignored --
-outputs never land in the repo root).
-The unified CLI wraps the same flow: `synhalees kaggle push|run|status|publish|pull|import`.
-Runs are server-side, so closing your laptop will not interrupt them.
+#### CLI Command Reference
 
-For per-pillar leaderboards, `kaggle/tasks/` holds **17 generated task files**
-(15 pillars on text + 1 vision + 1 audio); regenerate with
-`python kaggle/generate_tasks.py` and push all with
-`Get-ChildItem kaggle/tasks/*.py | % { kaggle b t push $_.FullName }`.
-Note: vision/audio tasks need the media files committed first.
+| Command | Action | Description |
+|---|---|---|
+| **`synhalees run`** | Run benchmark | Evaluates models locally with crash-safe checkpointing. |
+| **`synhalees compare`** | Compare runs | Generates cross-model scorecards and accuracy matrix at `runs/all_submissions.csv`. |
+| **`synhalees publish <model-slug>`** | Publish run | Copies `runs/<slug>/submission.csv` to `submissions/`, rebuilds leaderboard data, and verifies integrity. |
+| **`synhalees build [--check]`** | Build leaderboard | Re-generates `docs/assets/data/*` from `submissions/` (`--check` validates CI freshness). |
+| **`synhalees logos [--check]`** | Build logo data | Re-generates `docs/assets/logo-data.js` for canvas exports. |
+| **`synhalees check`** | Run all gates | Runs logo check, leaderboard sync check, and Python bytecode compilation in one go. |
+| **`synhalees kaggle <action>`** | Kaggle Benchmarks | Full suite to generate, push, run, and sync tasks with Kaggle. |
+
+---
+
+### 🌐 Kaggle Benchmarks Integration
+SynhalEES includes built-in integration with Kaggle Benchmarks so you can run tasks on Kaggle's infrastructure without keeping your local terminal open:
+
+```bash
+# 1. Regenerate task files (17 modular tasks: 15 pillars + vision + audio)
+synhalees kaggle gen
+
+# 2. Upload tasks to Kaggle without running any evaluations
+synhalees kaggle push            # uploads all 17 tasks
+synhalees kaggle push audio      # uploads only the audio task
+synhalees kaggle push 01_buddhist_culture
+
+# 3. Start a server-side evaluation run on Kaggle
+synhalees kaggle run synhalees-audio -m gemini-2.5-flash
+
+# 4. Check status & logs
+synhalees kaggle status synhalees-audio
+synhalees kaggle logs synhalees-audio -m gemini-2.5-flash
+
+# 5. Download results & import into local leaderboard
+synhalees kaggle pull synhalees-audio
+synhalees kaggle import synhalees-audio
+```
 
 ### Per-model run folders
 Every run gets its own folder, so different models never overwrite each other:
@@ -160,20 +176,18 @@ GitHub Pages-ready site (no build step). Enable it via
 Update the data after running models:
 
 ```bash
-# 1. compare every run under runs/ and print a pillar x model accuracy matrix
-python tools/compare_runs.py
+# 1. Compare every run under runs/ and print a pillar x model accuracy matrix
+synhalees compare
 
-# 2. publish each model's scorecard as submissions/<model-slug>.csv
-#    (one file per model -- see submissions/README.md)
+# 2. Publish a model's scorecard to submissions/ and rebuild the site in one step
+synhalees publish <model-slug>
 
-# 3. regenerate the site data from submissions/ (no arguments needed)
-python tools/build_leaderboard.py
+# 3. Rebuild site data or verify CI status
+synhalees build
+synhalees build --check
 
-# verify the committed data is in sync -- this is what CI runs
-python tools/build_leaderboard.py --check
-
-# or preview the site with clearly-marked placeholder data (never commit this)
-python tools/build_leaderboard.py --demo
+# 4. Or preview the site locally with demo placeholder data (never commit demo data)
+synhalees build --demo
 ```
 
 `submissions/` is the committed source of truth for the leaderboard: one
