@@ -29,11 +29,14 @@ All contributions — data, code, or docs — are welcome.
 - Add rows to the pillar's CSVs following the exact schemas in
   [`STRUCTURE.md`](STRUCTURE.md) section 5:
   - `text.csv` → `id,prompt,ground_truth,eval_type`
-  - `vision/vision.csv` → `id,image_file,question,ground_truth,eval_type` (for `wer`/OCR rows, `question` can be omitted or empty; the loader auto-injects `"මේකේ තියෙන දේ අකුරෙන් ලියන්න."`)
-  - `audio/audio.csv` → `id,audio_file,ground_truth,eval_type` (minimal schema! `question` column is completely optional)
+  - `vision/vision.csv` → `id,image_file,ground_truth,eval_type` (minimal schema! `question` column is optional)
+  - `audio/audio.csv` → `id,audio_file,ground_truth,eval_type` (minimal schema! `question` column is optional)
 - **🚫 Do NOT spam repetitive prompt columns in CSVs:**
   - When contributing new pillars or media rows, avoid repeating boilerplate questions in CSV files.
   - Rely on the loader script (`synhalees.data`) to inject generic prompts automatically:
+    - Vision `wer` (OCR) rows receive `"මේකේ තියෙන දේ අකුරෙන් ලියන්න."`
+    - Vision `classification` rows dynamically receive `"මේක බලලා තෝරන්න: "` + unique candidate options extracted from the pillar's `ground_truth` values.
+    - Vision comprehension rows (`exact_match`, `llm_judge`) receive `"මේක බලලා උත්තර දෙන්න."`
     - Audio `wer` rows receive `"මේකේ ඇහෙන දේ අකුරෙන් ලියන්න."`
     - Audio `classification` rows dynamically receive `"මේක අහලා තෝරන්න: "` + unique candidate options extracted from the pillar's `ground_truth` values.
     - Audio comprehension rows (`exact_match`, `llm_judge`) receive `"මේක අහලා උත්තර දෙන්න."`

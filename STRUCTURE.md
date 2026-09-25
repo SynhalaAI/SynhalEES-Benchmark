@@ -193,15 +193,17 @@ VIS_01_001,dana_bowl_01.jpg,"මේ පින්තූරේ තියෙන ප
 VIS_12_004,meme_bus_04.png,"මේ මීම් එකේ ජෝර්ක් එක මොකක්ද?","humor_explanation",llm_judge
 ```
 
-> **OCR exception (`question` may be empty):** for image-OCR rows
-> (`eval_type = "wer"`), the `question` column may be left **empty** (or the
-> column omitted entirely on wer-only files) — the
-> benchmark loader then injects the standard OCR prompt
-> **`මේකේ තියෙන දේ අකුරෙන් ලියන්න.`** automatically, so contributors
-> don't have to repeat the same transcription prompt on every row. This
-> applies only to `wer` rows: `exact_match`, `llm_judge` and
-> `classification` rows must always carry an image-specific `question`,
-> because the script cannot infer what to ask about a given image.
+> **Optional `question` column:** empty (or omitted) on `wer` rows -> the
+> loader injects the standard OCR prompt
+> **`මේකේ තියෙන දේ අකුරෙන් ලියන්න.`** automatically. Comprehension
+> rows (`exact_match`, `classification`, `llm_judge`) may omit it too:
+> `exact_match` / `llm_judge` receive the generic media prompt
+> **`මේක බලලා උත්තර දෙන්න.`** (look and answer) and `classification`
+> receives **`මේක බලලා තෝරන්න: <label 1>, <label 2>, ...`** -- the pillar's
+> distinct `ground_truth` labels comma-separated, so the model knows the
+> option set to choose from. Pillars never need a question column just to
+> satisfy the loader. A row may still carry its own specific question when
+> the task needs one (e.g. what the hidden humor in a meme is).
 >
 > ```csv
 > VIS_02_003,03.jpg,,ධම්මං සරණං ගච්ඡාමි,wer

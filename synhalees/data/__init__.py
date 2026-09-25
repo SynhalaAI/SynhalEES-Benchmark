@@ -6,11 +6,13 @@ Loads ``benchmark_data/<slug>/`` per STRUCTURE.md section 5:
 - ``vision/vision.csv``  -> VisionItem (id, image_file, question, ground_truth, eval_type)
 - ``audio/audio.csv``    -> AudioItem  (id, audio_file, ground_truth, eval_type)
 
-Vision rows with ``eval_type = "wer"`` may leave ``question`` empty -- or
-omit the column entirely on wer-only files (the OCR exception in
-STRUCTURE.md section 5B): the loader then injects ``DEFAULT_OCR_PROMPT`` so
-callers always receive a ready-to-use prompt. Non-OCR rows must carry an
-image-specific question and are validated.
+Vision rows behave similarly (STRUCTURE.md section 5B): an empty
+``question`` on a ``wer`` row injects ``DEFAULT_OCR_PROMPT``; question-less
+``classification`` rows receive ``GENERIC_VISION_CLASSIFY_PREFIX`` plus the
+pillar's distinct ground_truth labels (a "look and choose" option set);
+other comprehension rows receive ``GENERIC_VISION_PROMPT`` ("look and
+answer") -- so pillar CSVs never need a question column just to satisfy
+the loader.
 
 Audio rows behave the same way (STRUCTURE.md section 5C): an empty
 ``question`` on a ``wer`` row injects ``DEFAULT_ASR_PROMPT``; question-less
@@ -31,6 +33,13 @@ from pathlib import Path
 # The standard transcription prompt injected for OCR vision rows whose
 # question cell is empty. Kept byte-identical with STRUCTURE.md section 5B.
 DEFAULT_OCR_PROMPT = "මේකේ තියෙන දේ අකුරෙන් ලියන්න."
+
+# Generic prompts injected for vision rows that carry no question of their
+# own (byte-identical with STRUCTURE.md section 5B): comprehension rows get
+# "look and answer" wording; classification rows get "look and choose" plus
+# the pillar's distinct ground_truth labels as the option set to choose from.
+GENERIC_VISION_PROMPT = "මේක බලලා උත්තර දෙන්න."
+GENERIC_VISION_CLASSIFY_PREFIX = "මේක බලලා තෝරන්න: "
 
 # Default prompt for audio rows without a question: plain transcription.
 DEFAULT_ASR_PROMPT = "මේකේ ඇහෙන දේ අකුරෙන් ලියන්න."
@@ -171,28 +180,50 @@ def load_vision(
     """Load ``vision/vision.csv`` for one pillar.
 
     Empty (or column-omitted) questions on ``wer`` (OCR) rows receive
-    ``DEFAULT_OCR_PROMPT`` (STRUCTURE.md section 5B). With ``strict=True`` every referenced image
-    must exist on disk; set ``strict=False`` to browse in-progress pillars
-    whose media has not been committed yet.
+    ``DEFAULT_OCR_PROMPT``; question-less ``classification`` rows receive
+    ``GENERIC_VISION_CLASSIFY_PREFIX`` plus the pillar's distinct labels,
+    and other comprehension rows receive ``GENERIC_VISION_PROMPT``
+    (STRUCTURE.md section 5B).
+
+    With ``strict=True`` every referenced image must exist on disk; set
+    ``strict=False`` to browse in-progress pillars whose media has not been
+    committed yet.
     """
     base = _pillar_dir(pillar, data_root)
     path = base / "vision" / "vision.csv"
+    rows = list(_read_csv(path))
+    # Distinct classification labels of this pillar (file order): they turn
+    # the generic "look and choose" prompt into a real option set.
+    labels: list[str] = []
+    for row in rows:
+        if (row.get("eval_type") or "").strip() == "classification":
+            gt = (row.get("ground_truth") or "").strip()
+            if gt and gt not in labels:
+                labels.append(gt)
+    choose_prompt = (
+        GENERIC_VISION_CLASSIFY_PREFIX + ", ".join(labels)
+        if labels
+        else GENERIC_VISION_PROMPT
+    )
     items: list[VisionItem] = []
-    for row in _read_csv(path):
+    for row in rows:
         where = f"{pillar}/vision.csv[{row.get('id', '?')}]"
         _require_columns(
             row, {"id", "image_file", "ground_truth", "eval_type"}, where=where
         )
         eval_type = _check_eval_type(row["eval_type"], where=where)
-        # question is optional: wer-only files may omit the column entirely.
+        # Optional question column (STRUCTURE.md section 5B): empty on OCR
+        # rows -> DEFAULT_OCR_PROMPT; classification rows ->
+        # GENERIC_VISION_CLASSIFY_PREFIX + the pillar's labels; other
+        # comprehension rows -> GENERIC_VISION_PROMPT.
         question = row.get("question", "").strip()
         if not question:
-            if eval_type != "wer":
-                raise ValueError(
-                    f"{where}: empty question is only allowed for eval_type 'wer' "
-                    "(OCR exception, STRUCTURE.md section 5B)"
-                )
-            question = DEFAULT_OCR_PROMPT
+            if eval_type == "wer":
+                question = DEFAULT_OCR_PROMPT
+            elif eval_type == "classification":
+                question = choose_prompt
+            else:
+                question = GENERIC_VISION_PROMPT
         image_path = base / "vision" / "images" / row["image_file"]
         if strict and not image_path.is_file():
             raise FileNotFoundError(f"{where}: missing image file {image_path}")
@@ -296,6 +327,8 @@ __all__ = [
     "DEFAULT_OCR_PROMPT",
     "GENERIC_AUDIO_PROMPT",
     "GENERIC_CLASSIFY_PREFIX",
+    "GENERIC_VISION_PROMPT",
+    "GENERIC_VISION_CLASSIFY_PREFIX",
     "AudioItem",
     "PillarData",
     "TextItem",

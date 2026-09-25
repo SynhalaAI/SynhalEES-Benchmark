@@ -45,7 +45,11 @@ Rules:
 - Assign `eval_type` using the decision tree in `STRUCTURE.md` section 3.
 - **🚫 Do NOT spam redundant prompt columns into dataset CSVs:**
   - When adding new pillars or rows, rely on the benchmark loaders (`synhalees.data`) to inject default prompts automatically.
-  - **Vision (`wer` / OCR):** The `question` column can be omitted or left empty. The loader automatically injects `DEFAULT_OCR_PROMPT` (`"මේකේ තියෙන දේ අකුරෙන් ලියන්න."`). Only include `question` if the visual task requires a custom question.
+  - **Vision (`vision.csv`):** The `question` column is completely optional! The minimal schema is `id,image_file,ground_truth,eval_type`. The loader handles prompt injection dynamically:
+    - `wer` -> `DEFAULT_OCR_PROMPT` (`"මේකේ තියෙන දේ අකුරෙන් ලියන්න."`)
+    - `classification` -> `GENERIC_VISION_CLASSIFY_PREFIX` (`"මේක බලලා තෝරන්න: "`) + distinct candidate options computed dynamically from the pillar's `ground_truth` values.
+    - `exact_match` / `llm_judge` -> `GENERIC_VISION_PROMPT` (`"මේක බලලා උත්තර දෙන්න."`)
+    - Only include `question` if the visual task requires a custom question.
   - **Audio (`audio.csv`):** The `question` column is completely optional! The minimal schema is `id,audio_file,ground_truth,eval_type`. The loader handles prompt injection dynamically:
     - `wer` -> `DEFAULT_ASR_PROMPT` (`"මේකේ ඇහෙන දේ අකුරෙන් ලියන්න."`)
     - `classification` -> `GENERIC_CLASSIFY_PREFIX` (`"මේකේ අහලා තෝරන්න: "`) + distinct candidate options computed dynamically from the pillar's `ground_truth` values.
