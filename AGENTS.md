@@ -103,12 +103,20 @@ in `STRUCTURE.md` -- no scratch `.txt` / `.log` / `.csv` dumps, ever.
 
 | output | folder | produced by |
 | --- | --- | --- |
-| local benchmark runs | `runs/<model-slug>/` | `python run_benchmark.py ...` (defaults) |
-| cross-run scorecard + matrix | `runs/all_submissions.csv` | `python tools/compare_runs.py` |
-| Kaggle Benchmarks artifacts | `kaggle-results/` | `kaggle b t download <task-slug> -o kaggle-results` |
+| local benchmark runs | `runs/<model-slug>/` | `synhalees run ...` (defaults) |
+| cross-run scorecard + matrix | `runs/all_submissions.csv` | `synhalees compare` |
+| Kaggle task files | `kaggle/tasks/` (tracked) | `synhalees kaggle gen` |
+| Kaggle Benchmarks artifacts | `kaggle-results/` | `synhalees kaggle pull <task>` (the `-o` is forced) |
 
 - **`kaggle b t download` writes into the current directory when `-o` is
-  omitted -- always pass `-o kaggle-results`.**
+  omitted -- always pass `-o kaggle-results`** (`synhalees kaggle pull <task>`
+  forces it for you).
+- **Never pass a bare flag to a tool whose output path is positional.**
+  `kaggle/generate_tasks.py` reads a bare argument as the output directory, so
+  a mistyped flag once created a junk `--dry-run/` folder at the repo root
+  which then got committed. Use `synhalees kaggle gen --dry-run` (preview) or
+  `--out <dir>`; unknown options are rejected now. After a suspicious run,
+  check the root with `Get-ChildItem -Force` and `git status --short`.
 - The only output that leaves these folders is a scorecard copy at
   `submissions/<model-slug>.csv` (committed, see the rule above).
 - Remove ad-hoc test outputs when finishing a task; `git status --short` must

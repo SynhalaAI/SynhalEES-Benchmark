@@ -156,8 +156,13 @@ def cmd_publish(a):
     return code
 
 
-def cmd_kaggle_gen(_a):
-    return py_run(ROOT / "kaggle" / "generate_tasks.py")
+def cmd_kaggle_gen(a):
+    args = []
+    if getattr(a, "dry_run", False):
+        args.append("--dry-run")
+    if getattr(a, "out", None):
+        args += ["--out", a.out]
+    return py_run(ROOT / "kaggle" / "generate_tasks.py", args)
 
 
 def cmd_kaggle_push(a):
@@ -289,6 +294,9 @@ def build_parser():
     k = sub.add_parser("kaggle", help="Kaggle Benchmarks: gen push run status logs publish pull import")
     ks = k.add_subparsers(dest="kcmd")
     p = ks.add_parser("gen", help="regenerate the 17 task files under kaggle/tasks/")
+    p.add_argument("--dry-run", action="store_true",
+                   help="print what would be written, write nothing")
+    p.add_argument("--out", default=None, help="output directory (default: kaggle/tasks/)")
     p.set_defaults(func=cmd_kaggle_gen)
     p = ks.add_parser("push", help="upload task file(s) (default: all 17)")
     p.add_argument("task", nargs="?", default="all", help="pillar/task slug, .py path, or all")

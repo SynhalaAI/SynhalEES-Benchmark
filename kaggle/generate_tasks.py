@@ -8,10 +8,17 @@ Outputs to ``kaggle/tasks/``:
 
 Regenerate whenever pillars change::
 
-    python kaggle/generate_tasks.py
+    synhalees kaggle gen              # -> kaggle/tasks/ (17 files)
+    synhalees kaggle gen --dry-run    # preview only, writes nothing
+    synhalees kaggle gen --out <dir>  # explicit output directory
+
+The same script is runnable directly (``python kaggle/generate_tasks.py``).
+A bare positional path is read as the output directory, so use ``--out`` for
+an explicit directory and always ``--dry-run`` to preview first.
 
 Push everything (after ``kaggle b init -y``)::
 
+    synhalees kaggle push             # all 17 task files
     Get-ChildItem kaggle/tasks/*.py | % { kaggle b t push $_.FullName }
 """
 
@@ -175,37 +182,74 @@ def _render(pillar, modality, task_name, title, desc) -> str:
     )
 
 
+def parse_args(argv):
+    """``argv[1:]`` -> ``(out_dir, dry_run)``.
+
+    A bare path is still read as the output directory (back-compat). Options
+    must be explicit: ``--out DIR`` / ``--dry-run``. Unknown options are
+    rejected because a stray flag used to be taken as the directory name and
+    silently created a junk folder such as ``--dry-run/`` at the repo root
+    (see AGENTS.md "Output Hygiene").
+    """
+    out_dir, dry = OUT_DIR, False
+    i = 0
+    while i < len(argv):
+        arg = argv[i]
+        if arg in ("--dry-run", "-n"):
+            dry = True
+        elif arg == "--out":
+            i += 1
+            if i >= len(argv):
+                raise SystemExit("--out needs a directory, e.g. --out kaggle/tasks")
+            out_dir = Path(argv[i])
+        elif arg.startswith("-"):
+            raise SystemExit(
+                f"unknown option {arg!r}: pass a bare path or --out <dir> to "
+                "choose the output directory, and --dry-run to preview"
+            )
+        else:
+            out_dir = Path(arg)
+        i += 1
+    return out_dir, dry
+
+
 def main() -> None:
     import sys
 
-    out_dir = Path(sys.argv[1]) if len(sys.argv) > 1 else OUT_DIR
-    out_dir.mkdir(parents=True, exist_ok=True)
+    out_dir, dry = parse_args(sys.argv[1:])
     written = []
+
+    def emit(name, text):
+        """Stage one task file (written only when not a dry run)."""
+        path = out_dir / name
+        written.append(path)
+        if not dry:
+            path.write_text(text, encoding="utf-8")
+
+    if not dry:
+        out_dir.mkdir(parents=True, exist_ok=True)
 
     for slug in syn_data.list_pillars():
         title = slug.partition("_")[2].replace("_", " ").title()
-        path = out_dir / f"{slug}.py"
-        path.write_text(
+        emit(
+            f"{slug}.py",
             _render(
                 slug, "text", f"synhalees_{slug}", title,
                 f"SynhalEES pillar {slug}: native Sinhala text accuracy.",
             ),
-            encoding="utf-8",
         )
-        written.append(path)
 
     for modality in ("vision", "audio"):
-        path = out_dir / f"{modality}.py"
-        path.write_text(
+        emit(
+            f"{modality}.py",
             _render(
                 None, modality, f"synhalees_{modality}", f"All Pillars ({modality})",
                 f"SynhalEES {modality} modality across all 15 pillars.",
             ),
-            encoding="utf-8",
         )
-        written.append(path)
 
-    print(f"Generated {len(written)} task files in {out_dir}")
+    verb = "Would write" if dry else "Generated"
+    print(f"{verb} {len(written)} task files in {out_dir}" + (" (dry run)" if dry else ""))
 
 
 if __name__ == "__main__":
