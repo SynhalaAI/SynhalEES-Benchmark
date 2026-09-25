@@ -87,13 +87,18 @@ def _rows():
                                  "ground_truth": it.ground_truth,
                                  "eval_type": it.eval_type,
                                  "media_path": str(media)})
+    choices = sorted({row["ground_truth"] for row in rows if row["eval_type"] == "classification"})
+    for row in rows:
+        row["choices"] = " / ".join(choices)
     return rows
 
 
 @kbench.task(name="synhalees_04_kavi_sindu_item", store_task=False)
 def synhalees_item(llm, id: str, prompt: str, ground_truth: str,
-                   eval_type: str, media_path: str = "") -> dict:
+                   eval_type: str, media_path: str = "", choices: str = "") -> dict:
     '''Score one item (sub-task; not stored top-level).'''
+    if eval_type == "classification" and choices:
+        prompt = "Choose exactly one label from [" + choices + "]. Reply with only the label. " + prompt
     if MODALITY == "vision":
         from kaggle_benchmarks.content_types import images
         response = llm.prompt(prompt, image=images.from_path(media_path))

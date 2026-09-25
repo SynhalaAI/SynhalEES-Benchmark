@@ -40,6 +40,7 @@ Rules:
 ## 🧾 Dataset & `eval_type` Conventions (No Column/Prompt Spam)
 
 - Data lives **Pillar-First** (never a single mega-CSV).
+- Kaggle classification prompts include each pillar's distinct, deduplicated ground_truth labels; no duplicate choices are emitted. The generated task adds a single-label instruction without changing dataset CSVs.
 - Each pillar folder holds `text.csv`, `vision/`, and/or `audio/` per the schemas in `STRUCTURE.md`.
 - `eval_type` must be one of exactly: `exact_match`, `llm_judge`, `wer`, `classification`.
 - Assign `eval_type` using the decision tree in `STRUCTURE.md` section 3.
