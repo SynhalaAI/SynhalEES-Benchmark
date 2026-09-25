@@ -16,9 +16,10 @@ from synhalees.evaluators import score_response
 
 # pip installs only the synhalees package; benchmark_data/ lives at the repo
 # root and does NOT ship inside site-packages, so list_pillars() cannot find
-# it. Bootstrap the CSVs from the public repo into /tmp and override data_dir.
+# it. Bootstrap data from the public repo into /tmp and override data_dir.
 import io
 import urllib.request
+import zipfile
 from pathlib import Path
 
 REPO_RAW = "https://raw.githubusercontent.com/SynhalaAI/SynhalEES-Benchmark/main"
@@ -41,21 +42,42 @@ _PILLARS = (
 )
 
 DATA_ROOT = Path("/tmp/synhalees_benchmark_data")
-for _p in _PILLARS:
-    _f = DATA_ROOT / _p / "text.csv"
-    if not _f.is_file():
-        _f.parent.mkdir(parents=True, exist_ok=True)
-        _f.write_text(
-            urllib.request.urlopen(
-                f"{REPO_RAW}/benchmark_data/{_p}/text.csv", timeout=60
-            ).read().decode("utf-8"),
-            encoding="utf-8",
-        )
-
-syn_data._DEFAULT_DATA_DIR = DATA_ROOT
-
 PILLAR = '03_classical_literature'  # None -> all pillars
 MODALITY = "text"
+
+if MODALITY in ("vision", "audio"):
+    # Vision and audio tasks need media files (.jpg, .png, .mp3, etc.)
+    # Download and extract benchmark_data/ from the repo archive if missing.
+    _marker = DATA_ROOT / f".synhalees_{MODALITY}_ready"
+    if not _marker.is_file():
+        DATA_ROOT.mkdir(parents=True, exist_ok=True)
+        _req = urllib.request.Request(
+            "https://github.com/SynhalaAI/SynhalEES-Benchmark/archive/refs/heads/main.zip",
+            headers={"User-Agent": "SynhalEES-Kaggle-Benchmark"},
+        )
+        _zip_data = urllib.request.urlopen(_req, timeout=120).read()
+        _zf = zipfile.ZipFile(io.BytesIO(_zip_data))
+        _prefix = "SynhalEES-Benchmark-main/benchmark_data/"
+        for _name in _zf.namelist():
+            if _name.startswith(_prefix) and not _name.endswith("/"):
+                _rel = _name[len(_prefix):]
+                _target = DATA_ROOT / _rel
+                _target.parent.mkdir(parents=True, exist_ok=True)
+                _target.write_bytes(_zf.read(_name))
+        _marker.write_text("ok", encoding="utf-8")
+else:
+    for _p in _PILLARS:
+        _f = DATA_ROOT / _p / "text.csv"
+        if not _f.is_file():
+            _f.parent.mkdir(parents=True, exist_ok=True)
+            _f.write_text(
+                urllib.request.urlopen(
+                    f"{REPO_RAW}/benchmark_data/{_p}/text.csv", timeout=60
+                ).read().decode("utf-8"),
+                encoding="utf-8",
+            )
+
+syn_data._DEFAULT_DATA_DIR = DATA_ROOT
 
 _JUDGE_CRITERIA = (
     "The response conveys the same meaning as the reference answer: "
