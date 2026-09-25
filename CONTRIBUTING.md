@@ -29,8 +29,15 @@ All contributions — data, code, or docs — are welcome.
 - Add rows to the pillar's CSVs following the exact schemas in
   [`STRUCTURE.md`](STRUCTURE.md) section 5:
   - `text.csv` → `id,prompt,ground_truth,eval_type`
-  - `vision/vision.csv` → `id,image_file,question,ground_truth,eval_type`
-  - `audio/audio.csv` → `id,audio_file,ground_truth,eval_type` (optional `question`; the loader injects generic prompts)
+  - `vision/vision.csv` → `id,image_file,question,ground_truth,eval_type` (for `wer`/OCR rows, `question` can be omitted or empty; the loader auto-injects `"මේකේ තියෙන දේ අකුරෙන් ලියන්න."`)
+  - `audio/audio.csv` → `id,audio_file,ground_truth,eval_type` (minimal schema! `question` column is completely optional)
+- **🚫 Do NOT spam repetitive prompt columns in CSVs:**
+  - When contributing new pillars or media rows, avoid repeating boilerplate questions in CSV files.
+  - Rely on the loader script (`synhalees.data`) to inject generic prompts automatically:
+    - Audio `wer` rows receive `"මේකේ ඇහෙන දේ අකුරෙන් ලියන්න."`
+    - Audio `classification` rows dynamically receive `"මේක අහලා තෝරන්න: "` + unique candidate options extracted from the pillar's `ground_truth` values.
+    - Audio comprehension rows (`exact_match`, `llm_judge`) receive `"මේක අහලා උත්තර දෙන්න."`
+  - Only provide a custom `question` if the specific row genuinely requires a distinct prompt.
 - `eval_type` must be one of exactly: `exact_match`, `llm_judge`, `wer`, `classification`
   (decision tree: [`STRUCTURE.md`](STRUCTURE.md) section 3).
 - Keep Sinhala text in **Unicode UTF-8** — preserve diacritics and ZWJ/ZWNJ exactly.
@@ -82,6 +89,6 @@ Before opening a PR, check:
 
 - [ ] `STRUCTURE.md` section 1 tree updated if the folder structure changed
 - [ ] Pillar names aligned across `README.md`, `STRUCTURE.md`, and folder slugs
-- [ ] CSVs match `STRUCTURE.md` section 5 schemas; `eval_type` from the allowed set of 4
+- [ ] CSVs match `STRUCTURE.md` section 5 schemas (no redundant prompt column spam; loader scripts handle generic & classification prompts); `eval_type` from the allowed set of 4
 - [ ] Sinhala text is valid UTF-8 with diacritics preserved
 - [ ] `submissions/*.csv` changes regenerate `docs/assets/data/*` (`python tools/build_leaderboard.py --check` passes)

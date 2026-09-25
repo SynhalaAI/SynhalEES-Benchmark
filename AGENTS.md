@@ -37,12 +37,20 @@ Rules:
 - Display titles use the format from `README.md` after a long dash `— `.
 - If you rename a pillar anywhere, rename it in **all three places** in the same commit.
 
-## 🧾 Dataset & `eval_type` Conventions
+## 🧾 Dataset & `eval_type` Conventions (No Column/Prompt Spam)
 
 - Data lives **Pillar-First** (never a single mega-CSV).
 - Each pillar folder holds `text.csv`, `vision/`, and/or `audio/` per the schemas in `STRUCTURE.md`.
 - `eval_type` must be one of exactly: `exact_match`, `llm_judge`, `wer`, `classification`.
 - Assign `eval_type` using the decision tree in `STRUCTURE.md` section 3.
+- **🚫 Do NOT spam redundant prompt columns into dataset CSVs:**
+  - When adding new pillars or rows, rely on the benchmark loaders (`synhalees.data`) to inject default prompts automatically.
+  - **Vision (`wer` / OCR):** The `question` column can be omitted or left empty. The loader automatically injects `DEFAULT_OCR_PROMPT` (`"මේකේ තියෙන දේ අකුරෙන් ලියන්න."`). Only include `question` if the visual task requires a custom question.
+  - **Audio (`audio.csv`):** The `question` column is completely optional! The minimal schema is `id,audio_file,ground_truth,eval_type`. The loader handles prompt injection dynamically:
+    - `wer` -> `DEFAULT_ASR_PROMPT` (`"මේකේ ඇහෙන දේ අකුරෙන් ලියන්න."`)
+    - `classification` -> `GENERIC_CLASSIFY_PREFIX` (`"මේකේ අහලා තෝරන්න: "`) + distinct candidate options computed dynamically from the pillar's `ground_truth` values.
+    - `exact_match` / `llm_judge` -> `GENERIC_AUDIO_PROMPT` (`"මේක අහලා උත්තර දෙන්න."`)
+  - Never copy-paste boilerplate questions across entire audio/vision CSV files. Let the loader script manage generic prompts and option candidates cleanly.
 
 ## 🖼️ Provider Logos & `docs/assets/logo-data.js`
 
@@ -126,7 +134,7 @@ in `STRUCTURE.md` -- no scratch `.txt` / `.log` / `.csv` dumps, ever.
 
 - [ ] Modified/added folders are reflected in `STRUCTURE.md` section 1 tree
 - [ ] Pillar names aligned across README.md, STRUCTURE.md, and folder slugs
-- [ ] CSVs (if added) match the schemas in `STRUCTURE.md` section 5
+- [ ] CSVs (if added) match the schemas in `STRUCTURE.md` section 5 (no redundant prompt column spam; generic/classification prompts handled by loader)
 - [ ] `eval_type` values are from the allowed set of 4
 - [ ] Logo/icon changes regenerate `docs/assets/logo-data.js` (`python tools/build_logo_data.py --check` passes)
 - [ ] `submissions/*.csv` changes regenerate `docs/assets/data/*` (`python tools/build_leaderboard.py --check` passes)
