@@ -100,6 +100,11 @@ in `STRUCTURE.md` -- no scratch `.txt` / `.log` / `.csv` dumps, ever.
   `submissions/<model-slug>.csv` (committed, see the rule above).
 - Remove ad-hoc test outputs when finishing a task; `git status --short` must
   show no unexpected entries at the root.
+- **No helper/generator scripts are saved into the project.** Run one-off edits
+  and generation as inline commands (`py -3.13 -c "..."` or PowerShell); if a
+  script file is genuinely unavoidable, write it outside the repo
+  (`$env:TEMP`) and delete it afterwards -- never leave a scratch `.py` at the
+  root or in a tracked folder.
 
 ---
 
