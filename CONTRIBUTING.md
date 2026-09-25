@@ -43,6 +43,23 @@ All contributions — data, code, or docs — are welcome.
 - `run_benchmark.py` → CLI improvements.
 - New code must be importable and pass `python -m py_compile`.
 
+### 4. Publishing benchmark results
+
+The leaderboard in `docs/` is built from `submissions/` - one
+`<model-slug>.csv` per model (schema `model,provider,date,pillar,modality,score`,
+`score` = 0-100). After a run:
+
+```bash
+python tools/compare_runs.py                 # sanity-check every run under runs/
+# copy runs/<model-slug>/submission.csv -> submissions/<model-slug>.csv
+python tools/build_leaderboard.py            # regenerate docs/assets/data/*
+python tools/build_leaderboard.py --check    # must pass (CI runs this)
+```
+
+Only **publishable** runs belong in `submissions/`: no results produced with a
+personal or paid API key that the project cannot re-verify or publish. Never
+hand-edit `docs/assets/data/*` - it is generated. See
+[`submissions/README.md`](submissions/README.md) for the full rules.
 ### 3. Issues, ideas & questions
 
 - Open a [GitHub Issue](https://github.com/SynhalaAI/SynhalEES-Benchmark/issues)
@@ -58,3 +75,4 @@ Before opening a PR, check:
 - [ ] Pillar names aligned across `README.md`, `STRUCTURE.md`, and folder slugs
 - [ ] CSVs match `STRUCTURE.md` section 5 schemas; `eval_type` from the allowed set of 4
 - [ ] Sinhala text is valid UTF-8 with diacritics preserved
+- [ ] `submissions/*.csv` changes regenerate `docs/assets/data/*` (`python tools/build_leaderboard.py --check` passes)

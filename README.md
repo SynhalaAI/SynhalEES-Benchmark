@@ -137,15 +137,28 @@ GitHub Pages-ready site (no build step). Enable it via
 Update the data after running models:
 
 ```bash
-# 1. compare every run under runs/ and merge them into one CSV
+# 1. compare every run under runs/ and print a pillar x model accuracy matrix
 python tools/compare_runs.py
 
-# 2. build the leaderboard from that CSV (model,provider,date,pillar,modality,score)
-python tools/build_leaderboard.py runs/all_submissions.csv
+# 2. publish each model's scorecard as submissions/<model-slug>.csv
+#    (one file per model -- see submissions/README.md)
 
-# or regenerate clearly-marked placeholder data
+# 3. regenerate the site data from submissions/ (no arguments needed)
+python tools/build_leaderboard.py
+
+# verify the committed data is in sync -- this is what CI runs
+python tools/build_leaderboard.py --check
+
+# or preview the site with clearly-marked placeholder data (never commit this)
 python tools/build_leaderboard.py --demo
 ```
+
+`submissions/` is the committed source of truth for the leaderboard: one
+`<model-slug>.csv` per model with the schema
+`model,provider,date,pillar,modality,score`. Only **publishable** runs belong
+there. An empty folder publishes an empty leaderboard (`models: []`) -- the site
+never shows fabricated rows -- and CI fails whenever `docs/assets/data/*` drifts
+from `submissions/`.
 
 `tools/compare_runs.py` prints a per-model summary (overall accuracy, item
 count, API errors) plus a pillar x model accuracy matrix, so you can see which

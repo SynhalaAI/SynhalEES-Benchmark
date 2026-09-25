@@ -64,6 +64,26 @@ pages. **This file is generated - never edit it by hand.**
 - Pillow is optional (it only downscales raster-wrapped SVGs);
   `pip install pillow` keeps the generated file small.
 
+## 📊 Leaderboard Data Is Generated Too (`docs/assets/data/`)
+
+`docs/assets/data/{pillars,leaderboard}.{json,js}` are **generated** by
+`tools/build_leaderboard.py` from the committed `submissions/*.csv`
+(one CSV per model - see `submissions/README.md`). **Never hand-edit them.**
+
+- **Publishing a run:** copy `runs/<model-slug>/submission.csv` to
+  `submissions/<model-slug>.csv`, then run `python tools/build_leaderboard.py`
+  and commit the CSV **and** the regenerated `docs/assets/data/*` together.
+- **Only publishable runs** go in `submissions/`: no numbers produced with a
+  personal or paid API key that the project cannot re-verify or publish.
+- **Staleness detection:** CI (`.github/workflows/leaderboard.yml`) runs
+  `python tools/build_leaderboard.py --check` on every push/PR and **fails**
+  when the committed data no longer matches `submissions/`. Run the check
+  locally before committing.
+- **No CSVs = empty leaderboard** (`models: []`). `--demo` output is a local
+  preview only and must never be committed.
+
+---
+
 ## ✍️ Sinhala Content
 
 - Keep Sinhala text **Unicode (UTF-8)** at all times — `.gitattributes`/`.editorconfig`
@@ -84,4 +104,5 @@ pages. **This file is generated - never edit it by hand.**
 - [ ] CSVs (if added) match the schemas in `STRUCTURE.md` section 5
 - [ ] `eval_type` values are from the allowed set of 4
 - [ ] Logo/icon changes regenerate `docs/assets/logo-data.js` (`python tools/build_logo_data.py --check` passes)
+- [ ] `submissions/*.csv` changes regenerate `docs/assets/data/*` (`python tools/build_leaderboard.py --check` passes)
 - [ ] Sinhala text is valid UTF-8 with diacritics preserved

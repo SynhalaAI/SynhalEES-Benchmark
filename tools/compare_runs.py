@@ -148,7 +148,9 @@ def main() -> int:
     ap.add_argument("--include-broken", action="store_true",
                     help="also publish runs where every item errored")
     ap.add_argument("--out", type=Path, default=None,
-                    help="Combined CSV (default: <runs-dir>/all_submissions.csv).")
+                    help="Combined local CSV for inspection "
+                         "(default: <runs-dir>/all_submissions.csv; "
+                         "publish via submissions/, not this file).")
     args = ap.parse_args()
 
     if not args.runs_dir.is_dir():
@@ -180,7 +182,9 @@ def main() -> int:
         for run in runs:
             writer.writerows(submission_rows(run))
     print(f"\nwrote {out} ({len(runs)} model(s))")
-    print(f"next: python tools/build_leaderboard.py {out}")
+    print("next: copy the scorecards you want to publish to")
+    print("      submissions/<model-slug>.csv     # one file per model (see submissions/README.md)")
+    print("      python tools/build_leaderboard.py && python tools/build_leaderboard.py --check")
     return 0
 
 

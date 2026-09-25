@@ -1,18 +1,31 @@
 ﻿#!/usr/bin/env python3
 """Build the static leaderboard data (docs/assets/data/leaderboard.json).
 
-Two modes:
+Sources, in priority order:
 
-  1. Real data  - point it at one or more submission CSV files produced by
-     results.save_submission("submission.csv") and it aggregates scores
-     into the JSON consumed by the static site:
+  1. Explicit submission CSVs - files produced by results.save_submission()
+     (schema: model,provider,date,pillar,modality,score):
 
          python tools/build_leaderboard.py submissions/*.csv
 
-  2. Demo data  - generate clearly-marked placeholder scores so the site is
-     viewable before any real benchmark run exists:
+  2. ``submissions/*.csv`` - when no path is given the committed
+     submissions/ folder is aggregated. An empty folder is valid: it writes
+     an EMPTY leaderboard (models: []), so a fresh clone never ships stale
+     numbers.
+
+         python tools/build_leaderboard.py
+
+  3. Demo data - clearly-marked placeholder scores so the site is viewable
+     before any real benchmark run exists:
 
          python tools/build_leaderboard.py --demo
+
+``--check`` verifies the committed docs/assets/data files already match what
+those sources generate (newline-insensitive, used by CI). It never writes
+and exits 1 on drift.
+
+All output is deterministic: ``updated`` is the newest ``date`` found in the
+CSVs (never "today"), so CI stays green on later days.
 
 Stdlib only, UTF-8 throughout (Sinhala pillar titles stay intact).
 """
@@ -28,6 +41,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "docs" / "assets" / "data" / "leaderboard.json"
+# Committed, one CSV per model: the published source of truth for the site.
+SUBMISSIONS_DIR = ROOT / "submissions"
 PILLARS = [
     ("01_buddhist_culture", "Buddhist Culture & Rituals", "බෞද්ධ සංස්කෘතිය සහ සිරිත්", "🛕"),
     ("02_pali_gatha", "Pali Language & Gatha", "පාලි භාෂාව සහ ගාථා", "📜"),
@@ -156,6 +171,19 @@ DEMO_MODELS = [
     ("Llama 3.1 8B (local)", "Ollama / Meta", 0.38, ("text",)),
 ]
 
+def serialize(varname: str, data) -> tuple[str, str]:
+    """Return the (json_text, js_text) pair exactly as it is committed."""
+    json_text = json.dumps(data, ensure_ascii=False, indent=2)
+    js_text = ("window." + varname + " = " + json.dumps(data, ensure_ascii=False)
+               + ";" + chr(10))
+    return json_text, js_text
+
+
+def _normalize(text: str) -> str:
+    """Compare across CRLF/LF so Linux CI matches Windows-written files."""
+    return text.replace("\r\n", "\n").strip()
+
+
 def write_json_and_js(path: Path, varname: str, data) -> None:
     """Write data as JSON and as a plain <script> file setting a global.
 
@@ -163,20 +191,43 @@ def write_json_and_js(path: Path, varname: str, data) -> None:
     fetch() is blocked by CORS; app.js prefers the global and falls
     back to fetching the JSON over HTTP (GitHub Pages).
     """
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    json_text, js_text = serialize(varname, data)
+    path.write_text(json_text, encoding="utf-8")
     js = path.with_suffix(".js")
-    js.write_text("window." + varname + " = " + json.dumps(data, ensure_ascii=False) + ";" + chr(10),
-                  encoding="utf-8")
+    js.write_text(js_text, encoding="utf-8")
     print(f"wrote {path}")
     print(f"wrote {js}")
 
 
-def write_pillars() -> None:
-    data = [
+def check_json_and_js(path: Path, varname: str, data) -> bool:
+    """True when the committed JSON + JS pair already matches *data*.
+
+    Never writes. Reports every stale or missing file so CI output is
+    actionable.
+    """
+    json_text, js_text = serialize(varname, data)
+    ok = True
+    for target, expected in ((path, json_text), (path.with_suffix(".js"), js_text)):
+        if not target.is_file():
+            print(f"[!!] missing generated file: {target}")
+            ok = False
+            continue
+        if _normalize(target.read_text(encoding="utf-8")) != _normalize(expected):
+            print(f"[!!] stale generated file: {target}")
+            ok = False
+    return ok
+
+
+def pillars_data() -> list:
+    """The 15 pillar metadata rows shown by the site."""
+    return [
         {"slug": slug, "title_en": en, "title_si": si, "icon": icon}
         for slug, en, si, icon in PILLARS
     ]
-    write_json_and_js(OUT.parent / "pillars.json", "SYNHALEES_PILLARS", data)
+
+
+def write_pillars() -> None:
+    write_json_and_js(OUT.parent / "pillars.json", "SYNHALEES_PILLARS", pillars_data())
 
 
 def demo() -> dict:
@@ -207,13 +258,24 @@ def demo() -> dict:
     models.sort(key=lambda m: m["overall"], reverse=True)
     return {"demo": True, "updated": str(date.today()), "models": models}
 
+def empty_payload() -> dict:
+    """The published state when no submission CSV exists yet.
+
+    An empty leaderboard is honest; fabricated numbers never are.
+    """
+    return {"demo": False, "updated": "", "models": []}
+
+
 def build_real(csv_paths: list[Path]) -> dict:
     """Aggregate submission CSVs.
 
     Expected CSV columns (superset tolerated):
       model, provider, date, pillar, modality, score
     where ``score`` is 0-100 for one pillar/modality cell of one model.
+    No CSVs -> empty_payload().
     """
+    if not csv_paths:
+        return empty_payload()
     acc: dict[str, dict] = {}
     for path in csv_paths:
         with path.open(newline="", encoding="utf-8-sig") as fh:
@@ -222,11 +284,14 @@ def build_real(csv_paths: list[Path]) -> dict:
                 entry = acc.setdefault(key, {
                     "name": pretty_model(key),
                     "provider": pretty_provider(row.get("provider", ""), key),
-                    "date": row.get("date", str(date.today())),
+                    "date": "",
                     "modalities": {"text": None, "vision": None, "audio": None},
                     "pillars": {},
                     "_mod": {"text": [], "vision": [], "audio": []},
+                    "_dates": [],
                 })
+                if row.get("date"):
+                    entry["_dates"].append(row["date"])
                 score = float(row["score"])
                 pillar, modality = row["pillar"], row.get("modality", "text")
                 entry["pillars"].setdefault(pillar, []).append(score)
@@ -241,27 +306,55 @@ def build_real(csv_paths: list[Path]) -> dict:
                 entry["modalities"][m] = round(sum(vals) / len(vals), 1)
         present = [v for v in entry["modalities"].values() if v is not None]
         entry["overall"] = round(sum(present) / len(present), 1) if present else 0.0
+        dates = [d for d in entry.pop("_dates", []) if d]
+        entry["date"] = max(dates) if dates else entry["date"]
         del entry["_mod"]
         models.append(entry)
     models.sort(key=lambda m: m["overall"], reverse=True)
-    return {"demo": False, "updated": str(date.today()), "models": models}
+    # Deterministic stamp: the newest run date in the CSVs, never "today",
+    # so --check stays green on later days.
+    updated = max((m["date"] for m in models if m["date"]), default="")
+    return {"demo": False, "updated": updated, "models": models}
+
+
+def default_csvs() -> list[Path]:
+    """The committed per-model submission CSVs (sorted: deterministic)."""
+    if not SUBMISSIONS_DIR.is_dir():
+        return []
+    return sorted(SUBMISSIONS_DIR.glob("*.csv"))
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("csv", nargs="*", type=Path,
-                    help="submission CSVs with model,provider,date,pillar,modality,score")
+                    help="submission CSVs with model,provider,date,pillar,modality,score "
+                         "(default: submissions/*.csv)")
     ap.add_argument("--demo", action="store_true",
                     help="write deterministic DEMO placeholder data")
+    ap.add_argument("--check", action="store_true",
+                    help="verify the committed docs/assets/data files match the "
+                         "sources (no writes; exits 1 on drift)")
     args = ap.parse_args()
 
-    if not args.demo and not args.csv:
-        ap.error("provide submission CSVs, or use --demo")
+    if args.demo and args.check:
+        ap.error("--demo and --check cannot be combined")
+
+    payload = demo() if args.demo else build_real(args.csv or default_csvs())
+
+    if args.check:
+        ok = check_json_and_js(OUT, "SYNHALEES_LEADERBOARD", payload)
+        ok = check_json_and_js(OUT.parent / "pillars.json",
+                               "SYNHALEES_PILLARS", pillars_data()) and ok
+        if not ok:
+            print("\nRebuild with: python tools/build_leaderboard.py")
+            return 1
+        print(f"OK: docs/assets/data in sync "
+              f"({len(payload['models'])} models, demo={payload['demo']})")
+        return 0
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     write_pillars()
-    payload = demo() if args.demo else build_real(args.csv)
     write_json_and_js(OUT, "SYNHALEES_LEADERBOARD", payload)
     print(f"  -> {len(payload['models'])} models, demo={payload['demo']}")
     return 0
