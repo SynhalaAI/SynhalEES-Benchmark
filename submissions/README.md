@@ -24,6 +24,28 @@ gemini-3.5-flash,gemini,2026-09-24,05_sinhala_grammar,text,86.7
 | `modality` | `text`, `vision`, or `audio` |
 | `score` | 0-100 accuracy for that pillar + modality cell |
 
+## Kaggle Benchmarks runs
+
+Those results live on Kaggle, not in this repo. Pull the artifacts first:
+
+```bash
+kaggle b t download <task-slug> -o kaggle-results     # gitignored
+```
+
+Each run yields `result.json` (overall 0-1 score), `run.json` (aggregated score
+only), `atif.json` (trajectory) and `task.json` (definition) -- **no per-item or
+per-pillar breakdown**. Because a row here needs a pillar, map accordingly:
+
+- a task scoped to ONE pillar (e.g. `synhalees-05-sinhala-grammar`) becomes one
+  row: `pillar=05_sinhala_grammar`, `modality=text`, `score=<overall x 100>`;
+- multi-pillar tasks (vision/audio) only report one overall number, so their
+  score cannot be split per pillar on the site yet.
+
+Use `provider=kaggle` and the Kaggle model slug as `model` (e.g.
+`gemini-3.7-flash`); `tools/build_leaderboard.py` infers the brand (Google)
+from the model id.
+
+---
 ## Rules
 
 1. **One file per model.** Never merge two models into one CSV.
