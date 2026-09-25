@@ -9,7 +9,7 @@
     models: [],
     demo: false,
     updated: "",
-    mode: "overall",          // overall | text | vision | audio
+    mode: "text",             // text | vision | audio
     pillar: "",               // "" = overall, else pillar slug
     compare: [],              // rival model names in the comparison table (2-5)
     featured: "",             // pinned first column — always gets crown styling (UI-only emphasis)
@@ -108,17 +108,16 @@
 
   function scoreOf(m) {
     if (state.pillar) return m.pillars[state.pillar] != null ? m.pillars[state.pillar] : null;
-    if (state.mode === "overall") return m.overall;
     return m.modalities[state.mode];
   }
 
   function fmt(v) { return v == null ? "—" : v.toFixed(1); }
 
-  // usage telemetry follows the active filter (pillar -> overall bucket)
+  // usage telemetry follows the active filter (pillars -> text modality)
   function usageOf(m) {
     var u = m.usage || {};
-    var mode = state.pillar ? "overall" : state.mode;
-    return u[mode] || u.overall || null;
+    var mode = state.pillar ? "text" : state.mode;
+    return u[mode] || null;
   }
   function fmtCost(u) {
     if (!u || u.cost == null) return "\u2014";
@@ -323,8 +322,6 @@
 
   function compareRows() {
     var rows = [
-      { label: "Overall", sub: "Mean of available modalities", hero: true,
-        get: function (m) { return m.overall; } },
       { group: "Modalities" },
       { label: "Text", sub: "All 15 pillars, text-only",
         get: function (m) { return m.modalities.text; } },
@@ -1036,7 +1033,7 @@
   function openModal(m) {
     $("#modal-title").textContent = m.name;
     $("#modal-sub").innerHTML =
-      providerLogo(m.provider) + esc(m.provider) + " · Overall " + fmt(m.overall) +
+      providerLogo(m.provider) + esc(m.provider) +
       " · Text " + fmt(m.modalities.text) +
       " · Vision " + fmt(m.modalities.vision) +
       " · Audio " + fmt(m.modalities.audio);
@@ -1155,19 +1152,19 @@
     ctx.font = "400 12px " + FONT;
     ctx.fillText(fitText(m.provider, CONTENT_W - 100), chipX + 42, chipY + 32);
 
-    // modality score strip: Overall | Text | Vision | Audio
+    // modality score strip: Text | Vision | Audio
     var sy = y + HEAD_H;
     ctx.fillStyle = C.border;
     ctx.fillRect(x0, sy - 8, CONTENT_W, 1);
     var stats = [
-      ["Overall", m.overall], ["Text", m.modalities.text],
+      ["Text", m.modalities.text],
       ["Vision", m.modalities.vision], ["Audio", m.modalities.audio]
     ];
     var segW = CONTENT_W / stats.length;
     stats.forEach(function (st, i) {
       var midX = x0 + segW * i + segW / 2;
       ctx.textAlign = "center";
-      ctx.fillStyle = i === 0 ? C.red : C.text;
+      ctx.fillStyle = C.text;
       ctx.font = "800 15px " + FONT;
       ctx.fillText(st[1] == null ? "\u2014" : st[1].toFixed(1), midX, sy + 16);
       ctx.fillStyle = C.muted;

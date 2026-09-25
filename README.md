@@ -180,7 +180,7 @@ lines from the checkpoint (or rerun with `--fresh`) once the problem is fixed.
 
 Deployed automatically by the [GitHub Pages workflow](.github/workflows/pages.yml)
 on every push to `main` (**Settings → Pages → Source: GitHub Actions**).
-The site shows Overall / Text / Vision / Audio scores across all 15 pillars,
+The site shows Text / Vision / Audio scores across all 15 pillars,
 plus cost, token and latency telemetry per model.
 
 Update the data after running models:

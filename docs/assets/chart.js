@@ -6,7 +6,7 @@
   var MAX_BARS = 25;
 
   var st = {
-    metric: "overall",     // overall | text | vision | audio
+    metric: "text",         // text | vision | audio
     provider: "",          // "" = all organizations
     limit: MAX_BARS,       // bars shown when no custom selection
     selected: null         // null = top-N by metric; else map of picked names
@@ -116,10 +116,10 @@
   }
 
   function metricOf(m) {
-    return st.metric === "overall" ? m.overall : m.modalities[st.metric];
+    return m.modalities[st.metric];
   }
 
-  var METRIC_LABEL = { overall: "Overall", text: "Text", vision: "Vision", audio: "Audio" };
+  var METRIC_LABEL = { text: "Text", vision: "Vision", audio: "Audio" };
 
   var state = { models: [] };
   var barRects = [];   // hit-test rects for the current frame
@@ -340,8 +340,8 @@
       tip.innerHTML =
         "<strong>" + esc(m.name) + "</strong>" +
         "<div class='ct-sub'>" + esc(m.provider) + "</div>" +
-        ["overall", "text", "vision", "audio"].map(function (k) {
-          var v = k === "overall" ? m.overall : m.modalities[k];
+        ["text", "vision", "audio"].map(function (k) {
+          var v = m.modalities[k];
           return "<div class='ct-row" + (k === st.metric ? " on" : "") + "'><span>" +
             METRIC_LABEL[k] + "</span><span>" + (v == null ? "-" : v.toFixed(1)) + "</span></div>";
         }).join("");
@@ -437,7 +437,7 @@
   }
 
   function buildControls() {
-    // metric tabs (Overall / Text / Vision / Audio)
+    // metric tabs (Text / Vision / Audio)
     Array.prototype.forEach.call(document.querySelectorAll("#chart-tabs .tab"), function (btn) {
       btn.addEventListener("click", function () {
         Array.prototype.forEach.call(document.querySelectorAll("#chart-tabs .tab"), function (b) {
@@ -509,7 +509,7 @@
     var panel = $("#chart-picker");
     var list = $("#chart-picker-list");
 
-    var sorted = state.models.slice().sort(function (a, b) { return b.overall - a.overall; });
+    var sorted = state.models.slice().sort(function (a, b) { return (b.modalities.text || 0) - (a.modalities.text || 0); });
     sorted.forEach(function (m) {
       var lab = document.createElement("label");
       lab.className = "pk-item";

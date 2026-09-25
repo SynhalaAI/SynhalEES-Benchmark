@@ -267,12 +267,11 @@ def demo() -> dict:
             "name": name,
             "provider": provider,
             "date": "2026-09-20",
-            "overall": round(sum(present) / len(present), 1),
             "modalities": {m: modalities.get(m) for m in ("text", "vision", "audio")},
             "pillars": pillar_scores,
             "usage": usage,
         })
-    models.sort(key=lambda m: m["overall"], reverse=True)
+    models.sort(key=lambda m: m["modalities"].get("text") or 0.0, reverse=True)
     return {"demo": True, "updated": str(date.today()), "models": models}
 
 def empty_payload() -> dict:
@@ -306,7 +305,7 @@ def build_real(csv_paths: list[Path]) -> dict:
                     "pillars": {},
                     "_mod": {"text": [], "vision": [], "audio": []},
                     "_usage": {k: {"cost": [], "tokens": [], "lat": []}
-                               for k in ("overall", "text", "vision", "audio")},
+                               for k in ("text", "vision", "audio")},
                     "_dates": [],
                 })
                 if row.get("date"):
@@ -325,10 +324,7 @@ def build_real(csv_paths: list[Path]) -> dict:
                         raw = (row.get(src) or "").strip()
                         if raw:
                             bucket[dst].append(float(raw))
-                            if dst != "lat":
-                                entry["_usage"]["overall"][dst].append(float(raw))
-                            else:
-                                entry["_usage"]["overall"][dst].append(float(raw))
+
     models = []
     for entry in acc.values():
         entry["pillars"] = {p: round(sum(v) / len(v), 1)
@@ -336,8 +332,6 @@ def build_real(csv_paths: list[Path]) -> dict:
         for m, vals in entry["_mod"].items():
             if vals:
                 entry["modalities"][m] = round(sum(vals) / len(vals), 1)
-        present = [v for v in entry["modalities"].values() if v is not None]
-        entry["overall"] = round(sum(present) / len(present), 1) if present else 0.0
         dates = [d for d in entry.pop("_dates", []) if d]
         entry["date"] = max(dates) if dates else entry["date"]
         del entry["_mod"]
@@ -352,7 +346,7 @@ def build_real(csv_paths: list[Path]) -> dict:
             }
         entry["usage"] = usage
         models.append(entry)
-    models.sort(key=lambda m: m["overall"], reverse=True)
+    models.sort(key=lambda m: m["modalities"].get("text") or 0.0, reverse=True)
     # Deterministic stamp: the newest run date in the CSVs, never "today",
     # so --check stays green on later days.
     updated = max((m["date"] for m in models if m["date"]), default="")
