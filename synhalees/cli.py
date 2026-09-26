@@ -366,28 +366,42 @@ def kaggle_run_usage(result_path):
     return f"{nanodollars / 1e9:.6f}", str(tokens), str(latency_ms)
 
 
+def expand_import_tasks(arg):
+    """'all' -> all 17 task slugs; 'text'/'vision'/'audio' -> that modality's slugs;
+    anything else -> [single resolved slug]. Raises SystemExit on bad input."""
+    key = str(arg).lower()
+    files = sorted(TASKS_DIR.glob("[0-9][0-9]_*.py")) + [TASKS_DIR / "vision.py", TASKS_DIR / "audio.py"]
+    if key == "all":
+        names = [task_name_for(f) for f in files if f.is_file()]
+    elif key in ("text", "vision", "audio"):
+        names = [task_name_for(f) for f in files
+                 if f.is_file() and task_modality(task_name_for(f)) == key]
+    else:
+        return [resolve_task_name(arg)]
+    if not names:
+        raise SystemExit(f"no {key!r} task files in {TASKS_DIR} (run: synhalees kaggle gen)")
+    return names
+
+
 def cmd_kaggle_import(a):
     """Import one task (auto-pulls when missing), or 'all' tasks (local only).
 
     'all' never downloads: tasks without local *.result.json are skipped with
     a pointer to 'synhalees kaggle pull <slug>' instead of pulling them.
     """
-    if a.task == "all":
+    key = str(a.task).lower()
+    if key in ("all", "text", "vision", "audio"):
         if a.slug:
-            raise SystemExit("--slug cannot be used with import all")
-        files = sorted(TASKS_DIR.glob("[0-9][0-9]_*.py")) + [TASKS_DIR / "vision.py", TASKS_DIR / "audio.py"]
-        files = [f for f in files if f.is_file()]
-        if not files:
-            raise SystemExit(f"no text task files in {TASKS_DIR} (run: synhalees kaggle gen)")
+            raise SystemExit("--slug cannot be used with import all/text/vision/audio")
+        names = expand_import_tasks(key)
         failed, skipped, done = [], [], 0
-        for i, f in enumerate(files, 1):
-            slug = task_name_for(f)
+        for i, slug in enumerate(names, 1):
             if not list((KG_RESULTS / slug).rglob("*.result.json")):
-                print(f"[{i}/{len(files)}] skipping {slug} (no local artifacts; "
+                print(f"[{i}/{len(names)}] skipping {slug} (no local artifacts; "
                       f"pull first: synhalees kaggle pull {slug})")
                 skipped.append(slug)
                 continue
-            print(f"[{i}/{len(files)}] importing {slug}")
+            print(f"[{i}/{len(names)}] importing {slug}")
             rc = cmd_kaggle_import(argparse.Namespace(
                 task=slug, slug=None, dry_run=a.dry_run, no_pull=True))
             if rc:
@@ -621,8 +635,8 @@ def build_parser():
                         "(e.g. 'vision|audio'); an explicit task slug always wins")
     p.add_argument("args", nargs=argparse.REMAINDER, help="extra flags, e.g. -m <model>, -f")
     p.set_defaults(func=cmd_kaggle_pull)
-    p = ks.add_parser("import", help="import tasks -> submissions/*.csv (single pulls when missing; 'all' uses local artifacts only, skips the rest)")
-    p.add_argument("task", nargs="?", default="all", help="task slug or all (default: all)")
+    p = ks.add_parser("import", help="import tasks -> submissions/*.csv (single pulls when missing; all/text/vision/audio use local artifacts only, skip the rest)")
+    p.add_argument("task", nargs="?", default="all", help="task slug, or all/text/vision/audio (default: all)")
     p.add_argument("--slug", default=None, help="force the model slug (single model only)")
     p.add_argument("--dry-run", action="store_true", help="print the rows, write nothing")
     p.add_argument("--no-pull", action="store_true", help="use local artifacts only")
