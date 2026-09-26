@@ -55,6 +55,8 @@ SynhalEES/
 │   ├── synhalees_task.py                        # all-in-one master task (15 pillars, text)
 │   └── tasks/                                   # 17 generated (see drift rule below): 15 pillars (text) + vision + audio
 │
+├── kaggle-results/                              # Kaggle pulls: raw run dirs gitignored; *.slim.csv tracked (~1KB records)
+│
 ├── logo/                                        # Brand assets (logo & cover art)
 │   ├── logo.png                                 # Primary logo
 │   ├── icon.png                                 # App/favicon icon

@@ -29,7 +29,7 @@ gemini-3.5-flash,gemini,2026-09-24,05_sinhala_grammar,text,86.7
 Those results live on Kaggle, not in this repo. Pull the artifacts first:
 
 ```bash
-kaggle b t download <task-slug> -o kaggle-results     # gitignored
+kaggle b t download <task-slug> -o kaggle-results     # raw output ignored; *.slim.csv tracked
 ```
 
 Each run yields `result.json` (overall 0-1 score), `run.json` (aggregated score
