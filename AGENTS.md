@@ -80,13 +80,17 @@ pages. **This file is generated - never edit it by hand.**
 ## 📊 Leaderboard Data Is Generated Too (`docs/assets/data/`)
 
 `docs/assets/data/{pillars,leaderboard}.{json,js}` are **generated** by
-`tools/build_leaderboard.py` from the committed `submissions/*.csv`
-(one CSV per model - see `submissions/README.md`). **Never hand-edit them.**
+`tools/build_leaderboard.py` from the committed scorecards in `submissions/` (under
+`submissions/<vendor>/<family>/<model-slug>.csv` - see `submissions/README.md`). **Never hand-edit them.**
 
+- **Model Registry & Taxonomy (`synhalees/models.json`):**
+  - When introducing a new model or provider, register it in `synhalees/models.json`.
+  - Maintain provider metadata (`name`, `logo`, `color`, `aliases`) and family taxonomies (`open_source`).
+  - Add friendly display casing overrides in `display_names` where needed.
 - **Publishing a run:** copy `runs/<model-slug>/submission.csv` to
-  `submissions/<model-slug>.csv`, then run `python tools/build_leaderboard.py`
+  `submissions/<vendor>/<family>/<model-slug>.csv`, then run `python tools/build_leaderboard.py`
   and commit the CSV **and** the regenerated `docs/assets/data/*` together.
-  (`python -m synhalees publish <model-slug>` does all three steps).
+  (`python -m synhalees publish <model-slug>` automatically resolves the vendor/family folder hierarchy and runs all three steps).
 - **Only publishable runs** go in `submissions/`: no numbers produced with a
   personal or paid API key that the project cannot re-verify or publish.
 - **Staleness detection:** CI (`.github/workflows/leaderboard.yml`) runs
@@ -157,6 +161,7 @@ in `STRUCTURE.md` -- no scratch `.txt` / `.log` / `.csv` dumps, ever.
 - [ ] CSVs (if added) match the schemas in `STRUCTURE.md` section 5 (no redundant prompt column spam; generic/classification prompts handled by loader)
 - [ ] `eval_type` values are from the allowed set of 4
 - [ ] Logo/icon changes regenerate `docs/assets/logo-data.js` (`python tools/build_logo_data.py --check` passes)
-- [ ] `submissions/*.csv` changes regenerate `docs/assets/data/*` (`python tools/build_leaderboard.py --check` passes)
+- [ ] New models/providers registered in `synhalees/models.json` (taxonomy, display names, colors)
+- [ ] `submissions/**/*.csv` changes regenerate `docs/assets/data/*` (`python tools/build_leaderboard.py --check` passes)
 - [ ] Sinhala text is valid UTF-8 with diacritics preserved
 - [ ] No new files at the repo root (run outputs -> `runs/`, Kaggle pulls -> `kaggle-results/`)

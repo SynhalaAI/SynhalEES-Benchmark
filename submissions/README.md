@@ -1,11 +1,11 @@
-# `submissions/` — published leaderboard sources
+﻿# `submissions/` — published leaderboard sources
 
 One CSV per model. This folder is the **committed source of truth** for the
 public leaderboard in `docs/`, and `tools/build_leaderboard.py` reads it by
 default (no arguments needed).
 
 ```text
-submissions/<model-slug>.csv
+submissions/<vendor>/<family>/<model-slug>.csv
 ```
 
 Schema — exactly the header written by `results.save_submission()`:
@@ -58,7 +58,7 @@ from the model id.
    and `leaderboard.js` are generated; edit the CSV and regenerate:
 
    ```bash
-   python tools/build_leaderboard.py           # reads submissions/*.csv
+   python tools/build_leaderboard.py           # recursively reads submissions/**/*.csv
    python tools/build_leaderboard.py --check   # must pass (CI enforces this)
    ```
 

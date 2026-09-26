@@ -59,21 +59,37 @@ All contributions — data, code, or docs — are welcome.
 - `run_benchmark.py` → CLI improvements.
 - New code must be importable and pass `python -m py_compile`.
 
-### 4. Publishing benchmark results
+### 4. Adding a new model & publishing benchmark results
 
-The leaderboard in `docs/` is built from `submissions/` - one
-`<model-slug>.csv` per model (schema `model,provider,date,pillar,modality,score`,
-`score` = 0-100). After a run:
+Adding benchmark results for a new model to the public leaderboard:
 
+#### Step 1: Model & Provider Taxonomy (`synhalees/models.json`)
+The registry in `synhalees/models.json` is the Single Source of Truth (SSOT) for provider taxonomy, display names, brand logos, and open-source status:
+- If introducing a new provider or family, add its definition to `synhalees/models.json` (specify `name`, `logo`, `color`, `aliases`, and `families` with `open_source: true/false`).
+- If custom casing or title display is needed (e.g. `Gemini 3.1 pro Preview`), add the model slug to `display_names` in `synhalees/models.json`.
+
+#### Step 2: Run & Sanity Check
+Run the benchmark locally or via Kaggle:
 ```bash
-python tools/compare_runs.py                 # sanity-check every run under runs/
-# copy runs/<model-slug>/submission.csv -> submissions/<model-slug>.csv
+synhalees run --model <provider>:<model-slug>
+synhalees compare                            # check scores in runs/all_submissions.csv
+```
+
+#### Step 3: Publish Scorecard
+Publishing places the scorecard under the hierarchical structure `submissions/<vendor>/<family>/<model-slug>.csv`:
+```bash
+# Automated publish (copies scorecard, places in hierarchy, rebuilds docs, and verifies)
+synhalees publish <model-slug>
+```
+Or manually:
+```bash
+# Copy to submissions/<vendor>/<family>/<model-slug>.csv
 python tools/build_leaderboard.py            # regenerate docs/assets/data/*
 python tools/build_leaderboard.py --check    # must pass (CI runs this)
 ```
 
-`python -m synhalees publish <model-slug>` does the copy + rebuild +
-`--check` in one step (and `python -m synhalees check` runs every gate).
+`synhalees publish <model-slug>` does the copy + taxonomy path resolution + rebuild +
+`--check` in one step (and `synhalees check` runs every gate).
 
 Only **publishable** runs belong in `submissions/`: no results produced with a
 personal or paid API key that the project cannot re-verify or publish. Never
@@ -101,4 +117,5 @@ Before opening a PR, check:
 - [ ] Pillar names aligned across `README.md`, `STRUCTURE.md`, and folder slugs
 - [ ] CSVs match `STRUCTURE.md` section 5 schemas (no redundant prompt column spam; loader scripts handle generic & classification prompts); `eval_type` from the allowed set of 4
 - [ ] Sinhala text is valid UTF-8 with diacritics preserved
-- [ ] `submissions/*.csv` changes regenerate `docs/assets/data/*` (`python tools/build_leaderboard.py --check` passes)
+- [ ] New models/providers registered in `synhalees/models.json` (taxonomy, display names, colors)
+- [ ] `submissions/**/*.csv` changes regenerate `docs/assets/data/*` (`python tools/build_leaderboard.py --check` passes)

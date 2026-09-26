@@ -112,7 +112,7 @@ synhalees run --model openrouter:openai/gpt-4o-mini --modality text
 # Compare runs & view accuracy matrix across models
 synhalees compare
 
-# Publish scorecard to leaderboard and rebuild docs
+# Publish scorecard to leaderboard (auto-resolves submissions/<vendor>/<family>/<model>.csv)
 synhalees publish gemini-2.5-flash
 
 # Verify all repository checks & CI gates locally
@@ -125,7 +125,7 @@ synhalees check
 |---|---|---|
 | **`synhalees run`** | Run benchmark | Evaluates models locally with crash-safe checkpointing. |
 | **`synhalees compare`** | Compare runs | Generates cross-model scorecards and accuracy matrix at `runs/all_submissions.csv`. |
-| **`synhalees publish <model-slug>`** | Publish run | Copies `runs/<slug>/submission.csv` to `submissions/`, rebuilds leaderboard data, and verifies integrity. |
+| **`synhalees publish <model-slug>`** | Publish run | Resolves taxonomy hierarchy, copies scorecard to `submissions/<vendor>/<family>/`, rebuilds docs, and verifies integrity. |
 | **`synhalees build [--check]`** | Build leaderboard | Re-generates `docs/assets/data/*` from `submissions/` (`--check` validates CI freshness). |
 | **`synhalees logos [--check]`** | Build logo data | Re-generates `docs/assets/logo-data.js` for canvas exports. |
 | **`synhalees check`** | Run all gates | Runs logo check, leaderboard sync check, and Python bytecode compilation in one go. |
@@ -226,9 +226,9 @@ model is strong on which pillar before publishing.
 
 ## 🤝 Contributing
 
-Contributions are welcome — data, code, or feedback. See
-[`CONTRIBUTING.md`](CONTRIBUTING.md) for the full guide and Definition of Done.
-Every pillar folder is a small, reviewable PR — no giant CSVs.
+Contributions are welcome — new models, evaluation data, code, or bug reports!
+- **Adding new models:** Register taxonomy, vendor branding, and open-source status in `synhalees/models.json`, evaluate, and publish via `synhalees publish <model-slug>`.
+- **Benchmark datasets:** Each pillar folder is small and modular — see [`CONTRIBUTING.md`](CONTRIBUTING.md) for data schemas and Definition of Done.
 
 ---
 

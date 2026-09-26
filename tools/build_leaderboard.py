@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """Build the static leaderboard data (docs/assets/data/leaderboard.json).
 
 Sources, in priority order:
@@ -38,6 +38,8 @@ import random
 import sys
 from datetime import date
 from pathlib import Path
+
+from synhalees.registry import default_registry
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "docs" / "assets" / "data" / "leaderboard.json"
@@ -147,6 +149,9 @@ def is_open_source(model_id: str = "", provider: str = "", explicit: str = "") -
     if exp in {"proprietary", "closed", "commercial", "false", "no", "0"}:
         return False
     haystack = f"{model_id} {provider}".lower()
+    _v, _f, oss = default_registry.resolve_taxonomy(model_id or provider)
+    if oss:
+        return True
     return any(token in haystack for token in OPEN_SOURCE_FAMILIES)
 
 
@@ -163,6 +168,9 @@ def pretty_provider(host: str, model_id: str = "") -> str:
         pos = haystack.find(token)
         if pos >= 0 and (best is None or pos < best[0]):
             best = (pos, brand)
+    reg_prov = default_registry.resolve_provider(model_id or host)
+    if reg_prov:
+        return reg_prov.name
     if best:
         return best[1]
     key = (host or "").strip()
@@ -172,6 +180,9 @@ def pretty_provider(host: str, model_id: str = "") -> str:
 def pretty_model(name: str) -> str:
     """``"gemini-3.5-flash-lite"`` -> ``"Gemini 3.5 Flash Lite"``."""
     raw = (name or "").strip()
+    reg_disp = default_registry.get_model_display_name(raw)
+    if raw in default_registry.display_names:
+        return reg_disp
     if raw in MODEL_DISPLAY:
         return MODEL_DISPLAY[raw]
     words = raw.replace("_", "-").split("-")
@@ -470,7 +481,7 @@ def default_csvs() -> list[Path]:
     """The committed per-model submission CSVs (sorted: deterministic)."""
     if not SUBMISSIONS_DIR.is_dir():
         return []
-    return sorted(SUBMISSIONS_DIR.glob("*.csv"))
+    return sorted(SUBMISSIONS_DIR.rglob("*.csv"))
 
 
 def main() -> int:

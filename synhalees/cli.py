@@ -27,12 +27,19 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNS = ROOT / "runs"
+from synhalees.registry import default_registry
+
 SUBMISSIONS = ROOT / "submissions"
 KG_RESULTS = ROOT / "kaggle-results"
 TASKS_DIR = ROOT / "kaggle" / "tasks"
 HEADER = ["model", "provider", "date", "pillar", "modality", "score"]
 # Kaggle imports add usage telemetry (optional; local runs may omit it).
 EXT_HEADER = HEADER + ["cost_usd", "tokens", "latency_ms"]
+
+
+def resolve_submission_path(model_id: str, provider: str = "") -> Path:
+    """Resolve or infer hierarchical submission file path: submissions/<vendor>/<family>/<model>.csv."""
+    return default_registry.resolve_submission_path(model_id, base_dir=SUBMISSIONS)
 
 
 def sh(argv, cwd=ROOT):
@@ -218,7 +225,7 @@ def cmd_check(_a):
 
 def cmd_publish(a):
     src = RUNS / a.slug / "submission.csv"
-    dst = SUBMISSIONS / f"{a.slug}.csv"
+    dst = resolve_submission_path(a.slug)
     if not src.is_file():
         raise SystemExit(f"missing {src} (run the benchmark first)")
     rows = load_scorecard(src)
@@ -229,12 +236,12 @@ def cmd_publish(a):
         for r in rows[1:]:
             print("  " + ",".join(r))
         return 0
-    SUBMISSIONS.mkdir(exist_ok=True)
+    dst.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(src, dst)
     print(f"copied {src.relative_to(ROOT)} -> {dst.relative_to(ROOT)}")
     code = rebuild_and_check()
     if not code:
-        print(f"published {a.slug}: commit submissions/{a.slug}.csv with docs/assets/data/*")
+        print(f"published {a.slug}: commit {dst.relative_to(ROOT)} with docs/assets/data/*")
     return code
 
 
@@ -473,12 +480,12 @@ def cmd_kaggle_import(a):
         print("dry run: nothing written")
         return 0
     for row in planned:
-        path = SUBMISSIONS / f"{row[0]}.csv"
+        path = resolve_submission_path(row[0], row[1])
         keep = []
         if path.is_file():
             keep = [r for r in load_scorecard(path)[1:]
                     if len(r) >= 6 and (r[3], r[4]) != (row[3], row[4])]
-        SUBMISSIONS.mkdir(exist_ok=True)
+        path.parent.mkdir(parents=True, exist_ok=True)
         with open(path, "w", newline="", encoding="utf-8") as fh:
             w = csv.writer(fh)
             w.writerow(EXT_HEADER)
@@ -555,14 +562,14 @@ def cmd_kaggle_slim_import(a):
     for row in rows[1:]:
         if len(row) < 6:
             raise SystemExit(f"{src}: bad row: {row}")
-        model, _prov, _date, pillar, modality = row[0], row[1], row[2], row[3], row[4]
+        model, prov, _date, pillar, modality = row[0], row[1], row[2], row[3], row[4]
         full = list(row) + [""] * (len(EXT_HEADER) - len(row))
-        path = SUBMISSIONS / f"{model}.csv"
+        path = resolve_submission_path(model, prov)
         keep = []
         if path.is_file():
             keep = [r for r in load_scorecard(path)[1:]
                     if len(r) >= 6 and (r[3], r[4]) != (pillar, modality)]
-        SUBMISSIONS.mkdir(exist_ok=True)
+        path.parent.mkdir(parents=True, exist_ok=True)
         with open(path, "w", newline="", encoding="utf-8") as fh:
             w = csv.writer(fh)
             w.writerow(EXT_HEADER)
