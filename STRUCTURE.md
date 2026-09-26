@@ -53,7 +53,7 @@ SynhalEES/
 ├── kaggle/                                      # Kaggle Benchmarks tasks (optional leaderboard path)
 │   ├── generate_tasks.py                        # regenerates the 17 task files
 │   ├── synhalees_task.py                        # all-in-one master task (15 pillars, text)
-│   └── tasks/                                   # 17 generated: 15 pillars (text) + vision + audio
+│   └── tasks/                                   # 17 generated (see drift rule below): 15 pillars (text) + vision + audio
 │
 ├── logo/                                        # Brand assets (logo & cover art)
 │   ├── logo.png                                 # Primary logo
@@ -286,5 +286,7 @@ Rules:
    gitignored `kaggle-results/` folder (`kaggle b t download <task-slug> -o
    kaggle-results`) -- never the repo root. Each run exposes only an overall
    score, so a task scoped to one pillar maps to one scorecard row;
+
+8. **Colab slim-export flow (metered internet).** `kaggle/colab_slim_export.ipynb` (tracked) runs the heavy pull on free Colab, then `synhalees kaggle slim-export <task>` writes a KB-sized `kaggle-results/<task>.slim.csv`; download ONLY that file home and run `synhalees kaggle slim-import <file>` (no Kaggle download, then rebuild). Drift rule: the notebook mirrors the `EXT_HEADER` schema and pillar/task mapping in `synhalees/cli.py` -- any change to that schema or mapping MUST review notebook cells 3-4 in the same change (see AGENTS.md).
    multi-pillar (vision/audio) tasks cannot be split per pillar yet (see
    `submissions/README.md`).

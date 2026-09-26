@@ -5,7 +5,7 @@ One entry point for the whole workflow (stdlib only):
     synhalees run --model ollama:llama3.1:8b --pillars 01_buddhist_culture
     synhalees compare | build [--check|--demo] | logos [--check] | check
     synhalees publish <model-slug>
-    synhalees kaggle gen|push|run|status|logs|publish|pull|import
+    synhalees kaggle gen|push|run|status|logs|publish|pull|import|slim-export|slim-import
 
 Install with `pip install -e .` (console script `synhalees`); also runs as
 `python -m synhalees` from a checkout. Output hygiene: local runs land in
@@ -390,6 +390,84 @@ def cmd_kaggle_import(a):
     return code
 
 
+def cmd_kaggle_slim_export(a):
+    """Export ONLY the newest result per model to a tiny CSV (Colab-friendly)."""
+    import io as _io
+    slug = resolve_task_name(a.task)
+    pillar = pillar_from_task(slug)
+    if slug in ("synhalees-vision", "synhalees-audio"):
+        pillar = "__overall__"
+    elif pillar is None:
+        raise SystemExit(f"{slug} is not an importable text pillar or combined vision/audio task")
+    task_dir = KG_RESULTS / slug
+    found = {}
+    for f in sorted(task_dir.rglob("*.result.json")):
+        try:
+            data = json.loads(f.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        info = data.get("agent_info") or {}
+        name = (info.get("model_info") or {}).get("name") or f.parent.parent.name
+        fin = data.get("finished_at") or ""
+        if name not in found or fin > found[name][0]:
+            found[name] = (fin, data, f)
+    if not found:
+        raise SystemExit(f"no *.result.json under {task_dir} (synhalees kaggle pull {slug})")
+    buf = _io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(list(EXT_HEADER))
+    modality = "vision" if slug == "synhalees-vision" else "audio" if slug == "synhalees-audio" else "text"
+    for name in sorted(found):
+        fin, data, result_path = found[name]
+        score = ((data.get("verifier_result") or {}).get("rewards") or {}).get("score")
+        try:
+            pct = float(score)
+        except (TypeError, ValueError):
+            raise SystemExit(f"{name}: result.json has no numeric rewards.score")
+        model = a.slug or name.split("/")[-1]
+        date = (fin or data.get("started_at") or "")[:10]
+        cost, tokens, latency = kaggle_run_usage(result_path)
+        w.writerow([model, "kaggle", date, pillar, modality, f"{round(pct * 100, 1):.1f}", cost, tokens, latency])
+        print(f"{model:<30} {modality} overall {round(pct * 100, 1):>6} ({date})")
+    out = Path(a.output) if getattr(a, "output", None) else (KG_RESULTS / (slug + ".slim.csv"))
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(buf.getvalue(), encoding="utf-8", newline="")
+    print(f"wrote {out} ({out.stat().st_size} bytes) -- download THIS file only")
+    return 0
+
+
+def cmd_kaggle_slim_import(a):
+    """Import a slim CSV (exported on Colab) into submissions/*.csv + rebuild."""
+    src = Path(a.file)
+    if not src.is_file():
+        raise SystemExit(f"slim file not found: {src}")
+    with open(src, newline="", encoding="utf-8-sig") as fh:
+        rows = list(csv.reader(fh))
+    if not rows or rows[0][:len(HEADER)] != HEADER:
+        raise SystemExit(f"{src}: expected header {chr(44).join(HEADER)}")
+    for row in rows[1:]:
+        if len(row) < 6:
+            raise SystemExit(f"{src}: bad row: {row}")
+        model, _prov, _date, pillar, modality = row[0], row[1], row[2], row[3], row[4]
+        full = list(row) + [""] * (len(EXT_HEADER) - len(row))
+        path = SUBMISSIONS / f"{model}.csv"
+        keep = []
+        if path.is_file():
+            keep = [r for r in load_scorecard(path)[1:]
+                    if len(r) >= 6 and (r[3], r[4]) != (pillar, modality)]
+        SUBMISSIONS.mkdir(exist_ok=True)
+        with open(path, "w", newline="", encoding="utf-8") as fh:
+            w = csv.writer(fh)
+            w.writerow(EXT_HEADER)
+            for old_row in keep:
+                w.writerow(old_row + [""] * (len(EXT_HEADER) - len(old_row)))
+            w.writerow(full[:len(EXT_HEADER)])
+        print(f"wrote {path.relative_to(ROOT)} ({len(keep) + 1} rows)")
+    code = rebuild_and_check()
+    if not code:
+        print("slim-import done: commit submissions/*.csv with docs/assets/data/*")
+    return code
+
 def build_parser():
     top = argparse.ArgumentParser(
         prog="synhalees",
@@ -442,6 +520,14 @@ def build_parser():
     p.add_argument("task")
     p.add_argument("args", nargs=argparse.REMAINDER, help="extra flags for kaggle b t publish")
     p.set_defaults(func=cmd_kaggle_publish)
+    p = ks.add_parser("slim-export", help="newest result per model -> tiny CSV (Colab: download only this)")
+    p.add_argument("task", help="task slug (e.g. synhalees-05-sinhala-grammar)")
+    p.add_argument("--slug", default=None, help="force the model slug (single model only)")
+    p.add_argument("-o", "--output", default=None, help="output CSV path (default: kaggle-results/<task>.slim.csv)")
+    p.set_defaults(func=cmd_kaggle_slim_export)
+    p = ks.add_parser("slim-import", help="slim CSV -> submissions/*.csv + rebuild (home PC, no download)")
+    p.add_argument("file", help="slim CSV path (downloaded from Colab)")
+    p.set_defaults(func=cmd_kaggle_slim_import)
     p = ks.add_parser("pull", help="download artifacts -> kaggle-results/ (default: all)")
     p.add_argument("task", nargs="?", default="all", help="task slug or 'all' (default: all)")
     p.add_argument("args", nargs=argparse.REMAINDER, help="extra flags, e.g. -m <model>, -f")
