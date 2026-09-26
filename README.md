@@ -28,6 +28,16 @@ It probes a model's native reasoning across **15 distinct cultural and linguisti
 - **Native pragmatics** — tone, register, banter-vs-abuse, regional dialects, and Singlish must be handled the way a native speaker would react.
 - **Multimodal like a native** — look at a temple image, hear a dialect accent, or read a chat screenshot, and respond with local context — not generic, translated answers.
 
+### 🎯 What a score means
+
+Every score in SynhalEES is calibrated against one yardstick: **a native-born Sri Lankan Sinhala human**.
+The target is not trivia recall — it is the Sinhala context a person gathers **through a lifetime of living it**:
+the jokes, the rituals, the tone, the dialects, the everyday pragmatics. A model reaches the top of this
+benchmark only when it combines **real, practical data**, **cultural awareness (සංස්කෘතික බුද්ධිය)** and
+**genuine reasoning** — answering the way a Sinhala human would, not the way a translation engine would.
+A model that merely translates English thoughts into Sinhala words scores low here *by design*: matching a
+native's lifetime of gathered context is exactly what this benchmark measures.
+
 ---
 
 ## 🏛️ The 15 Core Pillars

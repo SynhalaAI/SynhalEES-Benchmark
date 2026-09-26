@@ -9,6 +9,12 @@ All contributions — data, code, or docs — are welcome.
 > Every row you contribute teaches a model to think a little more like a native
 > Sinhala human.
 
+> 📏 **Scoring yardstick:** a row's `ground_truth` must be what a **native-born Sri Lankan
+> Sinhala human would answer from a lifetime of living the language** — the context a person
+> gathers from birth (jokes, rituals, tone, dialects, pragmatics). High scores require **real,
+> practical data + cultural awareness (සංස්කෘතික බුද්ධිය) + genuine reasoning** together; a
+> translated-English model must not be able to top a row without that lived Sinhala context.
+
 ---
 
 ## 🤝 How to contribute
