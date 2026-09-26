@@ -308,6 +308,15 @@ def seo_structured_data(payload: dict) -> str:
     return json.dumps(data, ensure_ascii=False, indent=2)
 
 
+# LD_OPEN = complete opening tag for the injected SEO JSON-LD block,
+# split so sequence-safe editors do not treat the file as HTML.
+QUOT = chr(34)
+PLUS = chr(43)
+LD_OPEN = ("<scr" + "ipt type=" + QUOT + "application/ld" + PLUS + "json" + QUOT +
+           " id=" + QUOT + "seo-jsonld" + QUOT + ">")
+LD_CLOSE = ("</scr" + "ipt>")
+
+
 def write_seo_block(payload: dict) -> None:
     """Write docs/seo-structured-data.json + inject the JSON-LD into docs/index.html."""
     ld = seo_structured_data(payload)
@@ -316,17 +325,18 @@ def write_seo_block(payload: dict) -> None:
     print(f"wrote {seo_path}")
     index = ROOT / "docs" / "index.html"
     html = index.read_text(encoding="utf-8")
-    start_tag = '<script type="application/ld+json" id="seo-jsonld">'
-    block = start_tag + chr(10) + ld + chr(10) + "</scr" + "ipt>"
-    if start_tag in html:
-        import re as _re
-        html = _re.sub(start_tag + r".*?</script>", lambda _m: block, html, count=1, flags=_re.DOTALL)
+    block = LD_OPEN + chr(10) + ld + chr(10) + LD_CLOSE
+    lb = html.find(LD_OPEN)
+    if lb != -1:
+        rb = html.find(LD_CLOSE, lb)
+        assert rb != -1, "JSON-LD block opened but never closed"
+        html = html[:lb] + block + html[rb + len(LD_CLOSE):]
     else:
         anchor2 = "</head>"
         assert anchor2 in html
-    html = html.replace(anchor2, "  " + block + chr(10) + anchor2, 1)
+        html = html.replace(anchor2, "  " + block + chr(10) + anchor2, 1)
     index.write_text(html, encoding="utf-8")
-    print(f"injected JSON-LD into {index} ({len(payload.get('models', []))} models)")
+    print(f"injected JSON-LD into {index} ({len(payload.get("models", []))} models)")
 
 
 def demo() -> dict:
@@ -491,8 +501,21 @@ def main() -> int:
         if (not seo_path.is_file() or _normalize(seo_path.read_text(encoding="utf-8")) != _normalize(seo_text + chr(10))):
             print("[!!] stale generated file: " + str(seo_path))
             ok = False
-        index_html = (ROOT / "docs" / "index.html").read_text(encoding="utf-8")
-        if seo_text not in index_html:
+        html_doc = (ROOT / "docs" / "index.html").read_text(encoding="utf-8")
+        tag_open = LD_OPEN
+        tag_close = LD_CLOSE
+        ok_ld = False
+        start = 0
+        while True:
+            lb = html_doc.find(tag_open, start)
+            if lb == -1:
+                break
+            rb = html_doc.find(tag_close, lb)
+            if rb != -1 and seo_text in html_doc[lb:rb + 9]:
+                ok_ld = True
+                break
+            start = lb + 1
+        if not ok_ld:
             print("[!!] stale JSON-LD in docs/index.html")
             ok = False
         if not ok:
