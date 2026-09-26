@@ -367,7 +367,11 @@ def kaggle_run_usage(result_path):
 
 
 def cmd_kaggle_import(a):
-    """Import one text task, or every 15 text-pillar tasks with 'all'."""
+    """Import one task (auto-pulls when missing), or 'all' tasks (local only).
+
+    'all' never downloads: tasks without local *.result.json are skipped with
+    a pointer to 'synhalees kaggle pull <slug>' instead of pulling them.
+    """
     if a.task == "all":
         if a.slug:
             raise SystemExit("--slug cannot be used with import all")
@@ -375,19 +379,28 @@ def cmd_kaggle_import(a):
         files = [f for f in files if f.is_file()]
         if not files:
             raise SystemExit(f"no text task files in {TASKS_DIR} (run: synhalees kaggle gen)")
-        failed = []
+        failed, skipped, done = [], [], 0
         for i, f in enumerate(files, 1):
             slug = task_name_for(f)
+            if not list((KG_RESULTS / slug).rglob("*.result.json")):
+                print(f"[{i}/{len(files)}] skipping {slug} (no local artifacts; "
+                      f"pull first: synhalees kaggle pull {slug})")
+                skipped.append(slug)
+                continue
             print(f"[{i}/{len(files)}] importing {slug}")
             rc = cmd_kaggle_import(argparse.Namespace(
-                task=slug, slug=None, dry_run=a.dry_run, no_pull=a.no_pull))
+                task=slug, slug=None, dry_run=a.dry_run, no_pull=True))
             if rc:
                 failed.append(slug)
+            else:
+                done += 1
         if failed:
             print(f"import failed for {len(failed)} task(s): {', '.join(failed)}")
             return 1
         if not a.dry_run:
-            print(f"imported {len(files)} Kaggle tasks")
+            print(f"imported {done} Kaggle task(s)" +
+                  (f"; skipped {len(skipped)} with no local artifacts: " +
+                   ", ".join(skipped) if skipped else ""))
         return 0
     slug = resolve_task_name(a.task)
     pillar = pillar_from_task(slug)
@@ -608,7 +621,7 @@ def build_parser():
                         "(e.g. 'vision|audio'); an explicit task slug always wins")
     p.add_argument("args", nargs=argparse.REMAINDER, help="extra flags, e.g. -m <model>, -f")
     p.set_defaults(func=cmd_kaggle_pull)
-    p = ks.add_parser("import", help="import one text task or all 15 text tasks -> submissions/*.csv")
+    p = ks.add_parser("import", help="import tasks -> submissions/*.csv (single pulls when missing; 'all' uses local artifacts only, skips the rest)")
     p.add_argument("task", nargs="?", default="all", help="task slug or all (default: all)")
     p.add_argument("--slug", default=None, help="force the model slug (single model only)")
     p.add_argument("--dry-run", action="store_true", help="print the rows, write nothing")
