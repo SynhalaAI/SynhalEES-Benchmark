@@ -1,0 +1,1067 @@
+{
+  "taskVersion": {
+    "versionNumber": 1,
+    "name": "synhalees_08_profanity_nuance",
+    "description": "SynhalEES pillar 08_profanity_nuance: native Sinhala text accuracy.",
+    "definition": "@kbench.task(name=\"synhalees_08_profanity_nuance\", description=\"SynhalEES pillar 08_profanity_nuance: native Sinhala text accuracy.\")\ndef synhalees_task(llm) -> float:\n    '''Evaluate Profanity Nuance (text); return accuracy in [0, 1].'''\n    import pandas as pd\n\n    rows = _rows()\n    if not rows:\n        raise ValueError(\n            \"No runnable text rows for Profanity Nuance yet -- media files may \"\n            \"not be committed under benchmark_data/.\"\n        )\n    with kbench.client.enable_cache():\n        runs = synhalees_item.evaluate(\n            llm=[llm], evaluation_data=pd.DataFrame(rows),\n            n_jobs=2, max_attempts=2, on_failure=\"continue\",\n            remove_run_files=True,\n        )\n    correct = runs.as_dataframe().result.str.get(\"is_correct\").astype(\"boolean\").fillna(False)\n    return float(correct.mean())\n"
+  },
+  "modelVersion": {
+    "slug": "google/gemini-3.1-pro-preview"
+  },
+  "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+  "startTime": "2026-09-26T12:06:41.360145Z",
+  "endTime": "2026-09-26T12:07:48.299527Z",
+  "conversations": [
+    {
+      "id": "synhalees_08_profanity_nuance-13441666",
+      "metrics": {},
+      "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+    }
+  ],
+  "results": [
+    {
+      "type": "AGGREGATED",
+      "numericResult": {
+        "value": 0.13333333333333333
+      }
+    }
+  ],
+  "subruns": [
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_08_profanity_nuance_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_08_profanity_nuance_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:06:41.372287Z",
+      "endTime": "2026-09-26T12:06:53.556026Z",
+      "conversations": [
+        {
+          "id": "synhalees_08_profanity_nuance_item-bcadcca2",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0db4\u0ddc\u0db1\u0dca\u0db1\u0dba\u0dcf' \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0d9c\u0dd1\u0dab\u0dd6 \u0db4\u0dd2\u0dbb\u0dd2\u0db8\u0dd2 \u0daf\u0dd9\u0d9a\u0db8 \u0db1\u0dd0\u0dad\u0dd2 \u0d91\u0d9a\u0dcf\u0da7\u0daf? (\u0dad\u0db1\u0dd2 \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db1\u0dd0\u0dc4\u0dd0."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 36,
+                "outputTokens": 1144,
+                "inputTokensCostNanodollars": "72000",
+                "outputTokensCostNanodollars": "13728000",
+                "totalBackendLatencyMs": "11889"
+              },
+              "id": "synhalees_08_profanity_nuance_item-bcadcca2-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 36,
+            "outputTokens": 1144,
+            "inputTokensCostNanodollars": "72000",
+            "outputTokensCostNanodollars": "13728000",
+            "totalBackendLatencyMs": "11889"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_08_001"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_08_profanity_nuance_item-Run #1"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_08_profanity_nuance_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_08_profanity_nuance_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:06:41.372698Z",
+      "endTime": "2026-09-26T12:07:00.950830Z",
+      "conversations": [
+        {
+          "id": "synhalees_08_profanity_nuance_item-304cefc5",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0dc4\u0dd4\u0dad\u0dca\u0dad\u0dd2\u0d9c\u0dda \u0db4\u0dd4\u0dad\u0dcf' \u0d9a\u0dd2\u0dba\u0db1 \u0d91\u0d9a\u0dda \u0dc3\u0dbb\u0dbd \u0dad\u0dda\u0dbb\u0dd4\u0db8 \u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d91\u0dc4\u0dd2 \u0dc3\u0dbb\u0dbd \u0dad\u0dda\u0dbb\u0dd4\u0db8 \u0d86\u0d9a\u0dcf\u0dbb \u0daf\u0dd9\u0d9a\u0d9a\u0da7 \u0daf\u0dd0\u0d9a\u0dca\u0dc0\u0dd2\u0dba \u0dc4\u0dd0\u0d9a:\n\n1. \u0db4\u0daf\u0d9c\u0dad\u0dcf\u0dbb\u0dca\u0dae\u0dba (Literal meaning): **\u0d9c\u0dab\u0dd2\u0d9a\u0dcf\u0dc0\u0d9c\u0dda \u0db4\u0dd4\u0dad\u0dcf**\n2. \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dba \u0d85\u0db1\u0dd4\u0dc0 (Usage): **\u0d85\u0dc3\u0db7\u0dca\u200d\u0dba \u0db6\u0dd0\u0db1\u0dd4\u0db8\u0d9a\u0dca**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 29,
+                "outputTokens": 2027,
+                "inputTokensCostNanodollars": "58000",
+                "outputTokensCostNanodollars": "24324000",
+                "totalBackendLatencyMs": "19340"
+              },
+              "id": "synhalees_08_profanity_nuance_item-304cefc5-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 29,
+            "outputTokens": 2027,
+            "inputTokensCostNanodollars": "58000",
+            "outputTokensCostNanodollars": "24324000",
+            "totalBackendLatencyMs": "19340"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_08_002"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_08_profanity_nuance_item-Run #2"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_08_profanity_nuance_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_08_profanity_nuance_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:06:53.561830Z",
+      "endTime": "2026-09-26T12:07:01.056807Z",
+      "conversations": [
+        {
+          "id": "synhalees_08_profanity_nuance_item-879fd259",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0db6\u0dd0\u0dbd\u0dca\u0dbd\u0dd2' \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0d9a\u0dd4\u0dab\u0dd4\u0dc4\u0dbb\u0dca\u0db4\u0dba\u0d9a\u0dca\u0daf? (\u0dad\u0db1\u0dd2 \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d94\u0dc0\u0dca."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 32,
+                "outputTokens": 766,
+                "inputTokensCostNanodollars": "64000",
+                "outputTokensCostNanodollars": "9192000",
+                "totalBackendLatencyMs": "7408"
+              },
+              "id": "synhalees_08_profanity_nuance_item-879fd259-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 32,
+            "outputTokens": 766,
+            "inputTokensCostNanodollars": "64000",
+            "outputTokensCostNanodollars": "9192000",
+            "totalBackendLatencyMs": "7408"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_08_003"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_08_profanity_nuance_item-Run #3"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_08_profanity_nuance_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_08_profanity_nuance_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:07:00.955223Z",
+      "endTime": "2026-09-26T12:07:03.666142Z",
+      "conversations": [
+        {
+          "id": "synhalees_08_profanity_nuance_item-15518749",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0dc0\u0dda\u0dc3 \u0db6\u0dd0\u0dbd\u0dca\u0dbd\u0dd2' \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0d9a\u0dd4\u0dab\u0dd4\u0dc4\u0dbb\u0dca\u0db4\u0dba\u0d9a\u0dca\u0daf? (\u0dad\u0db1\u0dd2 \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d94\u0dc0\u0dca."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 28,
+                "outputTokens": 231,
+                "inputTokensCostNanodollars": "56000",
+                "outputTokensCostNanodollars": "2772000",
+                "totalBackendLatencyMs": "2569"
+              },
+              "id": "synhalees_08_profanity_nuance_item-15518749-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 28,
+            "outputTokens": 231,
+            "inputTokensCostNanodollars": "56000",
+            "outputTokensCostNanodollars": "2772000",
+            "totalBackendLatencyMs": "2569"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_08_004"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_08_profanity_nuance_item-Run #4"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_08_profanity_nuance_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_08_profanity_nuance_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:07:01.061059Z",
+      "endTime": "2026-09-26T12:07:08.072782Z",
+      "conversations": [
+        {
+          "id": "synhalees_08_profanity_nuance_item-255cc743",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0d9a\u0dd0\u0dbb\u0dd2' \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0db1\u0dcf\u0da7\u0daf? (\u0dad\u0db1\u0dd2 \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dd4\u0d9a\u0dca\u200d\u0dbb\u0dad\u0dbb\u0dbd\u0dba."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 23,
+                "outputTokens": 667,
+                "inputTokensCostNanodollars": "46000",
+                "outputTokensCostNanodollars": "8004000",
+                "totalBackendLatencyMs": "6921"
+              },
+              "id": "synhalees_08_profanity_nuance_item-255cc743-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 23,
+            "outputTokens": 667,
+            "inputTokensCostNanodollars": "46000",
+            "outputTokensCostNanodollars": "8004000",
+            "totalBackendLatencyMs": "6921"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_08_005"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_08_profanity_nuance_item-Run #5"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_08_profanity_nuance_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_08_profanity_nuance_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:07:03.670730Z",
+      "endTime": "2026-09-26T12:07:09.034414Z",
+      "conversations": [
+        {
+          "id": "synhalees_08_profanity_nuance_item-753e87df",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0db4\u0dd4\u0d9a' \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0d9a\u0dda\u0da7\u0daf? (\u0dad\u0db1\u0dd2 \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dad\u0da7\u0dca\u0da7\u0db8"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 23,
+                "outputTokens": 390,
+                "inputTokensCostNanodollars": "46000",
+                "outputTokensCostNanodollars": "4680000",
+                "totalBackendLatencyMs": "5279"
+              },
+              "id": "synhalees_08_profanity_nuance_item-753e87df-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 23,
+            "outputTokens": 390,
+            "inputTokensCostNanodollars": "46000",
+            "outputTokensCostNanodollars": "4680000",
+            "totalBackendLatencyMs": "5279"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_08_006"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_08_profanity_nuance_item-Run #6"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_08_profanity_nuance_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_08_profanity_nuance_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:07:09.041450Z",
+      "endTime": "2026-09-26T12:07:14.274673Z",
+      "conversations": [
+        {
+          "id": "synhalees_08_profanity_nuance_item-eaaa1d56",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0dc4\u0dd4\u0d9a\u0db1\u0dc0\u0dcf' \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0d9a\u0dda\u0da7\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dbd\u0dd2\u0d82\u0d9c\u0dd2\u0d9a \u0dc3\u0d82\u0dc3\u0dbb\u0dca\u0d9c\u0dba."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 25,
+                "outputTokens": 466,
+                "inputTokensCostNanodollars": "50000",
+                "outputTokensCostNanodollars": "5592000",
+                "totalBackendLatencyMs": "5136"
+              },
+              "id": "synhalees_08_profanity_nuance_item-eaaa1d56-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 25,
+            "outputTokens": 466,
+            "inputTokensCostNanodollars": "50000",
+            "outputTokensCostNanodollars": "5592000",
+            "totalBackendLatencyMs": "5136"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_08_008"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_08_profanity_nuance_item-Run #8"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_08_profanity_nuance_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_08_profanity_nuance_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:07:08.077129Z",
+      "endTime": "2026-09-26T12:07:15.948544Z",
+      "conversations": [
+        {
+          "id": "synhalees_08_profanity_nuance_item-030e1ce1",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0db4\u0dd4\u0d9a\u0dda \u0d85\u0dbb\u0dd2\u0db1\u0dc0\u0dcf' \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0d9a\u0dda\u0da7\u0daf? (\u0dc0\u0da0\u0db1 \u0dad\u0dd4\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9c\u0dd4\u0daf \u0dc3\u0d82\u0dc3\u0dbb\u0dca\u0d9c\u0dba\u0dda \u0dba\u0dd9\u0daf\u0dd3\u0db8."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 28,
+                "outputTokens": 818,
+                "inputTokensCostNanodollars": "56000",
+                "outputTokensCostNanodollars": "9816000",
+                "totalBackendLatencyMs": "7788"
+              },
+              "id": "synhalees_08_profanity_nuance_item-030e1ce1-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 28,
+            "outputTokens": 818,
+            "inputTokensCostNanodollars": "56000",
+            "outputTokensCostNanodollars": "9816000",
+            "totalBackendLatencyMs": "7788"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_08_007"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_08_profanity_nuance_item-Run #7"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_08_profanity_nuance_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_08_profanity_nuance_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:07:15.952726Z",
+      "endTime": "2026-09-26T12:07:22.534678Z",
+      "conversations": [
+        {
+          "id": "synhalees_08_profanity_nuance_item-e01cd432",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0d9a\u0dd2\u0db8\u0dca\u0db6' \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0db1\u0dcf\u0da7\u0daf? (\u0dad\u0db1\u0dd2 \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dba\u0ddd\u0db1\u0dd2\u0dba"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 23,
+                "outputTokens": 643,
+                "inputTokensCostNanodollars": "46000",
+                "outputTokensCostNanodollars": "7716000",
+                "totalBackendLatencyMs": "6501"
+              },
+              "id": "synhalees_08_profanity_nuance_item-e01cd432-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 23,
+            "outputTokens": 643,
+            "inputTokensCostNanodollars": "46000",
+            "outputTokensCostNanodollars": "7716000",
+            "totalBackendLatencyMs": "6501"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_08_010"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_08_profanity_nuance_item-Run #10"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_08_profanity_nuance_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_08_profanity_nuance_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:07:14.279161Z",
+      "endTime": "2026-09-26T12:07:24.530388Z",
+      "conversations": [
+        {
+          "id": "synhalees_08_profanity_nuance_item-0ac9eb45",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0db4\u0dba\u0dd2\u0dba' \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0d9a\u0dda\u0da7\u0daf? (\u0dad\u0db1\u0dd2 \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dd2\u0dc2\u0dca\u0dab\u0dba (\u0dc4\u0ddd \u0dc3\u0dcf\u0db8\u0dca\u0db4\u0dca\u200d\u0dbb\u0daf\u0dcf\u0dba\u0dd2\u0d9a \u0d85\u0dbb\u0dca\u0dae\u0dba\u0dd9\u0db1\u0dca '\u0db8\u0dbd\u0dca\u0dbd')."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 24,
+                "outputTokens": 1034,
+                "inputTokensCostNanodollars": "48000",
+                "outputTokensCostNanodollars": "12408000",
+                "totalBackendLatencyMs": "10159"
+              },
+              "id": "synhalees_08_profanity_nuance_item-0ac9eb45-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 24,
+            "outputTokens": 1034,
+            "inputTokensCostNanodollars": "48000",
+            "outputTokensCostNanodollars": "12408000",
+            "totalBackendLatencyMs": "10159"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_08_009"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_08_profanity_nuance_item-Run #9"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_08_profanity_nuance_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_08_profanity_nuance_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:07:22.539011Z",
+      "endTime": "2026-09-26T12:07:28.571169Z",
+      "conversations": [
+        {
+          "id": "synhalees_08_profanity_nuance_item-4e181c69",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0da7\u0ddc\u0db4\u0dcf' \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0d9a\u0dda\u0da7\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dd2\u0dc2\u0dca\u0dab \u0db8\u0dd4\u0dab\u0dca\u0da9\u0dba."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 24,
+                "outputTokens": 541,
+                "inputTokensCostNanodollars": "48000",
+                "outputTokensCostNanodollars": "6492000",
+                "totalBackendLatencyMs": "5939"
+              },
+              "id": "synhalees_08_profanity_nuance_item-4e181c69-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 24,
+            "outputTokens": 541,
+            "inputTokensCostNanodollars": "48000",
+            "outputTokensCostNanodollars": "6492000",
+            "totalBackendLatencyMs": "5939"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_08_011"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_08_profanity_nuance_item-Run #11"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_08_profanity_nuance_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_08_profanity_nuance_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:07:28.575914Z",
+      "endTime": "2026-09-26T12:07:35.624912Z",
+      "conversations": [
+        {
+          "id": "synhalees_08_profanity_nuance_item-a888c9a4",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0db6\u0dd2\u0da2\u0dca\u0da2' \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0d9a\u0dda\u0da7\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db4\u0dd4\u0dbb\u0dd4\u0dc2 \u0dbd\u0dd2\u0d82\u0d9c\u0dba\u0da7."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 26,
+                "outputTokens": 694,
+                "inputTokensCostNanodollars": "52000",
+                "outputTokensCostNanodollars": "8328000",
+                "totalBackendLatencyMs": "6962"
+              },
+              "id": "synhalees_08_profanity_nuance_item-a888c9a4-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 26,
+            "outputTokens": 694,
+            "inputTokensCostNanodollars": "52000",
+            "outputTokensCostNanodollars": "8328000",
+            "totalBackendLatencyMs": "6962"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_08_013"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_08_profanity_nuance_item-Run #13"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_08_profanity_nuance_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_08_profanity_nuance_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:07:24.535292Z",
+      "endTime": "2026-09-26T12:07:38.106386Z",
+      "conversations": [
+        {
+          "id": "synhalees_08_profanity_nuance_item-56e15efa",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d95\u0db1 \u0dbd\u0dd2\u0d82\u0d9c\u0dd2\u0d9a \u0d85\u0dc0\u0dba\u0dc0\u0dba\u0d9a\u0da7 \u0d9a\u0dd2\u0dba\u0db1 \u0db4\u0ddc\u0daf\u0dd4 \u0d9a\u0dd4\u0dab\u0dd4\u0dc4\u0dbb\u0dca\u0db4\u0dba \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0db7\u0dcf\u0dc2\u0dcf\u0dc0 \u0dad\u0dd4\u0dc5 \u0dc3\u0dca\u0dad\u0dca\u200d\u0dbb\u0dd3 \u0dc3\u0dc4 \u0db4\u0dd4\u0dbb\u0dd4\u0dc2 \u0dbd\u0dd2\u0d82\u0d9c\u0dd2\u0d9a \u0d85\u0dc0\u0dba\u0dc0 \u0daf\u0dd9\u0d9a\u0da7\u0db8 \u0db4\u0ddc\u0daf\u0dd4\u0dc0\u0dda \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0db1 \u0d91\u0d9a\u0db8 \"\u0d9a\u0dd4\u0dab\u0dd4\u0dc4\u0dbb\u0dca\u0db4\u0dba\u0d9a\u0dca\" (\u0d85\u0dc3\u0db7\u0dca\u200d\u0dba \u0dc0\u0da0\u0db1\u0dba\u0d9a\u0dca) \u0db1\u0dd0\u0dad. \u0db4\u0dd2\u0dbb\u0dd2\u0db8\u0dd2 \u0dc3\u0dc4 \u0d9c\u0dd0\u0dc4\u0dd0\u0dab\u0dd4 \u0d85\u0dc0\u0dba\u0dc0 \u0dc3\u0db3\u0dc4\u0dcf \u0dc0\u0dd9\u0db1 \u0dc0\u0dd9\u0db1\u0db8 \u0d85\u0dc3\u0db7\u0dca\u200d\u0dba \u0dc0\u0da0\u0db1 \u0dc3\u0db8\u0dcf\u0da2\u0dba\u0dda \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0dc0\u0dda.\n\n\u0db1\u0db8\u0dd4\u0dad\u0dca \u0d85\u0dc3\u0db7\u0dca\u200d\u0dba \u0db1\u0ddc\u0dc0\u0db1 \u0d85\u0dba\u0dd4\u0dbb\u0dd2\u0db1\u0dca, \u0db4\u0ddc\u0daf\u0dd4\u0dc0\u0dda \u0d95\u0db1\u0dd1\u0db8 \u0dbd\u0dd2\u0d82\u0d9c\u0dd2\u0d9a \u0d85\u0dc0\u0dba\u0dc0\u0dba\u0d9a\u0dca \u0dc4\u0dd0\u0db3\u0dd2\u0db1\u0dca\u0dc0\u0dd3\u0db8\u0da7 \u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba \u0da2\u0db1 \u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc4\u0dcf\u0dbb\u0dba\u0dda\u0daf\u0dd3 **\"\u0d85\u0dc4\u0dc0\u0dbd\u0dca \u0d91\u0d9a\"** \u0dba\u0db1 \u0dba\u0dd9\u0daf\u0dd4\u0db8 \u0db1\u0dd2\u0dad\u0dbb \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0db1\u0dd4 \u0dbd\u0db6\u0dba\u0dd2. \u0d8a\u0da7 \u0d85\u0db8\u0dad\u0dbb\u0dc0 **\"\u0dbb\u0dc4\u0dc3\u0d9f\"** \u0dba\u0db1\u0dca\u0db1\u0daf \u0db4\u0ddc\u0daf\u0dd4 \u0dc0\u0da0\u0db1\u0dba\u0d9a\u0dca \u0dbd\u0dd9\u0dc3 \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0dc0\u0dda.\n\n*(\u0d9a\u0dd8\u0dad\u0dca\u200d\u0dbb\u0dd2\u0db8 \u0db6\u0dd4\u0daf\u0dca\u0db0\u0dd2 \u0db4\u0daf\u0dca\u0db0\u0dad\u0dd2\u0dba\u0d9a\u0dca \u0dbd\u0dd9\u0dc3, \u0dc3\u0dd8\u0da2\u0dd4\u0dc0\u0db8 \u0d85\u0dc3\u0db7\u0dca\u200d\u0dba \u0dc0\u0da0\u0db1 \u0dc3\u0dc4 \u0d9a\u0dd4\u0dab\u0dd4\u0dc4\u0dbb\u0dca\u0db4 \u0dbd\u0dd2\u0dc0\u0dd3\u0db8\u0da7 \u0db8\u0d9c\u0dda \u0d86\u0dbb\u0d9a\u0dca\u0dc2\u0dd2\u0dad \u0db8\u0dcf\u0dbb\u0dca\u0d9c\u0ddd\u0db4\u0daf\u0dda\u0dc1 (Safety Guidelines) \u0db8\u0d9c\u0dd2\u0db1\u0dca \u0dc3\u0dd3\u0db8\u0dcf \u0db4\u0db1\u0dc0\u0dcf \u0d87\u0dad\u0dd2 \u0db6\u0dc0 \u0d9a\u0dbb\u0dd4\u0dab\u0dcf\u0dc0\u0dd9\u0db1\u0dca \u0dc3\u0dbd\u0d9a\u0db1\u0dca\u0db1.)*"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 26,
+                "outputTokens": 1442,
+                "inputTokensCostNanodollars": "52000",
+                "outputTokensCostNanodollars": "17304000",
+                "totalBackendLatencyMs": "13471"
+              },
+              "id": "synhalees_08_profanity_nuance_item-56e15efa-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 26,
+            "outputTokens": 1442,
+            "inputTokensCostNanodollars": "52000",
+            "outputTokensCostNanodollars": "17304000",
+            "totalBackendLatencyMs": "13471"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_08_012"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_08_profanity_nuance_item-Run #12"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_08_profanity_nuance_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_08_profanity_nuance_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:07:35.629397Z",
+      "endTime": "2026-09-26T12:07:47.598619Z",
+      "conversations": [
+        {
+          "id": "synhalees_08_profanity_nuance_item-d9fc6c21",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9a\u0dd9\u0dbd\u0dca\u0dbd\u0dd9\u0d9a\u0dca \u0dc3\u0dca\u0dc0\u0dba\u0d82 \u0dc0\u0dd2\u0db1\u0dca\u0daf\u0db1\u0dba \u0d9a\u0dbb\u0db1 \u0d91\u0d9a\u0da7 \u0d9a\u0dd2\u0dba\u0db1 \u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba \u0d9a\u0dd4\u0dab\u0dd4\u0dc4\u0dbb\u0dca\u0db4\u0dda \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba \u0d9a\u0dad\u0dcf\u0db6\u0dc4\u0dda\u0daf\u0dd3 \u0dc4\u0ddd \u0d85\u0dc3\u0db7\u0dca\u200d\u0dba/\u0dc0\u0dd3\u0daf\u0dd2 \u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc4\u0dcf\u0dbb\u0dba\u0dda\u0daf\u0dd3 (slang) \u0d9a\u0dcf\u0db1\u0dca\u0dad\u0dcf\u0dc0\u0d9a\u0dca \u0dc3\u0dca\u0dc0\u0dba\u0d82 \u0dc0\u0dd2\u0db1\u0dca\u0daf\u0db1\u0dba\u0dda \u0dba\u0dd9\u0daf\u0dd3\u0db8 \u0dc4\u0dd0\u0db3\u0dd2\u0db1\u0dca\u0dc0\u0dd3\u0db8\u0da7 \u0db6\u0dc4\u0dd4\u0dbd\u0dc0\u0db8 \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda **\"\u0d87\u0d9f\u0dd2\u0dbd\u0dd2 \u0d9c\u0dc4\u0db1\u0dc0\u0dcf\"** \u0dba\u0db1 \u0dba\u0dd9\u0daf\u0dd4\u0db8\u0dba\u0dd2. \n\n\u0db4\u0dd2\u0dbb\u0dd2\u0db8\u0dd2 \u0db4\u0dd4\u0daf\u0dca\u0d9c\u0dbd\u0dba\u0dd2\u0db1\u0dca \u0dc3\u0db8\u0dca\u0db6\u0db1\u0dca\u0db0\u0dba\u0dd9\u0db1\u0dca \"\u0d85\u0dad\u0dda \u0d9c\u0dc4\u0db1\u0dc0\u0dcf\" \u0dba\u0db1 \u0dba\u0dd9\u0daf\u0dd4\u0db8 \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0db1 \u0d86\u0d9a\u0dcf\u0dbb\u0dba\u0da7\u0db8, \u0d9a\u0dcf\u0db1\u0dca\u0dad\u0dcf\u0dc0\u0db1\u0dca \u0dc3\u0db3\u0dc4\u0dcf \u0dc3\u0db8\u0dcf\u0da2\u0dba\u0dda \u0db8\u0dd9\u0db8 \u0dc0\u0da0\u0db1\u0dba \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0dc0\u0dda. \n\n\u0db8\u0dd3\u0da7 \u0d85\u0db8\u0dad\u0dbb\u0dc0, \u0dc3\u0db8\u0dc4\u0dbb \u0d85\u0dc0\u0dc3\u0dca\u0dae\u0dcf\u0dc0\u0dbd\u0daf\u0dd3 \u0dc3\u0dca\u0dad\u0dca\u200d\u0dbb\u0dd3 \u0db4\u0dd4\u0dbb\u0dd4\u0dc2 \u0db7\u0dda\u0daf\u0dba\u0d9a\u0dd2\u0db1\u0dca \u0dad\u0ddc\u0dbb\u0dc0 \u0db4\u0ddc\u0daf\u0dd4\u0dc0\u0dda \u0d9a\u0dcf\u0db1\u0dca\u0dad\u0dcf\u0dc0\u0db1\u0dca \u0dc3\u0db3\u0dc4\u0dcf\u0daf \"\u0d85\u0dad\u0dda \u0d9c\u0dc4\u0db1\u0dc0\u0dcf\" \u0dba\u0db1 \u0dba\u0dd9\u0daf\u0dd4\u0db8\u0db8 \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0db1 \u0d85\u0dc0\u0dc3\u0dca\u0dae\u0dcf \u0daf \u0daf\u0dd0\u0d9a\u0d9c\u0dad \u0dc4\u0dd0\u0d9a\u0dd2\u0dba."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 33,
+                "outputTokens": 1244,
+                "inputTokensCostNanodollars": "66000",
+                "outputTokensCostNanodollars": "14928000",
+                "totalBackendLatencyMs": "11876"
+              },
+              "id": "synhalees_08_profanity_nuance_item-d9fc6c21-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 33,
+            "outputTokens": 1244,
+            "inputTokensCostNanodollars": "66000",
+            "outputTokensCostNanodollars": "14928000",
+            "totalBackendLatencyMs": "11876"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_08_014"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_08_profanity_nuance_item-Run #14"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_08_profanity_nuance_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_08_profanity_nuance_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:07:38.111243Z",
+      "endTime": "2026-09-26T12:07:48.279214Z",
+      "conversations": [
+        {
+          "id": "synhalees_08_profanity_nuance_item-1c956a5a",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9a\u0ddc\u0dbd\u0dca\u0dbd\u0dd9\u0d9a\u0dca \u0dc3\u0dca\u0dc0\u0dba\u0d82 \u0dc0\u0dd2\u0db1\u0dca\u0daf\u0db1\u0dba \u0d9a\u0dbb\u0db1 \u0d91\u0d9a\u0da7 \u0d9a\u0dd2\u0dba\u0db1 \u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba \u0d9a\u0dd4\u0dab\u0dd4\u0dc4\u0dbb\u0dca\u0db4\u0dda \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba \u0d9a\u0dad\u0dcf\u0db6\u0dc4\u0dda\u0daf\u0dd3 (Slang) \u0d92 \u0dc3\u0db3\u0dc4\u0dcf \u0db6\u0ddc\u0dc4\u0ddd \u0dc0\u0dd2\u0da7 \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda **\"\u0d85\u0dad\u0dda \u0d9c\u0dc4\u0db1\u0dc0\u0dcf\"** \u0dba\u0db1 \u0dba\u0dd9\u0daf\u0dd4\u0db8\u0dba\u0dd2. \n\n\u0d9a\u0dd9\u0dc3\u0dda \u0dc0\u0dd9\u0dad\u0dad\u0dca, \u0db8\u0dd9\u0dba \u0dc3\u0db7\u0dca\u200d\u0dba \u0dc3\u0db8\u0dcf\u0da2\u0dba\u0dda \u0dc4\u0ddd \u0dc0\u0dd2\u0db0\u0dd2\u0db8\u0dad\u0dca \u0dc3\u0dca\u0dae\u0dcf\u0db1\u0dc0\u0dbd (Formal situations) \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0da7 \u0dc3\u0dd4\u0daf\u0dd4\u0dc3\u0dd4 \u0dba\u0dd9\u0daf\u0dd4\u0db8\u0d9a\u0dca \u0dbd\u0dd9\u0dc3 \u0db1\u0ddc\u0dc3\u0dd0\u0dbd\u0d9a\u0dda. \u0d92 \u0dc3\u0db3\u0dc4\u0dcf \u0dc3\u0dd4\u0daf\u0dd4\u0dc3\u0dd4\u0db8 \u0dc3\u0dc4 \u0db1\u0dd2\u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0dc0\u0da0\u0db1\u0dba \u0dc0\u0db1\u0dca\u0db1\u0dda \u0d94\u0db6 \u0dc3\u0db3\u0dc4\u0db1\u0dca \u0d9a\u0dc5 \u0db4\u0dbb\u0dd2\u0daf\u0dd2 \"\u0dc3\u0dca\u0dc0\u0dba\u0d82 \u0dc0\u0dd2\u0db1\u0dca\u0daf\u0db1\u0dba\" \u0dba\u0db1\u0dca\u0db1\u0dba\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 32,
+                "outputTokens": 1006,
+                "inputTokensCostNanodollars": "64000",
+                "outputTokensCostNanodollars": "12072000",
+                "totalBackendLatencyMs": "10087"
+              },
+              "id": "synhalees_08_profanity_nuance_item-1c956a5a-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 32,
+            "outputTokens": 1006,
+            "inputTokensCostNanodollars": "64000",
+            "outputTokensCostNanodollars": "12072000",
+            "totalBackendLatencyMs": "10087"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_08_015"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_08_profanity_nuance_item-Run #15"
+    }
+  ],
+  "pyRunId": "synhalees_08_profanity_nuance-Run #1"
+}

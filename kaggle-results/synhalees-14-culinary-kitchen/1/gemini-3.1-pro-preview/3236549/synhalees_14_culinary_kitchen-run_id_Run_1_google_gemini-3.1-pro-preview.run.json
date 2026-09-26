@@ -1,0 +1,1067 @@
+{
+  "taskVersion": {
+    "versionNumber": 1,
+    "name": "synhalees_14_culinary_kitchen",
+    "description": "SynhalEES pillar 14_culinary_kitchen: native Sinhala text accuracy.",
+    "definition": "@kbench.task(name=\"synhalees_14_culinary_kitchen\", description=\"SynhalEES pillar 14_culinary_kitchen: native Sinhala text accuracy.\")\ndef synhalees_task(llm) -> float:\n    '''Evaluate Culinary Kitchen (text); return accuracy in [0, 1].'''\n    import pandas as pd\n\n    rows = _rows()\n    if not rows:\n        raise ValueError(\n            \"No runnable text rows for Culinary Kitchen yet -- media files may \"\n            \"not be committed under benchmark_data/.\"\n        )\n    with kbench.client.enable_cache():\n        runs = synhalees_item.evaluate(\n            llm=[llm], evaluation_data=pd.DataFrame(rows),\n            n_jobs=2, max_attempts=2, on_failure=\"continue\",\n            remove_run_files=True,\n        )\n    correct = runs.as_dataframe().result.str.get(\"is_correct\").astype(\"boolean\").fillna(False)\n    return float(correct.mean())\n"
+  },
+  "modelVersion": {
+    "slug": "google/gemini-3.1-pro-preview"
+  },
+  "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+  "startTime": "2026-09-26T12:08:36.354629Z",
+  "endTime": "2026-09-26T12:09:27.437635Z",
+  "conversations": [
+    {
+      "id": "synhalees_14_culinary_kitchen-73ee9516",
+      "metrics": {},
+      "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+    }
+  ],
+  "results": [
+    {
+      "type": "AGGREGATED",
+      "numericResult": {
+        "value": 0.6
+      }
+    }
+  ],
+  "subruns": [
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_14_culinary_kitchen_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_14_culinary_kitchen_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:08:36.366971Z",
+      "endTime": "2026-09-26T12:08:39.873376Z",
+      "conversations": [
+        {
+          "id": "synhalees_14_culinary_kitchen_item-f680a05c",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc4\u0dd0\u0dbd\u0db4 \u0dc4\u0daf\u0db1\u0dca\u0db1 \u0d9c\u0db1\u0dca\u0db1 \u0db4\u0dd2\u0da7\u0dd2 \u0dc0\u0dbb\u0dca\u0d9c\u0dda \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d8b\u0dad\u0dca\u0dad\u0dbb \u0daf\u0dd9\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9a\u0dd4\u0dbb\u0d9a\u0dca\u0d9a\u0db1\u0dca \u0db4\u0dd2\u0da7\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 31,
+                "outputTokens": 240,
+                "inputTokensCostNanodollars": "62000",
+                "outputTokensCostNanodollars": "2880000",
+                "totalBackendLatencyMs": "3311"
+              },
+              "id": "synhalees_14_culinary_kitchen_item-f680a05c-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 31,
+            "outputTokens": 240,
+            "inputTokensCostNanodollars": "62000",
+            "outputTokensCostNanodollars": "2880000",
+            "totalBackendLatencyMs": "3311"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_14_002"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_14_culinary_kitchen_item-Run #2"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_14_culinary_kitchen_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_14_culinary_kitchen_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:08:36.366054Z",
+      "endTime": "2026-09-26T12:08:39.989158Z",
+      "conversations": [
+        {
+          "id": "synhalees_14_culinary_kitchen_item-f4c50e6e",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9a\u0dd2\u0dbb\u0dd2\u0db6\u0dad\u0dca \u0dc4\u0daf\u0db1\u0dca\u0db1 \u0d9c\u0db1\u0dca\u0db1 \u0dc4\u0dcf\u0dbd\u0dca \u0dc0\u0dbb\u0dca\u0d9c\u0dda \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dad\u0db1\u0dd2 \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d8b\u0dad\u0dca\u0dad\u0dbb \u0daf\u0dd9\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9a\u0dd0\u0d9a\u0dd4\u0dc5\u0dd4"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 32,
+                "outputTokens": 281,
+                "inputTokensCostNanodollars": "64000",
+                "outputTokensCostNanodollars": "3372000",
+                "totalBackendLatencyMs": "3481"
+              },
+              "id": "synhalees_14_culinary_kitchen_item-f4c50e6e-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 32,
+            "outputTokens": 281,
+            "inputTokensCostNanodollars": "64000",
+            "outputTokensCostNanodollars": "3372000",
+            "totalBackendLatencyMs": "3481"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_14_001"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_14_culinary_kitchen_item-Run #1"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_14_culinary_kitchen_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_14_culinary_kitchen_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:08:39.878520Z",
+      "endTime": "2026-09-26T12:08:42.271648Z",
+      "conversations": [
+        {
+          "id": "synhalees_14_culinary_kitchen_item-3b5b7a55",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc4\u0ddc\u0daf\u0dd2 \u0d9a\u0dc4 \u0db4\u0dcf\u0da7 \u0d9a\u0dbb\u0db1\u0dca\u0db1 \u0daf\u0dcf\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dad\u0db1\u0dd2 \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d8b\u0dad\u0dca\u0dad\u0dbb \u0daf\u0dd9\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9a\u0dc4"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 30,
+                "outputTokens": 180,
+                "inputTokensCostNanodollars": "60000",
+                "outputTokensCostNanodollars": "2160000",
+                "totalBackendLatencyMs": "2316"
+              },
+              "id": "synhalees_14_culinary_kitchen_item-3b5b7a55-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 30,
+            "outputTokens": 180,
+            "inputTokensCostNanodollars": "60000",
+            "outputTokensCostNanodollars": "2160000",
+            "totalBackendLatencyMs": "2316"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_14_003"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_14_culinary_kitchen_item-Run #3"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_14_culinary_kitchen_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_14_culinary_kitchen_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:08:42.276517Z",
+      "endTime": "2026-09-26T12:08:46.258214Z",
+      "conversations": [
+        {
+          "id": "synhalees_14_culinary_kitchen_item-13e72956",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0da4\u0dca\u0da4\u0ddc\u0d9a\u0dca\u0d9a\u0dcf \u0d8b\u0dba\u0daf\u0dca\u0daf\u0dd3 \u0db7\u0dcf\u0da2\u0db1\u0dda \u0d87\u0dbb\u0dbd\u0daf \u0d8b\u0dba\u0db1\u0dca\u0db1\u0dda \u0db1\u0dd0\u0dad\u0dca\u0dad\u0db8\u0dca \u0dc0\u0dc4\u0dbd\u0daf?  (\u0dad\u0db1\u0dd2 \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d8b\u0dad\u0dca\u0dad\u0dbb \u0daf\u0dd9\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d87\u0dbb\u0dbd\u0dcf."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 45,
+                "outputTokens": 335,
+                "inputTokensCostNanodollars": "90000",
+                "outputTokensCostNanodollars": "4020000",
+                "totalBackendLatencyMs": "3844"
+              },
+              "id": "synhalees_14_culinary_kitchen_item-13e72956-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 45,
+            "outputTokens": 335,
+            "inputTokensCostNanodollars": "90000",
+            "outputTokensCostNanodollars": "4020000",
+            "totalBackendLatencyMs": "3844"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_14_005"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_14_culinary_kitchen_item-Run #5"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_14_culinary_kitchen_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_14_culinary_kitchen_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:08:39.993463Z",
+      "endTime": "2026-09-26T12:08:47.000891Z",
+      "conversations": [
+        {
+          "id": "synhalees_14_culinary_kitchen_item-4a562f21",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd4\u0daf\u0dd4 \u0db4\u0dcf\u0da7\u0da7 \u0dad\u0dd2\u0dba\u0dd9\u0db1 \u0dc3\u0db8\u0dca\u0db6\u0ddd\u0dbd\u0dda \u0dc4\u0daf\u0db1\u0dca\u0db1 \u0d9c\u0db1\u0dca\u0db1 \u0db8\u0dd2\u0dbb\u0dd2\u0dc3\u0dca \u0dc0\u0dbb\u0dca\u0d9c\u0dda \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d8b\u0dad\u0dca\u0dad\u0dbb \u0daf\u0dd9\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d85\u0db8\u0dd4 \u0db8\u0dd2\u0dbb\u0dd2\u0dc3\u0dca"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 41,
+                "outputTokens": 696,
+                "inputTokensCostNanodollars": "82000",
+                "outputTokensCostNanodollars": "8352000",
+                "totalBackendLatencyMs": "6935"
+              },
+              "id": "synhalees_14_culinary_kitchen_item-4a562f21-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 41,
+            "outputTokens": 696,
+            "inputTokensCostNanodollars": "82000",
+            "outputTokensCostNanodollars": "8352000",
+            "totalBackendLatencyMs": "6935"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_14_004"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_14_culinary_kitchen_item-Run #4"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_14_culinary_kitchen_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_14_culinary_kitchen_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:08:46.263098Z",
+      "endTime": "2026-09-26T12:08:50.670163Z",
+      "conversations": [
+        {
+          "id": "synhalees_14_culinary_kitchen_item-156c97c2",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0d86\u0dc4\u0dcf\u0dbb \u0dbb\u0da7\u0dcf\u0dc0 \u0d9c\u0ddc\u0da9 \u0db1\u0dd0\u0d9f\u0dd2\u0dbd\u0dcf \u0dad\u0dd2\u0dba\u0dd9\u0db1\u0dca\u0db1\u0dd9 \u0db8\u0ddc\u0db1 \u0d9c\u0dc4 \u0db8\u0dd6\u0dbd\u0dd2\u0d9a \u0d9a\u0dbb\u0d9c\u0dd9\u0db1\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d8b\u0dad\u0dca\u0dad\u0dbb \u0daf\u0dd9\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db4\u0ddc\u0dbd\u0dca \u0d9c\u0dc4."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 48,
+                "outputTokens": 359,
+                "inputTokensCostNanodollars": "96000",
+                "outputTokensCostNanodollars": "4308000",
+                "totalBackendLatencyMs": "4318"
+              },
+              "id": "synhalees_14_culinary_kitchen_item-156c97c2-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 48,
+            "outputTokens": 359,
+            "inputTokensCostNanodollars": "96000",
+            "outputTokensCostNanodollars": "4308000",
+            "totalBackendLatencyMs": "4318"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_14_006"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_14_culinary_kitchen_item-Run #6"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_14_culinary_kitchen_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_14_culinary_kitchen_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:08:50.675035Z",
+      "endTime": "2026-09-26T12:08:58.274077Z",
+      "conversations": [
+        {
+          "id": "synhalees_14_culinary_kitchen_item-7d04d6db",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db4\u0ddc\u0dbd\u0dca \u0d9c\u0dcf\u0db1\u0dca\u0db1 \u0d9c\u0db1\u0dca\u0db1 \u0d8b\u0db4\u0d9a\u0dbb\u0dab\u0dd9\u0da7 \u0d9a\u0dd2\u0dba\u0db1 \u0db1\u0db8 \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db4\u0ddc\u0dbd\u0dca \u0d9c\u0dcf\u0db1\u0dca\u0db1 \u0d9c\u0db1\u0dca\u0db1 \u0d8b\u0db4\u0d9a\u0dbb\u0dab\u0dba\u0da7 \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda **\u0dc4\u0dd2\u0dbb\u0db8\u0db1\u0dba**. \n\n\u0dc0\u0dbb\u0dca\u0dad\u0db8\u0dcf\u0db1\u0dba\u0dda\u0daf\u0dd3 \u0dc3\u0dcf\u0db8\u0dca\u0db4\u0dca\u200d\u0dbb\u0daf\u0dcf\u0dba\u0dd2\u0d9a \u0dc4\u0dd2\u0dbb\u0db8\u0db1\u0dba\u0da7 \u0d85\u0db8\u0dad\u0dbb\u0dc0 \u0db8\u0dda\u0dc3\u0dba\u0da7 \u0dc3\u0dc0\u0dd2 \u0d9a\u0dbb\u0db1 \u0d9a\u0dd4\u0da9\u0dcf \u0dc4\u0dd2\u0dbb\u0db8\u0db1 \u0dc3\u0dc4 **\u0dc0\u0dd2\u0daf\u0dd4\u0dbd\u0dd2 \u0dc4\u0dd2\u0dbb\u0db8\u0db1** (Electric coconut scrapers) \u0daf \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0dc0\u0dda."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 22,
+                "outputTokens": 713,
+                "inputTokensCostNanodollars": "44000",
+                "outputTokensCostNanodollars": "8556000",
+                "totalBackendLatencyMs": "7520"
+              },
+              "id": "synhalees_14_culinary_kitchen_item-7d04d6db-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 22,
+            "outputTokens": 713,
+            "inputTokensCostNanodollars": "44000",
+            "outputTokensCostNanodollars": "8556000",
+            "totalBackendLatencyMs": "7520"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_14_008"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_14_culinary_kitchen_item-Run #8"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_14_culinary_kitchen_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_14_culinary_kitchen_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:08:47.005583Z",
+      "endTime": "2026-09-26T12:08:58.645855Z",
+      "conversations": [
+        {
+          "id": "synhalees_14_culinary_kitchen_item-d9e03007",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0dc0\u0dd0\u0da9\u0dd2\u0db8 \u0daf\u0dd9\u0db1\u0dd9\u0d9a\u0dca \u0d9a\u0db1 \u0db8\u0dc3\u0dca \u0da2\u0dcf\u0dad\u0dd2\u0dba \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0dc0\u0dd0\u0da9\u0dd2\u0db8 \u0daf\u0dd9\u0db1\u0dd9\u0d9a\u0dca \u0d86\u0dc4\u0dcf\u0dbb\u0dba\u0da7 \u0d9c\u0db1\u0dca\u0db1\u0dcf \u0db8\u0dc3\u0dca \u0da2\u0dcf\u0dad\u0dd2\u0dba \u0dc0\u0db1\u0dca\u0db1\u0dda **\u0d9a\u0dd4\u0d9a\u0dd4\u0dbd\u0dca \u0db8\u0dc3\u0dca (Chicken)** \u0dba. \n\n\u0d8a\u0da7 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dc4\u0dda\u0dad\u0dd4 \u0d9a\u0dd2\u0dc4\u0dd2\u0db4\u0dba\u0d9a\u0dca\u0db8 \u0db6\u0dbd\u0db4\u0dcf\u0db1\u0dc0\u0dcf:\n\n1. **\u0d86\u0d9c\u0db8\u0dd2\u0d9a \u0db6\u0dbd\u0db4\u0dd1\u0db8 \u0d85\u0da9\u0dd4 \u0dc0\u0dd3\u0db8:** \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0dc0\u0dd2\u0dc0\u0dd2\u0db0 \u0d86\u0d9c\u0db8\u0dd2\u0d9a \u0db4\u0dc3\u0dd4\u0db6\u0dd2\u0db8\u0dca \u0dc3\u0dc4\u0dd2\u0dad \u0da2\u0db1\u0dad\u0dcf\u0dc0 \u0da2\u0dd3\u0dc0\u0dad\u0dca \u0dc0\u0dda. \u0db6\u0dc4\u0dd4\u0dad\u0dbb\u0dba\u0d9a\u0dca \u0dc4\u0dd2\u0db1\u0dca\u0daf\u0dd4 \u0dc3\u0dc4 \u0dc3\u0db8\u0dc4\u0dbb \u0db6\u0dde\u0daf\u0dca\u0db0 \u0da2\u0db1\u0dad\u0dcf\u0dc0 \u0dc4\u0dbb\u0d9a\u0dca \u0db8\u0dc3\u0dca \u0d9a\u0dd1\u0db8\u0dd9\u0db1\u0dca \u0dc0\u0dc5\u0d9a\u0dd2\u0db1 \u0d85\u0dad\u0dbb, \u0d89\u0dc3\u0dca\u0dbd\u0dcf\u0db8\u0dca \u0db7\u0d9a\u0dca\u0dad\u0dd2\u0d9a\u0dba\u0dd2\u0db1\u0dca \u0d8c\u0dbb\u0dd4 \u0db8\u0dc3\u0dca \u0d9a\u0dd1\u0db8\u0dd9\u0db1\u0dca \u0dc0\u0dc5\u0d9a\u0dd2\u0dad\u0dd2. \u0db1\u0db8\u0dd4\u0dad\u0dca \u0d9a\u0dd4\u0d9a\u0dd4\u0dbd\u0dca \u0db8\u0dc3\u0dca \u0dc3\u0db3\u0dc4\u0dcf \u0d91\u0dc0\u0dd0\u0db1\u0dd2 \u0d86\u0d9c\u0db8\u0dd2\u0d9a \u0dad\u0dc4\u0d82\u0da0\u0dd2 \u0db1\u0ddc\u0db8\u0dd0\u0dad\u0dd2 \u0db1\u0dd2\u0dc3\u0dcf \u0dc3\u0dd1\u0db8 \u0da2\u0dcf\u0dad\u0dd2\u0dba\u0d9a\u0db8 \u0db4\u0dcf\u0dc4\u0dda \u0da2\u0db1\u0dad\u0dcf\u0dc0 \u0d91\u0dba \u0d86\u0dc4\u0dcf\u0dbb\u0dba\u0da7 \u0d9c\u0db1\u0dd2\u0dad\u0dd2.\n2. **\u0db8\u0dd2\u0dbd:** \u0dc4\u0dbb\u0d9a\u0dca \u0db8\u0dc3\u0dca, \u0d91\u0dc5\u0dd4 \u0db8\u0dc3\u0dca \u0dc4\u0ddd \u0d8c\u0dbb\u0dd4 \u0db8\u0dc3\u0dca \u0dc0\u0dbd\u0da7 \u0dc0\u0da9\u0dcf \u0d9a\u0dd4\u0d9a\u0dd4\u0dbd\u0dca \u0db8\u0dc3\u0dca \u0dc0\u0dbd \u0db8\u0dd2\u0dbd \u0dc3\u0dcf\u0db4\u0dda\u0d9a\u0dca\u0dc2\u0dc0 \u0d85\u0da9\u0dd4 \u0dc0\u0dd3\u0db8.\n3. **\u0dbd\u0db6\u0dcf\u0d9c\u0dd0\u0db1\u0dd3\u0db8\u0dda \u0db4\u0dc4\u0dc3\u0dd4\u0dc0:** \u0dbb\u0da7\u0dda \u0d95\u0db1\u0dd1\u0db8 \u0db4\u0dca\u200d\u0dbb\u0daf\u0dda\u0dc1\u0dba\u0d9a\u0dd2\u0db1\u0dca \u0d89\u0dad\u0dcf \u0db4\u0dc4\u0dc3\u0dd4\u0dc0\u0dd9\u0db1\u0dca \u0d9a\u0dd4\u0d9a\u0dd4\u0dbd\u0dca \u0db8\u0dc3\u0dca \u0db8\u0dd2\u0dbd\u0daf\u0dd3 \u0d9c\u0dd0\u0db1\u0dd3\u0db8\u0da7 \u0dc4\u0dd0\u0d9a\u0dd2 \u0dc0\u0dd3\u0db8.\n\n\u0d9a\u0dd9\u0dc3\u0dda \u0dc0\u0dd9\u0dad\u0dad\u0dca, \"\u0db8\u0dc3\u0dca\" (Meat) \u0dc0\u0dbd\u0da7 \u0d85\u0db8\u0dad\u0dbb\u0dc0 \u0dc3\u0db8\u0dc3\u0dca\u0dad\u0dba\u0d9a\u0dca \u0dbd\u0dd9\u0dc3 \u0d9c\u0dad\u0dca\u0d9a\u0dc5 \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0dcf\u0d82\u0d9a\u0dd2\u0d9a\u0dba\u0dd2\u0db1\u0dca \u0dc3\u0dad\u0dca\u0dad\u0dca\u0dc0 \u0db4\u0dca\u200d\u0dbb\u0ddd\u0da7\u0dd3\u0db1 \u0dbd\u0db6\u0dcf\u0d9c\u0dd0\u0db1\u0dd3\u0db8 \u0dc3\u0db3\u0dc4\u0dcf \u0dc0\u0dd0\u0da9\u0dd2\u0db4\u0dd4\u0dbb\u0db8 \u0d86\u0dc4\u0dcf\u0dbb\u0dba\u0da7 \u0d9c\u0db1\u0dca\u0db1\u0dda **\u0db8\u0dcf\u0dc5\u0dd4 \u0dc3\u0dc4 \u0d9a\u0dbb\u0dc0\u0dbd (\u0db8\u0dad\u0dca\u0dc3\u0dca\u200d\u0dba \u0d86\u0dc4\u0dcf\u0dbb)** \u0db6\u0dc0\u0daf \u0db8\u0dd9\u0dc4\u0dd2\u0daf\u0dd3 \u0dc0\u0dd2\u0dc1\u0dda\u0dc2\u0dba\u0dd9\u0db1\u0dca \u0dc3\u0db3\u0dc4\u0db1\u0dca \u0d9a\u0dc5 \u0dba\u0dd4\u0dad\u0dd4\u0dba\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 25,
+                "outputTokens": 1326,
+                "inputTokensCostNanodollars": "50000",
+                "outputTokensCostNanodollars": "15912000",
+                "totalBackendLatencyMs": "11489"
+              },
+              "id": "synhalees_14_culinary_kitchen_item-d9e03007-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 25,
+            "outputTokens": 1326,
+            "inputTokensCostNanodollars": "50000",
+            "outputTokensCostNanodollars": "15912000",
+            "totalBackendLatencyMs": "11489"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_14_007"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_14_culinary_kitchen_item-Run #7"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_14_culinary_kitchen_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_14_culinary_kitchen_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:08:58.650525Z",
+      "endTime": "2026-09-26T12:09:09.509995Z",
+      "conversations": [
+        {
+          "id": "synhalees_14_culinary_kitchen_item-6a752c1b",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9a\u0dd0\u0dc0\u0dd4\u0db8\u0dca \u0db6\u0daf\u0dd2\u0db1\u0dca\u0db1 \u0d9c\u0db1\u0dca\u0db1 \u0dad\u0dd9\u0dbd\u0dca \u0dc0\u0dbb\u0dca\u0d9c\u0dda \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9a\u0dd0\u0dc0\u0dd4\u0db8\u0dca \u0db6\u0daf\u0dd2\u0db1\u0dca\u0db1 \u0dc0\u0da9\u0dcf\u0dad\u0dca\u0db8 \u0dc3\u0dd4\u0daf\u0dd4\u0dc3\u0dd4 \u0dc3\u0dc4 \u0dc3\u0dcf\u0db8\u0dca\u0db4\u0dca\u200d\u0dbb\u0daf\u0dcf\u0dba\u0dd2\u0d9a\u0dc0 \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda **\u0db4\u0dd2\u0dbb\u0dd2\u0dc3\u0dd2\u0daf\u0dd4 \u0db4\u0ddc\u0dbd\u0dca \u0dad\u0dd9\u0dbd\u0dca (Coconut oil)** \u0dba. \n\n\u0db4\u0ddc\u0dbd\u0dca \u0dad\u0dd9\u0dbd\u0dca \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0dd9\u0db1\u0dca \u0d9a\u0dd0\u0dc0\u0dd4\u0db8\u0dca\u0dc0\u0dbd\u0da7 \u0d8a\u0da7 \u0d86\u0dc0\u0dda\u0dab\u0dd2\u0d9a \u0dbb\u0dc3\u0dba \u0dc3\u0dc4 \u0dc3\u0dd4\u0dc0\u0db3 \u0dc4\u0ddc\u0db3\u0dd2\u0db1\u0dca \u0dbd\u0dd0\u0db6\u0dd9\u0db1\u0dc0\u0dcf. \u0d92 \u0dc0\u0d9c\u0dda\u0db8 \u0d9a\u0dd0\u0dc0\u0dd4\u0db8\u0dda \u0db4\u0dd0\u0dc4\u0dd0\u0dba \u0dc3\u0dc4 \u0dc4\u0dd0\u0da9\u0dba (\u0dc0\u0dd2\u0dc1\u0dda\u0dc2\u0dba\u0dd9\u0db1\u0dca \u0d9a\u0ddc\u0dab\u0dca\u0da9 \u0d9a\u0dd0\u0dc0\u0dd4\u0db8\u0dca\u0dc0\u0dbd \u0d9a\u0ddc\u0dab\u0dca\u0da9\u0dba) \u0db1\u0dd2\u0dc0\u0dd0\u0dbb\u0daf\u0dd2\u0dc0 \u0dbd\u0db6\u0dcf \u0d9c\u0dd0\u0db1\u0dd3\u0db8\u0da7\u0dad\u0dca \u0db4\u0ddc\u0dbd\u0dca \u0dad\u0dd9\u0dbd\u0dca \u0d89\u0dad\u0dcf\u0db8 \u0dc3\u0dd4\u0daf\u0dd4\u0dc3\u0dd4\u0dba\u0dd2.\n\n\u0db1\u0db8\u0dd4\u0dad\u0dca \u0dc0\u0dbb\u0dca\u0dad\u0db8\u0dcf\u0db1\u0dba\u0dda \u0dc3\u0db8\u0dc4\u0dbb \u0d85\u0dba \u0dc3\u0dde\u0d9b\u0dca\u200d\u0dba \u0dc4\u0dda\u0dad\u0dd6\u0db1\u0dca \u0db8\u0dad \u0dc4\u0ddd \u0dc4\u0ddc\u0db3 \u0db4\u0ddc\u0dbd\u0dca\u0dad\u0dd9\u0dbd\u0dca \u0dc3\u0ddc\u0dba\u0dcf\u0d9c\u0dd0\u0db1\u0dd3\u0db8\u0dda \u0d85\u0db4\u0dc4\u0dc3\u0dd4\u0dc0 \u0db1\u0dd2\u0dc3\u0dcf **\u0d91\u0dc5\u0dc0\u0dc5\u0dd4 \u0dad\u0dd9\u0dbd\u0dca (Vegetable oil)** \u0dc4\u0ddd **\u0dc3\u0dd6\u0dbb\u0dd2\u0dba\u0d9a\u0dcf\u0db1\u0dca\u0dad \u0dad\u0dd9\u0dbd\u0dca (Sunflower oil)** \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0db1 \u0d85\u0dc0\u0dc3\u0dca\u0dae\u0dcf \u0daf \u0dad\u0dd2\u0db6\u0dd9\u0db1\u0dc0\u0dcf. \u0d9a\u0dd9\u0dc3\u0dda \u0dc0\u0dd9\u0dad\u0dad\u0dca, \u0db1\u0dd2\u0dba\u0db8 \u0d9a\u0dd0\u0dc0\u0dd4\u0db8\u0dca \u0dbb\u0dc3\u0dba \u0dbd\u0db6\u0dcf\u0d9c\u0dd0\u0db1\u0dd3\u0db8\u0da7 \u0db1\u0db8\u0dca \u0db4\u0ddc\u0dbd\u0dca \u0dad\u0dd9\u0dbd\u0dca\u0db8 \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dd2\u0dbb\u0dd3\u0db8 \u0dad\u0db8\u0dba\u0dd2 \u0dc0\u0da9\u0dcf\u0dad\u0dca \u0dc4\u0ddc\u0db3.\n\n**\u0d9a\u0dd4\u0da9\u0dcf \u0d8b\u0db4\u0daf\u0dd9\u0dc3\u0d9a\u0dca:** \u0d9a\u0dd0\u0dc0\u0dd4\u0db8\u0dca \u0db6\u0daf\u0dd2\u0db1 \u0dc0\u0dd2\u0da7 \u0dad\u0dd9\u0dbd\u0dca\u0dc0\u0dbd \u0d8b\u0dc2\u0dca\u0dab\u0dad\u0dca\u0dc0\u0dba (\u0dbb\u0dc3\u0dca\u0db1\u0dba) \u0db1\u0dd2\u0dba\u0db8\u0dd2\u0dad \u0d9c\u0dcf\u0dab\u0da7 \u0dad\u0db6\u0dcf \u0d9c\u0dd0\u0db1\u0dd3\u0db8 \u0d89\u0dad\u0dcf\u0db8 \u0dc0\u0dd0\u0daf\u0d9c\u0dad\u0dca. \u0dad\u0dd9\u0dbd\u0dca \u0d9c\u0ddc\u0da9\u0d9a\u0dca \u0dbb\u0dad\u0dca \u0dc0\u0dd4\u0dab\u0ddc\u0dad\u0dca \u0d9a\u0dd0\u0dc0\u0dd4\u0db8 \u0db4\u0dd2\u0da7\u0dd2\u0db1\u0dca \u0db4\u0dd2\u0da0\u0dca\u0da0\u0dd2\u0dbd\u0dcf \u0d87\u0dad\u0dd4\u0dc5 \u0d85\u0db8\u0dd4 \u0dc0\u0dd9\u0db1\u0dca\u0db1 \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca. \u0dbb\u0dc3\u0dca\u0db1\u0dba \u0db8\u0daf\u0dd2 \u0dc0\u0dd4\u0dab\u0ddc\u0dad\u0dca \u0d9a\u0ddc\u0dab\u0dca\u0da9\u0dba \u0d91\u0db1\u0dca\u0db1\u0dda \u0db1\u0dd0\u0dc4\u0dd0."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 21,
+                "outputTokens": 1161,
+                "inputTokensCostNanodollars": "42000",
+                "outputTokensCostNanodollars": "13932000",
+                "totalBackendLatencyMs": "10776"
+              },
+              "id": "synhalees_14_culinary_kitchen_item-6a752c1b-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 21,
+            "outputTokens": 1161,
+            "inputTokensCostNanodollars": "42000",
+            "outputTokensCostNanodollars": "13932000",
+            "totalBackendLatencyMs": "10776"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_14_010"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_14_culinary_kitchen_item-Run #10"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_14_culinary_kitchen_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_14_culinary_kitchen_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:08:58.278459Z",
+      "endTime": "2026-09-26T12:09:11.819471Z",
+      "conversations": [
+        {
+          "id": "synhalees_14_culinary_kitchen_item-7e8e00b8",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9a\u0ddc\u0d9a\u0dd2\u0dc3\u0dca \u0dc4\u0daf\u0db1\u0dca\u0db1 \u0d9c\u0db1\u0dca\u0db1 \u0db4\u0dd2\u0da7\u0dd2 \u0dc0\u0dbb\u0dca\u0d9c\u0dd9 \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9a\u0ddc\u0d9a\u0dd2\u0dc3\u0dca \u0dc4\u0daf\u0db1\u0dca\u0db1 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dc0\u0dc1\u0dba\u0dd9\u0db1\u0dca \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda **\u0dc4\u0dcf\u0dbd\u0dca \u0db4\u0dd2\u0da7\u0dd2** \u0dc3\u0dc4 **\u0db4\u0dcf\u0db1\u0dca \u0db4\u0dd2\u0da7\u0dd2 (\u0dad\u0dd2\u0dbb\u0dd2\u0d9f\u0dd4 \u0db4\u0dd2\u0da7\u0dd2)** \u0db8\u0dd2\u0dc1\u0dca\u200d\u0dbb\u0dab\u0dba\u0d9a\u0dca. \n\n\u0db8\u0dd9\u0db8 \u0db4\u0dd2\u0da7\u0dd2 \u0dc0\u0dbb\u0dca\u0d9c \u0daf\u0dd9\u0d9a \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda \u0db8\u0dd9\u0db1\u0dca\u0db1 \u0db8\u0dda \u0dc4\u0dda\u0dad\u0dd4 \u0db1\u0dd2\u0dc3\u0dba\u0dd2:\n\n1. **\u0dc4\u0dcf\u0dbd\u0dca \u0db4\u0dd2\u0da7\u0dd2 (Rice Flour):** \u0d9a\u0ddc\u0d9a\u0dd2\u0dc3\u0dca \u0dc0\u0dbd \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0d85\u0db8\u0dd4\u0daf\u0dca\u200d\u0dbb\u0dc0\u0dca\u200d\u0dba \u0db8\u0dda\u0d9a\u0dba\u0dd2. \u0d9a\u0ddc\u0d9a\u0dd2\u0dc3\u0dca \u0dc0\u0dbd\u0da7 \u0d85\u0dc0\u0dc1\u0dca\u200d\u0dba \u0dbb\u0dc3\u0dba \u0dc3\u0dc4 \u0dc4\u0dd0\u0db4\u0dd9\u0db1\u0dc3\u0dd4\u0dc5\u0dd4 '\u0d9a\u0dbb \u0d9a\u0dbb' \u0d9c\u0dad\u0dd2\u0dba (Crispiness) \u0dbd\u0db6\u0dcf \u0daf\u0dd9\u0db1\u0dca\u0db1\u0dda \u0dc4\u0dcf\u0dbd\u0dca \u0db4\u0dd2\u0da7\u0dd2 \u0dc0\u0dbd\u0dd2\u0db1\u0dca. (\u0d9a\u0da9\u0dd9\u0db1\u0dca \u0d9c\u0db1\u0dca\u0db1\u0dcf \u0d89\u0db3\u0dd2\u0d86\u0db4\u0dca\u0db4 \u0db4\u0dd2\u0da7\u0dd2 \u0dc4\u0ddd \u0db6\u0dd0\u0daf\u0db4\u0dd4 \u0db1\u0dd0\u0dad\u0dd2 \u0dc4\u0dcf\u0dbd\u0dca \u0db4\u0dd2\u0da7\u0dd2 \u0db8\u0dda \u0dc3\u0db3\u0dc4\u0dcf \u0dc0\u0da9\u0dcf\u0dad\u0dca \u0dc3\u0dd4\u0daf\u0dd4\u0dc3\u0dd4\u0dba\u0dd2).\n\n2. **\u0db4\u0dcf\u0db1\u0dca \u0db4\u0dd2\u0da7\u0dd2 / \u0dad\u0dd2\u0dbb\u0dd2\u0d9f\u0dd4 \u0db4\u0dd2\u0da7\u0dd2 (Wheat Flour):** \u0dc4\u0dcf\u0dbd\u0dca \u0db4\u0dd2\u0da7\u0dd2 \u0dc0\u0dd2\u0dad\u0dbb\u0d9a\u0dca \u0db4\u0dcf\u0dc0\u0dd2\u0da0\u0dca\u0da0\u0dd2 \u0d9a\u0dc5\u0ddc\u0dad\u0dca \u0d9a\u0ddc\u0d9a\u0dd2\u0dc3\u0dca \u0d85\u0da0\u0dca\u0da0\u0dd4\u0dc0\u0dd9\u0db1\u0dca \u0d9c\u0dbd\u0dc0\u0dcf \u0d9c\u0db1\u0dca\u0db1 \u0d85\u0db8\u0dcf\u0dbb\u0dd4 \u0dc0\u0dd9\u0db1\u0dca\u0db1 \u0dc0\u0d9c\u0dda\u0db8, \u0db6\u0daf\u0dd2\u0db1\u0d9a\u0ddc\u0da7 \u0d9a\u0da9\u0dcf \u0dc4\u0dd0\u0dbd\u0dd9\u0db1\u0dca\u0db1 \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca. \u0d92 \u0db1\u0dd2\u0dc3\u0dcf \u0db8\u0dd2\u0dc1\u0dca\u200d\u0dbb\u0dab\u0dba \u0dc4\u0ddc\u0db3\u0dd2\u0db1\u0dca \u0db6\u0dd0\u0db3\u0dd3 \u0dad\u0dd2\u0dba\u0dd9\u0db1\u0dca\u0db1 (Binding) \u0dc3\u0dc4 \u0d85\u0da0\u0dca\u0da0\u0dd4\u0dc0\u0dd9\u0db1\u0dca \u0dbd\u0dda\u0dc3\u0dd2\u0dba\u0dd9\u0db1\u0dca \u0d9c\u0dd0\u0dbd\u0dc0\u0dd3 \u0d91\u0db1\u0dca\u0db1 \u0db4\u0dcf\u0db1\u0dca \u0db4\u0dd2\u0da7\u0dd2 \u0dc3\u0dca\u0dc0\u0dbd\u0dca\u0db4\u0dba\u0d9a\u0dca \u0d91\u0d9a\u0dad\u0dd4 \u0d9a\u0dbb\u0db1\u0dc0\u0dcf.\n\n**\u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba \u0db8\u0dd2\u0db8\u0dca\u0db8:**\n\u0d9c\u0ddc\u0da9\u0d9a\u0dca \u0dc0\u0dd9\u0dbd\u0dcf\u0dc0\u0da7 \u0d9a\u0ddc\u0d9a\u0dd2\u0dc3\u0dca \u0dc4\u0daf\u0daf\u0dca\u0daf\u0dd3 **\u0dc4\u0dcf\u0dbd\u0dca \u0db4\u0dd2\u0da7\u0dd2 \u0d9a\u0ddd\u0db4\u0dca\u0db4 2 \u0d9a\u0da7, \u0db4\u0dcf\u0db1\u0dca \u0db4\u0dd2\u0da7\u0dd2 \u0d9a\u0ddd\u0db4\u0dca\u0db4 1/4 \u0d9a\u0dca \u0dc4\u0ddd 1/2 \u0d9a\u0dca** \u0dc0\u0d9c\u0dda \u0db4\u0dca\u200d\u0dbb\u0db8\u0dcf\u0dab\u0dba\u0d9a\u0dca \u0dad\u0db8\u0dba\u0dd2 \u0db4\u0dcf\u0dc0\u0dd2\u0da0\u0dca\u0da0\u0dd2 \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda. \n\n*(\u0d85\u0db8\u0dad\u0dbb \u0dbb\u0dc4\u0dc3\u0d9a\u0dca: \u0dc3\u0db8\u0dc4\u0dbb\u0dd4 \u0d9a\u0ddc\u0d9a\u0dd2\u0dc3\u0dca \u0dc0\u0dbd \u0d9a\u0dbb \u0d9a\u0dbb \u0d9c\u0dad\u0dd2\u0dba \u0d9c\u0ddc\u0da9\u0d9a\u0dca \u0d9a\u0dbd\u0dca \u0dad\u0dd2\u0dba\u0dcf\u0d9c\u0db1\u0dca\u0db1 \u0d9a\u0ddd\u0db1\u0dca\u0dc6\u0dca\u0dbd\u0dcf (Corn flour) \u0db8\u0dda\u0dc3 \u0dc4\u0dd0\u0db1\u0dca\u0daf\u0d9a\u0dca \u0db4\u0db8\u0dab \u0db8\u0dd2\u0dc1\u0dca\u200d\u0dbb\u0dab\u0dba\u0da7 \u0d91\u0d9a\u0dad\u0dd4 \u0d9a\u0dbb\u0db1\u0dc0\u0dcf.)*"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 17,
+                "outputTokens": 1569,
+                "inputTokensCostNanodollars": "34000",
+                "outputTokensCostNanodollars": "18828000",
+                "totalBackendLatencyMs": "13460"
+              },
+              "id": "synhalees_14_culinary_kitchen_item-7e8e00b8-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 17,
+            "outputTokens": 1569,
+            "inputTokensCostNanodollars": "34000",
+            "outputTokensCostNanodollars": "18828000",
+            "totalBackendLatencyMs": "13460"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_14_009"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_14_culinary_kitchen_item-Run #9"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_14_culinary_kitchen_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_14_culinary_kitchen_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:09:11.823807Z",
+      "endTime": "2026-09-26T12:09:15.549793Z",
+      "conversations": [
+        {
+          "id": "synhalees_14_culinary_kitchen_item-a8f62d95",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc4\u0dd0\u0dbd\u0db4 \u0d94\u0dad\u0db1\u0dca\u0db1 \u0d9c\u0db1\u0dca\u0db1 \u0d9a\u0ddc\u0dc5\u0dda \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d8b\u0dad\u0dca\u0dad\u0dbb \u0daf\u0dd9\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9a\u0dd0\u0db1\u0dca\u0daf \u0d9a\u0ddc\u0dc5."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 29,
+                "outputTokens": 324,
+                "inputTokensCostNanodollars": "58000",
+                "outputTokensCostNanodollars": "3888000",
+                "totalBackendLatencyMs": "3651"
+              },
+              "id": "synhalees_14_culinary_kitchen_item-a8f62d95-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 29,
+            "outputTokens": 324,
+            "inputTokensCostNanodollars": "58000",
+            "outputTokensCostNanodollars": "3888000",
+            "totalBackendLatencyMs": "3651"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_14_012"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_14_culinary_kitchen_item-Run #12"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_14_culinary_kitchen_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_14_culinary_kitchen_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:09:15.554231Z",
+      "endTime": "2026-09-26T12:09:19.398039Z",
+      "conversations": [
+        {
+          "id": "synhalees_14_culinary_kitchen_item-0971843f",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc4\u0dcf\u0dbd\u0dca \u0db4\u0ddc\u0dbd\u0db1\u0dca\u0db1 \u0d9c\u0db1\u0dca\u0db1 \u0d8b\u0db4\u0d9a\u0dbb\u0dab\u0dd9\u0da7 \u0d9a\u0dd2\u0dba\u0db1 \u0db1\u0db8 \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc4\u0dcf\u0dbd\u0dca \u0db4\u0ddc\u0dbd\u0db1\u0dca\u0db1 \u0d9c\u0db1\u0dca\u0db1 \u0d8b\u0db4\u0d9a\u0dbb\u0dab\u0dba\u0da7 \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda **\"\u0d9a\u0dd4\u0dbd\u0dca\u0dbd\"** \u0d9a\u0dd2\u0dba\u0dbd\u0dba\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 21,
+                "outputTokens": 339,
+                "inputTokensCostNanodollars": "42000",
+                "outputTokensCostNanodollars": "4068000",
+                "totalBackendLatencyMs": "3769"
+              },
+              "id": "synhalees_14_culinary_kitchen_item-0971843f-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 21,
+            "outputTokens": 339,
+            "inputTokensCostNanodollars": "42000",
+            "outputTokensCostNanodollars": "4068000",
+            "totalBackendLatencyMs": "3769"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_14_013"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_14_culinary_kitchen_item-Run #13"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_14_culinary_kitchen_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_14_culinary_kitchen_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:09:09.515194Z",
+      "endTime": "2026-09-26T12:09:20.192007Z",
+      "conversations": [
+        {
+          "id": "synhalees_14_culinary_kitchen_item-8d93c866",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d85\u0dbd\u0dd4\u0dc0\u0dcf \u0dc4\u0daf\u0db1\u0dca\u0db1 \u0d9c\u0db1\u0dca\u0db1 \u0db4\u0dd2\u0da7\u0dd2 \u0dc0\u0dbb\u0dca\u0d9c\u0dd9 \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d85\u0dbd\u0dd4\u0dc0\u0dcf \u0dc4\u0daf\u0db1\u0dca\u0db1 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dc0\u0dc1\u0dba\u0dd9\u0db1\u0dca \u0db4\u0dcf\u0dc0\u0dd2\u0da0\u0dca\u0da0\u0dd2 \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda **\u0dc3\u0dc4\u0dbd\u0dca \u0db4\u0dd2\u0da7\u0dd2 (\u0dc4\u0dcf\u0dbd\u0dca \u0db4\u0dd2\u0da7\u0dd2)**. \n\n\u0dc4\u0dd0\u0db6\u0dd0\u0dba\u0dd2 \u0db8\u0dda \u0db4\u0dd2\u0da7\u0dd2 \u0d85\u0db8\u0dd4\u0dc0\u0dd9\u0db1\u0dca \u0d9c\u0db1\u0dca\u0db1\u0dda \u0db1\u0dd0\u0dc4\u0dd0. \u0d85\u0dbd\u0dd4\u0dc0\u0dcf \u0dc3\u0db3\u0dc4\u0dcf \u0db4\u0dd2\u0da7\u0dd2 **\u0dc4\u0ddc\u0db3\u0dd2\u0db1\u0dca \u0d9a\u0db6\u0dbd\u0dda \u0db6\u0dd0\u0daf\u0d9c\u0dd9\u0db1 (Roast \u0d9a\u0dbb\u0d9c\u0dd9\u0db1)** \u0dad\u0db8\u0dba\u0dd2 \u0db4\u0dcf\u0dc0\u0dd2\u0da0\u0dca\u0da0\u0dd2 \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda. \u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba\u0dba\u0dd9\u0db1\u0dca \u0dc3\u0dd4\u0daf\u0dd4 \u0d9a\u0dd0\u0d9a\u0dd4\u0dc5\u0dd4 \u0dc4\u0dcf\u0dbd\u0dca \u0dc3\u0ddd\u0daf\u0dcf, \u0dc0\u0dda\u0dc5\u0dcf, \u0d9a\u0ddc\u0da7\u0dcf\u0d9c\u0dd9\u0db1 \u0d91\u0db8 \u0db4\u0dd2\u0da7\u0dd2 \u0db6\u0dd0\u0daf\u0d9c\u0dd0\u0db1\u0dd3\u0db8\u0dba\u0dd2 \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda. \n\n\u0d94\u0db6 \u0dc4\u0daf\u0db1 \u0d85\u0dbd\u0dd4\u0dc0\u0dcf \u0dc0\u0dbb\u0dca\u0d9c\u0dba \u0d85\u0db1\u0dd4\u0dc0 \u0db8\u0dd9\u0dc4\u0dd2 \u0d9a\u0dd4\u0da9\u0dcf \u0dc0\u0dd9\u0db1\u0dc3\u0dca\u0d9a\u0db8\u0dca \u0dad\u0dd2\u0dba\u0dd9\u0db1\u0dca\u0db1 \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca:\n\n1. **\u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba \u0db4\u0dd0\u0dab\u0dd2 \u0d85\u0dbd\u0dd4\u0dc0\u0dcf / \u0d9a\u0da2\u0dd4 \u0d85\u0dbd\u0dd4\u0dc0\u0dcf:** \u0db8\u0dda\u0dc0\u0dcf\u0da7 \u0d9c\u0db1\u0dca\u0db1\u0dda \u0db6\u0dd0\u0daf\u0db4\u0dd4 \u0dc3\u0dc4\u0dbd\u0dca \u0db4\u0dd2\u0da7\u0dd2 \u0db4\u0db8\u0dab\u0dba\u0dd2.\n2. **\u0db8\u0dd4\u0d82 \u0d85\u0dbd\u0dd4\u0dc0\u0dcf:** \u0db8\u0dd4\u0d82 \u0d85\u0dbd\u0dd4\u0dc0\u0dcf \u0dc4\u0daf\u0db1\u0dc0\u0dcf \u0db1\u0db8\u0dca, \u0db6\u0dd0\u0daf\u0db4\u0dd4 \u0dc3\u0dc4\u0dbd\u0dca \u0db4\u0dd2\u0da7\u0dd2\u0dc0\u0dbd\u0da7 \u0d85\u0db8\u0dad\u0dbb\u0dc0 **\u0db6\u0dd0\u0daf\u0db4\u0dd4 \u0db8\u0dd4\u0d82 \u0db4\u0dd2\u0da7\u0dd2** (\u0db8\u0dd4\u0d82 \u0d87\u0da7 \u0db4\u0dd2\u0da7\u0dd2 \u0d9a\u0dbb \u0db6\u0dd0\u0daf\u0d9c\u0dd9\u0db1) \u0d91\u0d9a\u0dad\u0dd4 \u0d9a\u0dbb\u0db1\u0dc0\u0dcf. (\u0db6\u0ddc\u0dc4\u0ddd\u0dc0\u0dd2\u0da7 \u0dc3\u0dc4\u0dbd\u0dca \u0db4\u0dd2\u0da7\u0dd2 \u0dc3\u0dc4 \u0db8\u0dd4\u0d82 \u0db4\u0dd2\u0da7\u0dd2 \u0dc3\u0db8\u0dcf\u0db1 \u0d85\u0db1\u0dd4\u0db4\u0dcf\u0dad\u0dba\u0dd9\u0db1\u0dca \u0dc4\u0ddd \u0db8\u0dd4\u0d82 \u0db4\u0dd2\u0da7\u0dd2 \u0dc0\u0dd0\u0da9\u0dd2\u0db4\u0dd4\u0dbb \u0dc3\u0dd2\u0da7\u0dd2\u0db1 \u0dc3\u0dda \u0d9c\u0db1\u0dd4 \u0dbd\u0db6\u0dba\u0dd2).\n\n**\u0dc0\u0dd0\u0daf\u0d9c\u0dad\u0dca:** \u0d85\u0dbd\u0dd4\u0dc0\u0dcf \u0db8\u0dd2\u0dc1\u0dca\u200d\u0dbb\u0dab\u0dba \u0dbd\u0dd1\u0dbd\u0dca\u0dbd\u0d9a \u0dad\u0dd4\u0db1\u0dd3 \u0d9a\u0dbb\u0dbd\u0dcf \u0d9a\u0dd1\u0dbd\u0dd2 \u0d9a\u0db4\u0db1\u0d9a\u0ddc\u0da7, \u0d85\u0dbd\u0dd4\u0dc0\u0dcf \u0d9a\u0dd1\u0dbd\u0dd2\u0dc0\u0dbd \u0db4\u0dd2\u0da7\u0dad\u0dd2\u0db1\u0dca \u0dad\u0dc0\u0dbb\u0db1\u0dca\u0db1\u0dad\u0dca \u0db8\u0dda **\u0db6\u0dd0\u0daf\u0db4\u0dd4 \u0dc3\u0dc4\u0dbd\u0dca \u0db4\u0dd2\u0da7\u0dd2** \u0da7\u0dd2\u0d9a\u0d9a\u0dca \u0d89\u0dad\u0dd4\u0dbb\u0dd4 \u0d9a\u0dbb\u0d9c\u0db1\u0dca\u0db1 \u0db8\u0dad\u0d9a \u0dad\u0db6\u0dcf\u0d9c\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 18,
+                "outputTokens": 1245,
+                "inputTokensCostNanodollars": "36000",
+                "outputTokensCostNanodollars": "14940000",
+                "totalBackendLatencyMs": "10602"
+              },
+              "id": "synhalees_14_culinary_kitchen_item-8d93c866-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 18,
+            "outputTokens": 1245,
+            "inputTokensCostNanodollars": "36000",
+            "outputTokensCostNanodollars": "14940000",
+            "totalBackendLatencyMs": "10602"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_14_011"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_14_culinary_kitchen_item-Run #11"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_14_culinary_kitchen_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_14_culinary_kitchen_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:09:19.402241Z",
+      "endTime": "2026-09-26T12:09:24.743696Z",
+      "conversations": [
+        {
+          "id": "synhalees_14_culinary_kitchen_item-b51e3e2a",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dad\u0dda \u0dc4\u0daf\u0daf\u0dca\u0daf\u0dd3 \u0dad\u0dda \u0d9a\u0ddc\u0dc5 \u0db4\u0dd9\u0dbb\u0dcf \u0d9c\u0db1\u0dca\u0db1 \u0d9c\u0db1\u0dca\u0db1 \u0d8b\u0db4\u0d9a\u0dbb\u0dab\u0dd9\u0da7 \u0d9a\u0dd2\u0dba\u0db1 \u0db1\u0db8 \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d92\u0d9a\u0da7 \u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba\u0dba\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda **\"\u0dad\u0dda \u0d9c\u0ddc\u0da7\u0dca\u0da7\"** \u0d9a\u0dd2\u0dba\u0dbd\u0dba\u0dd2. \n\n\u0db8\u0dd3\u0da7 \u0d85\u0db8\u0dad\u0dbb\u0dc0 \u0da7\u0dd2\u0d9a\u0d9a\u0dca \u0dc0\u0dd2\u0db0\u0dd2\u0db8\u0dad\u0dca (formal) \u0dc0\u0dd2\u0daf\u0dd2\u0dba\u0da7 **\"\u0dad\u0dda \u0db4\u0dd9\u0dbb\u0db1\u0dba\"** \u0d9a\u0dd2\u0dba\u0dbd\u0dad\u0dca \u0d92\u0d9a\u0da7 \u0d9a\u0dd2\u0dba\u0db1\u0dc0\u0dcf."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 29,
+                "outputTokens": 534,
+                "inputTokensCostNanodollars": "58000",
+                "outputTokensCostNanodollars": "6408000",
+                "totalBackendLatencyMs": "5256"
+              },
+              "id": "synhalees_14_culinary_kitchen_item-b51e3e2a-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 29,
+            "outputTokens": 534,
+            "inputTokensCostNanodollars": "58000",
+            "outputTokensCostNanodollars": "6408000",
+            "totalBackendLatencyMs": "5256"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_14_014"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_14_culinary_kitchen_item-Run #14"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_14_culinary_kitchen_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_14_culinary_kitchen_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:09:20.197492Z",
+      "endTime": "2026-09-26T12:09:27.418993Z",
+      "conversations": [
+        {
+          "id": "synhalees_14_culinary_kitchen_item-4a1710c9",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc4\u0dcf\u0dbd\u0dca \u0d9c\u0dbb\u0db1\u0dca\u0db1 \u0d9c\u0db1\u0dca\u0db1 \u0d8b\u0db4\u0d9a\u0dbb\u0dab\u0dc0\u0dbd\u0dd2\u0db1\u0dca \u0d91\u0d9a\u0d9a\u0dca \u0dad\u0db8\u0dcf '\u0d9a\u0ddc\u0dbb\u0dc4\u0dcf'. \u0d91\u0dc4\u0dd9\u0db1\u0db8\u0dca \u0d85\u0db1\u0dd2\u0d9a \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d85\u0db1\u0dd2\u0dad\u0dca \u0d8b\u0db4\u0d9a\u0dbb\u0dab\u0dba \u0dad\u0db8\u0dba\u0dd2 **\u0db1\u0dd1\u0db9\u0dd2\u0dbd\u0dd2\u0dba**. \n\n\u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba\u0dba\u0dd9\u0db1\u0dca \u0dc4\u0dcf\u0dbd\u0dca \u0d9c\u0dbb\u0dbd\u0dcf \u0d9c\u0dbd\u0dca, \u0dc0\u0dd0\u0dbd\u0dd2 \u0d85\u0dba\u0dd2\u0db1\u0dca \u0d9a\u0dbb\u0db1\u0dca\u0db1 \u0db1\u0dd1\u0db9\u0dd2\u0dbd\u0dd2\u0dba\u0dba\u0dd2 \u0d9a\u0ddc\u0dbb\u0dc4\u0dba\u0dd2 \u0d9a\u0dd2\u0dba\u0db1 \u0d8b\u0db4\u0d9a\u0dbb\u0dab \u0daf\u0dd9\u0d9a\u0db8 \u0d91\u0d9a\u0da7 \u0dad\u0db8\u0dba\u0dd2 \u0db4\u0dcf\u0dc0\u0dd2\u0da0\u0dca\u0da0\u0dd2 \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 30,
+                "outputTokens": 684,
+                "inputTokensCostNanodollars": "60000",
+                "outputTokensCostNanodollars": "8208000",
+                "totalBackendLatencyMs": "7150"
+              },
+              "id": "synhalees_14_culinary_kitchen_item-4a1710c9-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 30,
+            "outputTokens": 684,
+            "inputTokensCostNanodollars": "60000",
+            "outputTokensCostNanodollars": "8208000",
+            "totalBackendLatencyMs": "7150"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_14_015"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_14_culinary_kitchen_item-Run #15"
+    }
+  ],
+  "pyRunId": "synhalees_14_culinary_kitchen-Run #1"
+}

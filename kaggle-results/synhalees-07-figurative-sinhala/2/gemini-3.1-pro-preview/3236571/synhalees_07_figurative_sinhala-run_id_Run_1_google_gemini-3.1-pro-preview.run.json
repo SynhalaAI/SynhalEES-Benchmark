@@ -1,0 +1,1067 @@
+{
+  "taskVersion": {
+    "versionNumber": 1,
+    "name": "synhalees_07_figurative_sinhala",
+    "description": "SynhalEES pillar 07_figurative_sinhala: native Sinhala text accuracy.",
+    "definition": "@kbench.task(name=\"synhalees_07_figurative_sinhala\", description=\"SynhalEES pillar 07_figurative_sinhala: native Sinhala text accuracy.\")\ndef synhalees_task(llm) -> float:\n    '''Evaluate Figurative Sinhala (text); return accuracy in [0, 1].'''\n    import pandas as pd\n\n    rows = _rows()\n    if not rows:\n        raise ValueError(\n            \"No runnable text rows for Figurative Sinhala yet -- media files may \"\n            \"not be committed under benchmark_data/.\"\n        )\n    with kbench.client.enable_cache():\n        runs = synhalees_item.evaluate(\n            llm=[llm], evaluation_data=pd.DataFrame(rows),\n            n_jobs=2, max_attempts=2, on_failure=\"continue\",\n            remove_run_files=True,\n        )\n    correct = runs.as_dataframe().result.str.get(\"is_correct\").astype(\"boolean\").fillna(False)\n    return float(correct.mean())\n"
+  },
+  "modelVersion": {
+    "slug": "google/gemini-3.1-pro-preview"
+  },
+  "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+  "startTime": "2026-09-26T12:10:32.814308Z",
+  "endTime": "2026-09-26T12:11:40.476697Z",
+  "conversations": [
+    {
+      "id": "synhalees_07_figurative_sinhala-1a090065",
+      "metrics": {},
+      "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+    }
+  ],
+  "results": [
+    {
+      "type": "AGGREGATED",
+      "numericResult": {
+        "value": 0.5333333333333333
+      }
+    }
+  ],
+  "subruns": [
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_07_figurative_sinhala_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_07_figurative_sinhala_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\", choices: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if eval_type == \"classification\" and choices:\n        prompt = \"Choose exactly one label from [\" + choices + \"]. Reply with only the label. \" + prompt\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:10:32.827277Z",
+      "endTime": "2026-09-26T12:10:37.536717Z",
+      "conversations": [
+        {
+          "id": "synhalees_07_figurative_sinhala_item-9dac3331",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "Choose exactly one label from [upama / vyangarthya]. Reply with only the label. \u0d86.. \u0d91\u0dc4\u0dd9\u0db8\u0daf \u0d94\u0dba\u0dcf \u0d91\u0db1\u0dca\u0db1\u0dda? \u0d86.. \u0dc4\u0dbb\u0dd2 \u0d91\u0dc4\u0dd9\u0db1\u0db8\u0dca \u0d85\u0db4\u0dd2 \u0db4\u0dc3\u0dca\u0dc3\u0dda \u0db6\u0dbd\u0dcf \u0d9c\u0db8\u0dd4."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "vyangarthya"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 49,
+                "outputTokens": 385,
+                "inputTokensCostNanodollars": "98000",
+                "outputTokensCostNanodollars": "4620000",
+                "totalBackendLatencyMs": "4439"
+              },
+              "id": "synhalees_07_figurative_sinhala_item-9dac3331-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 49,
+            "outputTokens": 385,
+            "inputTokensCostNanodollars": "98000",
+            "outputTokensCostNanodollars": "4620000",
+            "totalBackendLatencyMs": "4439"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_07_001"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_07_figurative_sinhala_item-Run #1"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_07_figurative_sinhala_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_07_figurative_sinhala_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\", choices: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if eval_type == \"classification\" and choices:\n        prompt = \"Choose exactly one label from [\" + choices + \"]. Reply with only the label. \" + prompt\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:10:32.828148Z",
+      "endTime": "2026-09-26T12:10:39.803710Z",
+      "conversations": [
+        {
+          "id": "synhalees_07_figurative_sinhala_item-39fb201c",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "Choose exactly one label from [upama / vyangarthya]. Reply with only the label. \u0d9a\u0da7\u0dd4\u0dc3\u0dca\u0dc3\u0d9c\u0dda \u0d9a\u0dbb\u0dda \u0dbb\u0dad\u0dca\u0dad\u0dbb\u0db1\u0dca \u0db6\u0db3\u0dd2\u0db1\u0dca\u0db1 \u0d91\u0db4\u0dcf \u0d9a\u0dd2\u0dc0\u0dca\u0dc0\u0dda \u0d95\u0d9a\u0da7 \u0dad\u0db8\u0dcf \u0db8\u0d82."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "vyangarthya"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 49,
+                "outputTokens": 664,
+                "inputTokensCostNanodollars": "98000",
+                "outputTokensCostNanodollars": "7968000",
+                "totalBackendLatencyMs": "6709"
+              },
+              "id": "synhalees_07_figurative_sinhala_item-39fb201c-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 49,
+            "outputTokens": 664,
+            "inputTokensCostNanodollars": "98000",
+            "outputTokensCostNanodollars": "7968000",
+            "totalBackendLatencyMs": "6709"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_07_002"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_07_figurative_sinhala_item-Run #2"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_07_figurative_sinhala_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_07_figurative_sinhala_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\", choices: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if eval_type == \"classification\" and choices:\n        prompt = \"Choose exactly one label from [\" + choices + \"]. Reply with only the label. \" + prompt\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:10:37.541990Z",
+      "endTime": "2026-09-26T12:10:41.049588Z",
+      "conversations": [
+        {
+          "id": "synhalees_07_figurative_sinhala_item-d692e79c",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "Choose exactly one label from [upama / vyangarthya]. Reply with only the label. \u0d85\u0db4\u0dd2\u0dad\u0dca \u0dc4\u0dd2\u0da7\u0dd2\u0dba\u0da7 \u0d91\u0da0\u0dca\u0da0\u0dbb \u0dc4\u0ddc\u0db3 \u0db8\u0db1\u0dd4\u0dc3\u0dca\u0dc3\u0dba\u0ddd \u0db1\u0dd9\u0db8\u0dda \u0dc4\u0dbb\u0dd2\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "vyangarthya"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 45,
+                "outputTokens": 275,
+                "inputTokensCostNanodollars": "90000",
+                "outputTokensCostNanodollars": "3300000",
+                "totalBackendLatencyMs": "3381"
+              },
+              "id": "synhalees_07_figurative_sinhala_item-d692e79c-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 45,
+            "outputTokens": 275,
+            "inputTokensCostNanodollars": "90000",
+            "outputTokensCostNanodollars": "3300000",
+            "totalBackendLatencyMs": "3381"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_07_003"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_07_figurative_sinhala_item-Run #3"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_07_figurative_sinhala_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_07_figurative_sinhala_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\", choices: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if eval_type == \"classification\" and choices:\n        prompt = \"Choose exactly one label from [\" + choices + \"]. Reply with only the label. \" + prompt\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:10:39.808779Z",
+      "endTime": "2026-09-26T12:10:43.488992Z",
+      "conversations": [
+        {
+          "id": "synhalees_07_figurative_sinhala_item-1cfcdc51",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "Choose exactly one label from [upama / vyangarthya]. Reply with only the label. \u0dba\u0d9a\u0ddd \u0db8\u0da7 \u0dc0\u0dd4\u0dab\u0dda \u0dc0\u0db3\u0dd2\u0db1\u0dca\u0db1 \u0d9c\u0dd2\u0dba \u0daf\u0dda\u0dc0\u0dcf\u0dbd\u0dda \u0d89\u0dc4\u0dda \u0d9a\u0da9\u0db1\u0dca \u0dc0\u0dd0\u0da7\u0dd4\u0db1\u0dcf \u0dc0\u0d9c\u0dda \u0dc0\u0dd0\u0da9\u0d9a\u0dca \u0db1\u0dda \u0d92\u0db4\u0dcf\u0dbb."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "upama"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 59,
+                "outputTokens": 232,
+                "inputTokensCostNanodollars": "118000",
+                "outputTokensCostNanodollars": "2784000",
+                "totalBackendLatencyMs": "3446"
+              },
+              "id": "synhalees_07_figurative_sinhala_item-1cfcdc51-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 59,
+            "outputTokens": 232,
+            "inputTokensCostNanodollars": "118000",
+            "outputTokensCostNanodollars": "2784000",
+            "totalBackendLatencyMs": "3446"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_07_004"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_07_figurative_sinhala_item-Run #4"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_07_figurative_sinhala_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_07_figurative_sinhala_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\", choices: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if eval_type == \"classification\" and choices:\n        prompt = \"Choose exactly one label from [\" + choices + \"]. Reply with only the label. \" + prompt\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:10:41.054213Z",
+      "endTime": "2026-09-26T12:10:46.340853Z",
+      "conversations": [
+        {
+          "id": "synhalees_07_figurative_sinhala_item-3cfbcb04",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "Choose exactly one label from [upama / vyangarthya]. Reply with only the label. \u0dc4\u0dbb\u0dd2 \u0dc4\u0dbb\u0dd2, \u0dc4\u0dd0\u0db8\u0daf\u0dcf\u0db8 \u0d94\u0dba \u0dc3\u0dd9\u0dbd\u0dca\u0dbd\u0db8\u0dca \u0daf\u0dcf\u0db1\u0dca\u0db1 \u0db6\u0dd1\u0db1\u0dda.. \u0d92 \u0dc0\u0dd9\u0dbd\u0dcf\u0dc0\u0da7 \u0d85\u0db4\u0dd2 \u0d92\u0d9a \u0dc0\u0dd2\u0dc3\u0db3\u0d9c\u0db8\u0dd4\u0d9a\u0ddd.."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "vyangarthya"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 58,
+                "outputTokens": 426,
+                "inputTokensCostNanodollars": "116000",
+                "outputTokensCostNanodollars": "5112000",
+                "totalBackendLatencyMs": "5195"
+              },
+              "id": "synhalees_07_figurative_sinhala_item-3cfbcb04-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 58,
+            "outputTokens": 426,
+            "inputTokensCostNanodollars": "116000",
+            "outputTokensCostNanodollars": "5112000",
+            "totalBackendLatencyMs": "5195"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_07_005"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_07_figurative_sinhala_item-Run #5"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_07_figurative_sinhala_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_07_figurative_sinhala_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\", choices: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if eval_type == \"classification\" and choices:\n        prompt = \"Choose exactly one label from [\" + choices + \"]. Reply with only the label. \" + prompt\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:10:43.493725Z",
+      "endTime": "2026-09-26T12:10:49.326364Z",
+      "conversations": [
+        {
+          "id": "synhalees_07_figurative_sinhala_item-9ed236b4",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "Choose exactly one label from [upama / vyangarthya]. Reply with only the label. \u0d92\u0d9a\u0dcf\u0dbd\u0dda \u0daf\u0dcf\u0db4\u0dd4 \u0dc3\u0dd9\u0dbd\u0dca\u0dbd\u0db8\u0dca \u0db8\u0dda \u0d9a\u0dcf\u0dbd\u0dda \u0daf\u0dcf\u0db1\u0dca\u0db1 \u0db6\u0dd1.. \u0dc4\u0dbb\u0dd2\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "vyangarthya"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 45,
+                "outputTokens": 424,
+                "inputTokensCostNanodollars": "90000",
+                "outputTokensCostNanodollars": "5088000",
+                "totalBackendLatencyMs": "5758"
+              },
+              "id": "synhalees_07_figurative_sinhala_item-9ed236b4-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 45,
+            "outputTokens": 424,
+            "inputTokensCostNanodollars": "90000",
+            "outputTokensCostNanodollars": "5088000",
+            "totalBackendLatencyMs": "5758"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_07_006"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_07_figurative_sinhala_item-Run #6"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_07_figurative_sinhala_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_07_figurative_sinhala_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\", choices: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if eval_type == \"classification\" and choices:\n        prompt = \"Choose exactly one label from [\" + choices + \"]. Reply with only the label. \" + prompt\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:10:46.345486Z",
+      "endTime": "2026-09-26T12:10:49.626404Z",
+      "conversations": [
+        {
+          "id": "synhalees_07_figurative_sinhala_item-786d74ba",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "Choose exactly one label from [upama / vyangarthya]. Reply with only the label. \u0db4\u0db1\u0dd2\u0db1 \u0dbb\u0dd2\u0dbd\u0dc0\u0dca\u0db1\u0dca\u0da7 \u0d89\u0dab\u0dd2\u0db8\u0db1\u0dca \u0db6\u0dd0\u0db3\u0dbd\u0dcf \u0dc0\u0dd0\u0da9\u0d9a\u0dca \u0db1\u0dd1\u0db1\u0dda."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "vyangarthya"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 42,
+                "outputTokens": 211,
+                "inputTokensCostNanodollars": "84000",
+                "outputTokensCostNanodollars": "2532000",
+                "totalBackendLatencyMs": "3200"
+              },
+              "id": "synhalees_07_figurative_sinhala_item-786d74ba-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 42,
+            "outputTokens": 211,
+            "inputTokensCostNanodollars": "84000",
+            "outputTokensCostNanodollars": "2532000",
+            "totalBackendLatencyMs": "3200"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_07_007"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_07_figurative_sinhala_item-Run #7"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_07_figurative_sinhala_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_07_figurative_sinhala_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\", choices: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if eval_type == \"classification\" and choices:\n        prompt = \"Choose exactly one label from [\" + choices + \"]. Reply with only the label. \" + prompt\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:10:49.631007Z",
+      "endTime": "2026-09-26T12:10:54.077768Z",
+      "conversations": [
+        {
+          "id": "synhalees_07_figurative_sinhala_item-85c4404e",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0d9c\u0dc4\u0d9a\u0dca \u0d8b\u0da9 \u0d9c\u0dd9\u0da9\u0dd2\u0dba\u0d9a\u0dca \u0d9c\u0dd9\u0da9\u0dd2\u0dba\u0d9a\u0dca \u0d8b\u0da9 \u0d9c\u0dc4\u0d9a\u0dca' \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0d9a\u0dda\u0da7\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "**\u0d85\u0db1\u0dca\u0db1\u0dcf\u0dc3\u0dd2 \u0d9c\u0dd9\u0da9\u0dd2\u0dba**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 41,
+                "outputTokens": 441,
+                "inputTokensCostNanodollars": "82000",
+                "outputTokensCostNanodollars": "5292000",
+                "totalBackendLatencyMs": "4348"
+              },
+              "id": "synhalees_07_figurative_sinhala_item-85c4404e-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 41,
+            "outputTokens": 441,
+            "inputTokensCostNanodollars": "82000",
+            "outputTokensCostNanodollars": "5292000",
+            "totalBackendLatencyMs": "4348"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_07_009"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_07_figurative_sinhala_item-Run #9"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_07_figurative_sinhala_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_07_figurative_sinhala_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\", choices: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if eval_type == \"classification\" and choices:\n        prompt = \"Choose exactly one label from [\" + choices + \"]. Reply with only the label. \" + prompt\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:10:54.082684Z",
+      "endTime": "2026-09-26T12:11:05.057993Z",
+      "conversations": [
+        {
+          "id": "synhalees_07_figurative_sinhala_item-0b7b8f3c",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0db8\u0da9\u0d9a\u0dab\u0dca\u0da9\u0dd2\u0dba' \u0d85\u0db1\u0dd2\u0dad\u0dca \u0db4\u0dd0\u0dad\u0dca\u0dad \u0dc4\u0dbb\u0dc0\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0db8\u0da9\u0d9a\u0dab\u0dca\u0da9\u0dd2\u0dba' \u0dba\u0db1 \u0dc0\u0da0\u0db1\u0dba \u0db4\u0dd9\u0dbb\u0dc5\u0dd2 \u0db6\u0dc3\u0da7 (Spoonerism) \u0d85\u0db1\u0dd4\u0dc0 \u0d85\u0db1\u0dd2\u0dad\u0dca \u0db4\u0dd0\u0dad\u0dca\u0dad \u0dc4\u0dd0\u0dbb\u0dc0\u0dd6 \u0dc0\u0dd2\u0da7 \u0dbd\u0dd0\u0db6\u0dd9\u0db1\u0dca\u0db1\u0dda,\n\n**\"\u0d9a\u0da9\u0db8\u0dab\u0dca\u0da9\u0dd2\u0dba\"** \u0dba\u0db1\u0dca\u0db1\u0dba\u0dd2.\n\n*(\u0db1\u0db8\u0dd4\u0dad\u0dca \u0d94\u0db6 \u0d85\u0daf\u0dc4\u0dc3\u0dca \u0d9a\u0dc5\u0dda \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 \u0da7\u0dd2\u0d9a \u0d85\u0d9c \u0d89\u0db3\u0db1\u0dca \u0db8\u0dd4\u0dbd\u0da7 \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1 \u0db1\u0db8\u0dca, \u0d91\u0dba \"\u0dba\u0da9\u0dd2\u0dab\u0dca\u0d9a\u0da9\u0db8\" \u0dbd\u0dd9\u0dc3 \u0dbd\u0dd2\u0dba\u0dd0\u0dc0\u0dda.)*"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 17,
+                "outputTokens": 1210,
+                "inputTokensCostNanodollars": "34000",
+                "outputTokensCostNanodollars": "14520000",
+                "totalBackendLatencyMs": "10887"
+              },
+              "id": "synhalees_07_figurative_sinhala_item-0b7b8f3c-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 17,
+            "outputTokens": 1210,
+            "inputTokensCostNanodollars": "34000",
+            "outputTokensCostNanodollars": "14520000",
+            "totalBackendLatencyMs": "10887"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_07_010"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_07_figurative_sinhala_item-Run #10"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_07_figurative_sinhala_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_07_figurative_sinhala_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\", choices: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if eval_type == \"classification\" and choices:\n        prompt = \"Choose exactly one label from [\" + choices + \"]. Reply with only the label. \" + prompt\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:10:49.333834Z",
+      "endTime": "2026-09-26T12:11:12.022839Z",
+      "conversations": [
+        {
+          "id": "synhalees_07_figurative_sinhala_item-4b11189d",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "Choose exactly one label from [upama / vyangarthya]. Reply with only the label. \u0db8\u0dad\u0d9a \u0dad\u0dd2\u0dba\u0dcf \u0d9c\u0db1\u0dca\u0db1 \u0d9a\u0ddc\u0d9a\u0dcf\u0da7 \u0dc0\u0d9c\u0dda\u0db8 \u0dad\u0dd2\u0dad\u0dca\u0dad\u0dba\u0da7\u0dad\u0dca \u0dc0\u0dcf\u0dbb\u0dba\u0d9a\u0dca \u0d91\u0db1\u0dc0\u0dcf \u0d9a\u0dd2\u0dba\u0dbd\u0dcf."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "vyangarthya"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 45,
+                "outputTokens": 2521,
+                "inputTokensCostNanodollars": "90000",
+                "outputTokensCostNanodollars": "30252000",
+                "totalBackendLatencyMs": "22623"
+              },
+              "id": "synhalees_07_figurative_sinhala_item-4b11189d-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 45,
+            "outputTokens": 2521,
+            "inputTokensCostNanodollars": "90000",
+            "outputTokensCostNanodollars": "30252000",
+            "totalBackendLatencyMs": "22623"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_07_008"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_07_figurative_sinhala_item-Run #8"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_07_figurative_sinhala_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_07_figurative_sinhala_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\", choices: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if eval_type == \"classification\" and choices:\n        prompt = \"Choose exactly one label from [\" + choices + \"]. Reply with only the label. \" + prompt\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:11:05.062636Z",
+      "endTime": "2026-09-26T12:11:13.608594Z",
+      "conversations": [
+        {
+          "id": "synhalees_07_figurative_sinhala_item-b7eb6419",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0db6\u0dbd\u0dc4\u0db1\u0dca\u0d9a\u0ddd \u0d8b\u0db9 \u0d8c\u0dbb\u0dd9\u0d9a\u0dca \u0dc0\u0d9c\u0dda' \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0d87\u0dba\u0dd2? (\u0d91\u0d9a \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0dc4\u0dad\u0dba\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 33,
+                "outputTokens": 842,
+                "inputTokensCostNanodollars": "66000",
+                "outputTokensCostNanodollars": "10104000",
+                "totalBackendLatencyMs": "8469"
+              },
+              "id": "synhalees_07_figurative_sinhala_item-b7eb6419-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 33,
+            "outputTokens": 842,
+            "inputTokensCostNanodollars": "66000",
+            "outputTokensCostNanodollars": "10104000",
+            "totalBackendLatencyMs": "8469"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_07_011"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_07_figurative_sinhala_item-Run #11"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_07_figurative_sinhala_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_07_figurative_sinhala_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\", choices: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if eval_type == \"classification\" and choices:\n        prompt = \"Choose exactly one label from [\" + choices + \"]. Reply with only the label. \" + prompt\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:11:13.613042Z",
+      "endTime": "2026-09-26T12:11:20.490566Z",
+      "conversations": [
+        {
+          "id": "synhalees_07_figurative_sinhala_item-cf8d5b01",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0dad\u0db1\u0dba \u0dc0\u0dd2\u0d9a\u0dcf' \u0d85\u0db1\u0dd2\u0dad\u0dca \u0db4\u0dd0\u0dad\u0dca\u0dad \u0dc4\u0dbb\u0dc0\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d91\u0dba \u0d85\u0db1\u0dd2\u0dad\u0dca \u0db4\u0dd0\u0dad\u0dca\u0dad \u0dc4\u0dd0\u0dbb\u0dd9\u0dc0\u0dca\u0dc0\u0db8 \u0d91\u0db1\u0dca\u0db1\u0dda **\"\u0dc0\u0dd2\u0db1\u0dba \u0dad\u0d9a\u0dcf\"** \u0dba\u0db1\u0dca\u0db1\u0dba\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 16,
+                "outputTokens": 625,
+                "inputTokensCostNanodollars": "32000",
+                "outputTokensCostNanodollars": "7500000",
+                "totalBackendLatencyMs": "6777"
+              },
+              "id": "synhalees_07_figurative_sinhala_item-cf8d5b01-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 16,
+            "outputTokens": 625,
+            "inputTokensCostNanodollars": "32000",
+            "outputTokensCostNanodollars": "7500000",
+            "totalBackendLatencyMs": "6777"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_07_013"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_07_figurative_sinhala_item-Run #13"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_07_figurative_sinhala_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_07_figurative_sinhala_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\", choices: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if eval_type == \"classification\" and choices:\n        prompt = \"Choose exactly one label from [\" + choices + \"]. Reply with only the label. \" + prompt\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:11:20.495263Z",
+      "endTime": "2026-09-26T12:11:31.117889Z",
+      "conversations": [
+        {
+          "id": "synhalees_07_figurative_sinhala_item-937ebeeb",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0d89\u0d9f\u0dd4\u0dbb\u0dd4 \u0daf\u0dd3\u0dbd\u0dcf \u0db8\u0dd2\u0dbb\u0dd2\u0dc3\u0dca \u0d9c\u0dad\u0dca\u0dad\u0dcf \u0dc0\u0d9c\u0dda' \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0db1 \u0dc0\u0dd9\u0dbd\u0dcf\u0dc0\u0da7\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "**\u0d85\u0dc0\u0dcf\u0dc3\u0dd2\u0daf\u0dcf\u0dba\u0d9a \u0dc4\u0dd4\u0dc0\u0db8\u0dcf\u0dbb\u0dd4\u0dc0\u0d9a\u0daf\u0dd3.**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 37,
+                "outputTokens": 1295,
+                "inputTokensCostNanodollars": "74000",
+                "outputTokensCostNanodollars": "15540000",
+                "totalBackendLatencyMs": "10528"
+              },
+              "id": "synhalees_07_figurative_sinhala_item-937ebeeb-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 37,
+            "outputTokens": 1295,
+            "inputTokensCostNanodollars": "74000",
+            "outputTokensCostNanodollars": "15540000",
+            "totalBackendLatencyMs": "10528"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_07_014"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_07_figurative_sinhala_item-Run #14"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_07_figurative_sinhala_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_07_figurative_sinhala_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\", choices: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if eval_type == \"classification\" and choices:\n        prompt = \"Choose exactly one label from [\" + choices + \"]. Reply with only the label. \" + prompt\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:11:12.027659Z",
+      "endTime": "2026-09-26T12:11:34.865446Z",
+      "conversations": [
+        {
+          "id": "synhalees_07_figurative_sinhala_item-d7393916",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0d9c\u0dc4\u0d9a\u0dca \u0d8b\u0da9\u0dd2\u0db1\u0dca \u0db8\u0dd4\u0dc0\u0dd9\u0d9a\u0dca \u0db4\u0dd0\u0db1\u0dca\u0db1\u0dcf' \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0d9a\u0dda\u0da7\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0dd9\u0dba\u0da7 \u0db4\u0dd2\u0dc5\u0dd2\u0dad\u0dd4\u0dbb:\n\n**\"\u0db4\u0ddc\u0dbb\u0ddc\u0dc0\u0dca \u0db8\u0dd4\u0dc0\u0dc4\u0dad\"** (\u0dc4\u0ddd **\"\u0dc0\u0da9\u0dd4 \u0d9a\u0dd2\u0dba\u0dad\"**)\n\n*(\u0db4\u0dd0\u0dc4\u0dd0\u0daf\u0dd2\u0dbd\u0dd2 \u0d9a\u0dd2\u0dbb\u0dd3\u0db8: \u0db8\u0dd9\u0dba \u0db4\u0dd0\u0dbb\u0dab\u0dd2 \u0dad\u0dda\u0dbb\u0dc0\u0dd2\u0dbd\u0dd2 \u0dbb\u0da7\u0dcf\u0dc0\u0d9a\u0dd2. \u0db8\u0dd9\u0dc4\u0dd2 '\u0db8\u0dd4\u0dc0' \u0dba\u0db1\u0dca\u0db1\u0dd9\u0db1\u0dca \u0dc3\u0dad\u0dcf \u0db1\u0ddc\u0dc0, \u0d9c\u0dc3\u0d9a\u0dca \u0d9a\u0db4\u0db1 \u0d86\u0dba\u0dd4\u0db0\u0dba\u0d9a \u0d87\u0dad\u0dd2 '\u0db8\u0dd4\u0dc0\u0dc4\u0dad' \u0dc4\u0dd9\u0dc0\u0dad\u0dca \u0dad\u0dbd\u0dba \u0d85\u0daf\u0dc4\u0dc3\u0dca \u0d9a\u0dd9\u0dbb\u0dda.)*"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 33,
+                "outputTokens": 2679,
+                "inputTokensCostNanodollars": "66000",
+                "outputTokensCostNanodollars": "32148000",
+                "totalBackendLatencyMs": "22739"
+              },
+              "id": "synhalees_07_figurative_sinhala_item-d7393916-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 33,
+            "outputTokens": 2679,
+            "inputTokensCostNanodollars": "66000",
+            "outputTokensCostNanodollars": "32148000",
+            "totalBackendLatencyMs": "22739"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_07_012"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_07_figurative_sinhala_item-Run #12"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_07_figurative_sinhala_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_07_figurative_sinhala_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\", choices: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if eval_type == \"classification\" and choices:\n        prompt = \"Choose exactly one label from [\" + choices + \"]. Reply with only the label. \" + prompt\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-pro-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-26T12:11:31.123070Z",
+      "endTime": "2026-09-26T12:11:40.454782Z",
+      "conversations": [
+        {
+          "id": "synhalees_07_figurative_sinhala_item-f0d5ac9b",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0d8b\u0da7 \u0da7\u0dd2\u0dba\u0dd4\u0db6\u0dca \u0dbd\u0dba\u0dd2\u0da7\u0dca' \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0d9a \u0dc0\u0dd4\u0db1\u0dcf\u0db8\u0daf? (\u0dc0\u0da0\u0db1 \u0dad\u0dd4\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dad\u0dda\u0dbb\u0dd9\u0db1\u0dca\u0db1 \u0db4\u0dbb\u0d9a\u0dca\u0d9a\u0dd4 \u0dc0\u0dd4\u0db1\u0dcf\u0db8."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-pro-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 33,
+                "outputTokens": 1080,
+                "inputTokensCostNanodollars": "66000",
+                "outputTokensCostNanodollars": "12960000",
+                "totalBackendLatencyMs": "9260"
+              },
+              "id": "synhalees_07_figurative_sinhala_item-f0d5ac9b-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 33,
+            "outputTokens": 1080,
+            "inputTokensCostNanodollars": "66000",
+            "outputTokensCostNanodollars": "12960000",
+            "totalBackendLatencyMs": "9260"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_07_015"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_07_figurative_sinhala_item-Run #15"
+    }
+  ],
+  "pyRunId": "synhalees_07_figurative_sinhala-Run #1"
+}

@@ -55,7 +55,7 @@ SynhalEES/
 │   ├── synhalees_task.py                        # all-in-one master task (15 pillars, text)
 │   └── tasks/                                   # 17 generated (see drift rule below): 15 pillars (text) + vision + audio
 │
-├── kaggle-results/                              # Kaggle pulls: raw run dirs gitignored; *.slim.csv tracked (~1KB records)
+├── kaggle-results/                              # Kaggle pulls: raw run artifacts + *.slim.csv slim records (committed archive)
 │
 ├── logo/                                        # Brand assets (logo & cover art)
 │   ├── logo.png                                 # Primary logo
@@ -105,10 +105,10 @@ SynhalEES/
 │       └── leaderboard.yml                     # Fails when docs/assets/data/* drifts from submissions/ (--check)
 │
 ├── runs/                                      # Gitignored: one folder per model (checkpoint.jsonl, submission.csv, meta.json)
-├── kaggle-results/                            # Gitignored: Kaggle Benchmarks pulls (kaggle b t download -o kaggle-results/<task>/<ver>/<model>/<run-id>/)
+├── kaggle-results/                            # COMMITTED: Kaggle Benchmarks pulls (kaggle b t download -o kaggle-results/<task>/<ver>/<model>/<run-id>/)
 ├── submissions/                                 # COMMITTED: one <model-slug>.csv per model -- the published site data source
 │   └── README.md                                  # scorecard schema + publication rules
-├── .gitignore                                 # runs/, kaggle-results/, __pycache__, packaging artifacts, lock files
+├── .gitignore                                 # runs/, __pycache__, packaging artifacts, lock files
 ├── pyproject.toml                             # pip install -e . packaging
 ├── run_benchmark.py                           # CLI entry point (checkpointed API runner)
 ├── AGENTS.md                                  # AI-agent / contributor conventions
@@ -246,7 +246,7 @@ Its only data source is a committed folder of per-model scorecards.
 
 ```text
 runs/<model-slug>/submission.csv              # local run scorecard -- gitignored
-kaggle-results/<task>/<ver>/<model>/<run>/    # Kaggle Benchmarks pull -- gitignored
+kaggle-results/<task>/<ver>/<model>/<run>/    # Kaggle Benchmarks pull -- committed
         |
         |  copy the scorecard, renamed after the model slug
         v
@@ -285,7 +285,7 @@ Rules:
    key that the project cannot re-verify or publish.
 
 7. **Kaggle pulls.** Kaggle Benchmarks artifacts are downloaded into the
-   gitignored `kaggle-results/` folder (`kaggle b t download <task-slug> -o
+   `kaggle-results/` folder (`kaggle b t download <task-slug> -o
    kaggle-results`) -- never the repo root. Each run exposes only an overall
    score, so a task scoped to one pillar maps to one scorecard row;
 

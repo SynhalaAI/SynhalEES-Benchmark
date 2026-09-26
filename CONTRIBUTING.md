@@ -81,9 +81,10 @@ hand-edit `docs/assets/data/*` - it is generated. See
 [`submissions/README.md`](submissions/README.md) for the full rules.
 
 Kaggle Benchmarks runs store their artifacts server-side; pull them into the
-gitignored outputs folder with
+dedicated outputs folder with
 `kaggle b t download <task-slug> -o kaggle-results`. Download output never
-lands in the repo root (`runs/` and `kaggle-results/` are both ignored).
+lands in the repo root (`runs/` is ignored; `kaggle-results/` is the committed
+Kaggle run archive).
 
 ### 3. Issues, ideas & questions
 

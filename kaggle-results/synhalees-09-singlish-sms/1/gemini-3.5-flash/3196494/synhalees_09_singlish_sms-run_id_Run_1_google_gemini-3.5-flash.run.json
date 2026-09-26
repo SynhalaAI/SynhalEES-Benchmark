@@ -1,0 +1,1067 @@
+{
+  "taskVersion": {
+    "versionNumber": 1,
+    "name": "synhalees_09_singlish_sms",
+    "description": "SynhalEES pillar 09_singlish_sms: native Sinhala text accuracy.",
+    "definition": "@kbench.task(name=\"synhalees_09_singlish_sms\", description=\"SynhalEES pillar 09_singlish_sms: native Sinhala text accuracy.\")\ndef synhalees_task(llm) -> float:\n    '''Evaluate Singlish Sms (text); return accuracy in [0, 1].'''\n    import pandas as pd\n\n    rows = _rows()\n    if not rows:\n        raise ValueError(\n            \"No runnable text rows for Singlish Sms yet -- media files may \"\n            \"not be committed under benchmark_data/.\"\n        )\n    with kbench.client.enable_cache():\n        runs = synhalees_item.evaluate(\n            llm=[llm], evaluation_data=pd.DataFrame(rows),\n            n_jobs=2, max_attempts=2, on_failure=\"continue\",\n            remove_run_files=True,\n        )\n    correct = runs.as_dataframe().result.str.get(\"is_correct\").astype(\"boolean\").fillna(False)\n    return float(correct.mean())\n"
+  },
+  "modelVersion": {
+    "slug": "google/gemini-3.5-flash"
+  },
+  "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+  "startTime": "2026-09-25T15:34:54.915298Z",
+  "endTime": "2026-09-25T15:35:31.580478Z",
+  "conversations": [
+    {
+      "id": "synhalees_09_singlish_sms-b830f640",
+      "metrics": {},
+      "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+    }
+  ],
+  "results": [
+    {
+      "type": "AGGREGATED",
+      "numericResult": {
+        "value": 0.2
+      }
+    }
+  ],
+  "subruns": [
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_09_singlish_sms_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_09_singlish_sms_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T15:34:54.925878Z",
+      "endTime": "2026-09-25T15:35:02.542629Z",
+      "conversations": [
+        {
+          "id": "synhalees_09_singlish_sms_item-34628b06",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "Api sms ywna kota 'Class' kiyn wchne kohomd keti krl ywnne?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "SMS \u0dba\u0dc0\u0db1 \u0d9a\u0ddc\u0da7 \"Class\" \u0d9a\u0dd2\u0dba\u0db1 \u0dc0\u0da0\u0db1\u0dba \u0d9a\u0dd9\u0da7\u0dd2 \u0d9a\u0dbb\u0dbd\u0dcf (abbreviate \u0d9a\u0dbb\u0dbd\u0dcf) \u0dba\u0dc0\u0db1\u0dca\u0db1 \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca \u0dc4\u0ddc\u0db3\u0db8 \u0dc3\u0dc4 \u0dc4\u0dd0\u0db8\u0ddd\u0da7\u0db8 \u0dbd\u0dda\u0dc3\u0dd2\u0dba\u0dd9\u0db1\u0dca \u0dad\u0dda\u0dbb\u0dd9\u0db1 \u0d9a\u0dca\u200d\u0dbb\u0db8 \u0d9a\u0dd2\u0dc4\u0dd2\u0db4\u0dba\u0d9a\u0dca \u0db8\u0dd9\u0db1\u0dca\u0db1:\n\n1. **Cls** (\u0db8\u0dda\u0d9a \u0dad\u0db8\u0dba\u0dd2 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0d9c\u0ddc\u0da9\u0d9a\u0dca\u0db8 \u0db4\u0dcf\u0dc0\u0dd2\u0da0\u0dca\u0da0\u0dd2 \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda \u0dc3\u0dc4 \u0dc4\u0dd0\u0db8\u0ddd\u0da7\u0db8 \u0dc4\u0ddc\u0db3\u0da7\u0db8 \u0dad\u0dda\u0dbb\u0dd9\u0db1 \u0d9a\u0dca\u200d\u0dbb\u0db8\u0dba)\n   * *\u0d09\u0daf\u0dcf\u0dc4\u0dbb\u0dab:* \"Maths **Cls** tomorrow at 8.00 AM\"\n\n2. **Clss** (\u0db8\u0dda\u0d9a\u0dad\u0dca \u0db4\u0dcf\u0dc0\u0dd2\u0da0\u0dca\u0da0\u0dd2 \u0d9a\u0dbb\u0db1\u0dca\u0db1 \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca, \u0dc4\u0dd0\u0db6\u0dd0\u0dba\u0dd2 'Cls' \u0d91\u0d9a\u0da7 \u0dc0\u0da9\u0dcf \u0d91\u0d9a \u0d85\u0d9a\u0dd4\u0dbb\u0d9a\u0dca \u0dc0\u0dd0\u0da9\u0dd2\u0dba\u0dd2)\n   * *Example:* \"Science **Clss** cancelled today\"\n\n3. **C** (Subject \u0d91\u0d9a\u0d9a\u0dca \u0d91\u0d9a\u0dca\u0d9a \u0dbd\u0dd2\u0dba\u0db1\u0dc0\u0dcf \u0db1\u0db8\u0dca \u0dc0\u0dd2\u0dad\u0dbb\u0d9a\u0dca \u0db4\u0dcf\u0dc0\u0dd2\u0da0\u0dca\u0da0\u0dd2 \u0d9a\u0dbb\u0db1\u0dca\u0db1 \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca - \u0dc4\u0dd0\u0db6\u0dd0\u0dba\u0dd2 \u0dc3\u0db8\u0dc4\u0dbb\u0dd4\u0db1\u0dca\u0da7 \u0db4\u0da7\u0dbd\u0dd9\u0db1\u0dca\u0db1 \u0d89\u0da9 \u0dad\u0dd2\u0dba\u0dd9\u0db1\u0dc0\u0dcf)\n   * *Example:* \"Eng **C** rescheduled\" (English Class rescheduled)\n\n**\u0dbd\u0ddc\u0d9a\u0dd4\u0db8 \u0dc0\u0dcf\u0dc3\u0dd2\u0dba:** \n\"Class\" (\u0d85\u0d9a\u0dd4\u0dbb\u0dd4 5) \u0dc0\u0dd9\u0db1\u0dd4\u0dc0\u0da7 **\"Cls\"** (\u0d85\u0d9a\u0dd4\u0dbb\u0dd4 3) \u0daf\u0dd0\u0db8\u0dca\u0db8\u0db8 character count \u0d91\u0d9a \u0d89\u0dad\u0dd4\u0dbb\u0dd4 \u0d9a\u0dbb\u0d9c\u0db1\u0dca\u0db1 \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca. SMS API \u0d91\u0d9a\u0d9a\u0dd2\u0db1\u0dca Bulk SMS \u0dba\u0dc0\u0daf\u0dca\u0daf\u0dd3 character \u0dc3\u0dd3\u0db8\u0dcf\u0dc0 \u0d87\u0dad\u0dd4\u0dbd\u0dda \u0dc0\u0dd0\u0da9\u0dd2 \u0dc0\u0dd2\u0dc3\u0dca\u0dad\u0dbb\u0dba\u0d9a\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1 \u0db8\u0dda\u0d9a \u0d9c\u0ddc\u0da9\u0d9a\u0dca \u0d8b\u0daf\u0dc0\u0dca \u0dc0\u0dd9\u0db1\u0dc0\u0dcf.\n\n**\u0db4\u0dcf\u0dc0\u0dd2\u0da0\u0dca\u0da0\u0dd2 \u0d9a\u0dbb\u0db1\u0dca\u0db1 \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca \u0d9a\u0dd9\u0da7\u0dd2 \u0d9a\u0dca\u200d\u0dbb\u0db8\u0dba\u0d9a\u0dca (Full Example):**\n> \"Dear Parent, Chemistry **Cls** on Sunday is rescheduled to 2.00 PM.\""
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 25,
+                "outputTokens": 1345,
+                "inputTokensCostNanodollars": "37500",
+                "outputTokensCostNanodollars": "12105000",
+                "totalBackendLatencyMs": "7432"
+              },
+              "id": "synhalees_09_singlish_sms_item-34628b06-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 25,
+            "outputTokens": 1345,
+            "inputTokensCostNanodollars": "37500",
+            "outputTokensCostNanodollars": "12105000",
+            "totalBackendLatencyMs": "7432"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_09_001"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_09_singlish_sms_item-Run #1"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_09_singlish_sms_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_09_singlish_sms_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T15:34:54.926252Z",
+      "endTime": "2026-09-25T15:35:02.916319Z",
+      "conversations": [
+        {
+          "id": "synhalees_09_singlish_sms_item-78969856",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "Api sms ywna kota 'Phone' kiyn wchne kohomd keti krl ywnne?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "API SMS \u0dba\u0dc0\u0db1 \u0d9a\u0ddc\u0da7 character limit \u0d91\u0d9a (\u0d85\u0d9a\u0dd4\u0dbb\u0dd4 \u0db4\u0dca\u200d\u0dbb\u0db8\u0dcf\u0dab\u0dba) \u0d89\u0dad\u0dd4\u0dbb\u0dd4 \u0d9a\u0dbb\u0d9c\u0db1\u0dca\u0db1 'Phone' \u0d9a\u0dd2\u0dba\u0db1 \u0dc0\u0da0\u0db1\u0dba \u0d9a\u0dd9\u0da7\u0dd2 \u0d9a\u0dbb\u0dbd\u0dcf (Abbreviate \u0d9a\u0dbb\u0dbd\u0dcf) \u0dba\u0dc0\u0db1\u0dca\u0db1 \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca \u0dc4\u0ddc\u0db3\u0db8 \u0d9a\u0dca\u200d\u0dbb\u0db8 \u0d9a\u0dd2\u0dc4\u0dd2\u0db4\u0dba\u0d9a\u0dca \u0db8\u0dd9\u0db1\u0dca\u0db1:\n\n1. **Ph:** \u0dc4\u0ddd **Ph :** (Phone \u0d9a\u0dd2\u0dba\u0db1 \u0d91\u0d9a\u0da7 \u0d9a\u0dd9\u0da7\u0dd2 \u0db1\u0db8)\n   * *\u0d09\u0daf\u0dcf\u0dc4\u0dbb\u0dab:* `Ph: 0771234567`\n\n2. **Tel:** \u0dc4\u0ddd **Tel :** (Telephone - \u0db8\u0dda\u0d9a \u0dc0\u0da9\u0dcf\u0dad\u0dca Professional \u0d9a\u0dca\u200d\u0dbb\u0db8\u0dba\u0d9a\u0dca)\n   * *\u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab:* `Tel: 0771234567`\n\n3. **Mob:** \u0dc4\u0ddd **Mob :** (Mobile - \u0da2\u0d82\u0d9c\u0db8 \u0daf\u0dd4\u0dbb\u0d9a\u0dae\u0db1 \u0d85\u0d82\u0d9a\u0dba\u0d9a\u0dca \u0db1\u0dd2\u0dc3\u0dcf \u0db8\u0dda\u0d9a\u0dad\u0dca \u0d9c\u0ddc\u0da9\u0d9a\u0dca \u0d9c\u0dd0\u0dbd\u0db4\u0dd9\u0db1\u0dc0\u0dcf)\n   * *\u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab:* `Mob: 0771234567`\n\n4. **No:** (Number - \"Contact No:\" \u0dc0\u0d9c\u0dda \u0daf\u0dcf\u0db1\u0dca\u0db1 \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca)\n   * *\u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab:* `Contact No: 0771234567`\n\n---\n\n### \u26a0\ufe0f API SMS \u0dc0\u0dbd\u0daf\u0dd3 \u0d89\u0dad\u0dcf\u0db8\u0dad\u0dca \u0dc0\u0dd0\u0daf\u0d9c\u0dad\u0dca \u0d9a\u0dbb\u0dd4\u0dab\u0d9a\u0dca:\n\n\u0dc3\u0db8\u0dc4\u0dbb \u0d85\u0dba \"Phone\" \u0d9a\u0dd2\u0dba\u0db1 \u0dc0\u0da0\u0db1\u0dba \u0dc0\u0dd9\u0db1\u0dd4\u0dc0\u0da7 **Phone Emoji (\ud83d\udcde \u0dc4\u0ddd \ud83d\udcf1)** \u0db4\u0dcf\u0dc0\u0dd2\u0da0\u0dca\u0da0\u0dd2 \u0d9a\u0dbb\u0db1\u0dca\u0db1 \u0dc4\u0dd2\u0dad\u0db1\u0dc0\u0dcf. **\u0db1\u0db8\u0dd4\u0dad\u0dca API SMS \u0dc0\u0dbd\u0daf\u0dd3 \u0d92\u0d9a \u0d9a\u0dbb\u0db1\u0dca\u0db1 \u0d91\u0db4\u0dcf.**\n\n* **\u0dc4\u0dda\u0dad\u0dd4\u0dc0:** SMS \u0d91\u0d9a\u0d9a\u0da7 emoji \u0d91\u0d9a\u0d9a\u0dca \u0daf\u0dd0\u0db8\u0dca\u0db8 \u0d9c\u0db8\u0db1\u0dca \u0db8\u0dd4\u0dc5\u0dd4 SMS \u0d91\u0d9a\u0db8 **Unicode (UCS-2)** \u0db6\u0dc0\u0da7 \u0db4\u0dad\u0dca \u0dc0\u0dd9\u0db1\u0dc0\u0dcf. \n* \u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba SMS \u0d91\u0d9a\u0d9a character limit \u0d91\u0d9a **160**\u0d9a\u0dca \u0dc0\u0dd4\u0db1\u0dcf\u0da7, Unicode \u0dc0\u0dd4\u0db1\u0ddc\u0dad\u0dca limit \u0d91\u0d9a **70** \u0daf\u0d9a\u0dca\u0dc0\u0dcf \u0d85\u0da9\u0dd4 \u0dc0\u0dd9\u0db1\u0dc0\u0dcf. \u0d91\u0dad\u0d9a\u0ddc\u0da7 \u0d94\u0dba\u0dcf\u0da7 SMS \u0d9c\u0dcf\u0dc3\u0dca\u0dad\u0dd4 \u0daf\u0dd9\u0d9c\u0dd4\u0dab\u0dba\u0d9a\u0dca \u0dc0\u0dd9\u0db1\u0dca\u0db1 \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca.\n\n\u0d91\u0db8 \u0db1\u0dd2\u0dc3\u0dcf \u0dc4\u0ddc\u0db3\u0db8 \u0dc3\u0dc4 \u0d86\u0dbb\u0d9a\u0dca\u0dc2\u0dd2\u0dad\u0db8 \u0d9a\u0dca\u200d\u0dbb\u0db8\u0dba \u0dad\u0db8\u0dba\u0dd2 **\"Tel:\"** \u0dc4\u0ddd **\"Mob:\"** \u0dc0\u0d9c\u0dda text \u0d91\u0d9a\u0d9a\u0dca \u0db4\u0dcf\u0dc0\u0dd2\u0da0\u0dca\u0da0\u0dd2 \u0d9a\u0dbb\u0db1 \u0d91\u0d9a."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 25,
+                "outputTokens": 1588,
+                "inputTokensCostNanodollars": "37500",
+                "outputTokensCostNanodollars": "14292000",
+                "totalBackendLatencyMs": "7880"
+              },
+              "id": "synhalees_09_singlish_sms_item-78969856-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 25,
+            "outputTokens": 1588,
+            "inputTokensCostNanodollars": "37500",
+            "outputTokensCostNanodollars": "14292000",
+            "totalBackendLatencyMs": "7880"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_09_002"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_09_singlish_sms_item-Run #2"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_09_singlish_sms_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_09_singlish_sms_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T15:35:02.920811Z",
+      "endTime": "2026-09-25T15:35:08.813407Z",
+      "conversations": [
+        {
+          "id": "synhalees_09_singlish_sms_item-60c87065",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "Api sms ywna kota 'Good Morning' kohomd keti krl ywnne?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\"Good Morning\" kiyana eka SMS yavana kota keti karala (shorten karala) yawanna puluwan krama keepayakma thiyenawa. \n\nGodakma use karana krama me thiyenne:\n\n1. **GM** (Meka thamaa godakma keti kramaya - fast and simple)\n2. **Gd mrng** (Mekath godak aya use karana kramayak)\n3. **Gud mrng** (Phonetic widiyata keti karala)\n4. **G'morning** (Casual widiyata yawanna puluwan)\n\nOyata meken **\"GM\"** kiyana eka lesiyenma pawichchi karanna puluwan."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 21,
+                "outputTokens": 965,
+                "inputTokensCostNanodollars": "31500",
+                "outputTokensCostNanodollars": "8685000",
+                "totalBackendLatencyMs": "5823"
+              },
+              "id": "synhalees_09_singlish_sms_item-60c87065-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 21,
+            "outputTokens": 965,
+            "inputTokensCostNanodollars": "31500",
+            "outputTokensCostNanodollars": "8685000",
+            "totalBackendLatencyMs": "5823"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_09_004"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_09_singlish_sms_item-Run #4"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_09_singlish_sms_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_09_singlish_sms_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T15:35:02.547823Z",
+      "endTime": "2026-09-25T15:35:09.679158Z",
+      "conversations": [
+        {
+          "id": "synhalees_09_singlish_sms_item-1aecdd54",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "Api sms ywna kota 'Photo' kiyn wchne kohomd keti krl ywnne?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "SMS \u0dba\u0dc0\u0db1\u0d9a\u0ddc\u0da7 \"Photo\" \u0d9a\u0dd2\u0dba\u0db1 \u0dc0\u0da0\u0db1\u0dba \u0d9a\u0dd9\u0da7\u0dd2 \u0d9a\u0dbb\u0dbd\u0dcf \u0dba\u0dc0\u0db1\u0dca\u0db1 \u0d9a\u0dca\u200d\u0dbb\u0db8 \u0d9a\u0dd3\u0db4\u0dba\u0d9a\u0dca\u0db8 \u0dad\u0dd2\u0dba\u0dd9\u0db1\u0dc0\u0dcf. \u0d94\u0dba\u0dcf\u0da7 \u0db4\u0dc4\u0dc3\u0dd4 \u0dc0\u0dd2\u0daf\u0dd2\u0dc4\u0d9a\u0dca \u0dad\u0ddd\u0dbb\u0dcf\u0d9c\u0db1\u0dca\u0db1 \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca:\n\n1. **Pic** (\u0db8\u0dda\u0d9a \u0dad\u0db8\u0dba\u0dd2 \u0dbd\u0ddd\u0d9a\u0dda \u0db4\u0dd4\u0dbb\u0dcf\u0db8 \u0dc0\u0dd0\u0da9\u0dd2\u0dba\u0dd9\u0db1\u0dca\u0db8 \u0db4\u0dcf\u0dc0\u0dd2\u0da0\u0dca\u0da0\u0dd2 \u0d9a\u0dbb\u0db1 \u0dbd\u0dda\u0dc3\u0dd2\u0db8 \u0d9a\u0dca\u200d\u0dbb\u0db8\u0dba - Short for \"Picture\")\n   * *\u0d09\u0daf\u0dcf:* \"Mata e **pic** eka ewanna.\"\n\n2. **Fto** (Photo \u0d9a\u0dd2\u0dba\u0db1 \u0dc0\u0da0\u0db1\u0dba \u0d87\u0dc4\u0dd9\u0db1 \u0dc1\u0db6\u0dca\u0daf\u0dba \u0d85\u0db1\u0dd4\u0dc0 \u0d9a\u0dd9\u0da7\u0dd2 \u0d9a\u0dbb\u0dbd\u0dcf - Sound-based)\n   * *\u0d09\u0daf\u0dcf:* \"Ara **fto** eka patta.\"\n\n3. **Phto** (Photo \u0d9a\u0dd2\u0dba\u0db1 \u0dc0\u0da0\u0db1\u0dba\u0dda \u0db8\u0dd0\u0daf \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 \u0d85\u0dba\u0dd2\u0db1\u0dca \u0d9a\u0dbb\u0dbd\u0dcf)\n   * *\u0d09\u0daf\u0dcf:* \"Aluth **phto** ekak dapan.\"\n\n4. **Img** (Image \u0d9a\u0dd2\u0dba\u0db1 \u0dc0\u0da0\u0db1\u0dba \u0d9a\u0dd9\u0da7\u0dd2 \u0d9a\u0dbb\u0dbd\u0dcf)\n   * *\u0d09\u0daf\u0dcf:* \"Mata e **img** eka ewapn.\"\n\n\u0d94\u0dba\u0dcf\u0da7 \u0dc3\u0dd2\u0d82\u0dc4\u0dbd\u0dd9\u0db1\u0dca **\"\u0db4\u0dd2\u0db1\u0dca\u0dad\u0dd6\u0dbb\u0dba\"** \u0d9a\u0dd2\u0dba\u0db1 \u0d91\u0d9a \u0d9a\u0dd9\u0da7\u0dd2 \u0d9a\u0dbb\u0dbd\u0dcf \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1 \u0d95\u0db1\u0dda \u0db1\u0db8\u0dca **\"Pntr\"** \u0dc4\u0ddd **\"Pntra\"** (Pinthure / Pinthura) \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dad\u0dca \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca.\n\n**\u0dc0\u0dd0\u0da9\u0dd2\u0dba\u0dd9\u0db1\u0dca\u0db8 \u0d9c\u0dd0\u0dbd\u0db4\u0dd9\u0db1 \u0dc3\u0dc4 \u0dc4\u0dd0\u0db8\u0ddd\u0da7\u0db8 \u0dbd\u0dda\u0dc3\u0dd2\u0dba\u0dd9\u0db1\u0dca \u0dad\u0dda\u0dbb\u0dd9\u0db1 \u0d9a\u0dca\u200d\u0dbb\u0db8\u0dba \u0dad\u0db8\u0dba\u0dd2 \"Pic\" \u0dc4\u0ddd \"Fto\" \u0d9a\u0dd2\u0dba\u0db1 \u0d91\u0d9a.**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 25,
+                "outputTokens": 1348,
+                "inputTokensCostNanodollars": "37500",
+                "outputTokensCostNanodollars": "12132000",
+                "totalBackendLatencyMs": "7062"
+              },
+              "id": "synhalees_09_singlish_sms_item-1aecdd54-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 25,
+            "outputTokens": 1348,
+            "inputTokensCostNanodollars": "37500",
+            "outputTokensCostNanodollars": "12132000",
+            "totalBackendLatencyMs": "7062"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_09_003"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_09_singlish_sms_item-Run #3"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_09_singlish_sms_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_09_singlish_sms_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T15:35:08.817751Z",
+      "endTime": "2026-09-25T15:35:15.409622Z",
+      "conversations": [
+        {
+          "id": "synhalees_09_singlish_sms_item-5de3cf5a",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "Api sms ywna kota 'Good Night' kohomd keti krl ywnne?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\"Good Night\" \u0d9a\u0dd2\u0dba\u0db1 \u0d91\u0d9a SMS \u0dc0\u0dbd\u0dd2\u0db1\u0dca \u0d9a\u0dd9\u0da7\u0dd2 \u0d9a\u0dbb\u0dbd\u0dcf (shorten \u0d9a\u0dbb\u0dbd\u0dcf) \u0dba\u0dc0\u0db1\u0dca\u0db1 \u0d9a\u0dca\u200d\u0dbb\u0db8 \u0d9a\u0dd3\u0db4\u0dba\u0d9a\u0dca\u0db8 \u0dad\u0dd2\u0dba\u0dd9\u0db1\u0dc0\u0dcf. \u0d94\u0dba\u0dcf\u0da7 \u0d9a\u0dd0\u0db8\u0dad\u0dd2 \u0d91\u0d9a\u0d9a\u0dca \u0dad\u0ddd\u0dbb\u0dcf\u0d9c\u0db1\u0dca\u0db1 \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca:\n\n**\u0d89\u0d82\u0d9c\u0dca\u200d\u0dbb\u0dd3\u0dc3\u0dd2 \u0d9a\u0dd9\u0da7\u0dd2 \u0dba\u0dd9\u0daf\u0dd4\u0db8\u0dca (English Abbreviations):**\n* **GN** (\u0dc0\u0da9\u0dcf\u0dad\u0dca\u0db8 \u0da2\u0db1\u0db4\u0dca\u200d\u0dbb\u0dd2\u0dba \u0dc3\u0dc4 \u0dbd\u0dda\u0dc3\u0dd2\u0db8 \u0d9a\u0dca\u200d\u0dbb\u0db8\u0dba)\n* **Gd nt** (Good night)\n* **Gnite** (Good night)\n* **G'night** \n\n**\u0d86\u0daf\u0dbb\u0dab\u0dd3\u0dba/\u0db8\u0dd2\u0dad\u0dca\u200d\u0dbb\u0dc1\u0dd3\u0dbd\u0dd3 \u0d9a\u0dca\u200d\u0dbb\u0db8 (With Sweet/Friendly wishes):**\n* **GN SD** (Good Night, Sweet Dreams)\n* **GN TC** (Good Night, Take Care)\n\n**\u0dc3\u0dd2\u0d82\u0dc4\u0dbd/\u0daf\u0dda\u0dc1\u0dd3\u0dba \u0d9a\u0dca\u200d\u0dbb\u0db8 (Sri Lankan Style):**\n* **BS** - Budu Saranai (\u0db6\u0dd4\u0daf\u0dd4 \u0dc3\u0dbb\u0dab\u0dba\u0dd2 - \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0d9c\u0ddc\u0da9\u0d9a\u0dca \u0d85\u0dba \u0dbb\u0dd1\u0da7 SMS \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dd9 \u0db8\u0dd9\u0dc4\u0dd9\u0db8\u0dba\u0dd2)\n* **JP** - Jesu Pihitai (\u0da2\u0dda\u0dc3\u0dd4 \u0db4\u0dd2\u0dc4\u0dd2\u0da7\u0dba\u0dd2)\n* **DP** - Devi Pihitai (\u0daf\u0dd9\u0dc0\u0dd2 \u0db4\u0dd2\u0dc4\u0dd2\u0da7\u0dba\u0dd2)\n* **SR** - Subha Rathriyak (\u0dc3\u0dd4\u0db7 \u0dbb\u0dcf\u0dad\u0dca\u200d\u0dbb\u0dd2\u0dba\u0d9a\u0dca)\n\n\u0d94\u0dba\u0dcf\u0da7 \u0dc0\u0da9\u0dcf\u0dad\u0dca\u0db8 \u0d9c\u0dd0\u0dbd\u0db4\u0dd9\u0db1 \u0d91\u0d9a \u0db7\u0dcf\u0dc0\u0dd2\u0dad \u0d9a\u0dbb\u0db1\u0dca\u0db1 \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca!"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 21,
+                "outputTokens": 1261,
+                "inputTokensCostNanodollars": "31500",
+                "outputTokensCostNanodollars": "11349000",
+                "totalBackendLatencyMs": "6488"
+              },
+              "id": "synhalees_09_singlish_sms_item-5de3cf5a-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 21,
+            "outputTokens": 1261,
+            "inputTokensCostNanodollars": "31500",
+            "outputTokensCostNanodollars": "11349000",
+            "totalBackendLatencyMs": "6488"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_09_005"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_09_singlish_sms_item-Run #5"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_09_singlish_sms_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_09_singlish_sms_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T15:35:09.683697Z",
+      "endTime": "2026-09-25T15:35:15.603753Z",
+      "conversations": [
+        {
+          "id": "synhalees_09_singlish_sms_item-aa995293",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "Sms ywnkota 'Fr' kiyala keti karanne mokkda?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "SMS \u0dc4\u0ddd Chat \u0d9a\u0dbb\u0db1\u0d9a\u0ddc\u0da7 **\"Fr\"** \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0d9a\u0dd9\u0da7\u0dd2 \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda **\"For Real\"** \u0d9a\u0dd2\u0dba\u0db1 \u0d89\u0d82\u0d9c\u0dca\u200d\u0dbb\u0dd3\u0dc3\u0dd2 \u0dba\u0dd9\u0daf\u0dd4\u0db8\u0dba\u0dd2.\n\n\u0db8\u0dd9\u0dc4\u0dd2 \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0daf\u0dc4\u0dc3 \u0dc0\u0db1\u0dca\u0db1\u0dda **\"\u0d87\u0dad\u0dca\u0dad\u0da7\u0db8\"**, **\"\u0d87\u0dad\u0dca\u0dad\u0dd9\u0db1\u0dca\u0db8\"** \u0dc4\u0ddd **\"\u0d87\u0dad\u0dca\u0dad\u0db8\u0dba\u0dd2\"** (Honestly / Seriously) \u0dba\u0db1\u0dca\u0db1\u0dba\u0dd2. \n\n\u0db8\u0dda\u0d9a \u0db7\u0dcf\u0dc0\u0dd2\u0dad \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda \u0db8\u0dd9\u0dc4\u0dd9\u0db8\u0dba\u0dd2:\n\n1. **\u0dba\u0db8\u0d9a\u0dca \u0dc3\u0dca\u0dae\u0dd2\u0dbb\u0dc0\u0db8 \u0db4\u0dca\u200d\u0dbb\u0d9a\u0dcf\u0dc1 \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0da7 (Agreement):**\n   * *\u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab:* \"I am so tired fr.\" (\u0db8\u0da7 \u0d87\u0dad\u0dca\u0dad\u0da7\u0db8 \u0d9c\u0ddc\u0da9\u0d9a\u0dca \u0db8\u0dc4\u0db1\u0dca\u0dc3\u0dd2\u0dba\u0dd2.)\n\n2. **\u0db4\u0dca\u200d\u0dbb\u0dc1\u0dca\u0db1\u0dba\u0d9a\u0dca \u0d87\u0dc3\u0dd3\u0db8\u0da7 (Questioning):**\n   * *\u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab:* \"Fr?\" (\u0d87\u0dad\u0dca\u0dad\u0da7\u0db8\u0daf? / \u0d87\u0dad\u0dca\u0dad\u0db8\u0daf?)\n\n**\u0dc0\u0dd2\u0dc1\u0dda\u0dc2 \u0dc3\u0da7\u0dc4\u0db1:**\n\u0dc3\u0db8\u0dc4\u0dbb \u0d85\u0dc0\u0dc3\u0dca\u0dae\u0dcf\u0dc0\u0dbd\u0daf\u0dd3 (\u0dc0\u0dd2\u0dc1\u0dda\u0dc2\u0dba\u0dd9\u0db1\u0dca \u0dbd\u0dd2\u0db4\u0dd2\u0db1 \u0dbd\u0dd2\u0dba\u0db1 \u0dc0\u0dd2\u0da7 \u0dc4\u0ddd message \u0d91\u0d9a\u0d9a\u0dca \u0d9a\u0dcf\u0d9c\u0dd9\u0db1\u0dca\u0daf\u0dd0\u0dba\u0dd2 \u0d9a\u0dd2\u0dba\u0db1 \u0dc0\u0dd2\u0da7) **\"From\"** (\u0dc0\u0dd9\u0dad\u0dd2\u0db1\u0dca / \u0d9a\u0dcf\u0d9c\u0dd9\u0db1\u0dca\u0daf) \u0d9a\u0dd2\u0dba\u0db1 \u0d91\u0d9a \u0d9a\u0dd9\u0da7\u0dd2 \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dad\u0dca \"Fr\" \u0dc4\u0ddd \"Frm\" \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0db1\u0dc0\u0dcf. \u0db1\u0db8\u0dd4\u0dad\u0dca \u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba Chat \u0dc0\u0dbd\u0daf\u0dd3 \"Fr\" \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \"For Real\" \u0d9a\u0dd2\u0dba\u0db1 \u0d91\u0d9a\u0da7\u0dba\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 20,
+                "outputTokens": 1135,
+                "inputTokensCostNanodollars": "30000",
+                "outputTokensCostNanodollars": "10215000",
+                "totalBackendLatencyMs": "5774"
+              },
+              "id": "synhalees_09_singlish_sms_item-aa995293-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 20,
+            "outputTokens": 1135,
+            "inputTokensCostNanodollars": "30000",
+            "outputTokensCostNanodollars": "10215000",
+            "totalBackendLatencyMs": "5774"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_09_006"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_09_singlish_sms_item-Run #6"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_09_singlish_sms_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_09_singlish_sms_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T15:35:15.414208Z",
+      "endTime": "2026-09-25T15:35:18.764475Z",
+      "conversations": [
+        {
+          "id": "synhalees_09_singlish_sms_item-82d3a262",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "Sms ywnkota 'Tnx' kiyala keti karanne mokkda?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "SMS \u0dba\u0dc0\u0db1\u0d9a\u0ddc\u0da7 **\"Tnx\"** \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0d9a\u0dd9\u0da7\u0dd2 \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda **\"Thanks\"** (\u0dc3\u0dca\u0dad\u0dd6\u0dad\u0dd2\u0dba\u0dd2) \u0d9a\u0dd2\u0dba\u0db1 \u0dc0\u0da0\u0db1\u0dba\u0dba\u0dd2.\n\n\u0dad\u0dc0\u0dad\u0dca \u0d92 \u0dc0\u0d9c\u0dda \u0dc3\u0dca\u0dad\u0dd6\u0dad\u0dd2 \u0d9a\u0dbb\u0db1\u0dca\u0db1 \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0db1 \u0d9a\u0dd9\u0da7\u0dd2 \u0dba\u0dd9\u0daf\u0dd4\u0db8\u0dca \u0d9a\u0dd2\u0dc4\u0dd2\u0db4\u0dba\u0d9a\u0dca \u0db8\u0dd9\u0db1\u0dca\u0db1:\n\n* **Thx** = Thanks\n* **Ty** = Thank you (\u0dad\u0dd1\u0db1\u0dca\u0d9a\u0dca \u0dba\u0dd6)\n* **Tq** = Thank you"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 21,
+                "outputTokens": 599,
+                "inputTokensCostNanodollars": "31500",
+                "outputTokensCostNanodollars": "5391000",
+                "totalBackendLatencyMs": "3271"
+              },
+              "id": "synhalees_09_singlish_sms_item-82d3a262-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 21,
+            "outputTokens": 599,
+            "inputTokensCostNanodollars": "31500",
+            "outputTokensCostNanodollars": "5391000",
+            "totalBackendLatencyMs": "3271"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_09_007"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_09_singlish_sms_item-Run #7"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_09_singlish_sms_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_09_singlish_sms_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T15:35:15.608789Z",
+      "endTime": "2026-09-25T15:35:19.228003Z",
+      "conversations": [
+        {
+          "id": "synhalees_09_singlish_sms_item-1b084bc1",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "Sms ywnkota 'Mk' kiyala keti karanne mokkda?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "SMS \u0dc4\u0ddd Chat \u0d9a\u0dbb\u0db1\u0d9a\u0ddc\u0da7 \"Mk\" \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0d9a\u0dd9\u0da7\u0dd2 \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda **\"\u0db8\u0ddc\u0d9a\u0daf\" (Mokada)** \u0dc4\u0ddd **\"\u0db8\u0ddc\u0d9a\u0ddd\" (Moko)** \u0d9a\u0dd2\u0dba\u0db1 \u0dc0\u0da0\u0db1\u0dba\u0dba\u0dd2. \n\n\u0db8\u0dda\u0dc0\u0dcf \u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba\u0dba\u0dd9\u0db1\u0dca \u0d9a\u0dd9\u0da7\u0dd2 \u0db4\u0dab\u0dd2\u0dc0\u0dd2\u0da9 \u0dc0\u0dbd\u0daf\u0dd3 \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0dc0\u0dd9\u0db1\u0dca\u0db1\u0dda \u0db8\u0dd9\u0db1\u0dca\u0db1 \u0db8\u0dda \u0dc0\u0d9c\u0dda \u0d85\u0daf\u0dc4\u0dc3\u0dca \u0daf\u0d9a\u0dca\u0dc0\u0db1\u0dca\u0db1\u0dba\u0dd2:\n\n* **Mk karanne?** = \u0db8\u0ddc\u0d9a\u0daf \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda? (What are you doing?)\n* **Mk kiyanne?** = \u0db8\u0ddc\u0d9a\u0daf \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda? (What's up? / What are you saying?)\n* **Mk une?** = \u0db8\u0ddc\u0d9a\u0daf \u0dc0\u0dd4\u0dab\u0dda? (What happened?)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 20,
+                "outputTokens": 718,
+                "inputTokensCostNanodollars": "30000",
+                "outputTokensCostNanodollars": "6462000",
+                "totalBackendLatencyMs": "3556"
+              },
+              "id": "synhalees_09_singlish_sms_item-1b084bc1-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 20,
+            "outputTokens": 718,
+            "inputTokensCostNanodollars": "30000",
+            "outputTokensCostNanodollars": "6462000",
+            "totalBackendLatencyMs": "3556"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_09_008"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_09_singlish_sms_item-Run #8"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_09_singlish_sms_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_09_singlish_sms_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T15:35:18.768760Z",
+      "endTime": "2026-09-25T15:35:23.769011Z",
+      "conversations": [
+        {
+          "id": "synhalees_09_singlish_sms_item-072aefdb",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "Sms ywnkota 'Bs' kiyala keti karanne mokkda?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "SMS \u0dc4\u0ddd Chat \u0dc0\u0dbd\u0daf\u0dd3 **\"Bs\"** \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0d9a\u0dd9\u0da7\u0dd2 \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda **\"Budu Saranai\" (\u0db6\u0dd4\u0daf\u0dd4 \u0dc3\u0dbb\u0dab\u0dba\u0dd2)** \u0d9a\u0dd2\u0dba\u0db1 \u0d91\u0d9a\u0dba\u0dd2. \n\nSinglish \u0dc0\u0dbd\u0dd2\u0db1\u0dca message \u0dba\u0dc0\u0db1\u0d9a\u0ddc\u0da7 \u0dbd\u0dda\u0dc3\u0dd2 \u0dc0\u0dd9\u0db1\u0dca\u0db1 \u0dc3\u0dc4 \u0d89\u0d9a\u0dca\u0db8\u0db1\u0dca \u0d9a\u0dbb\u0db1\u0dca\u0db1 \u0db8\u0dda\u0d9a \u0db6\u0dc4\u0dd4\u0dbd\u0dc0\u0db8 \u0db4\u0dcf\u0dc0\u0dd2\u0da0\u0dca\u0da0\u0dd2 \u0d9a\u0dbb\u0db1\u0dc0\u0dcf.\n\n(\u0dc3\u0db8\u0dc4\u0dbb\u0d9a\u0dca \u0dc0\u0dd9\u0dbd\u0dcf\u0dc0\u0da7 \u0d89\u0dad\u0dcf \u0d9a\u0dbd\u0dcf\u0dad\u0dd4\u0dbb\u0d9a\u0dd2\u0db1\u0dca **\"Bohoma Sthuthi\"** (\u0db6\u0ddc\u0dc4\u0ddc\u0db8 \u0dc3\u0dca\u0dad\u0dd6\u0dad\u0dd2\u0dba\u0dd2) \u0d9a\u0dd2\u0dba\u0db1 \u0d91\u0d9a\u0da7\u0dad\u0dca \u0db8\u0dda\u0d9a \u0db4\u0dcf\u0dc0\u0dd2\u0da0\u0dca\u0da0\u0dd2 \u0d9a\u0dbb\u0db1 \u0d85\u0dc0\u0dc3\u0dca\u0dae\u0dcf \u0dad\u0dd2\u0dba\u0dd9\u0db1\u0dc0\u0dcf, \u0dc4\u0dd0\u0db6\u0dd0\u0dba\u0dd2 \u0d9c\u0ddc\u0da9\u0d9a\u0dca \u0dc0\u0dd9\u0dbd\u0dcf\u0dc0\u0da7 \u0db4\u0dcf\u0dc0\u0dd2\u0da0\u0dca\u0da0\u0dd2 \u0dc0\u0dd9\u0db1\u0dca\u0db1\u0dda \"\u0db6\u0dd4\u0daf\u0dd4 \u0dc3\u0dbb\u0dab\u0dba\u0dd2\" \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dba\u0dd2.)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 20,
+                "outputTokens": 898,
+                "inputTokensCostNanodollars": "30000",
+                "outputTokensCostNanodollars": "8082000",
+                "totalBackendLatencyMs": "4929"
+              },
+              "id": "synhalees_09_singlish_sms_item-072aefdb-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 20,
+            "outputTokens": 898,
+            "inputTokensCostNanodollars": "30000",
+            "outputTokensCostNanodollars": "8082000",
+            "totalBackendLatencyMs": "4929"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_09_009"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_09_singlish_sms_item-Run #9"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_09_singlish_sms_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_09_singlish_sms_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T15:35:19.232511Z",
+      "endTime": "2026-09-25T15:35:24.036622Z",
+      "conversations": [
+        {
+          "id": "synhalees_09_singlish_sms_item-bbf629a9",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "Sms ywnkota 'Tc' kiyala keti karanne mokkda?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "SMS \u0dc4\u0ddd Chat \u0d9a\u0dbb\u0db1\u0dc0\u0dd2\u0da7 **'Tc'** \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0d9a\u0dd9\u0da7\u0dd2 \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda **\"Take Care\"** \u0d9a\u0dd2\u0dba\u0db1 \u0d89\u0d82\u0d9c\u0dca\u200d\u0dbb\u0dd3\u0dc3\u0dd2 \u0dc0\u0da0\u0db1\u0dba\u0dba\u0dd2.\n\n*   **\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dad\u0dda\u0dbb\u0dd4\u0db8:** \"\u0db4\u0dbb\u0dd9\u0dc3\u0dca\u0dc3\u0db8\u0dd9\u0db1\u0dca \u0d89\u0db1\u0dca\u0db1\" \u0dc4\u0ddd \"\u0d94\u0dba\u0dcf \u0d9c\u0dd0\u0db1 \u0db6\u0dbd\u0dcf\u0d9c\u0db1\u0dca\u0db1\".\n*   **\u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dba:** \u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba\u0dba\u0dd9\u0db1\u0dca Chat \u0d91\u0d9a\u0d9a\u0dca \u0d85\u0dc0\u0dc3\u0db1\u0dca \u0d9a\u0dbb\u0dbd\u0dcf \u0dc3\u0db8\u0dd4\u0d9c\u0db1\u0dca\u0db1\u0dcf \u0dc0\u0dd2\u0da7 (Bye \u0d9a\u0dd2\u0dba\u0db1 \u0d9a\u0ddc\u0da7) \u0dba\u0dcf\u0dbd\u0dd4\u0dc0\u0db1\u0dca \u0d85\u0dad\u0dbb\u0dda \u0db8\u0dda\u0d9a \u0d9a\u0dd9\u0da7\u0dd2 \u0dba\u0dd9\u0daf\u0dd4\u0db8\u0d9a\u0dca \u0dc0\u0dd2\u0daf\u0dd2\u0dc4\u0da7 \u0db4\u0dcf\u0dc0\u0dd2\u0da0\u0dca\u0da0\u0dd2 \u0d9a\u0dbb\u0db1\u0dc0\u0dcf. \n\n(\u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab\u0dba\u0d9a\u0dca \u0dbd\u0dd9\u0dc3: *\"Bye, tc!\"* = *\"\u0db6\u0dcf\u0dba\u0dd2, \u0db4\u0dbb\u0dd9\u0dc3\u0dca\u0dc3\u0db8\u0dd9\u0db1\u0dca \u0d89\u0db1\u0dca\u0db1!\"*)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 20,
+                "outputTokens": 841,
+                "inputTokensCostNanodollars": "30000",
+                "outputTokensCostNanodollars": "7569000",
+                "totalBackendLatencyMs": "4734"
+              },
+              "id": "synhalees_09_singlish_sms_item-bbf629a9-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 20,
+            "outputTokens": 841,
+            "inputTokensCostNanodollars": "30000",
+            "outputTokensCostNanodollars": "7569000",
+            "totalBackendLatencyMs": "4734"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_09_010"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_09_singlish_sms_item-Run #10"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_09_singlish_sms_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_09_singlish_sms_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T15:35:24.040876Z",
+      "endTime": "2026-09-25T15:35:26.181725Z",
+      "conversations": [
+        {
+          "id": "synhalees_09_singlish_sms_item-e9ada7b7",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'Mango' kiyn english word ek sinhala walat translate krnn? (Thani wachnen kiynna)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "**\u0d85\u0db9** (Amba)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 26,
+                "outputTokens": 299,
+                "inputTokensCostNanodollars": "39000",
+                "outputTokensCostNanodollars": "2691000",
+                "totalBackendLatencyMs": "2071"
+              },
+              "id": "synhalees_09_singlish_sms_item-e9ada7b7-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 26,
+            "outputTokens": 299,
+            "inputTokensCostNanodollars": "39000",
+            "outputTokensCostNanodollars": "2691000",
+            "totalBackendLatencyMs": "2071"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_09_012"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_09_singlish_sms_item-Run #12"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_09_singlish_sms_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_09_singlish_sms_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T15:35:23.773439Z",
+      "endTime": "2026-09-25T15:35:27.981061Z",
+      "conversations": [
+        {
+          "id": "synhalees_09_singlish_sms_item-35213d90",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'Red' kiyn english word ek sinhala walat translate krnn? (Wachana deken kiynna)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\"Red\" \u0d9a\u0dd2\u0dba\u0db1 \u0dc0\u0da0\u0db1\u0dba\u0da7 \u0dc3\u0dd2\u0d82\u0dc4\u0dbd\u0dd9\u0db1\u0dca \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0db1 \u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a \u0db8\u0dd9\u0db1\u0dca\u0db1:\n\n1. **\u0dbb\u0dad\u0dd4** (Rathu)\n2. **\u0dbb\u0dad\u0dd4 \u0db4\u0dcf\u0da7** (Rathu paata)\n\n*(\u0db8\u0dd3\u0da7 \u0d85\u0db8\u0dad\u0dbb\u0dc0, \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc3\u0dcf\u0dc4\u0dd2\u0dad\u0dca\u200d\u0dba\u0dba\u0dda\u0daf\u0dd3 \u0dbb\u0dad\u0dd4 \u0db4\u0dcf\u0da7 \u0dc4\u0dd0\u0db3\u0dd2\u0db1\u0dca\u0dc0\u0dd3\u0db8\u0da7 **\"\u0dbd\u0ddd\u0dc4\u0dd2\u0dad\"** (Lohitha) \u0d9a\u0dd2\u0dba\u0db1 \u0dc0\u0da0\u0db1\u0dba\u0dad\u0dca \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0db1\u0dc0\u0dcf).*"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 27,
+                "outputTokens": 836,
+                "inputTokensCostNanodollars": "40500",
+                "outputTokensCostNanodollars": "7524000",
+                "totalBackendLatencyMs": "4144"
+              },
+              "id": "synhalees_09_singlish_sms_item-35213d90-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 27,
+            "outputTokens": 836,
+            "inputTokensCostNanodollars": "40500",
+            "outputTokensCostNanodollars": "7524000",
+            "totalBackendLatencyMs": "4144"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_09_011"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_09_singlish_sms_item-Run #11"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_09_singlish_sms_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_09_singlish_sms_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T15:35:26.186097Z",
+      "endTime": "2026-09-25T15:35:29.214940Z",
+      "conversations": [
+        {
+          "id": "synhalees_09_singlish_sms_item-bf240c7a",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "Sudu patata wirudda pata mokakd? (Wachana deken kiynna)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "**Kalu pata** (\u0d9a\u0dc5\u0dd4 \u0db4\u0dcf\u0da7)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 23,
+                "outputTokens": 566,
+                "inputTokensCostNanodollars": "34500",
+                "outputTokensCostNanodollars": "5094000",
+                "totalBackendLatencyMs": "2962"
+              },
+              "id": "synhalees_09_singlish_sms_item-bf240c7a-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 23,
+            "outputTokens": 566,
+            "inputTokensCostNanodollars": "34500",
+            "outputTokensCostNanodollars": "5094000",
+            "totalBackendLatencyMs": "2962"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_09_013"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_09_singlish_sms_item-Run #13"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_09_singlish_sms_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_09_singlish_sms_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T15:35:27.985505Z",
+      "endTime": "2026-09-25T15:35:30.676751Z",
+      "conversations": [
+        {
+          "id": "synhalees_09_singlish_sms_item-0d120c57",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "20n 10k adu karama ithuru kiyd? (Illakkamen kiynna)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "**10**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 25,
+                "outputTokens": 438,
+                "inputTokensCostNanodollars": "37500",
+                "outputTokensCostNanodollars": "3942000",
+                "totalBackendLatencyMs": "2627"
+              },
+              "id": "synhalees_09_singlish_sms_item-0d120c57-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 25,
+            "outputTokens": 438,
+            "inputTokensCostNanodollars": "37500",
+            "outputTokensCostNanodollars": "3942000",
+            "totalBackendLatencyMs": "2627"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_09_014"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_09_singlish_sms_item-Run #14"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_09_singlish_sms_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_09_singlish_sms_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T15:35:29.219995Z",
+      "endTime": "2026-09-25T15:35:31.567157Z",
+      "conversations": [
+        {
+          "id": "synhalees_09_singlish_sms_item-9373b9ac",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "Ruwanweli maha seya pihita thiyena palatha mokkda? (Wachana thunen kiynna)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "Uthuru mada palatha"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 29,
+                "outputTokens": 394,
+                "inputTokensCostNanodollars": "43500",
+                "outputTokensCostNanodollars": "3546000",
+                "totalBackendLatencyMs": "2289"
+              },
+              "id": "synhalees_09_singlish_sms_item-9373b9ac-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 29,
+            "outputTokens": 394,
+            "inputTokensCostNanodollars": "43500",
+            "outputTokensCostNanodollars": "3546000",
+            "totalBackendLatencyMs": "2289"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_09_015"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_09_singlish_sms_item-Run #15"
+    }
+  ],
+  "pyRunId": "synhalees_09_singlish_sms-Run #1"
+}

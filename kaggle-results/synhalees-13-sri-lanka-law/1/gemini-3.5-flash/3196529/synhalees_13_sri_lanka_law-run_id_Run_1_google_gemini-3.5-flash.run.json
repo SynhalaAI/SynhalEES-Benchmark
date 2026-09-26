@@ -1,0 +1,1067 @@
+{
+  "taskVersion": {
+    "versionNumber": 1,
+    "name": "synhalees_13_sri_lanka_law",
+    "description": "SynhalEES pillar 13_sri_lanka_law: native Sinhala text accuracy.",
+    "definition": "@kbench.task(name=\"synhalees_13_sri_lanka_law\", description=\"SynhalEES pillar 13_sri_lanka_law: native Sinhala text accuracy.\")\ndef synhalees_task(llm) -> float:\n    '''Evaluate Sri Lanka Law (text); return accuracy in [0, 1].'''\n    import pandas as pd\n\n    rows = _rows()\n    if not rows:\n        raise ValueError(\n            \"No runnable text rows for Sri Lanka Law yet -- media files may \"\n            \"not be committed under benchmark_data/.\"\n        )\n    with kbench.client.enable_cache():\n        runs = synhalees_item.evaluate(\n            llm=[llm], evaluation_data=pd.DataFrame(rows),\n            n_jobs=2, max_attempts=2, on_failure=\"continue\",\n            remove_run_files=True,\n        )\n    correct = runs.as_dataframe().result.str.get(\"is_correct\").astype(\"boolean\").fillna(False)\n    return float(correct.mean())\n"
+  },
+  "modelVersion": {
+    "slug": "google/gemini-3.5-flash"
+  },
+  "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+  "startTime": "2026-09-25T15:37:35.258812Z",
+  "endTime": "2026-09-25T15:38:16.466065Z",
+  "conversations": [
+    {
+      "id": "synhalees_13_sri_lanka_law-ca0983a4",
+      "metrics": {},
+      "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+    }
+  ],
+  "results": [
+    {
+      "type": "AGGREGATED",
+      "numericResult": {
+        "value": 0.6666666666666666
+      }
+    }
+  ],
+  "subruns": [
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_13_sri_lanka_law_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_13_sri_lanka_law_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T15:37:35.271433Z",
+      "endTime": "2026-09-25T15:37:37.834664Z",
+      "conversations": [
+        {
+          "id": "synhalees_13_sri_lanka_law_item-927c33fa",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0d8b\u0dc3\u0dc3\u0dca\u0db8 \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0d8b\u0dc3\u0dc3\u0dca\u0db8 \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba \u0dc0\u0db1\u0dca\u0db1\u0dda **\u0dc1\u0dca\u200d\u0dbb\u0dda\u0dc2\u0dca\u0da8\u0dcf\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba (Supreme Court)** \u0dba."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 21,
+                "outputTokens": 460,
+                "inputTokensCostNanodollars": "31500",
+                "outputTokensCostNanodollars": "4140000",
+                "totalBackendLatencyMs": "2309"
+              },
+              "id": "synhalees_13_sri_lanka_law_item-927c33fa-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 21,
+            "outputTokens": 460,
+            "inputTokensCostNanodollars": "31500",
+            "outputTokensCostNanodollars": "4140000",
+            "totalBackendLatencyMs": "2309"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_13_001"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_13_sri_lanka_law_item-Run #1"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_13_sri_lanka_law_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_13_sri_lanka_law_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T15:37:35.271814Z",
+      "endTime": "2026-09-25T15:37:43.749760Z",
+      "conversations": [
+        {
+          "id": "synhalees_13_sri_lanka_law_item-3af37b26",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0db1\u0da9\u0dd4 \u0dc0\u0dd2\u0db7\u0dcf\u0d9c \u0db4\u0dc0\u0dad\u0dca\u0dc0\u0db1 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab \u0db4\u0daf\u0dca\u0db0\u0dad\u0dd2\u0dba \u0d85\u0db1\u0dd4\u0dc0 \"\u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba\" \u0dba\u0db1\u0dca\u0db1 \u0d9a\u0dbb\u0dd4\u0dab\u0dd4 \u0daf\u0dd9\u0d9a\u0d9a\u0dca \u0db8\u0dad \u0db4\u0dd0\u0dc4\u0dd0\u0daf\u0dd2\u0dbd\u0dd2 \u0d9a\u0dc5 \u0dc4\u0dd0\u0d9a\u0dd2\u0dba:\n\n1. **\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0d89\u0dc4\u0dc5\u0db8 \u0dc3\u0dc4 \u0d8b\u0dad\u0dca\u0dad\u0dbb\u0dd3\u0dad\u0dbb\u0db8 \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba:**\n   \u0d91\u0dba **\u0dc1\u0dca\u200d\u0dbb\u0dda\u0dc2\u0dca\u0da8\u0dcf\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba (Supreme Court)** \u0dc0\u0dda. \u0d86\u0dab\u0dca\u0da9\u0dd4\u0d9a\u0dca\u200d\u0dbb\u0db8 \u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc3\u0dca\u0dae\u0dcf\u0dc0 \u0d85\u0dbb\u0dca\u0dae \u0db1\u0dd2\u0dbb\u0dd6\u0db4\u0dab\u0dba \u0d9a\u0dd2\u0dbb\u0dd3\u0db8, \u0db8\u0dd6\u0dbd\u0dd2\u0d9a \u0d85\u0dba\u0dd2\u0dad\u0dd2\u0dc0\u0dcf\u0dc3\u0dd2\u0d9a\u0db8\u0dca \u0dc3\u0dd4\u0dbb\u0dd0\u0d9a\u0dd3\u0db8 \u0dc3\u0dc4 \u0d85\u0dc0\u0dc3\u0dcf\u0db1 \u0d85\u0db7\u0dd2\u0dba\u0dcf\u0da0\u0db1\u0dcf \u0dc0\u0dd2\u0db7\u0dcf\u0d9c \u0d9a\u0dd2\u0dbb\u0dd3\u0db8 \u0dc3\u0dd2\u0daf\u0dd4 \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda \u0dc1\u0dca\u200d\u0dbb\u0dda\u0dc2\u0dca\u0da8\u0dcf\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba \u0db8\u0d9c\u0dd2\u0db1\u0dd2.\n\n2. **\u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dc0\u0dc1\u0dba\u0dd9\u0db1\u0dca \u0db1\u0da9\u0dd4 \u0dc0\u0dd2\u0db7\u0dcf\u0d9c \u0db4\u0dc0\u0dad\u0dca\u0dc0\u0db1 \u0db8\u0dd4\u0dbd\u0dca \u0d85\u0dc0\u0dc3\u0dca\u0dae\u0dcf \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab (Trial Courts):**\n   \u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba \u0dc3\u0dd2\u0dc0\u0dd2\u0dbd\u0dca \u0dc3\u0dc4 \u0d85\u0db4\u0dbb\u0dcf\u0db0 \u0db1\u0da9\u0dd4 \u0dc0\u0dd2\u0db7\u0dcf\u0d9c \u0db8\u0dd4\u0dbd\u0dd2\u0db1\u0dca\u0db8 \u0d86\u0dbb\u0db8\u0dca\u0db7 \u0d9a\u0dbb \u0db4\u0dc0\u0dad\u0dca\u0dc0\u0db1 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab \u0dc0\u0dbb\u0dca\u0d9c \u0dad\u0dd4\u0db1\u0d9a\u0dd2:\n   * **\u0db8\u0dc4\u0dcf\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba (High Court):** \u0db6\u0dbb\u0db4\u0dad\u0dbd \u0d9c\u0dab\u0dba\u0dda \u0d85\u0db4\u0dbb\u0dcf\u0db0 \u0db1\u0da9\u0dd4 (\u0db8\u0dd2\u0db1\u0dd3\u0db8\u0dd0\u0dbb\u0dd4\u0db8\u0dca, \u0dc3\u0dca\u0dad\u0dca\u200d\u0dbb\u0dd3 \u0daf\u0dd6\u0dc2\u0dab \u0d86\u0daf\u0dd3) \u0dc0\u0dd2\u0db7\u0dcf\u0d9c \u0d9a\u0dbb\u0db1 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1\u0dad\u0db8 \u0db8\u0dd4\u0dbd\u0dca \u0d85\u0dc0\u0dc3\u0dca\u0dae\u0dcf \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba\u0dba\u0dd2.\n   * **\u0daf\u0dd2\u0dc3\u0dca\u0dad\u0dca\u200d\u0dbb\u0dd2\u0d9a\u0dca \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba (District Court):** \u0d89\u0da9\u0db8\u0dca \u0d86\u0dbb\u0dc0\u0dd4\u0dbd\u0dca, \u0daf\u0dd2\u0d9a\u0dca\u0d9a\u0dc3\u0dcf\u0daf, \u0dab\u0dba \u0db8\u0dd4\u0daf\u0dbd\u0dca \u0d85\u0dba\u0d9a\u0dbb\u0d9c\u0dd0\u0db1\u0dd3\u0db8\u0dca \u0dc0\u0dd0\u0db1\u0dd2 \u0dc3\u0dd2\u0dba\u0dbd\u0dd4\u0db8 \u0dc3\u0dd2\u0dc0\u0dd2\u0dbd\u0dca \u0db1\u0da9\u0dd4 \u0dc0\u0dd2\u0db7\u0dcf\u0d9c \u0d9a\u0dbb\u0db1 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba\u0dba\u0dd2.\n   * **\u0db8\u0dc4\u0dda\u0dc3\u0dca\u0dad\u0dca\u200d\u0dbb\u0dcf\u0dad\u0dca \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba (Magistrate's Court):** \u0dc3\u0dd4\u0dc5\u0dd4 \u0d85\u0db4\u0dbb\u0dcf\u0db0 \u0dc3\u0dc4 \u0daf\u0dab\u0dca\u0da9 \u0db1\u0dd3\u0dad\u0dd2 \u0dc3\u0d82\u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba\u0da7 \u0d85\u0dba\u0dad\u0dca \u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba \u0d85\u0db4\u0dbb\u0dcf\u0db0 \u0db1\u0da9\u0dd4 \u0dc0\u0dd2\u0db7\u0dcf\u0d9c \u0d9a\u0dbb\u0db1 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba\u0dba\u0dd2.\n\n\u0dc3\u0dcf\u0dbb\u0dcf\u0d82\u0dc1\u0dba\u0d9a\u0dca \u0dbd\u0dd9\u0dc3, \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0d89\u0dc4\u0dc5\u0db8 \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba **\u0dc1\u0dca\u200d\u0dbb\u0dda\u0dc2\u0dca\u0da8\u0dcf\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba** \u0dc0\u0db1 \u0d85\u0dad\u0dbb, \u0db6\u0dbb\u0db4\u0dad\u0dbd \u0d85\u0db4\u0dbb\u0dcf\u0db0 \u0db1\u0da9\u0dd4 \u0dc0\u0dd2\u0db7\u0dcf\u0d9c \u0db4\u0dc0\u0dad\u0dca\u0dc0\u0db1 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0db8\u0dd4\u0dbd\u0dca \u0d85\u0dc0\u0dc3\u0dca\u0dae\u0dcf \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba \u0dc0\u0db1\u0dca\u0db1\u0dda **\u0db8\u0dc4\u0dcf\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba\u0dba\u0dd2**."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 29,
+                "outputTokens": 1805,
+                "inputTokensCostNanodollars": "43500",
+                "outputTokensCostNanodollars": "16245000",
+                "totalBackendLatencyMs": "8270"
+              },
+              "id": "synhalees_13_sri_lanka_law_item-3af37b26-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 29,
+            "outputTokens": 1805,
+            "inputTokensCostNanodollars": "43500",
+            "outputTokensCostNanodollars": "16245000",
+            "totalBackendLatencyMs": "8270"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_13_002"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_13_sri_lanka_law_item-Run #2"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_13_sri_lanka_law_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_13_sri_lanka_law_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T15:37:37.840514Z",
+      "endTime": "2026-09-25T15:37:45.642218Z",
+      "conversations": [
+        {
+          "id": "synhalees_13_sri_lanka_law_item-a9ef0c21",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0dc3\u0dd2\u0dc0\u0dd2\u0dbd\u0dca \u0db1\u0dd3\u0dad\u0dd2\u0dba\u0dda \u0db8\u0dd6\u0dbd\u0dd2\u0d9a \u0db8\u0dd6\u0dbd\u0dcf\u0dc1\u0dca\u200d\u0dbb\u0dba \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0dc3\u0dd2\u0dc0\u0dd2\u0dbd\u0dca \u0db1\u0dd3\u0dad\u0dd2\u0dba\u0dda (\u0db4\u0ddc\u0daf\u0dd4 \u0dc3\u0dd2\u0dc0\u0dd2\u0dbd\u0dca \u0db1\u0dd3\u0dad\u0dd2\u0dba\u0dda) \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dc3\u0dc4 \u0db8\u0dd6\u0dbd\u0dd2\u0d9a\u0db8 \u0db8\u0dd6\u0dbd\u0dcf\u0dc1\u0dca\u200d\u0dbb\u0dba \u0dc0\u0db1\u0dca\u0db1\u0dda **\u0dbb\u0ddd\u0db8-\u0dbd\u0db1\u0dca\u0daf\u0dda\u0dc3\u0dd2 \u0db1\u0dd3\u0dad\u0dd2\u0dba (Roman-Dutch Law)** \u0dba. \n\n\u0dbd\u0db1\u0dca\u0daf\u0dda\u0dc3\u0dd2 \u0db4\u0dcf\u0dbd\u0db1 \u0dc3\u0db8\u0dba\u0dda\u0daf\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0da7 \u0dc4\u0db3\u0dd4\u0db1\u0dca\u0dc0\u0dcf \u0daf\u0dd4\u0db1\u0dca \u0db8\u0dd9\u0db8 \u0db1\u0dd3\u0dad\u0dd2 \u0db4\u0daf\u0dca\u0db0\u0dad\u0dd2\u0dba, \u0db4\u0dc3\u0dd4\u0dc0 \u0db6\u0dca\u200d\u0dbb\u0dd2\u0dad\u0dcf\u0db1\u0dca\u200d\u0dba\u0dba\u0db1\u0dca \u0dc0\u0dd2\u0dc3\u0dd2\u0db1\u0dca 1799 \u0dbb\u0dcf\u0da2\u0d9a\u0dd3\u0dba \u0db4\u0dca\u200d\u0dbb\u0d9a\u0dcf\u0dc1\u0db1\u0dba \u0db8\u0d9f\u0dd2\u0db1\u0dca \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0db4\u0ddc\u0daf\u0dd4 \u0dc3\u0dd2\u0dc0\u0dd2\u0dbd\u0dca \u0db1\u0dd3\u0dad\u0dd2\u0dba \u0dbd\u0dd9\u0dc3 \u0daf\u0dd2\u0d9c\u0da7\u0db8 \u0db4\u0dc0\u0dad\u0dca\u0dc0\u0dcf\u0d9c\u0dd9\u0db1 \u0dba\u0dcf\u0db8\u0da7 \u0dad\u0dd3\u0dbb\u0dab\u0dba \u0d9a\u0dbb\u0db1 \u0dbd\u0daf\u0dd3.\n\n\u0d9a\u0dd9\u0dc3\u0dda \u0dc0\u0dd9\u0dad\u0dad\u0dca, \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0dc3\u0dd2\u0dc0\u0dd2\u0dbd\u0dca \u0db1\u0dd3\u0dad\u0dd2 \u0db4\u0daf\u0dca\u0db0\u0dad\u0dd2\u0dba \"\u0db8\u0dd2\u0dc1\u0dca\u200d\u0dbb \u0db1\u0dd3\u0dad\u0dd2 \u0db4\u0daf\u0dca\u0db0\u0dad\u0dd2\u0dba\u0d9a\u0dca\" (Mixed Legal System) \u0dc0\u0db1 \u0d85\u0dad\u0dbb, \u0dbb\u0ddd\u0db8-\u0dbd\u0db1\u0dca\u0daf\u0dda\u0dc3\u0dd2 \u0db1\u0dd3\u0dad\u0dd2\u0dba\u0da7 \u0d85\u0db8\u0dad\u0dbb\u0dc0 \u0db4\u0dc4\u0dad \u0dc3\u0db3\u0dc4\u0db1\u0dca \u0db8\u0dd6\u0dbd\u0dcf\u0dc1\u0dca\u200d\u0dbb\u0daf \u0dc3\u0dd2\u0dc0\u0dd2\u0dbd\u0dca \u0db1\u0dd3\u0dad\u0dd2\u0dba \u0dc4\u0dd0\u0da9\u0d9c\u0dd0\u0dc3\u0dca\u0dc0\u0dd3\u0db8\u0da7 \u0db6\u0dbd\u0db4\u0dcf \u0d87\u0dad:\n\n1. **\u0d89\u0d82\u0d9c\u0dca\u200d\u0dbb\u0dd3\u0dc3\u0dd2 \u0db4\u0ddc\u0daf\u0dd4 \u0db1\u0dd3\u0dad\u0dd2\u0dba (English Common Law):** \u0dc0\u0dd2\u0dc1\u0dda\u0dc2\u0dba\u0dd9\u0db1\u0dca\u0db8 \u0dc0\u0dcf\u0dab\u0dd2\u0da2 \u0db1\u0dd3\u0dad\u0dd2\u0dba, \u0dc3\u0db8\u0dcf\u0d9c\u0db8\u0dca \u0db1\u0dd3\u0dad\u0dd2\u0dba, \u0dbb\u0d9a\u0dca\u0dc2\u0dab \u0db1\u0dd3\u0dad\u0dd2\u0dba \u0dc3\u0dc4 \u0d85\u0db4\u0dbb\u0dcf\u0db0 \u0db1\u0dd3\u0dad\u0dd2\u0dba \u0dc0\u0dd0\u0db1\u0dd2 \u0d9a\u0dca\u0dc2\u0dda\u0dad\u0dca\u200d\u0dbb \u0dc3\u0db3\u0dc4\u0dcf \u0db6\u0dbd\u0db4\u0dcf\u0dba\u0dd2.\n2. **\u0daf\u0dda\u0dc1\u0dd3\u0dba/\u0db4\u0dd4\u0daf\u0dca\u0d9c\u0dbd\u0dd2\u0d9a \u0db1\u0dd3\u0dad\u0dd2 (Personal Laws):** \u0dba\u0db8\u0dca \u0dc0\u0dd2\u0dc1\u0dda\u0dc2\u0dd2\u0dad \u0da2\u0db1\u0d9a\u0ddc\u0da7\u0dc3\u0dca\u0dc0\u0dbd\u0da7 \u0db4\u0db8\u0dab\u0d9a\u0dca \u0d85\u0daf\u0dcf\u0dc5 \u0dc0\u0db1 \u0db1\u0dd3\u0dad\u0dd2 \u0dc0\u0dda.\n   * **\u0d8b\u0da9\u0dbb\u0da7 \u0db1\u0dd3\u0dad\u0dd2\u0dba** (\u0d8b\u0da9\u0dbb\u0da7 \u0dc3\u0dd2\u0d82\u0dc4\u0dbd\u0dba\u0db1\u0dca\u0da7)\n   * **\u0dad\u0dda\u0dc3\u0dc0\u0dbd\u0dcf\u0db8\u0dda \u0db1\u0dd3\u0dad\u0dd2\u0dba** (\u0dba\u0dcf\u0db4\u0db1\u0dba\u0dda \u0dc0\u0dd9\u0dc3\u0dd9\u0db1 \u0daf\u0dd9\u0db8\u0dc5 \u0da2\u0db1\u0dad\u0dcf\u0dc0\u0da7)\n   * **\u0db8\u0dd4\u0dc3\u0dca\u0dbd\u0dd2\u0db8\u0dca \u0db1\u0dd3\u0dad\u0dd2\u0dba** (\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0dcf\u0d82\u0d9a\u0dd2\u0d9a \u0db8\u0dd4\u0dc3\u0dca\u0dbd\u0dd2\u0db8\u0dca\u0dc0\u0dbb\u0dd4\u0db1\u0dca\u0da7)\n3. **\u0db4\u0db1\u0dad\u0dca \u0dc3\u0dc4 \u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc3\u0dca\u0dae\u0dcf\u0db4\u0dd2\u0dad \u0db1\u0dd3\u0dad\u0dd2 (Statute Law):** \u0db4\u0dcf\u0dbb\u0dca\u0dbd\u0dd2\u0db8\u0dda\u0db1\u0dca\u0dad\u0dd4\u0dc0 \u0db8\u0d9f\u0dd2\u0db1\u0dca \u0dc0\u0dbb\u0dd2\u0db1\u0dca \u0dc0\u0dbb \u0dc3\u0db8\u0dca\u0db8\u0dad \u0d9a\u0dbb\u0db1 \u0dbd\u0daf \u0db4\u0db1\u0dad\u0dca.\n4. **\u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab \u0dad\u0dd3\u0db1\u0dca\u0daf\u0dd4 (Judicial Precedents):** \u0dc1\u0dca\u200d\u0dbb\u0dda\u0dc2\u0dca\u0da8\u0dcf\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba \u0dc3\u0dc4 \u0d85\u0db7\u0dd2\u0dba\u0dcf\u0da0\u0db1\u0dcf\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba \u0dbd\u0db6\u0dcf \u0daf\u0dd9\u0db1 \u0db1\u0da9\u0dd4 \u0dad\u0dd3\u0db1\u0dca\u0daf\u0dd4.\n\n\u0db1\u0db8\u0dd4\u0dad\u0dca, \u0d89\u0dc4\u0dad \u0dc3\u0db3\u0dc4\u0db1\u0dca \u0dc0\u0dd2\u0dc1\u0dda\u0dc2\u0dd2\u0dad \u0db1\u0dd3\u0dad\u0dd2\u0dba\u0d9a\u0dca \u0db1\u0ddc\u0db8\u0dd0\u0dad\u0dd2 \u0d95\u0db1\u0dd1\u0db8 \u0db4\u0ddc\u0daf\u0dd4 \u0dc3\u0dd2\u0dc0\u0dd2\u0dbd\u0dca \u0d9a\u0dbb\u0dd4\u0dab\u0d9a\u0daf\u0dd3 (\u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab\u0dba\u0d9a\u0dca \u0dbd\u0dd9\u0dc3 \u0d9c\u0dd2\u0dc0\u0dd2\u0dc3\u0dd4\u0db8\u0dca \u0db1\u0dd3\u0dad\u0dd2\u0dba, \u0daf\u0dda\u0db4\u0dbd \u0db1\u0dd3\u0dad\u0dd2\u0dba \u0dc4\u0ddd \u0d85\u0db4\u0dc4\u0dcf\u0dc3 \u0db4\u0dd2\u0dc5\u0dd2\u0db6\u0db3 \u0db1\u0dd3\u0dad\u0dd2\u0dba \u0dc0\u0dd0\u0db1\u0dd2 \u0d9a\u0dbb\u0dd4\u0dab\u0dd4\u0dc0\u0dbd\u0daf\u0dd3) \u0d85\u0dc0\u0dc3\u0dcf\u0db1 \u0dad\u0dd3\u0dbb\u0dab\u0dba \u0dc3\u0db3\u0dc4\u0dcf \u0db4\u0daf\u0db1\u0db8\u0dca \u0d9a\u0dbb\u0d9c\u0db1\u0dca\u0db1\u0dda **\u0dbb\u0ddd\u0db8-\u0dbd\u0db1\u0dca\u0daf\u0dda\u0dc3\u0dd2 \u0db1\u0dd3\u0dad\u0dd2\u0dba**\u0dba\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 30,
+                "outputTokens": 1616,
+                "inputTokensCostNanodollars": "45000",
+                "outputTokensCostNanodollars": "14544000",
+                "totalBackendLatencyMs": "7654"
+              },
+              "id": "synhalees_13_sri_lanka_law_item-a9ef0c21-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 30,
+            "outputTokens": 1616,
+            "inputTokensCostNanodollars": "45000",
+            "outputTokensCostNanodollars": "14544000",
+            "totalBackendLatencyMs": "7654"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_13_003"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_13_sri_lanka_law_item-Run #3"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_13_sri_lanka_law_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_13_sri_lanka_law_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T15:37:43.754677Z",
+      "endTime": "2026-09-25T15:37:46.109602Z",
+      "conversations": [
+        {
+          "id": "synhalees_13_sri_lanka_law_item-d2317fb7",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dbb\u0da2\u0dba \u0dc0\u0dd9\u0db1\u0dd4\u0dc0\u0dd9\u0db1\u0dca \u0db1\u0da9\u0dd4 \u0d9a\u0dd2\u0dba\u0db1 \u0daf\u0dd9\u0db4\u0dcf\u0dbb\u0dca\u0dad\u0db8\u0dda\u0db1\u0dca\u0dad\u0dd4\u0dc0 \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dbb\u0da2\u0dba \u0dc0\u0dd9\u0db1\u0dd4\u0dc0\u0dd9\u0db1\u0dca \u0db1\u0da9\u0dd4 \u0db4\u0dc0\u0dbb\u0db1\u0dca\u0db1\u0dda \u0dc3\u0dc4 \u0dbb\u0da2\u0dba \u0db1\u0dd2\u0dba\u0ddd\u0da2\u0db1\u0dba \u0d9a\u0dbb\u0db8\u0dd2\u0db1\u0dca \u0db1\u0da9\u0dd4 \u0d9a\u0da7\u0dba\u0dd4\u0dad\u0dd4 \u0db8\u0dd9\u0dc4\u0dd9\u0dba\u0dc0\u0db1\u0dca\u0db1\u0dda **\u0db1\u0dd3\u0dad\u0dd2\u0db4\u0dad\u0dd2 \u0daf\u0dd9\u0db4\u0dcf\u0dbb\u0dca\u0dad\u0db8\u0dda\u0db1\u0dca\u0dad\u0dd4\u0dc0** (Attorney General's Department) \u0db8\u0d9c\u0dd2\u0db1\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 23,
+                "outputTokens": 426,
+                "inputTokensCostNanodollars": "34500",
+                "outputTokensCostNanodollars": "3834000",
+                "totalBackendLatencyMs": "2283"
+              },
+              "id": "synhalees_13_sri_lanka_law_item-d2317fb7-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 23,
+            "outputTokens": 426,
+            "inputTokensCostNanodollars": "34500",
+            "outputTokensCostNanodollars": "3834000",
+            "totalBackendLatencyMs": "2283"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_13_004"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_13_sri_lanka_law_item-Run #4"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_13_sri_lanka_law_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_13_sri_lanka_law_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T15:37:46.114088Z",
+      "endTime": "2026-09-25T15:37:51.450233Z",
+      "conversations": [
+        {
+          "id": "synhalees_13_sri_lanka_law_item-d49fa087",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab \u0db4\u0daf\u0dca\u0db0\u0dad\u0dd2\u0dba\u0dda \u0d89\u0dc4\u0dc5\u0db8 \u0dad\u0db1\u0dad\u0dd4\u0dbb \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dad\u0db1\u0dd2 \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d8b\u0dad\u0dca\u0dad\u0dbb \u0daf\u0dd9\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d85\u0d9c\u0dc0\u0dd2\u0db1\u0dd2\u0dc3\u0dd4\u0dbb\u0dd4"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 41,
+                "outputTokens": 245,
+                "inputTokensCostNanodollars": "61500",
+                "outputTokensCostNanodollars": "2205000",
+                "totalBackendLatencyMs": "5261"
+              },
+              "id": "synhalees_13_sri_lanka_law_item-d49fa087-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 41,
+            "outputTokens": 245,
+            "inputTokensCostNanodollars": "61500",
+            "outputTokensCostNanodollars": "2205000",
+            "totalBackendLatencyMs": "5261"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_13_006"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_13_sri_lanka_law_item-Run #6"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_13_sri_lanka_law_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_13_sri_lanka_law_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T15:37:45.646808Z",
+      "endTime": "2026-09-25T15:37:51.797720Z",
+      "conversations": [
+        {
+          "id": "synhalees_13_sri_lanka_law_item-a353247b",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0dc1\u0dca\u200d\u0dbb\u0dda\u0dc2\u0dca\u0da8\u0dad\u0db8 \u0dc3\u0dc4 \u0d8b\u0da0\u0dca\u0da0\u0dad\u0db8 \u0db1\u0dd3\u0dad\u0dd2\u0dba \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0db4\u0dd2\u0dc5\u0dd2\u0d9c\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0dc1\u0dca\u200d\u0dbb\u0dda\u0dc2\u0dca\u0da8\u0dad\u0db8, \u0d8b\u0da0\u0dca\u0da0\u0dad\u0db8 \u0dc3\u0dc4 \u0d8b\u0dad\u0dca\u0dad\u0dbb\u0dd3\u0dad\u0dbb\u0db8 \u0db1\u0dd3\u0dad\u0dd2\u0dba \u0dbd\u0dd9\u0dc3 \u0db4\u0dd2\u0dc5\u0dd2\u0d9c\u0db1\u0dca\u0db1\u0dda **\u0d86\u0dab\u0dca\u0da9\u0dd4\u0d9a\u0dca\u200d\u0dbb\u0db8 \u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc3\u0dca\u0dae\u0dcf\u0dc0\u0dba\u0dd2 (The Constitution)**.\n\n\u0dc0\u0dbb\u0dca\u0dad\u0db8\u0dcf\u0db1\u0dba\u0dda \u0dbd\u0d82\u0d9a\u0dcf\u0dc0 \u0dad\u0dd4\u0dc5 \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dad\u0dca\u0db8\u0d9a \u0dc0\u0db1\u0dca\u0db1\u0dda **1978 \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf \u0db4\u0dca\u200d\u0dbb\u0da2\u0dcf\u0dad\u0dcf\u0db1\u0dca\u0dad\u0dca\u200d\u0dbb\u0dd2\u0d9a \u0dc3\u0db8\u0dcf\u0da2\u0dc0\u0dcf\u0daf\u0dd3 \u0da2\u0db1\u0dbb\u0da2\u0dba\u0dda \u0d86\u0dab\u0dca\u0da9\u0dd4\u0d9a\u0dca\u200d\u0dbb\u0db8 \u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc3\u0dca\u0dae\u0dcf\u0dc0\u0dba\u0dd2** (\u0db8\u0dd9\u0dba \u0db8\u0dda \u0dc0\u0db1 \u0dc0\u0dd2\u0da7 \u0d85\u0dc0\u0dc3\u0dca\u0dae\u0dcf \u0d9a\u0dd2\u0dc4\u0dd2\u0db4\u0dba\u0d9a\u0daf\u0dd3\u0db8 \u0dc3\u0d82\u0dc1\u0ddd\u0db0\u0db1\u0dba\u0da7 \u0dbd\u0d9a\u0dca \u0d9a\u0dbb \u0d87\u0dad).\n\n\u0d91\u0dba \u0d8b\u0dad\u0dca\u0dad\u0dbb\u0dd3\u0dad\u0dbb \u0db1\u0dd3\u0dad\u0dd2\u0dba \u0dbd\u0dd9\u0dc3 \u0dc3\u0dd0\u0dbd\u0d9a\u0dd3\u0db8\u0da7 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dc4\u0dda\u0dad\u0dd4 \u0d9a\u0dd2\u0dc4\u0dd2\u0db4\u0dba\u0d9a\u0dd2:\n\n1. **\u0dc0\u0dd9\u0db1\u0dad\u0dca \u0db1\u0dd3\u0dad\u0dd2\u0dc0\u0dbd \u0dc0\u0dbd\u0d82\u0d9c\u0dd4\u0db7\u0dcf\u0dc0\u0dba:** \u0dbb\u0da7\u0dda \u0dc3\u0db8\u0dca\u0db8\u0dad \u0dc0\u0db1 \u0d85\u0db1\u0dd9\u0d9a\u0dd4\u0dad\u0dca \u0dc3\u0dd2\u0dba\u0dbd\u0dd4\u0db8 \u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba \u0db1\u0dd3\u0dad\u0dd2, \u0db4\u0db1\u0dad\u0dca \u0dc3\u0dc4 \u0dbb\u0dd9\u0d9c\u0dd4\u0dbd\u0dcf\u0dc3\u0dd2 \u0d86\u0dab\u0dca\u0da9\u0dd4\u0d9a\u0dca\u200d\u0dbb\u0db8 \u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc3\u0dca\u0dae\u0dcf\u0dc0\u0da7 \u0d85\u0db1\u0dd4\u0d9a\u0dd6\u0dbd \u0dc0\u0dd2\u0dba \u0dba\u0dd4\u0dad\u0dd4\u0dba. \u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc3\u0dca\u0dae\u0dcf\u0dc0\u0da7 \u0db4\u0da7\u0dc4\u0dd0\u0db1\u0dd2 \u0dc0\u0db1 \u0d9a\u0dd2\u0dc3\u0dd2\u0daf\u0dd4 \u0db1\u0dd3\u0dad\u0dd2\u0dba\u0d9a\u0dca \u0dbb\u0da7 \u0dad\u0dd4\u0dc5 \u0dc0\u0dbd\u0d82\u0d9c\u0dd4 \u0db1\u0ddc\u0dc0\u0dda.\n2. **\u0dbb\u0dcf\u0da2\u0dca\u200d\u0dba \u0db6\u0dbd\u0dba \u0db6\u0dd9\u0daf\u0dd3 \u0dba\u0dcf\u0db8:** \u0dbb\u0da7\u0dda \u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc3\u0dca\u0dae\u0dcf\u0daf\u0dcf\u0dba\u0d9a\u0dba (\u0db4\u0dcf\u0dbb\u0dca\u0dbd\u0dd2\u0db8\u0dda\u0db1\u0dca\u0dad\u0dd4\u0dc0), \u0dc0\u0dd2\u0db0\u0dcf\u0dba\u0d9a\u0dba (\u0da2\u0db1\u0dcf\u0db0\u0dd2\u0db4\u0dad\u0dd2 \u0dc3\u0dc4 \u0d9a\u0dd0\u0db6\u0dd2\u0db1\u0da7\u0dca \u0db8\u0dab\u0dca\u0da9\u0dbd\u0dba) \u0dc3\u0dc4 \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba \u0dba\u0db1 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0d86\u0dba\u0dad\u0db1 \u0dad\u0dd4\u0db1\u0da7 \u0db6\u0dbd\u0dba \u0dbd\u0dd0\u0db6\u0dd9\u0db1\u0dca\u0db1\u0dda \u0dc3\u0dc4 \u0d92\u0dc0\u0dcf \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dad\u0dca\u0db8\u0d9a \u0dc0\u0db1 \u0dc3\u0dd3\u0db8\u0dcf\u0dc0\u0db1\u0dca \u0dad\u0dd3\u0dbb\u0dab\u0dba \u0dc0\u0db1\u0dca\u0db1\u0dda \u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc3\u0dca\u0dae\u0dcf\u0dc0 \u0db8\u0d9c\u0dd2\u0db1\u0dd2.\n3. **\u0db8\u0dd6\u0dbd\u0dd2\u0d9a \u0d85\u0dba\u0dd2\u0dad\u0dd2\u0dc0\u0dcf\u0dc3\u0dd2\u0d9a\u0db8\u0dca:** \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0db4\u0dd4\u0dbb\u0dc0\u0dd0\u0dc3\u0dd2\u0dba\u0db1\u0dca\u0d9c\u0dda \u0db8\u0dd6\u0dbd\u0dd2\u0d9a \u0d85\u0dba\u0dd2\u0dad\u0dd2\u0dc0\u0dcf\u0dc3\u0dd2\u0d9a\u0db8\u0dca \u0d86\u0dbb\u0d9a\u0dca\u0dc2\u0dcf \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda \u0dc3\u0dc4 \u0dc3\u0dc4\u0dad\u0dd2\u0d9a \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda \u0d86\u0dab\u0dca\u0da9\u0dd4\u0d9a\u0dca\u200d\u0dbb\u0db8 \u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc3\u0dca\u0dae\u0dcf\u0dc0 \u0db8\u0d9c\u0dd2\u0db1\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 34,
+                "outputTokens": 1243,
+                "inputTokensCostNanodollars": "51000",
+                "outputTokensCostNanodollars": "11187000",
+                "totalBackendLatencyMs": "6037"
+              },
+              "id": "synhalees_13_sri_lanka_law_item-a353247b-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 34,
+            "outputTokens": 1243,
+            "inputTokensCostNanodollars": "51000",
+            "outputTokensCostNanodollars": "11187000",
+            "totalBackendLatencyMs": "6037"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_13_005"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_13_sri_lanka_law_item-Run #5"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_13_sri_lanka_law_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_13_sri_lanka_law_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T15:37:51.454636Z",
+      "endTime": "2026-09-25T15:37:53.725518Z",
+      "conversations": [
+        {
+          "id": "synhalees_13_sri_lanka_law_item-70363040",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0d86\u0dab\u0dca\u0da9\u0dd4\u0d9a\u0dca\u200d\u0dbb\u0db8 \u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc3\u0dca\u0dae\u0dcf\u0dc0\u0dda \u0db8\u0dd6\u0dbd\u0dd2\u0d9a \u0d85\u0dba\u0dd2\u0dad\u0dd2\u0dc0\u0dcf\u0dc3\u0dd2\u0d9a\u0db8\u0dca \u0d87\u0dad\u0dd4\u0dc5\u0dad\u0dca \u0d9a\u0dbb\u0dbd\u0dcf \u0dad\u0dd2\u0dba\u0dd9\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0db1 \u0db4\u0dbb\u0dd2\u0da0\u0dca\u0da1\u0dda\u0daf\u0dd9\u0daf? (\u0d89\u0dbd\u0d9a\u0dca\u0d9a\u0db8 \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0dc0\u0dd2\u0dad\u0dbb\u0d9a\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dad\u0dd4\u0db1"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 64,
+                "outputTokens": 422,
+                "inputTokensCostNanodollars": "96000",
+                "outputTokensCostNanodollars": "3798000",
+                "totalBackendLatencyMs": "2179"
+              },
+              "id": "synhalees_13_sri_lanka_law_item-70363040-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 64,
+            "outputTokens": 422,
+            "inputTokensCostNanodollars": "96000",
+            "outputTokensCostNanodollars": "3798000",
+            "totalBackendLatencyMs": "2179"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_13_007"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_13_sri_lanka_law_item-Run #7"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_13_sri_lanka_law_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_13_sri_lanka_law_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T15:37:53.731075Z",
+      "endTime": "2026-09-25T15:37:57.099645Z",
+      "conversations": [
+        {
+          "id": "synhalees_13_sri_lanka_law_item-fa6eda97",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf \u0dbb\u0da2\u0dba\u0dda \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0db1\u0dd3\u0dad\u0dd2 \u0d8b\u0db4\u0daf\u0dda\u0dc1\u0d9a\u0dc0\u0dbb\u0dba\u0dcf \u0dc0\u0d9c\u0dda\u0db8 \u0dbb\u0da2\u0dba \u0dc0\u0dd9\u0db1\u0dd4\u0dc0\u0dd9\u0db1\u0dca \u0db4\u0dd9\u0db1\u0dd3 \u0d89\u0db1\u0dca\u0db1 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0db1\u0dd3\u0dad\u0dd2 \u0db1\u0dd2\u0dbd\u0db0\u0dcf\u0dbb\u0dd2\u0dba\u0dcf \u0d9a\u0dc0\u0dd4\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf \u0dbb\u0da2\u0dba\u0dda \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0db1\u0dd3\u0dad\u0dd2 \u0d8b\u0db4\u0daf\u0dda\u0dc1\u0d9a\u0dc0\u0dbb\u0dba\u0dcf \u0db8\u0dd9\u0db1\u0dca\u0db8 \u0dbb\u0da2\u0dba \u0dc0\u0dd9\u0db1\u0dd4\u0dc0\u0dd9\u0db1\u0dca \u0db4\u0dd9\u0db1\u0dd3 \u0dc3\u0dd2\u0da7\u0dd2\u0db1 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0db1\u0dd3\u0dad\u0dd2 \u0db1\u0dd2\u0dbd\u0db0\u0dcf\u0dbb\u0dd2\u0dba\u0dcf \u0dc0\u0db1\u0dca\u0db1\u0dda **\u0db1\u0dd3\u0dad\u0dd2\u0db4\u0dad\u0dd2\u0dc0\u0dbb\u0dba\u0dcf (Attorney General)** \u0dba. \n\n(\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0dc0\u0dbb\u0dca\u0dad\u0db8\u0dcf\u0db1 \u0db1\u0dd3\u0dad\u0dd2\u0db4\u0dad\u0dd2\u0dc0\u0dbb\u0dba\u0dcf \u0dc0\u0db1\u0dca\u0db1\u0dda **\u0db4\u0dbb\u0dd2\u0db3 \u0dbb\u0dab\u0dc3\u0dd2\u0d82\u0dc4** \u0db8\u0dc4\u0dad\u0dcf\u0dba.)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 48,
+                "outputTokens": 676,
+                "inputTokensCostNanodollars": "72000",
+                "outputTokensCostNanodollars": "6084000",
+                "totalBackendLatencyMs": "3288"
+              },
+              "id": "synhalees_13_sri_lanka_law_item-fa6eda97-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 48,
+            "outputTokens": 676,
+            "inputTokensCostNanodollars": "72000",
+            "outputTokensCostNanodollars": "6084000",
+            "totalBackendLatencyMs": "3288"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_13_009"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_13_sri_lanka_law_item-Run #9"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_13_sri_lanka_law_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_13_sri_lanka_law_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T15:37:51.802396Z",
+      "endTime": "2026-09-25T15:37:59.846335Z",
+      "conversations": [
+        {
+          "id": "synhalees_13_sri_lanka_law_item-afaae338",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0db4\u0dd4\u0daf\u0dca\u0d9c\u0dbd \u0db1\u0dd3\u0dad\u0dd2\u0dba\u0da7 \u0d85\u0dba\u0dd2\u0dad\u0dd2 \u0dc0\u0dd9\u0db1, \u0db8\u0dc4\u0db1\u0dd4\u0dc0\u0dbb \u0dbb\u0dcf\u0da2\u0db0\u0dcf\u0db1\u0dd2 \u0d9a\u0dcf\u0dbd\u0dda \u0d89\u0daf\u0db1\u0dca \u0d91\u0db1 \u0daf\u0dda\u0dc1\u0dd3\u0dba \u0db1\u0dd3\u0dad\u0dd2 \u0db4\u0daf\u0dca\u0db0\u0dad\u0dd2\u0dba \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0db4\u0dd4\u0daf\u0dca\u0d9c\u0dbd \u0db1\u0dd3\u0dad\u0dd2\u0dba\u0da7 (Personal Law) \u0d85\u0dba\u0dad\u0dca \u0dc0\u0db1, \u0db8\u0dc4\u0db1\u0dd4\u0dc0\u0dbb \u0dbb\u0dcf\u0da2\u0db0\u0dcf\u0db1\u0dd2 \u0dc3\u0db8\u0dba\u0dda \u0dc3\u0dd2\u0da7 \u0db4\u0dd0\u0dc0\u0dad \u0d91\u0db1 \u0daf\u0dda\u0dc1\u0dd3\u0dba \u0db1\u0dd3\u0dad\u0dd2 \u0db4\u0daf\u0dca\u0db0\u0dad\u0dd2\u0dba \u0dc0\u0db1\u0dca\u0db1\u0dda **\"\u0d8b\u0da9\u0dbb\u0da7 \u0db1\u0dd3\u0dad\u0dd2\u0dba\" (Kandyan Law)** \u0dba\u0dd2.\n\n\u0db8\u0dd9\u0db8 \u0db1\u0dd3\u0dad\u0dd2\u0dba \u0db4\u0dd2\u0dc5\u0dd2\u0db6\u0db3 \u0dc0\u0dd0\u0daf\u0d9c\u0dad\u0dca \u0dad\u0ddc\u0dbb\u0dad\u0dd4\u0dbb\u0dd4 \u0d9a\u0dd2\u0dc4\u0dd2\u0db4\u0dba\u0d9a\u0dca \u0db8\u0dd9\u0dc3\u0dda\u0dba:\n\n* **\u0d85\u0daf\u0dcf\u0dc5 \u0dc0\u0db1 \u0db4\u0dd2\u0dbb\u0dd2\u0dc3:** \u0db8\u0dd9\u0db8 \u0db1\u0dd3\u0dad\u0dd2\u0dba \u0db6\u0dbd\u0db4\u0dcf\u0db1\u0dca\u0db1\u0dda **\u0d8b\u0da9\u0dbb\u0da7 \u0dc3\u0dd2\u0d82\u0dc4\u0dbd\u0dba\u0db1\u0dca\u0da7** \u0db4\u0db8\u0dab\u0dd2. \u0d91\u0dba \u0db4\u0dca\u200d\u0dbb\u0daf\u0dda\u0dc1\u0dd3\u0dba \u0db1\u0dd3\u0dad\u0dd2\u0dba\u0d9a\u0dca \u0dbd\u0dd9\u0dc3 \u0db1\u0ddc\u0dc0, \u0db4\u0dd4\u0daf\u0dca\u0d9c\u0dbd \u0db1\u0dd3\u0dad\u0dd2\u0dba\u0d9a\u0dca (Personal Law) \u0dbd\u0dd9\u0dc3 \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dad\u0dca\u0db8\u0d9a \u0dc0\u0dda. (\u0d91\u0db1\u0db8\u0dca, \u0d8b\u0da9\u0dbb\u0da7 \u0db4\u0dca\u200d\u0dbb\u0daf\u0dda\u0dc1\u0dba\u0dd9\u0db1\u0dca \u0db6\u0dd0\u0dc4\u0dd0\u0dbb\u0dc0 \u0da2\u0dd3\u0dc0\u0dad\u0dca \u0dc0\u0dd4\u0dc0\u0daf \u0d8b\u0da9\u0dbb\u0da7 \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0db4\u0dbb\u0db8\u0dca\u0db4\u0dbb\u0dcf\u0dc0\u0dd9\u0db1\u0dca \u0db4\u0dd0\u0dc0\u0dad \u0d91\u0db1\u0dca\u0db1\u0db1\u0dca\u0da7 \u0db8\u0dd9\u0dba \u0d85\u0daf\u0dcf\u0dc5 \u0d9a\u0dbb\u0d9c\u0dad \u0dc4\u0dd0\u0d9a).\n* **\u0db4\u0daf\u0db1\u0db8:** \u0db8\u0dc4\u0db1\u0dd4\u0dc0\u0dbb \u0dbb\u0dcf\u0da2\u0db0\u0dcf\u0db1\u0dd2\u0dba \u0db4\u0dd0\u0dc0\u0dad\u0dd2 \u0dc3\u0db8\u0dba\u0dda \u0da2\u0db1\u0dad\u0dcf\u0dc0 \u0d85\u0dad\u0dbb \u0db4\u0dd0\u0dc0\u0dad\u0dd2 \u0dc3\u0dcf\u0db8\u0dca\u0db4\u0dca\u200d\u0dbb\u0daf\u0dcf\u0dba\u0dd2\u0d9a \u0dc3\u0dd2\u0dbb\u0dd2\u0dad\u0dca \u0dc0\u0dd2\u0dbb\u0dd2\u0dad\u0dca, \u0d86\u0d9c\u0db8\u0dd2\u0d9a \u0db4\u0dc3\u0dd4\u0db6\u0dd2\u0db8 \u0dc3\u0dc4 \u0dbb\u0da2\u0dd4\u0db1\u0dca\u0d9c\u0dda \u0db1\u0dd2\u0dba\u0ddd\u0d9c \u0db8\u0dad \u0db4\u0daf\u0db1\u0db8\u0dca\u0dc0 \u0db8\u0dd9\u0db8 \u0db1\u0dd3\u0dad\u0dd2\u0dba \u0d9c\u0ddc\u0da9\u0db1\u0dd0\u0d9c\u0dd3 \u0d87\u0dad. 1815 \u0d8b\u0da9\u0dbb\u0da7 \u0d9c\u0dd2\u0dc0\u0dd2\u0dc3\u0dd4\u0db8\u0dd9\u0db1\u0dca \u0db4\u0dc3\u0dd4\u0dc0\u0daf \u0d89\u0d82\u0d9c\u0dca\u200d\u0dbb\u0dd3\u0dc3\u0dd2\u0db1\u0dca \u0dc0\u0dd2\u0dc3\u0dd2\u0db1\u0dca \u0db8\u0dd9\u0db8 \u0db1\u0dd3\u0dad\u0dd2\u0dba \u0daf\u0dd2\u0d9c\u0da7\u0db8 \u0db4\u0dc0\u0dad\u0dca\u0dc0\u0dcf\u0d9c\u0dd9\u0db1 \u0dba\u0dcf\u0db8\u0da7 \u0d89\u0da9 \u0dbd\u0db6\u0dcf \u0daf\u0dd9\u0db1 \u0dbd\u0daf\u0dd3.\n* **\u0db6\u0dbd\u0db4\u0dcf\u0db1 \u0d9a\u0dca\u0dc2\u0dda\u0dad\u0dca\u200d\u0dbb:** \u0db8\u0dd9\u0db8 \u0db1\u0dd3\u0dad\u0dd2\u0dba \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dc0\u0dc1\u0dba\u0dd9\u0db1\u0dca\u0db8 \u0db4\u0dc4\u0dad \u0dc3\u0db3\u0dc4\u0db1\u0dca \u0db4\u0dd4\u0daf\u0dca\u0d9c\u0dbd\u0dd2\u0d9a \u0d9a\u0dbb\u0dd4\u0dab\u0dd4 \u0dc3\u0db3\u0dc4\u0dcf \u0db6\u0dbd\u0db4\u0dcf\u0dba\u0dd2:\n    1. **\u0dc0\u0dd2\u0dc0\u0dcf\u0dc4\u0dba:** \u0daf\u0dd3\u0d9c \u0dc0\u0dd2\u0dc0\u0dcf\u0dc4 \u0dc3\u0dc4 \u0db6\u0dd2\u0db1\u0dca\u0db1 \u0dc0\u0dd2\u0dc0\u0dcf\u0dc4 \u0d9a\u0dca\u200d\u0dbb\u0db8.\n    2. **\u0daf\u0dd2\u0d9a\u0dca\u0d9a\u0dc3\u0dcf\u0daf\u0dba:** \u0d8b\u0da9\u0dbb\u0da7 \u0db1\u0dd3\u0dad\u0dd2\u0dba \u0dba\u0da7\u0dad\u0dda \u0daf\u0dd2\u0d9a\u0dca\u0d9a\u0dc3\u0dcf\u0daf \u0dc0\u0dd3\u0db8 \u0db4\u0ddc\u0daf\u0dd4 \u0db1\u0dd3\u0dad\u0dd2\u0dba\u0da7 \u0dc0\u0da9\u0dcf \u0dad\u0dbb\u0db8\u0d9a\u0dca \u0dc3\u0dbb\u0dbd \u0dc0\u0dda.\n    3. **\u0daf\u0dda\u0db4\u0dc5 \u0d8b\u0dbb\u0dd4\u0db8\u0dba:** \u0db8\u0dd2\u0dba\u0d9c\u0dd2\u0dba \u0d85\u0dba\u0dd9\u0d9a\u0dd4\u0d9c\u0dda \u0daf\u0dda\u0db4\u0dc5 \u0daf\u0dbb\u0dd4\u0dc0\u0db1\u0dca\u0da7 \u0dc3\u0dc4 \u0d9a\u0dbd\u0dad\u0dca\u200d\u0dbb\u0dba\u0dcf\u0da7 \u0db6\u0dd9\u0daf\u0dd3 \u0dba\u0db1 \u0d86\u0d9a\u0dcf\u0dbb\u0dba.\n    4. **\u0daf\u0dbb\u0dd4\u0d9a\u0db8\u0da7 \u0dc4\u0daf\u0dcf \u0d9c\u0dd0\u0db1\u0dd3\u0db8.**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 47,
+                "outputTokens": 1592,
+                "inputTokensCostNanodollars": "70500",
+                "outputTokensCostNanodollars": "14328000",
+                "totalBackendLatencyMs": "7969"
+              },
+              "id": "synhalees_13_sri_lanka_law_item-afaae338-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 47,
+            "outputTokens": 1592,
+            "inputTokensCostNanodollars": "70500",
+            "outputTokensCostNanodollars": "14328000",
+            "totalBackendLatencyMs": "7969"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_13_008"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_13_sri_lanka_law_item-Run #8"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_13_sri_lanka_law_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_13_sri_lanka_law_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T15:37:57.104234Z",
+      "endTime": "2026-09-25T15:38:00.293044Z",
+      "conversations": [
+        {
+          "id": "synhalees_13_sri_lanka_law_item-c0f4a380",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0d85\u0db4\u0dbb\u0dcf\u0db0 \u0db1\u0da9\u0dd4 \u0dc0\u0dd2\u0db0\u0dcf\u0db1\u0dba\u0db1\u0dca \u0db4\u0dcf\u0dbd\u0db1\u0dba \u0dc0\u0db1 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0db4\u0db1\u0dad \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0d85\u0db4\u0dbb\u0dcf\u0db0 \u0db1\u0da9\u0dd4 \u0dc0\u0dd2\u0db0\u0dcf\u0db1\u0dba\u0db1\u0dca \u0db4\u0dcf\u0dbd\u0db1\u0dba \u0dc0\u0db1 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0db4\u0db1\u0dad \u0dc0\u0db1\u0dca\u0db1\u0dda **1979 \u0d85\u0d82\u0d9a 15 \u0daf\u0dbb\u0db1 \u0d85\u0db4\u0dbb\u0dcf\u0db0 \u0db1\u0da9\u0dd4 \u0dc0\u0dd2\u0db0\u0dcf\u0db1 \u0dc3\u0d82\u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba \u0db4\u0db1\u0dad (Code of Criminal Procedure Act, No. 15 of 1979)** \u0dba.\n\n\u0db8\u0dd9\u0db8 \u0db4\u0db1\u0dad \u0db8\u0d9c\u0dd2\u0db1\u0dca \u0d85\u0db4\u0dbb\u0dcf\u0db0\u0dba\u0d9a\u0dca \u0dc3\u0db8\u0dca\u0db6\u0db1\u0dca\u0db0\u0dba\u0dd9\u0db1\u0dca \u0db4\u0ddc\u0dbd\u0dd2\u0dc3\u0dd2\u0dba \u0dc0\u0dd2\u0db8\u0dbb\u0dca\u0dc1\u0db1 \u0dc3\u0dd2\u0daf\u0dd4 \u0d9a\u0dbb\u0db1 \u0d86\u0d9a\u0dcf\u0dbb\u0dba, \u0dc3\u0dd0\u0d9a\u0d9a\u0dbb\u0dd4\u0dc0\u0db1\u0dca \u0d85\u0dad\u0dca\u0d85\u0da9\u0d82\u0d9c\u0dd4\u0dc0\u0da7 \u0d9c\u0dd0\u0db1\u0dd3\u0db8, \u0d87\u0db4 \u0dbd\u0db6\u0dcf \u0daf\u0dd3\u0db8, \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba \u0dc4\u0db8\u0dd4\u0dc0\u0dda \u0db1\u0da9\u0dd4 \u0db4\u0dd0\u0dc0\u0dbb\u0dd3\u0db8 \u0dc3\u0dc4 \u0db1\u0da9\u0dd4 \u0dc0\u0dd2\u0db7\u0dcf\u0d9c \u0db4\u0dc0\u0dad\u0dca\u0dc0\u0db1 \u0d86\u0d9a\u0dcf\u0dbb\u0dba \u0d87\u0dad\u0dd4\u0dc5\u0dd4 \u0dc3\u0db8\u0dc3\u0dca\u0dad \u0d85\u0db4\u0dbb\u0dcf\u0db0 \u0db1\u0da9\u0dd4 \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0\u0dbd\u0dd2\u0dba\u0db8 \u0db4\u0dcf\u0dbd\u0db1\u0dba \u0d9a\u0dbb\u0db1\u0dd4 \u0dbd\u0db6\u0dba\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 31,
+                "outputTokens": 639,
+                "inputTokensCostNanodollars": "46500",
+                "outputTokensCostNanodollars": "5751000",
+                "totalBackendLatencyMs": "3098"
+              },
+              "id": "synhalees_13_sri_lanka_law_item-c0f4a380-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 31,
+            "outputTokens": 639,
+            "inputTokensCostNanodollars": "46500",
+            "outputTokensCostNanodollars": "5751000",
+            "totalBackendLatencyMs": "3098"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_13_010"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_13_sri_lanka_law_item-Run #10"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_13_sri_lanka_law_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_13_sri_lanka_law_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T15:37:59.851391Z",
+      "endTime": "2026-09-25T15:38:04.548675Z",
+      "conversations": [
+        {
+          "id": "synhalees_13_sri_lanka_law_item-3e381e56",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc5\u0db8\u0dd4\u0db1\u0dca\u0da7 \u0dc3\u0dc4 \u0d9a\u0dcf\u0db1\u0dca\u0dad\u0dcf\u0dc0\u0db1\u0dca\u0da7 \u0dc3\u0dd2\u0daf\u0dd4\u0dc0\u0db1 \u0dc4\u0dd2\u0d82\u0dc3\u0db1\u0dba\u0db1\u0dca \u0dc4\u0dcf \u0d85\u0db4\u0dbb\u0dcf\u0db0 \u0dc0\u0dd0\u0dc5\u0dd0\u0d9a\u0dca\u0dc0\u0dd3\u0db8\u0da7 \u0db1\u0dd3\u0dad\u0dd2\u0db8\u0dba \u0db4\u0dd2\u0dba\u0dc0\u0dbb \u0d9c\u0db1\u0dca\u0db1\u0dcf \u0dbb\u0dcf\u0da2\u0dca\u200d\u0dba \u0d86\u0dba\u0dad\u0db1\u0dba \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0daf\u0dd2\u0d9c \u0db1\u0db8 \u0dc0\u0dd2\u0dad\u0dbb\u0d9a\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf \u0db4\u0ddc\u0dbd\u0dd2\u0dc3\u0dca \u0dc5\u0db8\u0dcf \u0dc4\u0dcf \u0d9a\u0dcf\u0db1\u0dca\u0dad\u0dcf \u0d85\u0db4\u0dba\u0ddd\u0da2\u0db1 \u0db1\u0dd2\u0dc0\u0dcf\u0dbb\u0dab \u0d9a\u0ddc\u0da7\u0dca\u0da8\u0dcf\u0dc3\u0dba"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 60,
+                "outputTokens": 979,
+                "inputTokensCostNanodollars": "90000",
+                "outputTokensCostNanodollars": "8811000",
+                "totalBackendLatencyMs": "4627"
+              },
+              "id": "synhalees_13_sri_lanka_law_item-3e381e56-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 60,
+            "outputTokens": 979,
+            "inputTokensCostNanodollars": "90000",
+            "outputTokensCostNanodollars": "8811000",
+            "totalBackendLatencyMs": "4627"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_13_011"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_13_sri_lanka_law_item-Run #11"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_13_sri_lanka_law_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_13_sri_lanka_law_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T15:38:00.298120Z",
+      "endTime": "2026-09-25T15:38:05.422620Z",
+      "conversations": [
+        {
+          "id": "synhalees_13_sri_lanka_law_item-09446ff7",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0dc3\u0dd4\u0dc5\u0dd4 \u0dc3\u0dcf\u0db4\u0dbb\u0dcf\u0db0\u0dd3 \u0dc3\u0dc4 \u0db8\u0dd4\u0daf\u0dbd\u0dca \u0db4\u0dca\u200d\u0dbb\u0db8\u0dcf\u0dab\u0dba\u0dd9\u0db1\u0dca \u0d85\u0da9\u0dd4 \u0dc3\u0dd2\u0dc0\u0dd2\u0dbd\u0dca \u0db1\u0da9\u0dd4 \u0dc0\u0dd2\u0db7\u0dcf\u0d9c \u0d9a\u0dbb\u0db1\u0dd4 \u0dbd\u0db6\u0db1 \u0db4\u0dc4\u0dc5\u0db8 \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0d91\u0d9a\u0d9a\u0dca \u0daf\u0dd2\u0dc3\u0dcf \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba \u0d85\u0db1\u0dd2\u0d9a \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0dc3\u0dd4\u0dc5\u0dd4 \u0dc3\u0dcf\u0db4\u0dbb\u0dcf\u0db0\u0dd3 \u0db1\u0da9\u0dd4 \u0dc0\u0dd2\u0db7\u0dcf\u0d9c \u0d9a\u0dbb\u0db1\u0dd4 \u0dbd\u0db6\u0db1 \u0db4\u0dc4\u0dc5\u0db8 \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba **\u0db8\u0dc4\u0dda\u0dc3\u0dca\u0dad\u0dca\u200d\u0dbb\u0dcf\u0dad\u0dca \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba (Magistrate's Court)** \u0dc0\u0dda. \n\n(\u0dc3\u0dd2\u0dc0\u0dd2\u0dbd\u0dca \u0db1\u0da9\u0dd4 \u0dc3\u0db3\u0dc4\u0dcf \u0db4\u0dc4\u0dc5\u0db8 \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba **\u0daf\u0dd2\u0dc3\u0dcf \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba** \u0dc0\u0db1 \u0d85\u0dad\u0dbb, \u0d85\u0db4\u0dbb\u0dcf\u0db0/\u0dc3\u0dcf\u0db4\u0dbb\u0dcf\u0db0\u0dd3 \u0db1\u0da9\u0dd4 \u0dc3\u0db3\u0dc4\u0dcf \u0db4\u0dc4\u0dc5\u0db8 \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba **\u0db8\u0dc4\u0dda\u0dc3\u0dca\u0dad\u0dca\u200d\u0dbb\u0dcf\u0dad\u0dca \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba** \u0dc0\u0dda.)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 64,
+                "outputTokens": 980,
+                "inputTokensCostNanodollars": "96000",
+                "outputTokensCostNanodollars": "8820000",
+                "totalBackendLatencyMs": "5039"
+              },
+              "id": "synhalees_13_sri_lanka_law_item-09446ff7-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 64,
+            "outputTokens": 980,
+            "inputTokensCostNanodollars": "96000",
+            "outputTokensCostNanodollars": "8820000",
+            "totalBackendLatencyMs": "5039"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_13_012"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_13_sri_lanka_law_item-Run #12"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_13_sri_lanka_law_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_13_sri_lanka_law_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T15:38:05.427836Z",
+      "endTime": "2026-09-25T15:38:10.506168Z",
+      "conversations": [
+        {
+          "id": "synhalees_13_sri_lanka_law_item-d1d378b0",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db1\u0dd3\u0dad\u0dd2\u0da5\u0dc0\u0dbb\u0dba\u0dd9\u0d9a\u0dca \u0dc0\u0dd2\u0daf\u0dd2\u0dba\u0da7 \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0dc0\u0dd8\u0dad\u0dca\u0dad\u0dd3\u0dba \u0db8\u0da7\u0dca\u0da7\u0db8\u0dd2\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0dcf\u0db4\u0daf\u0dd2\u0d82\u0da0\u0dd2 \u0dc0\u0dd3\u0db8\u0da7 \u0dc3\u0db8\u0dad\u0dca \u0dc0\u0dd9\u0db1\u0dca\u0db1 \u0d95\u0db1\u0dda \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dc0\u0dd2\u0db7\u0dcf\u0d9c\u0dba \u0dad\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0db1 \u0d86\u0dba\u0dad\u0db1\u0dba \u0dc0\u0dd2\u0dc3\u0dd2\u0db1\u0dca\u0daf? (\u0dc3\u0dd2\u0d82\u0dc4\u0dbd\u0dd9\u0db1\u0dca \u0dc0\u0da0\u0db1 \u0dc4\u0dad\u0dbb\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "**\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf \u0db1\u0dd3\u0dad\u0dd2 \u0dc0\u0dd2\u0daf\u0dca\u200d\u0dba\u0dcf\u0dbd\u0dba**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 73,
+                "outputTokens": 1196,
+                "inputTokensCostNanodollars": "109500",
+                "outputTokensCostNanodollars": "10764000",
+                "totalBackendLatencyMs": "5002"
+              },
+              "id": "synhalees_13_sri_lanka_law_item-d1d378b0-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 73,
+            "outputTokens": 1196,
+            "inputTokensCostNanodollars": "109500",
+            "outputTokensCostNanodollars": "10764000",
+            "totalBackendLatencyMs": "5002"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_13_014"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_13_sri_lanka_law_item-Run #14"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_13_sri_lanka_law_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_13_sri_lanka_law_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T15:38:04.553495Z",
+      "endTime": "2026-09-25T15:38:13.887351Z",
+      "conversations": [
+        {
+          "id": "synhalees_13_sri_lanka_law_item-fdc17abd",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d86\u0dab\u0dca\u0da9\u0dd4\u0d9a\u0dca\u200d\u0dbb\u0db8 \u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc3\u0dca\u0dae\u0dcf \u0dc3\u0d82\u0dc1\u0ddd\u0db0\u0db1\u0dba\u0d9a\u0dca \u0db4\u0dcf\u0dbb\u0dca\u0dbd\u0dd2\u0db8\u0dda\u0db1\u0dca\u0dad\u0dd4\u0dc0\u0dd9\u0db1\u0dca \u0dc3\u0db8\u0dca\u0db8\u0dad \u0d9a\u0dbb \u0d9c\u0db1\u0dca\u0db1 \u0d95\u0db1\u0dda \u0dc0\u0dd9\u0db1 \u0d85\u0dc0\u0db8 \u0da1\u0db1\u0dca\u0daf \u0db6\u0dbd\u0dba \u0d9a\u0dd3\u0dba\u0daf? (\u0d95\u0db1 \u0d9a\u0dbb\u0db1 \u0d85\u0d9c\u0dba \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1 \u0dc0\u0da0\u0db1 \u0db4\u0dc4\u0dd9\u0db1\u0dca)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d85\u0dc0\u0dc1\u0dca\u200d\u0dba \u0d85\u0dc0\u0db8 \u0da1\u0db1\u0dca\u0daf \u0d91\u0d9a\u0dc3\u0dd2\u0dba \u0db4\u0db1\u0dc4\u0d9a\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 63,
+                "outputTokens": 2166,
+                "inputTokensCostNanodollars": "94500",
+                "outputTokensCostNanodollars": "19494000",
+                "totalBackendLatencyMs": "9270"
+              },
+              "id": "synhalees_13_sri_lanka_law_item-fdc17abd-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 63,
+            "outputTokens": 2166,
+            "inputTokensCostNanodollars": "94500",
+            "outputTokensCostNanodollars": "19494000",
+            "totalBackendLatencyMs": "9270"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_13_013"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_13_sri_lanka_law_item-Run #13"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_13_sri_lanka_law_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_13_sri_lanka_law_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T15:38:10.511408Z",
+      "endTime": "2026-09-25T15:38:16.448110Z",
+      "conversations": [
+        {
+          "id": "synhalees_13_sri_lanka_law_item-9254e9d2",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf \u0d86\u0dab\u0dca\u0da9\u0dd4\u0d9a\u0dca\u200d\u0dbb\u0db8 \u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc3\u0dca\u0dae\u0dcf\u0dc0\u0da7 \u0d85\u0db1\u0dd4\u0dc0, \u0db8\u0dc4\u0dcf\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba \u0dc4\u0ddd \u0daf\u0dd2\u0dc3\u0dcf \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba \u0dc0\u0dd0\u0db1\u0dd2 \u0db8\u0dc4\u0dcf\u0db0\u0dd2\u0d9a\u0dbb\u0dab/\u0db4\u0dc5\u0db8\u0dd4 \u0db4\u0dd2\u0dba\u0dc0\u0dbb\u0dda \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba\u0db1\u0dca\u0dc4\u0dd2 \u0dad\u0dd3\u0db1\u0dca\u0daf\u0dd4 \u0db1\u0dd0\u0dc0\u0dad \u0dc3\u0db8\u0dcf\u0dbd\u0ddd\u0da0\u0db1\u0dba \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0dda \u0dc3\u0dc4 \"\u0dbb\u0dd2\u0da7\u0dca \u0d86\u0da5\u0dcf\" \u0db1\u0dd2\u0d9a\u0dd4\u0dad\u0dca \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0dda \u0db6\u0dbd\u0dba \u0dc4\u0dd2\u0db8\u0dd2\u0dc0\u0db1 \u0daf\u0dd9\u0dc0\u0db1 \u0d89\u0dc4\u0dc5\u0db8 \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf \u0d86\u0dab\u0dca\u0da9\u0dd4\u0d9a\u0dca\u200d\u0dbb\u0db8 \u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc3\u0dca\u0dae\u0dcf\u0dc0\u0da7 \u0d85\u0db1\u0dd4\u0dc0, \u0d94\u0db6 \u0dc3\u0db3\u0dc4\u0db1\u0dca \u0d9a\u0dc5 \u0db6\u0dbd\u0dad\u0dbd \u0dc4\u0dd2\u0db8\u0dd2\u0dc0\u0db1, \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0daf\u0dd9\u0dc0\u0db1 \u0d89\u0dc4\u0dc5\u0db8 \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba \u0dc0\u0db1\u0dca\u0db1\u0dda **\u0d85\u0db7\u0dd2\u0dba\u0dcf\u0da0\u0db1\u0dcf\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba\u0dba\u0dd2 (Court of Appeal)**. \n\n\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0d89\u0dc4\u0dc5\u0db8 \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba \"\u0dc1\u0dca\u200d\u0dbb\u0dda\u0dc2\u0dca\u0da8\u0dcf\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba\" \u0dc0\u0db1 \u0d85\u0dad\u0dbb, \u0d8a\u0da7 \u0daf\u0dd9\u0dc0\u0dd0\u0db1\u0dd2 \u0dc0\u0db1 \u0d85\u0db7\u0dd2\u0dba\u0dcf\u0da0\u0db1\u0dcf\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba \u0dc3\u0dad\u0dd4 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0d9a\u0dcf\u0dbb\u0dca\u0dba\u0db7\u0dcf\u0dbb\u0dba\u0db1\u0dca \u0db8\u0dd9\u0dc3\u0dda\u0dba:\n\n1. **\u0d85\u0db7\u0dd2\u0dba\u0dcf\u0da0\u0db1\u0dcf \u0db6\u0dbd\u0dad\u0dbd:** \u0db8\u0dc4\u0dcf\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba, \u0daf\u0dd2\u0dc3\u0dcf \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba, \u0db8\u0dc4\u0dda\u0dc3\u0dca\u0dad\u0dca\u200d\u0dbb\u0dcf\u0dad\u0dca \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba \u0dc3\u0dc4 \u0db4\u0dca\u200d\u0dbb\u0dcf\u0dae\u0db8\u0dd2\u0d9a \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab \u0dc0\u0dd0\u0db1\u0dd2 \u0db4\u0dc5\u0db8\u0dd4 \u0db4\u0dd2\u0dba\u0dc0\u0dbb\u0dda \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dc0\u0dbd \u0dad\u0dd3\u0db1\u0dca\u0daf\u0dd4 \u0db1\u0dd0\u0dc0\u0dad \u0dc3\u0db8\u0dcf\u0dbd\u0ddd\u0da0\u0db1\u0dba \u0d9a\u0dd2\u0dbb\u0dd3\u0db8 \u0dc3\u0dc4 \u0d92\u0dc0\u0dcf\u0da7 \u0d91\u0dbb\u0dd9\u0dc4\u0dd2\u0dc0 \u0d89\u0daf\u0dd2\u0dbb\u0dd2\u0db4\u0dad\u0dca \u0d9a\u0dbb\u0db1 \u0d85\u0db7\u0dd2\u0dba\u0dcf\u0da0\u0db1\u0dcf \u0dc0\u0dd2\u0db7\u0dcf\u0d9c \u0d9a\u0dd2\u0dbb\u0dd3\u0db8.\n2. **\u0dbb\u0dd2\u0da7\u0dca \u0d86\u0da5\u0dcf (Writ Orders) \u0db1\u0dd2\u0d9a\u0dd4\u0dad\u0dca \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0dda \u0db6\u0dbd\u0dba:** \u0d86\u0dab\u0dca\u0da9\u0dd4\u0d9a\u0dca\u200d\u0dbb\u0db8 \u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc3\u0dca\u0dae\u0dcf\u0dc0\u0dda 140 \u0dc3\u0dc4 141 \u0dc0\u0d9c\u0db1\u0dca\u0dad\u0dd2 \u0db4\u0dca\u200d\u0dbb\u0d9a\u0dcf\u0dbb\u0dc0 \u0dc3\u0dbb\u0dca\u0dc2\u0dd2\u0dba\u0ddd\u0dbb\u0dcf\u0dbb\u0dd2 (Certiorari), \u0db8\u0dd0\u0db1\u0dca\u0da9\u0dcf\u0db8\u0dd4\u0dc3\u0dca (Mandamus), \u0db4\u0dca\u200d\u0dbb\u0ddc\u0dc4\u0dd2\u0db6\u0dd2\u0dc2\u0db1\u0dca (Prohibition), \u0d9a\u0dca\u0dc0\u0ddd \u0dc0\u0ddc\u0dbb\u0db1\u0dca\u0da7\u0ddd (Quo Warranto) \u0dc3\u0dc4 \u0dc4\u0dda\u0db6\u0dd2\u0dba\u0dc3\u0dca \u0d9a\u0ddd\u0db4\u0dd4\u0dc3\u0dca (Habeas Corpus - \u0dc3\u0dd2\u0dbb\u0d9a\u0dbb\u0dd4\u0dc0\u0db1\u0dca \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba \u0dc4\u0db8\u0dd4\u0dc0\u0da7 \u0db4\u0db8\u0dd4\u0dab\u0dd4\u0dc0\u0db1 \u0dbd\u0dd9\u0dc3 \u0d9a\u0dd9\u0dbb\u0dd9\u0db1 \u0db1\u0dd2\u0dba\u0ddd\u0d9c) \u0dc0\u0dd0\u0db1\u0dd2 \u0dbb\u0dd2\u0da7\u0dca \u0d86\u0da5\u0dcf \u0db1\u0dd2\u0d9a\u0dd4\u0dad\u0dca \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0dda \u0db4\u0dbb\u0db8 \u0db6\u0dbd\u0dba \u0db8\u0dd9\u0db8 \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba \u0dc3\u0dad\u0dd4 \u0dc0\u0dda."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 103,
+                "outputTokens": 1280,
+                "inputTokensCostNanodollars": "154500",
+                "outputTokensCostNanodollars": "11520000",
+                "totalBackendLatencyMs": "5863"
+              },
+              "id": "synhalees_13_sri_lanka_law_item-9254e9d2-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 103,
+            "outputTokens": 1280,
+            "inputTokensCostNanodollars": "154500",
+            "outputTokensCostNanodollars": "11520000",
+            "totalBackendLatencyMs": "5863"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_13_015"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_13_sri_lanka_law_item-Run #15"
+    }
+  ],
+  "pyRunId": "synhalees_13_sri_lanka_law-Run #1"
+}

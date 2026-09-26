@@ -1,0 +1,779 @@
+{
+  "taskVersion": {
+    "versionNumber": 1,
+    "name": "synhalees_12_general_knowledge",
+    "description": "SynhalEES pillar 12_general_knowledge: native Sinhala text accuracy.",
+    "definition": "@kbench.task(name=\"synhalees_12_general_knowledge\", description=\"SynhalEES pillar 12_general_knowledge: native Sinhala text accuracy.\")\ndef synhalees_task(llm) -> float:\n    '''Evaluate General Knowledge (text); return accuracy in [0, 1].'''\n    import pandas as pd\n\n    rows = _rows()\n    if not rows:\n        raise ValueError(\n            \"No runnable text rows for General Knowledge yet -- media files may \"\n            \"not be committed under benchmark_data/.\"\n        )\n    with kbench.client.enable_cache():\n        runs = synhalees_item.evaluate(\n            llm=[llm], evaluation_data=pd.DataFrame(rows),\n            n_jobs=2, max_attempts=2, on_failure=\"continue\",\n            remove_run_files=True,\n        )\n    correct = runs.as_dataframe().result.str.get(\"is_correct\").astype(\"boolean\").fillna(False)\n    return float(correct.mean())\n"
+  },
+  "modelVersion": {
+    "slug": "google/gemini-3.1-flash-lite-preview"
+  },
+  "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+  "startTime": "2026-09-25T20:48:11.974208Z",
+  "endTime": "2026-09-25T20:48:13.386799Z",
+  "conversations": [
+    {
+      "id": "synhalees_12_general_knowledge-5327dcdf",
+      "metrics": {},
+      "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+    }
+  ],
+  "results": [
+    {
+      "type": "AGGREGATED",
+      "numericResult": {
+        "value": 0.13333333333333333
+      }
+    }
+  ],
+  "subruns": [
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_12_general_knowledge_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_12_general_knowledge_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-flash-lite-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_ERRORED",
+      "startTime": "2026-09-25T20:48:11.991224Z",
+      "endTime": "2026-09-25T20:48:12.120054Z",
+      "conversations": [
+        {
+          "id": "synhalees_12_general_knowledge_item-68c6eb2e",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0da7 \u0db1\u0dd2\u0daf\u0dc4\u0dc3 \u0dc4\u0db8\u0dca\u0db6\u0dd4\u0db1\u0dda \u0db8\u0ddc\u0db1 \u0d85\u0dc0\u0dd4\u0dbb\u0dd4\u0daf\u0dca\u0daf\u0dd9\u0daf? (\u0d89\u0dbd\u0d9a\u0dca\u0d9a\u0db8\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                }
+              ],
+              "id": "synhalees_12_general_knowledge_item-68c6eb2e-req-1"
+            }
+          ],
+          "metrics": {},
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "booleanResult": false
+        }
+      ],
+      "pyRunId": "synhalees_12_general_knowledge_item-Run #2",
+      "errorMessage": "Traceback (most recent call last):\n  File \"/benchmarks/src/kaggle_benchmarks/tasks.py\", line 171, in run\n    run.result = self.func(*args, **kwargs)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/ipykernel_14/4105932478.py\", line 104, in synhalees_item\n    response = llm.prompt(prompt)\n               ^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 237, in prompt\n    response = self.respond(schema=schema, **kwargs, **extra)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/chats.py\", line 124, in wrapper\n    result = func(self, *args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 304, in respond\n    invoke_response = self.invoke(\n                      ^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 143, in invoke\n    return self._call_api(raw_messages, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 194, in _call_api\n    response = method(\n               ^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_utils/_utils.py\", line 298, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/resources/chat/completions/completions.py\", line 1308, in create\n    return self._post(\n           ^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1378, in post\n    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))\n                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1151, in request\n    raise self._make_status_error_from_response(err.response) from None\nopenai.PermissionDeniedError: Error code: 403 - {'code': '', 'message': 'The max estimated cost of operation ($0.0983145) exceeds your available quota (based on max_output_tokens). Set max_output_tokens in your request to lower the reservation, or try again later.', 'param': '', 'type': 'permission_error'}\n"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_12_general_knowledge_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_12_general_knowledge_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-flash-lite-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_ERRORED",
+      "startTime": "2026-09-25T20:48:12.125091Z",
+      "endTime": "2026-09-25T20:48:12.156710Z",
+      "conversations": [
+        {
+          "id": "synhalees_12_general_knowledge_item-b952aa78",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0d8b\u0dc3\u0db8 \u0d9a\u0db1\u0dca\u0daf \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dad\u0db1\u0dd2 \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d8b\u0dad\u0dca\u0dad\u0dbb \u0daf\u0dd9\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                }
+              ],
+              "id": "synhalees_12_general_knowledge_item-b952aa78-req-1"
+            }
+          ],
+          "metrics": {},
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "booleanResult": false
+        }
+      ],
+      "pyRunId": "synhalees_12_general_knowledge_item-Run #3",
+      "errorMessage": "Traceback (most recent call last):\n  File \"/benchmarks/src/kaggle_benchmarks/tasks.py\", line 171, in run\n    run.result = self.func(*args, **kwargs)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/ipykernel_14/4105932478.py\", line 104, in synhalees_item\n    response = llm.prompt(prompt)\n               ^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 237, in prompt\n    response = self.respond(schema=schema, **kwargs, **extra)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/chats.py\", line 124, in wrapper\n    result = func(self, *args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 304, in respond\n    invoke_response = self.invoke(\n                      ^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 143, in invoke\n    return self._call_api(raw_messages, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 194, in _call_api\n    response = method(\n               ^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_utils/_utils.py\", line 298, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/resources/chat/completions/completions.py\", line 1308, in create\n    return self._post(\n           ^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1378, in post\n    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))\n                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1151, in request\n    raise self._make_status_error_from_response(err.response) from None\nopenai.PermissionDeniedError: Error code: 403 - {'code': '', 'message': 'The max estimated cost of operation ($0.098313) exceeds your available quota (based on max_output_tokens). Set max_output_tokens in your request to lower the reservation, or try again later.', 'param': '', 'type': 'permission_error'}\n"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_12_general_knowledge_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_12_general_knowledge_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-flash-lite-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_ERRORED",
+      "startTime": "2026-09-25T20:48:12.163302Z",
+      "endTime": "2026-09-25T20:48:12.188596Z",
+      "conversations": [
+        {
+          "id": "synhalees_12_general_knowledge_item-46078c06",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0daf\u0dd2\u0d9c\u0db8 \u0d9c\u0d9f \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d8b\u0dad\u0dca\u0dad\u0dbb \u0daf\u0dd9\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                }
+              ],
+              "id": "synhalees_12_general_knowledge_item-46078c06-req-1"
+            }
+          ],
+          "metrics": {},
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "booleanResult": false
+        }
+      ],
+      "pyRunId": "synhalees_12_general_knowledge_item-Run #4",
+      "errorMessage": "Traceback (most recent call last):\n  File \"/benchmarks/src/kaggle_benchmarks/tasks.py\", line 171, in run\n    run.result = self.func(*args, **kwargs)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/ipykernel_14/4105932478.py\", line 104, in synhalees_item\n    response = llm.prompt(prompt)\n               ^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 237, in prompt\n    response = self.respond(schema=schema, **kwargs, **extra)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/chats.py\", line 124, in wrapper\n    result = func(self, *args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 304, in respond\n    invoke_response = self.invoke(\n                      ^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 143, in invoke\n    return self._call_api(raw_messages, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 194, in _call_api\n    response = method(\n               ^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_utils/_utils.py\", line 298, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/resources/chat/completions/completions.py\", line 1308, in create\n    return self._post(\n           ^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1378, in post\n    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))\n                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1151, in request\n    raise self._make_status_error_from_response(err.response) from None\nopenai.PermissionDeniedError: Error code: 403 - {'code': '', 'message': 'The max estimated cost of operation ($0.098313) exceeds your available quota (based on max_output_tokens). Set max_output_tokens in your request to lower the reservation, or try again later.', 'param': '', 'type': 'permission_error'}\n"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_12_general_knowledge_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_12_general_knowledge_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-flash-lite-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_ERRORED",
+      "startTime": "2026-09-25T20:48:12.193351Z",
+      "endTime": "2026-09-25T20:48:12.247579Z",
+      "conversations": [
+        {
+          "id": "synhalees_12_general_knowledge_item-2781126d",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0dc0\u0dcf\u0db1\u0dd2\u0da2 \u0d85\u0d9c\u0db1\u0dd4\u0dc0\u0dbb \u0d9a\u0ddc\u0dc4\u0dd9\u0daf \u0dad\u0dd2\u0dba\u0dd9\u0db1\u0dca\u0db1\u0dda?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                }
+              ],
+              "id": "synhalees_12_general_knowledge_item-2781126d-req-1"
+            }
+          ],
+          "metrics": {},
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "booleanResult": false
+        }
+      ],
+      "pyRunId": "synhalees_12_general_knowledge_item-Run #5",
+      "errorMessage": "Traceback (most recent call last):\n  File \"/benchmarks/src/kaggle_benchmarks/tasks.py\", line 171, in run\n    run.result = self.func(*args, **kwargs)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/ipykernel_14/4105932478.py\", line 104, in synhalees_item\n    response = llm.prompt(prompt)\n               ^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 237, in prompt\n    response = self.respond(schema=schema, **kwargs, **extra)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/chats.py\", line 124, in wrapper\n    result = func(self, *args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 304, in respond\n    invoke_response = self.invoke(\n                      ^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 143, in invoke\n    return self._call_api(raw_messages, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 194, in _call_api\n    response = method(\n               ^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_utils/_utils.py\", line 298, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/resources/chat/completions/completions.py\", line 1308, in create\n    return self._post(\n           ^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1378, in post\n    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))\n                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1151, in request\n    raise self._make_status_error_from_response(err.response) from None\nopenai.PermissionDeniedError: Error code: 403 - {'code': '', 'message': 'The max estimated cost of operation ($0.09831125) exceeds your available quota (based on max_output_tokens). Set max_output_tokens in your request to lower the reservation, or try again later.', 'param': '', 'type': 'permission_error'}\n"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_12_general_knowledge_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_12_general_knowledge_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-flash-lite-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_ERRORED",
+      "startTime": "2026-09-25T20:48:12.251904Z",
+      "endTime": "2026-09-25T20:48:12.300106Z",
+      "conversations": [
+        {
+          "id": "synhalees_12_general_knowledge_item-b07dc22a",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd3\u0d9c\u0dd2\u0dbb\u0dd2 \u0db6\u0dbd\u0d9a\u0ddc\u0da7\u0dd4\u0dc0 \u0dc4\u0dd0\u0daf\u0dd4\u0dc0\u0dda \u0d9a\u0dc0\u0dd4\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d8b\u0dad\u0dca\u0dad\u0dbb \u0daf\u0dd9\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                }
+              ],
+              "id": "synhalees_12_general_knowledge_item-b07dc22a-req-1"
+            }
+          ],
+          "metrics": {},
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "booleanResult": false
+        }
+      ],
+      "pyRunId": "synhalees_12_general_knowledge_item-Run #6",
+      "errorMessage": "Traceback (most recent call last):\n  File \"/benchmarks/src/kaggle_benchmarks/tasks.py\", line 171, in run\n    run.result = self.func(*args, **kwargs)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/ipykernel_14/4105932478.py\", line 104, in synhalees_item\n    response = llm.prompt(prompt)\n               ^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 237, in prompt\n    response = self.respond(schema=schema, **kwargs, **extra)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/chats.py\", line 124, in wrapper\n    result = func(self, *args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 304, in respond\n    invoke_response = self.invoke(\n                      ^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 143, in invoke\n    return self._call_api(raw_messages, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 194, in _call_api\n    response = method(\n               ^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_utils/_utils.py\", line 298, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/resources/chat/completions/completions.py\", line 1308, in create\n    return self._post(\n           ^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1378, in post\n    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))\n                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1151, in request\n    raise self._make_status_error_from_response(err.response) from None\nopenai.PermissionDeniedError: Error code: 403 - {'code': '', 'message': 'The max estimated cost of operation ($0.09831275) exceeds your available quota (based on max_output_tokens). Set max_output_tokens in your request to lower the reservation, or try again later.', 'param': '', 'type': 'permission_error'}\n"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_12_general_knowledge_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_12_general_knowledge_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-flash-lite-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_ERRORED",
+      "startTime": "2026-09-25T20:48:12.304956Z",
+      "endTime": "2026-09-25T20:48:12.333587Z",
+      "conversations": [
+        {
+          "id": "synhalees_12_general_knowledge_item-139cace4",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0da2\u0dcf\u0dad\u0dd2\u0d9a \u0db4\u0dd4\u0dc2\u0dca\u0db4\u0dba \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d8b\u0dad\u0dca\u0dad\u0dbb \u0daf\u0dd9\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                }
+              ],
+              "id": "synhalees_12_general_knowledge_item-139cace4-req-1"
+            }
+          ],
+          "metrics": {},
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "booleanResult": false
+        }
+      ],
+      "pyRunId": "synhalees_12_general_knowledge_item-Run #7",
+      "errorMessage": "Traceback (most recent call last):\n  File \"/benchmarks/src/kaggle_benchmarks/tasks.py\", line 171, in run\n    run.result = self.func(*args, **kwargs)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/ipykernel_14/4105932478.py\", line 104, in synhalees_item\n    response = llm.prompt(prompt)\n               ^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 237, in prompt\n    response = self.respond(schema=schema, **kwargs, **extra)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/chats.py\", line 124, in wrapper\n    result = func(self, *args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 304, in respond\n    invoke_response = self.invoke(\n                      ^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 143, in invoke\n    return self._call_api(raw_messages, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 194, in _call_api\n    response = method(\n               ^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_utils/_utils.py\", line 298, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/resources/chat/completions/completions.py\", line 1308, in create\n    return self._post(\n           ^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1378, in post\n    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))\n                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1151, in request\n    raise self._make_status_error_from_response(err.response) from None\nopenai.PermissionDeniedError: Error code: 403 - {'code': '', 'message': 'The max estimated cost of operation ($0.09831375) exceeds your available quota (based on max_output_tokens). Set max_output_tokens in your request to lower the reservation, or try again later.', 'param': '', 'type': 'permission_error'}\n"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_12_general_knowledge_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_12_general_knowledge_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-flash-lite-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_ERRORED",
+      "startTime": "2026-09-25T20:48:12.341067Z",
+      "endTime": "2026-09-25T20:48:12.365603Z",
+      "conversations": [
+        {
+          "id": "synhalees_12_general_knowledge_item-bab541b9",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0db4\u0dd0\u0dbb\u0dab\u0dd2\u0db8 \u0d85\u0d9c\u0db1\u0dd4\u0dc0\u0dbb \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                }
+              ],
+              "id": "synhalees_12_general_knowledge_item-bab541b9-req-1"
+            }
+          ],
+          "metrics": {},
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "booleanResult": false
+        }
+      ],
+      "pyRunId": "synhalees_12_general_knowledge_item-Run #8",
+      "errorMessage": "Traceback (most recent call last):\n  File \"/benchmarks/src/kaggle_benchmarks/tasks.py\", line 171, in run\n    run.result = self.func(*args, **kwargs)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/ipykernel_14/4105932478.py\", line 104, in synhalees_item\n    response = llm.prompt(prompt)\n               ^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 237, in prompt\n    response = self.respond(schema=schema, **kwargs, **extra)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/chats.py\", line 124, in wrapper\n    result = func(self, *args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 304, in respond\n    invoke_response = self.invoke(\n                      ^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 143, in invoke\n    return self._call_api(raw_messages, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 194, in _call_api\n    response = method(\n               ^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_utils/_utils.py\", line 298, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/resources/chat/completions/completions.py\", line 1308, in create\n    return self._post(\n           ^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1378, in post\n    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))\n                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1151, in request\n    raise self._make_status_error_from_response(err.response) from None\nopenai.PermissionDeniedError: Error code: 403 - {'code': '', 'message': 'The max estimated cost of operation ($0.09831) exceeds your available quota (based on max_output_tokens). Set max_output_tokens in your request to lower the reservation, or try again later.', 'param': '', 'type': 'permission_error'}\n"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_12_general_knowledge_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_12_general_knowledge_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-flash-lite-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T20:48:11.991302Z",
+      "endTime": "2026-09-25T20:48:12.718848Z",
+      "conversations": [
+        {
+          "id": "synhalees_12_general_knowledge_item-c1617b5d",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0db1\u0dd2\u0dbd \u0d85\u0d9c\u0db1\u0dd4\u0dc0\u0dbb \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0db1\u0dd2\u0dbd \u0d85\u0d9c\u0db1\u0dd4\u0dc0\u0dbb \u0dc0\u0db1\u0dca\u0db1\u0dda **\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0da2\u0dba\u0dc0\u0dbb\u0dca\u0db0\u0db1\u0db4\u0dd4\u0dbb \u0d9a\u0ddd\u0da7\u0dca\u0da7\u0dda** \u0dba."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-flash-lite-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 20,
+                "outputTokens": 33,
+                "inputTokensCostNanodollars": "5000",
+                "outputTokensCostNanodollars": "49500",
+                "totalBackendLatencyMs": "612"
+              },
+              "id": "synhalees_12_general_knowledge_item-c1617b5d-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 20,
+            "outputTokens": 33,
+            "inputTokensCostNanodollars": "5000",
+            "outputTokensCostNanodollars": "49500",
+            "totalBackendLatencyMs": "612"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_12_001"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_12_general_knowledge_item-Run #1"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_12_general_knowledge_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_12_general_knowledge_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-flash-lite-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_ERRORED",
+      "startTime": "2026-09-25T20:48:12.723789Z",
+      "endTime": "2026-09-25T20:48:12.752494Z",
+      "conversations": [
+        {
+          "id": "synhalees_12_general_knowledge_item-710479f9",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dbb\u0dd4\u0dc0\u0db1\u0dca\u0dc0\u0dd0\u0dbd\u0dd2\u0dc3\u0dd1\u0dba\u0dda \u0dc0\u0dd0\u0da9 \u0d85\u0dc0\u0dc3\u0db1\u0dca \u0d9a\u0dc5 \u0dbb\u0da2\u0dd4 \u0d9a\u0dc0\u0dd4\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d8b\u0dad\u0dca\u0dad\u0dbb \u0daf\u0dd9\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                }
+              ],
+              "id": "synhalees_12_general_knowledge_item-710479f9-req-1"
+            }
+          ],
+          "metrics": {},
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "booleanResult": false
+        }
+      ],
+      "pyRunId": "synhalees_12_general_knowledge_item-Run #10",
+      "errorMessage": "Traceback (most recent call last):\n  File \"/benchmarks/src/kaggle_benchmarks/tasks.py\", line 171, in run\n    run.result = self.func(*args, **kwargs)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/ipykernel_14/4105932478.py\", line 104, in synhalees_item\n    response = llm.prompt(prompt)\n               ^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 237, in prompt\n    response = self.respond(schema=schema, **kwargs, **extra)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/chats.py\", line 124, in wrapper\n    result = func(self, *args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 304, in respond\n    invoke_response = self.invoke(\n                      ^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 143, in invoke\n    return self._call_api(raw_messages, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 194, in _call_api\n    response = method(\n               ^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_utils/_utils.py\", line 298, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/resources/chat/completions/completions.py\", line 1308, in create\n    return self._post(\n           ^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1378, in post\n    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))\n                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1151, in request\n    raise self._make_status_error_from_response(err.response) from None\nopenai.PermissionDeniedError: Error code: 403 - {'code': '', 'message': 'The max estimated cost of operation ($0.09831425) exceeds your available quota (based on max_output_tokens). Set max_output_tokens in your request to lower the reservation, or try again later.', 'param': '', 'type': 'permission_error'}\n"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_12_general_knowledge_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_12_general_knowledge_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-flash-lite-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_ERRORED",
+      "startTime": "2026-09-25T20:48:12.756774Z",
+      "endTime": "2026-09-25T20:48:12.785041Z",
+      "conversations": [
+        {
+          "id": "synhalees_12_general_knowledge_item-96eee159",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0da2\u0dcf\u0dad\u0dd2\u0d9a \u0d9a\u0dca\u200d\u0dbb\u0dd3\u0da9\u0dcf\u0dc0 \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                }
+              ],
+              "id": "synhalees_12_general_knowledge_item-96eee159-req-1"
+            }
+          ],
+          "metrics": {},
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "booleanResult": false
+        }
+      ],
+      "pyRunId": "synhalees_12_general_knowledge_item-Run #11",
+      "errorMessage": "Traceback (most recent call last):\n  File \"/benchmarks/src/kaggle_benchmarks/tasks.py\", line 171, in run\n    run.result = self.func(*args, **kwargs)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/ipykernel_14/4105932478.py\", line 104, in synhalees_item\n    response = llm.prompt(prompt)\n               ^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 237, in prompt\n    response = self.respond(schema=schema, **kwargs, **extra)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/chats.py\", line 124, in wrapper\n    result = func(self, *args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 304, in respond\n    invoke_response = self.invoke(\n                      ^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 143, in invoke\n    return self._call_api(raw_messages, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 194, in _call_api\n    response = method(\n               ^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_utils/_utils.py\", line 298, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/resources/chat/completions/completions.py\", line 1308, in create\n    return self._post(\n           ^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1378, in post\n    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))\n                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1151, in request\n    raise self._make_status_error_from_response(err.response) from None\nopenai.PermissionDeniedError: Error code: 403 - {'code': '', 'message': 'The max estimated cost of operation ($0.09831025) exceeds your available quota (based on max_output_tokens). Set max_output_tokens in your request to lower the reservation, or try again later.', 'param': '', 'type': 'permission_error'}\n"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_12_general_knowledge_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_12_general_knowledge_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-flash-lite-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_ERRORED",
+      "startTime": "2026-09-25T20:48:12.789418Z",
+      "endTime": "2026-09-25T20:48:12.813941Z",
+      "conversations": [
+        {
+          "id": "synhalees_12_general_knowledge_item-08860a98",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0da2\u0dcf\u0dad\u0dd2\u0d9a \u0d9a\u0ddc\u0da9\u0dd2\u0dba\u0dda \u0db6\u0ddd \u0d9a\u0ddc\u0dc5 \u0dc4\u0dad\u0dbb\u0dd9\u0db1\u0dca \u0db1\u0dd2\u0dbb\u0dd6\u0db4\u0dab\u0dba \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dc0\u0da0\u0db1 \u0dad\u0dd4\u0db1\u0dd9\u0db1\u0dca \u0d8b\u0dad\u0dca\u0dad\u0dbb \u0daf\u0dd9\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                }
+              ],
+              "id": "synhalees_12_general_knowledge_item-08860a98-req-1"
+            }
+          ],
+          "metrics": {},
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "booleanResult": false
+        }
+      ],
+      "pyRunId": "synhalees_12_general_knowledge_item-Run #12",
+      "errorMessage": "Traceback (most recent call last):\n  File \"/benchmarks/src/kaggle_benchmarks/tasks.py\", line 171, in run\n    run.result = self.func(*args, **kwargs)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/ipykernel_14/4105932478.py\", line 104, in synhalees_item\n    response = llm.prompt(prompt)\n               ^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 237, in prompt\n    response = self.respond(schema=schema, **kwargs, **extra)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/chats.py\", line 124, in wrapper\n    result = func(self, *args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 304, in respond\n    invoke_response = self.invoke(\n                      ^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 143, in invoke\n    return self._call_api(raw_messages, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 194, in _call_api\n    response = method(\n               ^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_utils/_utils.py\", line 298, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/resources/chat/completions/completions.py\", line 1308, in create\n    return self._post(\n           ^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1378, in post\n    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))\n                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1151, in request\n    raise self._make_status_error_from_response(err.response) from None\nopenai.PermissionDeniedError: Error code: 403 - {'code': '', 'message': 'The max estimated cost of operation ($0.09831875) exceeds your available quota (based on max_output_tokens). Set max_output_tokens in your request to lower the reservation, or try again later.', 'param': '', 'type': 'permission_error'}\n"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_12_general_knowledge_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_12_general_knowledge_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-flash-lite-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_ERRORED",
+      "startTime": "2026-09-25T20:48:12.819669Z",
+      "endTime": "2026-09-25T20:48:12.849109Z",
+      "conversations": [
+        {
+          "id": "synhalees_12_general_knowledge_item-c50bd53a",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0db4\u0ddc\u0dbd\u0dd2\u0dc3\u0dca \u0dbd\u0dcf\u0d82\u0da1\u0db1\u0dba\u0dda \u0d89\u0db1\u0dca\u0db1 \u0dc3\u0dad\u0dcf \u0d9a\u0dc0\u0dd4\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                }
+              ],
+              "id": "synhalees_12_general_knowledge_item-c50bd53a-req-1"
+            }
+          ],
+          "metrics": {},
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "booleanResult": false
+        }
+      ],
+      "pyRunId": "synhalees_12_general_knowledge_item-Run #13",
+      "errorMessage": "Traceback (most recent call last):\n  File \"/benchmarks/src/kaggle_benchmarks/tasks.py\", line 171, in run\n    run.result = self.func(*args, **kwargs)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/ipykernel_14/4105932478.py\", line 104, in synhalees_item\n    response = llm.prompt(prompt)\n               ^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 237, in prompt\n    response = self.respond(schema=schema, **kwargs, **extra)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/chats.py\", line 124, in wrapper\n    result = func(self, *args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 304, in respond\n    invoke_response = self.invoke(\n                      ^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 143, in invoke\n    return self._call_api(raw_messages, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 194, in _call_api\n    response = method(\n               ^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_utils/_utils.py\", line 298, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/resources/chat/completions/completions.py\", line 1308, in create\n    return self._post(\n           ^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1378, in post\n    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))\n                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1151, in request\n    raise self._make_status_error_from_response(err.response) from None\nopenai.PermissionDeniedError: Error code: 403 - {'code': '', 'message': 'The max estimated cost of operation ($0.09831125) exceeds your available quota (based on max_output_tokens). Set max_output_tokens in your request to lower the reservation, or try again later.', 'param': '', 'type': 'permission_error'}\n"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_12_general_knowledge_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_12_general_knowledge_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-flash-lite-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_ERRORED",
+      "startTime": "2026-09-25T20:48:12.854458Z",
+      "endTime": "2026-09-25T20:48:12.892856Z",
+      "conversations": [
+        {
+          "id": "synhalees_12_general_knowledge_item-d926be2a",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0d89\u0dad\u0dd2\u0dc4\u0dcf\u0dc3\u0dba \u0d9c\u0dd0\u0db1 \u0daf\u0dd3\u0dbb\u0dca\u0d9d\u0dad\u0db8 \u0dad\u0ddc\u0dbb\u0dad\u0dd4\u0dbb\u0dd4 \u0dad\u0dd2\u0dba\u0dd9\u0db1 \u0dbd\u0dd2\u0d9b\u0dd2\u0dad \u0dbd\u0dda\u0d9b\u0dab\u0dba\u0da7 \u0d9a\u0dd2\u0dba\u0db1 \u0db1\u0db8 \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                }
+              ],
+              "id": "synhalees_12_general_knowledge_item-d926be2a-req-1"
+            }
+          ],
+          "metrics": {},
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "booleanResult": false
+        }
+      ],
+      "pyRunId": "synhalees_12_general_knowledge_item-Run #14",
+      "errorMessage": "Traceback (most recent call last):\n  File \"/benchmarks/src/kaggle_benchmarks/tasks.py\", line 171, in run\n    run.result = self.func(*args, **kwargs)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/ipykernel_14/4105932478.py\", line 104, in synhalees_item\n    response = llm.prompt(prompt)\n               ^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 237, in prompt\n    response = self.respond(schema=schema, **kwargs, **extra)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/chats.py\", line 124, in wrapper\n    result = func(self, *args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 304, in respond\n    invoke_response = self.invoke(\n                      ^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 143, in invoke\n    return self._call_api(raw_messages, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 194, in _call_api\n    response = method(\n               ^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_utils/_utils.py\", line 298, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/resources/chat/completions/completions.py\", line 1308, in create\n    return self._post(\n           ^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1378, in post\n    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))\n                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1151, in request\n    raise self._make_status_error_from_response(err.response) from None\nopenai.PermissionDeniedError: Error code: 403 - {'code': '', 'message': 'The max estimated cost of operation ($0.09831675) exceeds your available quota (based on max_output_tokens). Set max_output_tokens in your request to lower the reservation, or try again later.', 'param': '', 'type': 'permission_error'}\n"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_12_general_knowledge_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_12_general_knowledge_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-flash-lite-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T20:48:12.372852Z",
+      "endTime": "2026-09-25T20:48:12.944740Z",
+      "conversations": [
+        {
+          "id": "synhalees_12_general_knowledge_item-46407e4d",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0da2\u0dcf\u0dad\u0dd2\u0d9a \u0db4\u0d9a\u0dca\u0dc2\u0dd2\u0dba\u0dcf \u0d9a\u0dc0\u0dd4\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0da2\u0dcf\u0dad\u0dd2\u0d9a \u0db4\u0d9a\u0dca\u0dc2\u0dd2\u0dba\u0dcf \u0dc0\u0db1\u0dca\u0db1\u0dda **\u0dc0\u0dbd\u0dd2 \u0d9a\u0dd4\u0d9a\u0dd4\u0dc5\u0dcf** (Sri Lanka Junglefowl) \u0dba."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-flash-lite-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 18,
+                "outputTokens": 30,
+                "inputTokensCostNanodollars": "4500",
+                "outputTokensCostNanodollars": "45000",
+                "totalBackendLatencyMs": "535"
+              },
+              "id": "synhalees_12_general_knowledge_item-46407e4d-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 18,
+            "outputTokens": 30,
+            "inputTokensCostNanodollars": "4500",
+            "outputTokensCostNanodollars": "45000",
+            "totalBackendLatencyMs": "535"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_12_009"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_12_general_knowledge_item-Run #9"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_12_general_knowledge_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_12_general_knowledge_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.1-flash-lite-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T20:48:12.900Z",
+      "endTime": "2026-09-25T20:48:13.365881Z",
+      "conversations": [
+        {
+          "id": "synhalees_12_general_knowledge_item-5093764a",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0dc0\u0dd0\u0da9\u0dd2\u0db8 \u0daf\u0dd9\u0db1\u0dd9\u0d9a\u0dca \u0d9a\u0dad\u0dcf \u0d9a\u0dbb\u0db1 \u0db7\u0dcf\u0dc2\u0dcf\u0dc0 \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dad\u0db1\u0dd2 \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d8b\u0dad\u0dca\u0dad\u0dbb \u0daf\u0dd9\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd2\u0d82\u0dc4\u0dbd"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.1-flash-lite-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 38,
+                "outputTokens": 4,
+                "inputTokensCostNanodollars": "9500",
+                "outputTokensCostNanodollars": "6000",
+                "totalBackendLatencyMs": "443"
+              },
+              "id": "synhalees_12_general_knowledge_item-5093764a-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 38,
+            "outputTokens": 4,
+            "inputTokensCostNanodollars": "9500",
+            "outputTokensCostNanodollars": "6000",
+            "totalBackendLatencyMs": "443"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_12_015"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_12_general_knowledge_item-Run #15"
+    }
+  ],
+  "pyRunId": "synhalees_12_general_knowledge-Run #1"
+}

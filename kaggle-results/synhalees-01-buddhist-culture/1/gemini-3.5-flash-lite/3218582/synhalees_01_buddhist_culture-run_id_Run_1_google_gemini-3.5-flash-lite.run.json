@@ -1,0 +1,1067 @@
+{
+  "taskVersion": {
+    "versionNumber": 1,
+    "name": "synhalees_01_buddhist_culture",
+    "description": "SynhalEES pillar 01_buddhist_culture: native Sinhala text accuracy.",
+    "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture\", description=\"SynhalEES pillar 01_buddhist_culture: native Sinhala text accuracy.\")\ndef synhalees_task(llm) -> float:\n    '''Evaluate Buddhist Culture (text); return accuracy in [0, 1].'''\n    import pandas as pd\n\n    rows = _rows()\n    if not rows:\n        raise ValueError(\n            \"No runnable text rows for Buddhist Culture yet -- media files may \"\n            \"not be committed under benchmark_data/.\"\n        )\n    with kbench.client.enable_cache():\n        runs = synhalees_item.evaluate(\n            llm=[llm], evaluation_data=pd.DataFrame(rows),\n            n_jobs=2, max_attempts=2, on_failure=\"continue\",\n            remove_run_files=True,\n        )\n    correct = runs.as_dataframe().result.str.get(\"is_correct\").astype(\"boolean\").fillna(False)\n    return float(correct.mean())\n"
+  },
+  "modelVersion": {
+    "slug": "google/gemini-3.5-flash-lite"
+  },
+  "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+  "startTime": "2026-09-25T20:23:55.111079Z",
+  "endTime": "2026-09-25T20:24:00.460512Z",
+  "conversations": [
+    {
+      "id": "synhalees_01_buddhist_culture-0a8b7b17",
+      "metrics": {},
+      "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+    }
+  ],
+  "results": [
+    {
+      "type": "AGGREGATED",
+      "numericResult": {
+        "value": 0.26666666666666666
+      }
+    }
+  ],
+  "subruns": [
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_01_buddhist_culture_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash-lite"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T20:23:55.122507Z",
+      "endTime": "2026-09-25T20:23:55.903503Z",
+      "conversations": [
+        {
+          "id": "synhalees_01_buddhist_culture_item-9e37b9da",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc4\u0dcf\u0db8\u0dd4\u0daf\u0dd4\u0dbb\u0dd4\u0dc0\u0db1\u0dca\u0da7 \u0dc4\u0dc0\u0dc3\u0da7 \u0daf\u0dd9\u0db1 \u0daf\u0dcf\u0db1\u0dba\u0dda \u0db1\u0db8 \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9c\u0dd2\u0dbd\u0dcf\u0db1\u0db4\u0dca\u200d\u0dbb\u0dad\u0dca\u200d\u0dba (\u0dc4\u0ddd \u0d9c\u0dd2\u0dbd\u0dcf\u0db1\u0db4\u0dca\u200d\u0dbb\u0dad\u0dca\u200d\u0dba \u0daf\u0dcf\u0db1\u0dba)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash-lite"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 30,
+                "outputTokens": 22,
+                "inputTokensCostNanodollars": "9000",
+                "outputTokensCostNanodollars": "55000",
+                "totalBackendLatencyMs": "618"
+              },
+              "id": "synhalees_01_buddhist_culture_item-9e37b9da-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 30,
+            "outputTokens": 22,
+            "inputTokensCostNanodollars": "9000",
+            "outputTokensCostNanodollars": "55000",
+            "totalBackendLatencyMs": "618"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_01_001"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_01_buddhist_culture_item-Run #1"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_01_buddhist_culture_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash-lite"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T20:23:55.908961Z",
+      "endTime": "2026-09-25T20:23:56.918416Z",
+      "conversations": [
+        {
+          "id": "synhalees_01_buddhist_culture_item-82be5797",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0daf\u0dc0\u0dc3\u0da7 \u0d9a\u0dd3\u0db4\u0dcf\u0dbb\u0d9a\u0dca \u0db4\u0db1\u0dca\u0dc3\u0dbd\u0dda \u0db6\u0dd4\u0daf\u0dca\u0db0 \u0db4\u0dd6\u0da2\u0dcf\u0dc0 \u0dc3\u0d9a\u0dc3\u0dca \u0d9a\u0dbb\u0db1\u0dc0\u0daf? (\u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba\u0dba\u0dd9\u0db1\u0dca \u0daf\u0dc0\u0dc3\u0d9a\u0da7 **\u0dad\u0dd4\u0db1\u0dca \u0dc0\u0dbb\u0d9a\u0dca** (3 \u0dc0\u0dad\u0dcf\u0dc0\u0d9a\u0dca) \u0db6\u0dd4\u0daf\u0dca\u0db0 \u0db4\u0dd6\u0da2\u0dcf\u0dc0 \u0dc3\u0d9a\u0dc3\u0dca \u0d9a\u0dbb \u0db4\u0dd6\u0da2\u0dcf \u0d9a\u0dbb\u0db1\u0dd4 \u0dbd\u0db6\u0dba\u0dd2. \n\n\u0d92\u0dc0\u0dcf \u0db1\u0db8\u0dca:\n\n1. \u0d85\u0dbd\u0dd4\u0dba\u0db8 / \u0d8b\u0daf\u0dd1\u0dc3\u0db1 \u0db4\u0dd6\u0da2\u0dcf\u0dc0 (\u05d1\u05d5\u05e7\u05e8 - \u0db6\u0dd4\u0daf\u0dca\u0db0 \u0dc0\u0db1\u0dca\u0daf\u0db1\u0dcf\u0dc0)\n2. \u0daf\u0dc0\u0dbd\u0dca \u0db4\u0dd6\u0da2\u0dcf\u0dc0 (\u0db8\u0db0\u0dca\u200d\u0dba\u0dba\u0dda - \u0daf\u0dc4\u0dc0\u0dbd\u0dca \u0d9a\u0dcf\u0dbd\u0dba\u0dda\u0daf\u0dd3)\n3. \u0dc3\u0dc0\u0dc3\u0dca \u0d9a\u0dcf\u0dbd\u0dba\u0dda \u0db4\u0dd6\u0da2\u0dcf\u0dc0 (\u0d9c\u0dd2\u0dbd\u0db1\u0dca\u0db4\u0dc3 \u0db4\u0dd6\u0da2\u0dcf\u0dc0)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash-lite"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 35,
+                "outputTokens": 125,
+                "inputTokensCostNanodollars": "10500",
+                "outputTokensCostNanodollars": "312500",
+                "totalBackendLatencyMs": "943"
+              },
+              "id": "synhalees_01_buddhist_culture_item-82be5797-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 35,
+            "outputTokens": 125,
+            "inputTokensCostNanodollars": "10500",
+            "outputTokensCostNanodollars": "312500",
+            "totalBackendLatencyMs": "943"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_01_003"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_01_buddhist_culture_item-Run #3"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_01_buddhist_culture_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash-lite"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T20:23:55.122966Z",
+      "endTime": "2026-09-25T20:23:56.994125Z",
+      "conversations": [
+        {
+          "id": "synhalees_01_buddhist_culture_item-dd27a36a",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db6\u0dde\u0daf\u0dca\u0db0\u0dba\u0db1\u0dca\u0d9c\u0dda \u0db8\u0dd4\u0daf\u0dd4\u0db1\u0dca \u0db8\u0dbd\u0dca\u0d9a\u0da9 \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0dc4\u0db3\u0dd4\u0db1\u0dca\u0dc0\u0db1 \u0d8b\u0dad\u0dd4\u0db8\u0dca \u0dc3\u0dca\u0dae\u0dcf\u0db1\u0dba \u0d9a\u0dd4\u0db8\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db6\u0dde\u0daf\u0dca\u0db0\u0dba\u0db1\u0dca\u0d9c\u0dda \u0db8\u0dd4\u0daf\u0dd4\u0db1\u0dca \u0db8\u0dbd\u0dca\u0d9a\u0da9 \u0dbd\u0dd9\u0dc3 \u0dc3\u0dd0\u0dbd\u0d9a\u0dd9\u0db1 \u0dc3\u0dc4 \u0dbd\u0ddd\u0d9a\u0dba\u0dda \u0db6\u0dde\u0daf\u0dca\u0db0\u0dba\u0db1\u0dca \u0d89\u0dad\u0dcf\u0db8\u0dad\u0dca \u0db4\u0dd6\u0da2\u0db1\u0dd3\u0dba \u0dbd\u0dd9\u0dc3 \u0dc3\u0dbd\u0d9a\u0db1 \u0d8b\u0dad\u0dd4\u0db8\u0dca \u0dc3\u0dca\u0dae\u0dcf\u0db1\u0dba \u0dc0\u0db1\u0dca\u0db1\u0dda \u0d89\u0db1\u0dca\u0daf\u0dd2\u0dba\u0dcf\u0dc0\u0dda \u0db6\u0dd2\u0dc4\u0dcf\u0dbb\u0dca \u0db4\u0dca\u200d\u0dbb\u0dcf\u0db1\u0dca\u0dad\u0dba\u0dda \u0db4\u0dd2\u0dc4\u0dd2\u0da7\u0dcf \u0d87\u0dad\u0dd2 **\u0db6\u0dd4\u0daf\u0dca\u0db0\u0d9c\u0dba\u0dcf\u0dc0 (Buddhagaya)** \u0dba\u0dd2.\n\n\u0dc3\u0dd2\u0daf\u0dd4\u0dc4\u0dad\u0dca \u0db6\u0ddd\u0dc3\u0dad\u0dcf\u0dab\u0db1\u0dca \u0dc0\u0dc4\u0db1\u0dca\u0dc3\u0dda \u0dc3\u0db8\u0dca\u0db8\u0dcf \u0dc3\u0db8\u0dca\u0db6\u0dd4\u0daf\u0dca\u0db0\u0dad\u0dca\u0dc0\u0dba\u0da7 \u0db4\u0dad\u0dca \u0dc0\u0dd6\u0dba\u0dda \u0db6\u0dd4\u0daf\u0dca\u0db0\u0d9c\u0dba\u0dcf\u0dc0\u0dda, \u0d87\u0dad\u0dd4\u0d9c\u0dbd\u0dca \u0db4\u0dd9\u0db1\u0dd9\u0db1 \u0db8\u0dcf\u0db1\u0dba\u0dda, \u0d87\u0dc3\u0dad\u0dd4 \u0db6\u0ddd\u0db0\u0dd3\u0db1\u0dca \u0dc0\u0dc4\u0db1\u0dca\u0dc3\u0dda (\u0da2\u0dba \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0db8\u0dc4\u0dcf \u0db6\u0ddd\u0db0\u0dd2\u0dba) \u0db8\u0dd4\u0dbd\u0daf\u0dd3 \u0dba. \u0d91\u0db6\u0dd0\u0dc0\u0dd2\u0db1\u0dca \u0db6\u0dde\u0daf\u0dca\u0db0\u0dba\u0db1\u0dca\u0d9c\u0dda \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1\u0dad\u0db8 \u0dc3\u0dad\u0dbb \u0db8\u0dc4\u0dcf \u0db4\u0dd6\u0da2\u0db1\u0dd3\u0dba \u0dc3\u0dca\u0dae\u0dcf\u0db1\u0dc0\u0dbd\u0dd2\u0db1\u0dca \u0d91\u0d9a\u0d9a\u0dca \u0dbd\u0dd9\u0dc3\u0daf \u0db6\u0dd4\u0daf\u0dca\u0db0\u0d9c\u0dba\u0dcf\u0dc0 \u0dc3\u0dd0\u0dbd\u0d9a\u0dda.\n\n\u0db8\u0dd3\u0da7 \u0d85\u0db8\u0dad\u0dbb\u0dc0, \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0db6\u0dde\u0daf\u0dca\u0db0\u0dba\u0db1\u0dca \u0dc0\u0dd2\u0dc1\u0dda\u0dc2\u0dba\u0dd9\u0db1\u0dca\u0db8 \u0db8\u0dd4\u0daf\u0dd4\u0db1\u0dca \u0db8\u0dbd\u0dca\u0d9a\u0da9 \u0dbd\u0dd9\u0dc3 \u0dc3\u0dbd\u0d9a\u0db1\u0dca\u0db1\u0dda \u0db8\u0dc4\u0db1\u0dd4\u0dc0\u0dbb \u0db4\u0dd2\u0dc4\u0dd2\u0da7\u0dcf \u0d87\u0dad\u0dd2 **\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0daf\u0dc5\u0daf\u0dcf \u0db8\u0dcf\u0dbd\u0dd2\u0d9c\u0dba**\u0dba\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash-lite"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 27,
+                "outputTokens": 247,
+                "inputTokensCostNanodollars": "8100",
+                "outputTokensCostNanodollars": "617500",
+                "totalBackendLatencyMs": "1762"
+              },
+              "id": "synhalees_01_buddhist_culture_item-dd27a36a-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 27,
+            "outputTokens": 247,
+            "inputTokensCostNanodollars": "8100",
+            "outputTokensCostNanodollars": "617500",
+            "totalBackendLatencyMs": "1762"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_01_002"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_01_buddhist_culture_item-Run #2"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_01_buddhist_culture_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash-lite"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T20:23:56.922824Z",
+      "endTime": "2026-09-25T20:23:57.431501Z",
+      "conversations": [
+        {
+          "id": "synhalees_01_buddhist_culture_item-40930a21",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d85\u0db8\u0db1\u0dd4\u0dc2\u0dca\u200d\u0dba\u0dba\u0db1\u0dca\u0d9c\u0dda \u0db7\u0dd2\u0d9a\u0dca\u0dc2\u0dd6\u0db1\u0dca \u0dc0\u0dc4\u0db1\u0dca\u0dc3\u0dda\u0dbd\u0dcf\u0da7 \u0dc0\u0dd9\u0db1 \u0d9a\u0dbb\u0daf\u0dbb \u0dc0\u0dbd\u0dd2\u0db1\u0dca \u0db6\u0dda\u0dbb\u0dd9\u0db1\u0dca\u0db1 \u0db6\u0dd4\u0daf\u0dd4 \u0dbb\u0da2\u0dcf\u0dab\u0db1\u0dca\u0dc0\u0dc4\u0db1\u0dca\u0dc3\u0dda \u0db7\u0dd2\u0d9a\u0dca\u0dc2\u0dd6\u0db1\u0dca \u0dc0\u0dc4\u0db1\u0dca\u0dc3\u0dda\u0dbd\u0dcf\u0da7 \u0daf\u0dda\u0dc1\u0db1\u0dcf \u0d9a\u0dbb\u0db4\u0dd4 \u0dc3\u0dd6\u0dad\u0dca\u200d\u0dbb\u0dba \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9a\u0dbb\u0dab\u0dd3\u0dba\u0db8\u0dd9\u0dad\u0dca\u0dad \u0dc3\u0dd6\u0dad\u0dca\u200d\u0dbb\u0dba"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash-lite"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 75,
+                "outputTokens": 9,
+                "inputTokensCostNanodollars": "22500",
+                "outputTokensCostNanodollars": "22500",
+                "totalBackendLatencyMs": "486"
+              },
+              "id": "synhalees_01_buddhist_culture_item-40930a21-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 75,
+            "outputTokens": 9,
+            "inputTokensCostNanodollars": "22500",
+            "outputTokensCostNanodollars": "22500",
+            "totalBackendLatencyMs": "486"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_01_004"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_01_buddhist_culture_item-Run #4"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_01_buddhist_culture_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash-lite"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T20:23:56.998691Z",
+      "endTime": "2026-09-25T20:23:57.521029Z",
+      "conversations": [
+        {
+          "id": "synhalees_01_buddhist_culture_item-6f86c9d5",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db7\u0dd2\u0d9a\u0dca\u0dc2\u0dd6\u0db1\u0dca \u0dc0\u0dc4\u0dc3\u0dda\u0dbd\u0dcf\u0da7 \u0daf\u0dcf\u0db1\u0dba \u0db4\u0db1\u0dca\u0dc3\u0dbd\u0da7\u0db8 \u0d9c\u0dd9\u0db1\u0dbd\u0dca\u0dbd\u0dcf \u0daf\u0dd9\u0db1 \u0d9a\u0dcf\u0dbd\u0dba \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db4\u0dd9\u0dbb\u0dc0\u0dbb\u0dd4 \u0d9a\u0dcf\u0dbd\u0dba"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash-lite"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 43,
+                "outputTokens": 7,
+                "inputTokensCostNanodollars": "12900",
+                "outputTokensCostNanodollars": "17500",
+                "totalBackendLatencyMs": "489"
+              },
+              "id": "synhalees_01_buddhist_culture_item-6f86c9d5-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 43,
+            "outputTokens": 7,
+            "inputTokensCostNanodollars": "12900",
+            "outputTokensCostNanodollars": "17500",
+            "totalBackendLatencyMs": "489"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_01_005"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_01_buddhist_culture_item-Run #5"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_01_buddhist_culture_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash-lite"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T20:23:57.525530Z",
+      "endTime": "2026-09-25T20:23:58.045720Z",
+      "conversations": [
+        {
+          "id": "synhalees_01_buddhist_culture_item-0cfce6ea",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc0\u0dc3\u0dca\u0dc3\u0dcf\u0db1 \u0d9a\u0dcf\u0dbd\u0dda \u0d86\u0dbb\u0db8\u0dca\u0db7 \u0dc0\u0dd4\u0db1\u0dcf\u0db8 \u0dbb\u0dd1 \u0db4\u0db1\u0dca\u0dc3\u0dbd\u0dda \u0dad\u0dd2\u0dba\u0dd9\u0db1 \u0dc0\u0dd2\u0dc1\u0dda\u0dc2 \u0db4\u0dd2\u0db1\u0dca\u0d9a\u0db8 \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dc0\u0da0\u0db1 \u0dad\u0dd4\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d85\u0db0\u0dd2\u0dc2\u0dca\u0da8\u0dcf\u0db1 \u0db4\u0dd6\u0da2\u0dcf\u0dc0\u0dba\u0dd2"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash-lite"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 42,
+                "outputTokens": 12,
+                "inputTokensCostNanodollars": "12600",
+                "outputTokensCostNanodollars": "30000",
+                "totalBackendLatencyMs": "482"
+              },
+              "id": "synhalees_01_buddhist_culture_item-0cfce6ea-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 42,
+            "outputTokens": 12,
+            "inputTokensCostNanodollars": "12600",
+            "outputTokensCostNanodollars": "30000",
+            "totalBackendLatencyMs": "482"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_01_007"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_01_buddhist_culture_item-Run #7"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_01_buddhist_culture_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash-lite"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T20:23:57.435928Z",
+      "endTime": "2026-09-25T20:23:58.387723Z",
+      "conversations": [
+        {
+          "id": "synhalees_01_buddhist_culture_item-9d1fbd0d",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db4\u0db1\u0dca\u0dc3\u0dd2\u0dbd\u0dca \u0db4\u0daf 5\u0dc4\u0dda \u0d85\u0dc0\u0dc3\u0dcf\u0db1 \u0dc3\u0dd2\u0dbd\u0dca\u0db4\u0daf\u0dba \u0d91\u0d9a \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db4\u0db1\u0dca\u0dc3\u0dd2\u0dbd\u0dca \u0db4\u0daf \u0db4\u0dc4\u0dda \u0d85\u0dc0\u0dc3\u0dcf\u0db1 \u0dc3\u0dd2\u0dbd\u0dca\u0db4\u0daf\u0dba \u0d91\u0d9a \u0dc0\u0da0\u0db1\u0dba\u0dd9\u0db1\u0dca **\"\u0dc3\u0dd4\u0dbb\u0dcf\u0db8\u0dda\u0dbb\u0dba\"** (\u0dc4\u0ddd **\"\u0db8\u0daf\u0dca\u200d\u0dba\u0db4\u0dcf\u0db1\u0dba\"**) \u0dbd\u0dd9\u0dc3 \u0dc4\u0dd0\u0db3\u0dd2\u0db1\u0dca\u0dc0\u0dd2\u0dba \u0dc4\u0dd0\u0d9a. \n\n\u0dc3\u0dd6\u0dbb\u0dca\u0db4\u0dd6\u0dbb\u0dca\u0dab \u0dc3\u0dd2\u0dbd\u0dca\u0db4\u0daf\u0dba \u0dc0\u0db1\u0dca\u0db1\u0dda: *\"\u0dc3\u0dd4\u0dbb\u0dcf\u0db8\u0dda\u0dbb \u0db8\u0da2\u0dca\u0da2 \u0db4\u0db8\u0dcf\u0daf\u0da7\u0dca\u0da8\u0dcf\u0db1\u0dcf \u0dc0\u0dda\u0dbb\u0db8\u0dab\u0dd3 \u0dc3\u0dd2\u0d9a\u0dca\u0d9b\u0dcf\u0db4\u0daf\u0d82 \u0dc3\u0db8\u0dcf\u0daf\u0dd2\u0dba\u0dcf\u0db8\u0dd2\"* (\u0db8\u0dad\u0dca\u0db4\u0dd0\u0db1\u0dca \u0db4\u0dcf\u0db1\u0dba\u0dd9\u0db1\u0dca \u0dc0\u0dd0\u0dc5\u0dd0\u0d9a\u0dca\u0db8)."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash-lite"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 26,
+                "outputTokens": 108,
+                "inputTokensCostNanodollars": "7800",
+                "outputTokensCostNanodollars": "270000",
+                "totalBackendLatencyMs": "903"
+              },
+              "id": "synhalees_01_buddhist_culture_item-9d1fbd0d-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 26,
+            "outputTokens": 108,
+            "inputTokensCostNanodollars": "7800",
+            "outputTokensCostNanodollars": "270000",
+            "totalBackendLatencyMs": "903"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_01_006"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_01_buddhist_culture_item-Run #6"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_01_buddhist_culture_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash-lite"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T20:23:58.049995Z",
+      "endTime": "2026-09-25T20:23:58.513011Z",
+      "conversations": [
+        {
+          "id": "synhalees_01_buddhist_culture_item-d56c476a",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db1\u0dd2\u0dc0\u0db1\u0dca \u0db8\u0d9f\u0da7 \u0dba\u0db1 \u0db4\u0dcf\u0dbb \u0dc4\u0db3\u0dd4\u0db1\u0dca\u0dc0\u0db1 \u0db1\u0db8 \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dc0\u0da0\u0db1 \u0dad\u0dd4\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d86\u0dbb\u0dca\u0dba \u0d85\u0dc2\u0dca\u0da7\u0dcf\u0d82\u0d9c\u0dd2\u0d9a \u0db8\u0dcf\u0dbb\u0dca\u0d9c\u0dba"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash-lite"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 31,
+                "outputTokens": 12,
+                "inputTokensCostNanodollars": "9300",
+                "outputTokensCostNanodollars": "30000",
+                "totalBackendLatencyMs": "428"
+              },
+              "id": "synhalees_01_buddhist_culture_item-d56c476a-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 31,
+            "outputTokens": 12,
+            "inputTokensCostNanodollars": "9300",
+            "outputTokensCostNanodollars": "30000",
+            "totalBackendLatencyMs": "428"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_01_008"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_01_buddhist_culture_item-Run #8"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_01_buddhist_culture_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash-lite"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T20:23:58.517322Z",
+      "endTime": "2026-09-25T20:23:58.853026Z",
+      "conversations": [
+        {
+          "id": "synhalees_01_buddhist_culture_item-b942a54e",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0dc4 \u0db4\u0dd9\u0dbb\u0dc4\u0dd0\u0dbb \u0dad\u0dd2\u0dba\u0dd9\u0db1 \u0db8\u0dcf\u0dc3\u0dda \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d9a\u0dd0\u0dbd\u0db1\u0dca\u0da9\u0dbb\u0dca \u0d91\u0d9a\u0da7 \u0d85\u0db1\u0dd4\u0dc0, \u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d87\u0dc3\u0dc5 \u0db8\u0dcf\u0dc3\u0dba"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash-lite"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 39,
+                "outputTokens": 6,
+                "inputTokensCostNanodollars": "11700",
+                "outputTokensCostNanodollars": "15000",
+                "totalBackendLatencyMs": "300"
+              },
+              "id": "synhalees_01_buddhist_culture_item-b942a54e-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 39,
+            "outputTokens": 6,
+            "inputTokensCostNanodollars": "11700",
+            "outputTokensCostNanodollars": "15000",
+            "totalBackendLatencyMs": "300"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_01_010"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_01_buddhist_culture_item-Run #10"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_01_buddhist_culture_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash-lite"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T20:23:58.392073Z",
+      "endTime": "2026-09-25T20:23:59.185398Z",
+      "conversations": [
+        {
+          "id": "synhalees_01_buddhist_culture_item-c1e873ca",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db4\u0dd9\u0dc4\u0dd9\u0dc0\u0dad\u0dca \u0dc3\u0db8\u0dcf\u0daf\u0db1\u0dca \u0dc0\u0dd9\u0db1\u0d9a\u0ddc\u0da7 \u0db1\u0dd2\u0dad\u0dca\u200d\u0dba \u0dc3\u0dd3\u0dbd\u0dba\u0da7 \u0dc0\u0da9\u0dcf \u0dc0\u0dd0\u0da9\u0dd2 \u0dc0\u0db1 \u0dc3\u0dd2\u0dbd\u0dca\u0db4\u0daf \u0d9c\u0dcf\u0dab \u0d9a\u0dd3\u0dba\u0daf? (\u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db4\u0dd9\u0dc4\u0dd9\u0dc0\u0dad\u0dca \u0dc3\u0db8\u0dcf\u0daf\u0db1\u0dca \u0dc0\u0dd9\u0db1\u0d9a\u0ddc\u0da7 \u0db1\u0dd2\u0dad\u0dca\u200d\u0dba \u0dc3\u0dd3\u0dbd\u0dba\u0da7 (\u0db4\u0d82\u0da0 \u0dc3\u0dd3\u0dbd\u0dba\u0da7) \u0dc0\u0da9\u0dcf \u0dc0\u0dd0\u0da9\u0dd2 \u0dc0\u0db1 \u0dc3\u0dd2\u0dbd\u0dca\u0db4\u0daf \u0d9c\u0dcf\u0dab **\u0dad\u0dd4\u0db1\u0d9a\u0dd2**. \n\n(\u0db4\u0d82\u0da0 \u0dc3\u0dd3\u0dbd\u0dba \u0dc3\u0dd2\u0dbd\u0dca\u0db4\u0daf 5\u0d9a\u0dca \u0dc0\u0db1 \u0d85\u0dad\u0dbb, \u0db4\u0dd9\u0dc4\u0dd9\u0dc0\u0dad\u0dca \u0dc3\u0dd2\u0dbd\u0dca (\u0d85\u0da7\u0dc3\u0dd2\u0dbd\u0dca) \u0dc3\u0dd2\u0dbd\u0dca\u0db4\u0daf 8\u0d9a\u0dd2. 8 - 5 = 3 \u0d9a\u0dd2)."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash-lite"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 39,
+                "outputTokens": 86,
+                "inputTokensCostNanodollars": "11700",
+                "outputTokensCostNanodollars": "215000",
+                "totalBackendLatencyMs": "767"
+              },
+              "id": "synhalees_01_buddhist_culture_item-c1e873ca-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 39,
+            "outputTokens": 86,
+            "inputTokensCostNanodollars": "11700",
+            "outputTokensCostNanodollars": "215000",
+            "totalBackendLatencyMs": "767"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_01_009"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_01_buddhist_culture_item-Run #9"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_01_buddhist_culture_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash-lite"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T20:23:58.857668Z",
+      "endTime": "2026-09-25T20:23:59.386215Z",
+      "conversations": [
+        {
+          "id": "synhalees_01_buddhist_culture_item-ab837bec",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d85\u0da7\u0db4\u0da7\u0dca\u0da7\u0db8\u0dda \u0dad\u0dca\u200d\u0dbb\u0dd2\u0d9a\u0ddd\u0dab \u0d85\u0da7\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0d9a\u0d9a\u0dca \u0d9c\u0dd0\u0db1\u0daf? (\u0dc0\u0da0\u0db1 \u0dad\u0dd4\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dbd\u0ddd\u0d9a \u0db0\u0dcf\u0dbb\u0dca\u0db8\u0dd2\u0d9a \u0dc3\u0d82\u0d9a\u0dbd\u0dca\u0db4\u0dba\u0dba\u0dd2"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash-lite"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 32,
+                "outputTokens": 14,
+                "inputTokensCostNanodollars": "9600",
+                "outputTokensCostNanodollars": "35000",
+                "totalBackendLatencyMs": "494"
+              },
+              "id": "synhalees_01_buddhist_culture_item-ab837bec-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 32,
+            "outputTokens": 14,
+            "inputTokensCostNanodollars": "9600",
+            "outputTokensCostNanodollars": "35000",
+            "totalBackendLatencyMs": "494"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_01_011"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_01_buddhist_culture_item-Run #11"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_01_buddhist_culture_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash-lite"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T20:23:59.189776Z",
+      "endTime": "2026-09-25T20:23:59.886666Z",
+      "conversations": [
+        {
+          "id": "synhalees_01_buddhist_culture_item-3163c708",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc4\u0dcf\u0db8\u0dd4\u0daf\u0dd4\u0dbb\u0dd4\u0dc0\u0ddd \u0dc3\u0db8\u0dcf\u0daf\u0db1\u0dca \u0dc0\u0dd9\u0db1 \u0dc3\u0dd3\u0dbd\u0dda \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db4\u0d82\u0da0 \u0dc3\u0dd3\u0dbd\u0dba"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash-lite"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 28,
+                "outputTokens": 5,
+                "inputTokensCostNanodollars": "8400",
+                "outputTokensCostNanodollars": "12500",
+                "totalBackendLatencyMs": "647"
+              },
+              "id": "synhalees_01_buddhist_culture_item-3163c708-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 28,
+            "outputTokens": 5,
+            "inputTokensCostNanodollars": "8400",
+            "outputTokensCostNanodollars": "12500",
+            "totalBackendLatencyMs": "647"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_01_012"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_01_buddhist_culture_item-Run #12"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_01_buddhist_culture_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash-lite"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T20:23:59.390709Z",
+      "endTime": "2026-09-25T20:23:59.942285Z",
+      "conversations": [
+        {
+          "id": "synhalees_01_buddhist_culture_item-83384127",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9a\u0dd0\u0dc5\u0dab\u0dd2\u0dba \u0db4\u0db1\u0dca\u0dc3\u0dbd\u0dda \u0dad\u0dd2\u0dba\u0dd9\u0db1 \u0da0\u0ddb\u0dad\u0dca\u200d\u0dba\u0dba\u0dda \u0dc4\u0dd0\u0da9\u0dda\u0da7 \u0d9a\u0dd2\u0dba\u0db1 \u0dc0\u0dd2\u0dc1\u0dda\u0dc2 \u0db1\u0db8 \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0d91\u0d9a \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db6\u0dd4\u0db6\u0dd4\u0d33\u0d3e\u0d9a\u0dcf\u0dbb"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash-lite"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 42,
+                "outputTokens": 6,
+                "inputTokensCostNanodollars": "12600",
+                "outputTokensCostNanodollars": "15000",
+                "totalBackendLatencyMs": "526"
+              },
+              "id": "synhalees_01_buddhist_culture_item-83384127-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 42,
+            "outputTokens": 6,
+            "inputTokensCostNanodollars": "12600",
+            "outputTokensCostNanodollars": "15000",
+            "totalBackendLatencyMs": "526"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_01_013"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_01_buddhist_culture_item-Run #13"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_01_buddhist_culture_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash-lite"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T20:23:59.890999Z",
+      "endTime": "2026-09-25T20:24:00.410306Z",
+      "conversations": [
+        {
+          "id": "synhalees_01_buddhist_culture_item-aec2da74",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db6\u0dd4\u0daf\u0dca\u0db0\u0dcf\u0d9c\u0db8\u0dda \u0d9c\u0dd0\u0db9\u0dd4\u0dbb\u0dd4 \u0db0\u0dbb\u0dca\u0db8\u0dba \u0dad\u0dd2\u0dba\u0dd9\u0db1 \u0db4\u0dd2\u0da7\u0d9a\u0dda \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d85\u0db7\u0dd2\u0db0\u0dbb\u0dca\u0db8 \u0db4\u0dd2\u0da7\u0d9a\u0dba"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash-lite"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 35,
+                "outputTokens": 8,
+                "inputTokensCostNanodollars": "10500",
+                "outputTokensCostNanodollars": "20000",
+                "totalBackendLatencyMs": "495"
+              },
+              "id": "synhalees_01_buddhist_culture_item-aec2da74-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 35,
+            "outputTokens": 8,
+            "inputTokensCostNanodollars": "10500",
+            "outputTokensCostNanodollars": "20000",
+            "totalBackendLatencyMs": "495"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_01_014"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_01_buddhist_culture_item-Run #14"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_01_buddhist_culture_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.5-flash-lite"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T20:23:59.947021Z",
+      "endTime": "2026-09-25T20:24:00.449657Z",
+      "conversations": [
+        {
+          "id": "synhalees_01_buddhist_culture_item-c41a7c95",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc4\u0dcf\u0db8\u0dd4\u0daf\u0dd4\u0dbb\u0dd4\u0dc0\u0ddd \u0db1\u0dcf\u0db1 \u0d91\u0d9a\u0da7 \u0db8\u0ddc\u0d9a\u0d9a\u0dca \u0d9a\u0dd2\u0dba\u0dbd\u0daf \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda? (\u0dc0\u0da0\u0db1 \u0dad\u0dd4\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc4\u0dcf\u0db8\u0dd4\u0daf\u0dd4\u0dbb\u0dd4\u0dc0\u0ddd \u0db1\u0dcf\u0db1 \u0d91\u0d9a\u0da7 **\u0db4\u0dd0\u0db1\u0dca \u0dc0\u0da9\u0db1\u0dc0\u0dcf** (\u0dc4\u0ddd **\u0dc3\u0dca\u0db1\u0dcf\u0db1\u0dba \u0d9a\u0dbb\u0db1\u0dc0\u0dcf**) \u0d9a\u0dd2\u0dba\u0dbd\u0dba\u0dd2 \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.5-flash-lite"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 31,
+                "outputTokens": 35,
+                "inputTokensCostNanodollars": "9300",
+                "outputTokensCostNanodollars": "87500",
+                "totalBackendLatencyMs": "470"
+              },
+              "id": "synhalees_01_buddhist_culture_item-c41a7c95-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 31,
+            "outputTokens": 35,
+            "inputTokensCostNanodollars": "9300",
+            "outputTokensCostNanodollars": "87500",
+            "totalBackendLatencyMs": "470"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_01_015"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_01_buddhist_culture_item-Run #15"
+    }
+  ],
+  "pyRunId": "synhalees_01_buddhist_culture-Run #1"
+}

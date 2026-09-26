@@ -98,8 +98,8 @@ pages. **This file is generated - never edit it by hand.**
 
 ## 🧹 Output Hygiene (nothing lands in the repo root)
 
-Every command that produces files must target a dedicated **gitignored**
-outputs folder. The repo root keeps only the tracked top-level files listed
+Every command that produces files must target a dedicated outputs folder
+(`runs/` is gitignored; `kaggle-results/` is committed as the Kaggle run archive). The repo root keeps only the tracked top-level files listed
 in `STRUCTURE.md` -- no scratch `.txt` / `.log` / `.csv` dumps, ever.
 
 | output | folder | produced by |
@@ -107,7 +107,7 @@ in `STRUCTURE.md` -- no scratch `.txt` / `.log` / `.csv` dumps, ever.
 | local benchmark runs | `runs/<model-slug>/` | `synhalees run ...` (defaults) |
 | cross-run scorecard + matrix | `runs/all_submissions.csv` | `synhalees compare` |
 | Kaggle task files | `kaggle/tasks/` (tracked) | `synhalees kaggle gen` |
-| Kaggle Benchmarks artifacts (raw, gitignored) | `kaggle-results/<task>/` | `synhalees kaggle pull <task>` (the `-o` is forced) |
+| Kaggle Benchmarks artifacts (raw runs, tracked) | `kaggle-results/<task>/` | `synhalees kaggle pull <task>` (the `-o` is forced) |
 | Slim scorecard exports (KB, Colab-downloadable) | `kaggle-results/*.slim.csv` (**tracked**, lightweight records) | `synhalees kaggle slim-export <task>` on Colab; `slim-import <file>` at home (no download) |
 | Colab slim-export notebook | `kaggle/colab_slim_export.ipynb` (tracked helper) | free-Colab pull + slim-export; download only the slim CSV |
 

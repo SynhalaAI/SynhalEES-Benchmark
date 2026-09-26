@@ -1,0 +1,1067 @@
+{
+  "taskVersion": {
+    "versionNumber": 1,
+    "name": "synhalees_03_classical_literature",
+    "description": "SynhalEES pillar 03_classical_literature: native Sinhala text accuracy.",
+    "definition": "@kbench.task(name=\"synhalees_03_classical_literature\", description=\"SynhalEES pillar 03_classical_literature: native Sinhala text accuracy.\")\ndef synhalees_task(llm) -> float:\n    '''Evaluate Classical Literature (text); return accuracy in [0, 1].'''\n    import pandas as pd\n\n    rows = _rows()\n    if not rows:\n        raise ValueError(\n            \"No runnable text rows for Classical Literature yet -- media files may \"\n            \"not be committed under benchmark_data/.\"\n        )\n    with kbench.client.enable_cache():\n        runs = synhalees_item.evaluate(\n            llm=[llm], evaluation_data=pd.DataFrame(rows),\n            n_jobs=2, max_attempts=2, on_failure=\"continue\",\n            remove_run_files=True,\n        )\n    correct = runs.as_dataframe().result.str.get(\"is_correct\").astype(\"boolean\").fillna(False)\n    return float(correct.mean())\n"
+  },
+  "modelVersion": {
+    "slug": "google/gemini-2.5-flash"
+  },
+  "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+  "startTime": "2026-09-25T12:35:49.917962Z",
+  "endTime": "2026-09-25T12:36:29.258607Z",
+  "conversations": [
+    {
+      "id": "synhalees_03_classical_literature-e0151eba",
+      "metrics": {},
+      "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+    }
+  ],
+  "results": [
+    {
+      "type": "AGGREGATED",
+      "numericResult": {
+        "value": 0.2
+      }
+    }
+  ],
+  "subruns": [
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-2.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T12:35:49.928649Z",
+      "endTime": "2026-09-25T12:35:51.557614Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-2b5d044d",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0dc4\u0dcf\u0dc0\u0d82\u0dc1\u0dba \u0dbb\u0da0\u0db1\u0dcf \u0d9a\u0dbb\u0dda \u0d9a\u0dc0\u0dd4\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0dc4\u0dab\u0dcf\u0db8 \u0dc4\u0dd2\u0db8\u0dd2"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-2.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 24,
+                "outputTokens": 133,
+                "inputTokensCostNanodollars": "7200",
+                "outputTokensCostNanodollars": "332500",
+                "totalBackendLatencyMs": "1077"
+              },
+              "id": "synhalees_03_classical_literature_item-2b5d044d-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 24,
+            "outputTokens": 133,
+            "inputTokensCostNanodollars": "7200",
+            "outputTokensCostNanodollars": "332500",
+            "totalBackendLatencyMs": "1077"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_03_001"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #1"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-2.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T12:35:49.929407Z",
+      "endTime": "2026-09-25T12:35:52.624651Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-7516d559",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9a\u0dc0\u0dca\u0dc3\u0dd2\u0dc5\u0dd4\u0db8\u0dd2\u0dab \u0d9a\u0dcf\u0dc0\u0dca\u200d\u0dba\u0dba\u0dda \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0d9a\u0dad\u0dcf \u0dc0\u0dc3\u0dca\u0dad\u0dd4\u0dc0\u0dda \u0d89\u0db1\u0dca\u0db1 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0d9a\u0dd4\u0db8\u0dcf\u0dbb\u0dd2\u0d9a\u0dcf\u0dc0\u0d9c\u0dda \u0db1\u0db8 \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dad\u0db1\u0dd2 \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db4\u0db7\u0dcf"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-2.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 45,
+                "outputTokens": 297,
+                "inputTokensCostNanodollars": "13500",
+                "outputTokensCostNanodollars": "742500",
+                "totalBackendLatencyMs": "2353"
+              },
+              "id": "synhalees_03_classical_literature_item-7516d559-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 45,
+            "outputTokens": 297,
+            "inputTokensCostNanodollars": "13500",
+            "outputTokensCostNanodollars": "742500",
+            "totalBackendLatencyMs": "2353"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_03_002"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #2"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-2.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T12:35:52.629243Z",
+      "endTime": "2026-09-25T12:35:57.490721Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-6ba7ee7b",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc3\u0dcf\u0dc4\u0dd2\u0dad\u0dca\u200d\u0dba\u0dba\u0dda \u0db4\u0dc5\u0dc0\u0dd9\u0db1\u0dd2 \u0dc3\u0db1\u0dca\u0daf\u0dda\u0dc1 \u0d9a\u0dcf\u0dc0\u0dca\u200d\u0dba\u0dba \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1 \u0db8\u0dd6\u0dbd\u0dd2\u0d9a \u0d9a\u0dbb \u0d9c\u0dad\u0dca\u0dad \u0dc3\u0dad\u0dcf \u0d9a\u0dc0\u0dd4\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc3\u0dcf\u0dc4\u0dd2\u0dad\u0dca\u200d\u0dba\u0dba\u0dda \u0db4\u0dc5\u0dc0\u0dd9\u0db1\u0dd2 \u0dc3\u0db1\u0dca\u0daf\u0dda\u0dc1 \u0d9a\u0dcf\u0dc0\u0dca\u200d\u0dba\u0dba \u0dbd\u0dd9\u0dc3 \u0dc3\u0dd0\u0dbd\u0d9a\u0dd9\u0db1 **\u0db8\u0dba\u0dd4\u0dbb \u0dc3\u0db1\u0dca\u0daf\u0dda\u0dc1\u0dba** \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1 \u0db8\u0dd6\u0dbd\u0dd2\u0d9a \u0d9a\u0dbb \u0d9c\u0dad\u0dca \u0dc3\u0dad\u0dcf \u0dc0\u0db1\u0dca\u0db1\u0dda **\u0db8\u0ddc\u0dab\u0dbb\u0dcf** (Peacock) \u0dba."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-2.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 36,
+                "outputTokens": 704,
+                "inputTokensCostNanodollars": "10800",
+                "outputTokensCostNanodollars": "1760000",
+                "totalBackendLatencyMs": "4586"
+              },
+              "id": "synhalees_03_classical_literature_item-6ba7ee7b-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 36,
+            "outputTokens": 704,
+            "inputTokensCostNanodollars": "10800",
+            "outputTokensCostNanodollars": "1760000",
+            "totalBackendLatencyMs": "4586"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_03_004"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #4"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-2.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T12:35:57.495180Z",
+      "endTime": "2026-09-25T12:35:59.215752Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-fe8fc1dc",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc4\u0d82\u0dc3 \u0dc3\u0db1\u0dca\u0daf\u0dda\u0dc1\u0dba \u0dbb\u0da0\u0db1\u0dcf \u0d9a\u0dc5\u0dda \u0d9a\u0dc0\u0dd4\u0daf? (\u0dc0\u0da0\u0db1 \u0dad\u0dd4\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbb\u0dcf\u0dc4\u0dd4\u0dbd \u0dc4\u0dd2\u0db8\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-2.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 26,
+                "outputTokens": 186,
+                "inputTokensCostNanodollars": "7800",
+                "outputTokensCostNanodollars": "465000",
+                "totalBackendLatencyMs": "1544"
+              },
+              "id": "synhalees_03_classical_literature_item-fe8fc1dc-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 26,
+            "outputTokens": 186,
+            "inputTokensCostNanodollars": "7800",
+            "outputTokensCostNanodollars": "465000",
+            "totalBackendLatencyMs": "1544"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_03_005"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #5"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-2.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T12:35:59.220375Z",
+      "endTime": "2026-09-25T12:36:03.858376Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-86a1f82c",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dad\u0dd2\u0dc3\u0dbb \u0dc3\u0db1\u0dca\u0daf\u0dda\u0dc1\u0dba \u0dbb\u0da0\u0db1\u0dcf \u0d9a\u0dc5\u0dda \u0d9a\u0dc0\u0dd4\u0daf? (\u0dc0\u0da0\u0db1 \u0dc4\u0dad\u0dbb\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc4\u0dba\u0dc0\u0db1 \u0db4\u0dbb\u0dcf\u0d9a\u0dca\u200d\u0dbb\u0db8\u0db6\u0dcf\u0dc4\u0dd4 \u0dbb\u0da2\u0dad\u0dd4\u0db8\u0dcf"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-2.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 25,
+                "outputTokens": 762,
+                "inputTokensCostNanodollars": "7500",
+                "outputTokensCostNanodollars": "1905000",
+                "totalBackendLatencyMs": "4457"
+              },
+              "id": "synhalees_03_classical_literature_item-86a1f82c-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 25,
+            "outputTokens": 762,
+            "inputTokensCostNanodollars": "7500",
+            "outputTokensCostNanodollars": "1905000",
+            "totalBackendLatencyMs": "4457"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_03_006"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #6"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-2.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T12:35:51.563269Z",
+      "endTime": "2026-09-25T12:36:05.186168Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-80bd528d",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d8b\u0db8\u0dca\u0db8\u0d9c\u0dca\u0d9c \u0da2\u0dcf\u0dad\u0d9a\u0dba \u0dad\u0dd2\u0dba\u0dd9\u0db1 \u0db4\u0ddc\u0dad\u0dda \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dad\u0dda\u0db8\u0dcf\u0dc0 \u0db8\u0ddc\u0d9a\u0daf\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d8b\u0db8\u0dca\u0db8\u0d9c\u0dca\u0d9c \u0da2\u0dcf\u0dad\u0d9a\u0dba \u0d87\u0dad\u0dd4\u0dc5\u0dad\u0dca \u0db4\u0ddc\u0dad \u0dc0\u0db1\u0dca\u0db1\u0dda **\u0da2\u0dcf\u0dad\u0d9a \u0db4\u0ddc\u0dad**\u0dba\u0dd2 (Jataka Pota).\n\n\u0da2\u0dcf\u0dad\u0d9a \u0db4\u0ddc\u0dad\u0dda \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dad\u0dda\u0db8\u0dcf\u0dc0 \u0dc0\u0db1\u0dca\u0db1\u0dda:\n\n1.  **\u0db6\u0ddd\u0db0\u0dd2\u0dc3\u0dad\u0dca\u0dc0 \u0da0\u0dbb\u0dd2\u0dad\u0dba \u0dc4\u0dcf \u0daf\u0dc3 \u0db4\u0dcf\u0dbb\u0db8\u0dd2\u0dad\u0dcf \u0dc3\u0db8\u0dca\u0db4\u0dd6\u0dbb\u0dca\u0dab \u0d9a\u0dd2\u0dbb\u0dd3\u0db8:**\n    *   \u0db8\u0dd9\u0db8 \u0db4\u0ddc\u0dad\u0dda \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1\u0dad\u0db8 \u0dad\u0dda\u0db8\u0dcf\u0dc0 \u0dc0\u0db1\u0dca\u0db1\u0dda \u0db6\u0ddd\u0db0\u0dd2\u0dc3\u0dad\u0dca\u0dc0\u0dba\u0db1\u0dca \u0dc0\u0dc4\u0db1\u0dca\u0dc3\u0dda (\u0d85\u0db4\u0d9c\u0dda \u0d9c\u0dde\u0dad\u0db8 \u0db6\u0dd4\u0daf\u0dd4\u0db1\u0dca \u0dc0\u0dc4\u0db1\u0dca\u0dc3\u0dda \u0db4\u0dd9\u0dbb \u0d86\u0dad\u0dca\u0db8 \u0db7\u0dc0\u0dba\u0db1\u0dca\u0dc4\u0dd2 \u0dc3\u0dd2\u0da7\u0dd2 \u0d9a\u0dcf\u0dbd\u0dba) \u0dad\u0db8 \u0db6\u0dd4\u0daf\u0dca\u0db0\u0dad\u0dca\u0dc0\u0dba \u0dc3\u0db3\u0dc4\u0dcf \u0db4\u0dd4\u0dbb\u0dcf\u0dab \u0db7\u0dc0\u0dba\u0db1\u0dca\u0dc4\u0dd2\u0daf\u0dd3 \u0db4\u0dd4\u0dbb\u0dd4\u0daf\u0dd4 \u0db4\u0dd4\u0dc4\u0dd4\u0dab\u0dd4 \u0d9a\u0dc5 **\u0daf\u0dc3 \u0db4\u0dcf\u0dbb\u0db8\u0dd2\u0dad\u0dcf\u0dc0\u0db1\u0dca (\u0daf\u0dcf\u0db1, \u0dc1\u0dd3\u0dbd, \u0db1\u0ddb\u0dc2\u0dca\u0d9a\u0dca\u200d\u0dbb\u0db8\u0dca\u200d\u0dba, \u0db4\u0dca\u200d\u0dbb\u0da5\u0dcf, \u0dc0\u0dd3\u0dbb\u0dca\u0dba, \u0d9a\u0dca\u0dc2\u0dcf\u0db1\u0dca\u0dad\u0dd2, \u0dc3\u0dad\u0dca\u200d\u0dba, \u0d85\u0db0\u0dd2\u0dc2\u0dca\u0da8\u0dcf\u0db1, \u0db8\u0ddb\u0dad\u0dca\u200d\u0dbb\u0dd3, \u0d8b\u0db4\u0dda\u0d9a\u0dca\u0dc2\u0dcf)** \u0d9a\u0dae\u0dcf\u0db1\u0dca\u0dad\u0dbb \u0db8\u0d9f\u0dd2\u0db1\u0dca \u0dc0\u0dd2\u0daf\u0dc4\u0dcf \u0daf\u0dd0\u0d9a\u0dca\u0dc0\u0dd3\u0db8\u0dba\u0dd2.\n    *   \u0dc3\u0dd1\u0db8 \u0da2\u0dcf\u0dad\u0d9a \u0d9a\u0dae\u0dcf\u0dc0\u0d9a\u0dca\u0db8 \u0db4\u0dcf\u0dc4\u0dda \u0db8\u0dd9\u0db8 \u0db4\u0dcf\u0dbb\u0db8\u0dd2\u0dad\u0dcf\u0dc0\u0db1\u0dca\u0d9c\u0dd9\u0db1\u0dca \u0d91\u0d9a\u0d9a\u0dca \u0dc4\u0ddd \u0d9a\u0dd2\u0dc4\u0dd2\u0db4\u0dba\u0d9a\u0dca \u0d89\u0dc3\u0dca\u0db8\u0dad\u0dd4 \u0d9a\u0dbb\u0dba\u0dd2. \u0d8b\u0db8\u0dca\u0db8\u0d9c\u0dca\u0d9c \u0da2\u0dcf\u0dad\u0d9a\u0dba \u0dc0\u0dd2\u0dc1\u0dda\u0dc2\u0dba\u0dd9\u0db1\u0dca\u0db8 **\u0db4\u0dca\u200d\u0dbb\u0da5\u0dcf \u0db4\u0dcf\u0dbb\u0db8\u0dd2\u0dad\u0dcf\u0dc0** \u0db8\u0db1\u0dcf\u0dc0 \u0dc0\u0dd2\u0daf\u0dc4\u0dcf \u0daf\u0d9a\u0dca\u0dc0\u0dba\u0dd2.\n\n2.  **\u0db0\u0dbb\u0dca\u0db8\u0dba\u0dda \u0dc4\u0dbb\u0dba \u0dc4\u0dcf \u0dc3\u0daf\u0dcf\u0da0\u0dcf\u0dbb\u0dcf\u0dad\u0dca\u0db8\u0d9a \u0db4\u0dcf\u0da9\u0db8\u0dca:**\n    *   \u0da2\u0dcf\u0dad\u0d9a \u0d9a\u0dae\u0dcf \u0db8\u0d9c\u0dd2\u0db1\u0dca \u0db6\u0dde\u0daf\u0dca\u0db0 \u0daf\u0dbb\u0dca\u0dc1\u0db1\u0dba\u0dda \u0db8\u0dd6\u0dbd\u0dd2\u0d9a \u0dc3\u0d82\u0d9a\u0dbd\u0dca\u0db4 \u0dc0\u0db1 \u0d9a\u0dbb\u0dca\u0db8\u0dba, \u0db4\u0dd4\u0db1\u0dbb\u0dd4\u0db4\u0dca\u0db4\u0dad\u0dca\u0dad\u0dd2\u0dba, \u0dba\u0dc4\u0db4\u0dad\u0dca \u0da2\u0dd3\u0dc0\u0dd2\u0dad\u0dba\u0d9a\u0dca \u0d9c\u0dad \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0dda \u0dc0\u0dd0\u0daf\u0d9c\u0dad\u0dca\u0d9a\u0db8 \u0dc3\u0dc4 \u0dc0\u0dd2\u0dc0\u0dd2\u0db0 \u0d9c\u0dd4\u0dab\u0db0\u0dbb\u0dca\u0db8 (\u0dad\u0dca\u200d\u0dba\u0dcf\u0d9c\u0dc1\u0dd3\u0dbd\u0dd3 \u0db6\u0dc0, \u0d89\u0dc0\u0dc3\u0dd3\u0db8, \u0dc3\u0dad\u0dca\u200d\u0dba\u0dc0\u0dcf\u0daf\u0dd3 \u0db6\u0dc0, \u0d9a\u0dbb\u0dd4\u0dab\u0dcf\u0dc0) \u0db4\u0dd2\u0dc5\u0dd2\u0db6\u0db3\u0dc0 \u0dc3\u0dbb\u0dbd, \u0db4\u0dca\u200d\u0dbb\u0dcf\u0dba\u0ddd\u0d9c\u0dd2\u0d9a \u0dc3\u0dc4 \u0dc0\u0dd2\u0db1\u0ddd\u0daf\u0dcf\u0dad\u0dca\u0db8\u0d9a \u0d86\u0d9a\u0dcf\u0dbb\u0dba\u0dd9\u0db1\u0dca \u0d8b\u0d9c\u0db1\u0dca\u0dc0\u0dba\u0dd2.\n    *   \u0db8\u0dda\u0dc0\u0dcf \u0db8\u0dd2\u0db1\u0dd2\u0dc3\u0dd4\u0db1\u0dca\u0da7 \u0dba\u0dc4\u0db4\u0dad\u0dca \u0db8\u0dcf\u0dbb\u0dca\u0d9c\u0dba\u0da7 \u0db4\u0dd2\u0dc0\u0dd2\u0dc3\u0dd3\u0db8\u0da7 \u0dc3\u0dc4 \u0dc3\u0db8\u0dcf\u0da2\u0dba\u0da7 \u0dc4\u0dd2\u0dad\u0d9a\u0dbb \u0dbd\u0dd9\u0dc3 \u0da2\u0dd3\u0dc0\u0dad\u0dca \u0dc0\u0dd3\u0db8\u0da7 \u0db8\u0d9f \u0db4\u0dd9\u0db1\u0dca\u0dc0\u0db1 \u0d8b\u0db4\u0daf\u0dda\u0dc1\u0dcf\u0dad\u0dca\u0db8\u0d9a \u0d9a\u0dae\u0dcf \u0dc0\u0dda.\n\n3.  **\u0db6\u0dd4\u0daf\u0dca\u0db0\u0dad\u0dca\u0dc0\u0dba \u0dc3\u0db3\u0dc4\u0dcf \u0dc0\u0dd6 \u0d9c\u0db8\u0db1:**\n    *   \u0dc3\u0db8\u0dc3\u0dca\u0dad \u0da2\u0dcf\u0dad\u0d9a \u0db4\u0ddc\u0dad\u0db8 \u0db6\u0ddd\u0db0\u0dd2\u0dc3\u0dad\u0dca\u0dc0\u0dba\u0db1\u0dca \u0dc0\u0dc4\u0db1\u0dca\u0dc3\u0dda \u0db6\u0dd4\u0daf\u0dca\u0db0\u0dad\u0dca\u0dc0\u0dba \u0d85\u0dc0\u0db6\u0ddd\u0db0 \u0d9a\u0dbb \u0d9c\u0dd0\u0db1\u0dd3\u0db8 \u0dc3\u0db3\u0dc4\u0dcf \u0d9a\u0dc5 \u0d85\u0dc3\u0dd3\u0db8\u0dd2\u0dad \u0d9a\u0dd0\u0db4\u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0dca \u0dc3\u0dc4 \u0db4\u0dd4\u0dbb\u0dd4\u0daf\u0dd4 \u0db4\u0dd4\u0dc4\u0dd4\u0dab\u0dd4 \u0d9a\u0dc5 \u0d9c\u0dd4\u0dab\u0db0\u0dbb\u0dca\u0db8 \u0db4\u0dd2\u0dc5\u0dd2\u0db6\u0db3 \u0dc0\u0dd2\u0dc1\u0dcf\u0dbd \u0da0\u0dd2\u0dad\u0dca\u200d\u0dbb\u0dba\u0d9a\u0dca \u0d89\u0daf\u0dd2\u0dbb\u0dd2\u0db4\u0dad\u0dca \u0d9a\u0dbb\u0dba\u0dd2.\n\n\u0dc3\u0dcf\u0dbb\u0dcf\u0d82\u0dc1\u0dba\u0d9a\u0dca \u0dbd\u0dd9\u0dc3, \u0da2\u0dcf\u0dad\u0d9a \u0db4\u0ddc\u0dad\u0dda \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dad\u0dda\u0db8\u0dcf\u0dc0 \u0dc0\u0db1\u0dca\u0db1\u0dda **\u0db6\u0ddd\u0db0\u0dd2\u0dc3\u0dad\u0dca\u0dc0\u0dba\u0db1\u0dca \u0dc0\u0dc4\u0db1\u0dca\u0dc3\u0dda\u0d9c\u0dda \u0db4\u0dd9\u0dbb \u0d86\u0dad\u0dca\u0db8 \u0db7\u0dc0\u0dba\u0db1\u0dca \u0db4\u0dd2\u0dc5\u0dd2\u0db6\u0db3 \u0d9a\u0dae\u0dcf \u0dad\u0dd4\u0dc5\u0dd2\u0db1\u0dca \u0daf\u0dc3 \u0db4\u0dcf\u0dbb\u0db8\u0dd2\u0dad\u0dcf \u0dc3\u0db8\u0dca\u0db4\u0dd6\u0dbb\u0dca\u0dab \u0d9a\u0dd2\u0dbb\u0dd3\u0db8, \u0db0\u0dbb\u0dca\u0db8\u0dba\u0dda \u0dc4\u0dbb\u0dba \u0da2\u0db1\u0dad\u0dcf\u0dc0\u0da7 \u0d85\u0dc0\u0db6\u0ddd\u0db0 \u0d9a\u0dbb\u0dc0\u0dd3\u0db8 \u0dc3\u0dc4 \u0dc3\u0daf\u0dcf\u0da0\u0dcf\u0dbb\u0dcf\u0dad\u0dca\u0db8\u0d9a \u0db8\u0d9f \u0db4\u0dd9\u0db1\u0dca\u0dc0\u0dd3\u0db8 \u0dbd\u0db6\u0dcf \u0daf\u0dd3\u0db8\u0dba\u0dd2.**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-2.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 26,
+                "outputTokens": 1970,
+                "inputTokensCostNanodollars": "7800",
+                "outputTokensCostNanodollars": "4925000",
+                "totalBackendLatencyMs": "13377"
+              },
+              "id": "synhalees_03_classical_literature_item-80bd528d-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 26,
+            "outputTokens": 1970,
+            "inputTokensCostNanodollars": "7800",
+            "outputTokensCostNanodollars": "4925000",
+            "totalBackendLatencyMs": "13377"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_03_003"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #3"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-2.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T12:36:03.862848Z",
+      "endTime": "2026-09-25T12:36:05.722935Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-a12fcc5a",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd0\u0dc5\u0dbd\u0dd2\u0dc4\u0dd2\u0dab\u0dd2 \u0dc3\u0db1\u0dca\u0daf\u0dda\u0dc1\u0dba \u0dbb\u0da0\u0db1\u0dcf \u0d9a\u0dc5\u0dda \u0d9a\u0dc0\u0dd4\u0daf? (\u0dc0\u0da0\u0db1 \u0dad\u0dd4\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dad\u0ddc\u0da7\u0d9c\u0db8\u0dd4\u0dc0\u0dda \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbb\u0dcf\u0dc4\u0dd4\u0dbd"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-2.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 30,
+                "outputTokens": 235,
+                "inputTokensCostNanodollars": "9000",
+                "outputTokensCostNanodollars": "587500",
+                "totalBackendLatencyMs": "1657"
+              },
+              "id": "synhalees_03_classical_literature_item-a12fcc5a-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 30,
+            "outputTokens": 235,
+            "inputTokensCostNanodollars": "9000",
+            "outputTokensCostNanodollars": "587500",
+            "totalBackendLatencyMs": "1657"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_03_007"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #7"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-2.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T12:36:05.727441Z",
+      "endTime": "2026-09-25T12:36:08.331551Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-c4e26ac5",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc0\u0dd9\u0dc3\u0dca\u0dc3\u0db1\u0dca\u0dad\u0dbb \u0da2\u0dcf\u0dad\u0d9a\u0dba\u0dda \u0d9a\u0dd4\u0db8\u0dcf\u0dbb\u0dc0\u0dbb\u0dd4\u0db1\u0dca\u0d9c\u0dda \u0db1\u0db8\u0dca \u0db8\u0ddc\u0db1\u0dc0\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0da2\u0dcf\u0dbd\u0dd2\u0dba, \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dc2\u0dca\u0dab\u0da2\u0dd2\u0db1\u0dcf"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-2.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 33,
+                "outputTokens": 350,
+                "inputTokensCostNanodollars": "9900",
+                "outputTokensCostNanodollars": "875000",
+                "totalBackendLatencyMs": "2431"
+              },
+              "id": "synhalees_03_classical_literature_item-c4e26ac5-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 33,
+            "outputTokens": 350,
+            "inputTokensCostNanodollars": "9900",
+            "outputTokensCostNanodollars": "875000",
+            "totalBackendLatencyMs": "2431"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_03_009"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #9"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-2.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T12:36:05.190861Z",
+      "endTime": "2026-09-25T12:36:09.503374Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-93e4a770",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db4\u0dbb\u0dd9\u0dc0\u0dd2 \u0dc3\u0db1\u0dca\u0daf\u0dda\u0dc1\u0dba \u0dbb\u0da0\u0db1\u0dcf \u0d9a\u0dc5\u0dda \u0d9a\u0dc0\u0dd4\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db4\u0dbb\u0dd9\u0dc0\u0dd2 \u0dc3\u0db1\u0dca\u0daf\u0dda\u0dc1\u0dba \u0dbb\u0da0\u0db1\u0dcf \u0d9a\u0dc5\u0dda **\u0dad\u0ddc\u0da7\u0d9c\u0db8\u0dd4\u0dc0\u0dda \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbb\u0dcf\u0dc4\u0dd4\u0dbd \u0dc4\u0dd2\u0db8\u0dd2** \u0dc0\u0dd2\u0dc3\u0dd2\u0db1\u0dd2.\n\n\u0d8b\u0db1\u0dca\u0dc0\u0dc4\u0db1\u0dca\u0dc3\u0dda \u0d9a\u0ddd\u0da7\u0dca\u0da7\u0dda \u0dba\u0dd4\u0d9c\u0dba\u0dda \u0dc0\u0dd2\u0dc3\u0dd6 \u0d85\u0dad\u0dd2 \u0daf\u0d9a\u0dca\u0dc2 \u0db4\u0dac\u0dd2\u0dc0\u0dbb\u0dba\u0dd9\u0d9a\u0dca \u0db8\u0dd9\u0db1\u0dca\u0db8 \u0d9a\u0dc0\u0dd2\u0dba\u0dd9\u0d9a\u0dca \u0daf \u0dc0\u0dd2\u0dba. \u0dc3\u0dd0\u0dbd\u0dbd\u0dd2\u0dc4\u0dd2\u0dab\u0dd2 \u0dc3\u0db1\u0dca\u0daf\u0dda\u0dc1\u0dba \u0daf \u0d8b\u0db1\u0dca\u0dc0\u0dc4\u0db1\u0dca\u0dc3\u0dda\u0d9c\u0dda \u0dad\u0dc0\u0dad\u0dca \u0db4\u0dca\u200d\u0dbb\u0dc3\u0dd2\u0daf\u0dca\u0db0 \u0d9a\u0dd8\u0dad\u0dd2\u0dba\u0d9a\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-2.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 17,
+                "outputTokens": 634,
+                "inputTokensCostNanodollars": "5100",
+                "outputTokensCostNanodollars": "1585000",
+                "totalBackendLatencyMs": "4112"
+              },
+              "id": "synhalees_03_classical_literature_item-93e4a770-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 17,
+            "outputTokens": 634,
+            "inputTokensCostNanodollars": "5100",
+            "outputTokensCostNanodollars": "1585000",
+            "totalBackendLatencyMs": "4112"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_03_008"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #8"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-2.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T12:36:09.510488Z",
+      "endTime": "2026-09-25T12:36:11.013821Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-d7a75757",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d85\u0db7\u0dba\u0d9c\u0dd2\u0dbb\u0dd2\u0dba \u0dc4\u0dd0\u0daf\u0dd4\u0dc0\u0dda \u0d9a\u0dc0\u0dd4\u0daf? (\u0dc0\u0da0\u0db1 \u0dad\u0dd4\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc0\u0dc5\u0d9c\u0db8\u0dca\u0db6\u0dcf \u0dbb\u0da2\u0dd4 \u0d9c\u0ddc\u0da9\u0db1\u0dd0\u0d9c\u0dd4\u0dc0\u0dcf."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-2.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 23,
+                "outputTokens": 184,
+                "inputTokensCostNanodollars": "6900",
+                "outputTokensCostNanodollars": "460000",
+                "totalBackendLatencyMs": "1312"
+              },
+              "id": "synhalees_03_classical_literature_item-d7a75757-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 23,
+            "outputTokens": 184,
+            "inputTokensCostNanodollars": "6900",
+            "outputTokensCostNanodollars": "460000",
+            "totalBackendLatencyMs": "1312"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_03_011"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #11"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-2.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T12:36:08.336165Z",
+      "endTime": "2026-09-25T12:36:11.594142Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-2fe65416",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dbb\u0dd4\u0dc0\u0db1\u0dca\u0dc0\u0dd0\u0dbd\u0dd2\u0dc3\u0dd1\u0dba \u0dc4\u0daf\u0db4\u0dd4 \u0dbb\u0da2\u0dca\u0da2\u0dd4\u0dbb\u0dd4\u0dc0\u0ddd \u0dbb\u0da7 \u0d91\u0d9a\u0dca\u0dc3\u0dda\u0dc3\u0dad\u0dca \u0d9a\u0dbb\u0db1\u0dca\u0db1 \u0dba\u0dd4\u0daf\u0dca\u0db0 \u0d9a\u0dbb\u0dda \u0d9a\u0dcf\u0dad\u0dca \u0d91\u0d9a\u0dca\u0d9a\u0daf? (\u0dad\u0db1\u0dd2 \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d87\u0dbd\u0dbb"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-2.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 44,
+                "outputTokens": 428,
+                "inputTokensCostNanodollars": "13200",
+                "outputTokensCostNanodollars": "1070000",
+                "totalBackendLatencyMs": "3047"
+              },
+              "id": "synhalees_03_classical_literature_item-2fe65416-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 44,
+            "outputTokens": 428,
+            "inputTokensCostNanodollars": "13200",
+            "outputTokensCostNanodollars": "1070000",
+            "totalBackendLatencyMs": "3047"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_03_010"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #10"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-2.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T12:36:11.598668Z",
+      "endTime": "2026-09-25T12:36:17.116616Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-a241e191",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0dc4\u0dcf\u0dc0\u0d82\u0dc1\u0dba\u0dda \u0d86\u0dbb\u0db8\u0dca\u0db7\u0dba\u0dda \u0d91\u0db1 \u0db4\u0dc5\u0dc0\u0dd9\u0db1\u0dd2 \u0dbb\u0da2\u0dca\u0da2\u0dd4\u0dbb\u0dd4\u0dc0\u0ddd \u0d86\u0dc0\u0dda \u0db8\u0ddc\u0db1 \u0dbb\u0da7\u0dd9\u0db1\u0dca\u0daf? (\u0d92 \u0dbb\u0da7\u0dda \u0dc0\u0dbb\u0dca\u0dad\u0db8\u0dcf\u0db1 \u0db1\u0db8 \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0dc4\u0dcf\u0dc0\u0d82\u0dc1\u0dba\u0dda \u0d86\u0dbb\u0db8\u0dca\u0db7\u0dba\u0dda \u0d91\u0db1 \u0db4\u0dc5\u0dc0\u0dd9\u0db1\u0dd2 \u0dbb\u0da2\u0dca\u0da2\u0dd4\u0dbb\u0dd4\u0dc0\u0ddd \u0dad\u0db8\u0dba\u0dd2 **\u0dc0\u0dd2\u0da2\u0dba \u0d9a\u0dd4\u0db8\u0dcf\u0dbb\u0dba\u0dcf**.\n\n\u0d94\u0dc4\u0dd4 \u0db4\u0dd0\u0db8\u0dd2\u0dab\u0dd2\u0dba\u0dda **\u0dbd\u0dcf\u0dc5 \u0dbb\u0da7\u0dd2\u0db1\u0dca (Lala Ratta)**.\n\n\u0dc0\u0dbb\u0dca\u0dad\u0db8\u0dcf\u0db1\u0dba\u0dda \u0db8\u0dd9\u0db8 \u0db4\u0dca\u200d\u0dbb\u0daf\u0dda\u0dc1\u0dba \u0db4\u0dd2\u0dc4\u0dd2\u0da7\u0dcf \u0d87\u0dad\u0dca\u0dad\u0dda **\u0d89\u0db1\u0dca\u0daf\u0dd2\u0dba\u0dcf\u0dc0\u0dda \u0d9c\u0dd4\u0da2\u0dbb\u0dcf\u0da7\u0dca \u0db4\u0dca\u200d\u0dbb\u0dcf\u0db1\u0dca\u0dad\u0dba** \u0d86\u0dc1\u0dca\u200d\u0dbb\u0dd2\u0dad\u0dc0\u0dba\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-2.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 44,
+                "outputTokens": 807,
+                "inputTokensCostNanodollars": "13200",
+                "outputTokensCostNanodollars": "2017500",
+                "totalBackendLatencyMs": "5330"
+              },
+              "id": "synhalees_03_classical_literature_item-a241e191-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 44,
+            "outputTokens": 807,
+            "inputTokensCostNanodollars": "13200",
+            "outputTokensCostNanodollars": "2017500",
+            "totalBackendLatencyMs": "5330"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_03_013"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #13"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-2.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T12:36:17.121273Z",
+      "endTime": "2026-09-25T12:36:20.724966Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-98a51ab7",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9c\u0dd4\u0dad\u0dca\u0dad\u0dd2\u0dbd \u0d9a\u0dcf\u0dc0\u0dca\u200d\u0dba\u0dba\u0dda \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0da0\u0dbb\u0dd2\u0dad\u0dba \u0daf\u0d9a\u0dca\u0dc2 \u0db8\u0ddc\u0db1 \u0dc3\u0d82\u0d9c\u0dd3\u0dad \u0db7\u0dcf\u0dab\u0dca\u0da9\u0dba\u0da7\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9c\u0dd4\u0dad\u0dca\u0dad\u0dd2\u0dbd \u0d9a\u0dcf\u0dc0\u0dca\u200d\u0dba\u0dba\u0dda \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0da0\u0dbb\u0dd2\u0dad\u0dba \u0dc0\u0db1 \u0d9c\u0dd4\u0dad\u0dca\u0dad\u0dd2\u0dbd, **\u0dc0\u0dd3\u0dab\u0dcf\u0dc0** \u0dc0\u0dcf\u0daf\u0db1\u0dba \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0da7 \u0d85\u0dad\u0dd2 \u0daf\u0d9a\u0dca\u0dc2\u0dba\u0dd9\u0d9a\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-2.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 29,
+                "outputTokens": 559,
+                "inputTokensCostNanodollars": "8700",
+                "outputTokensCostNanodollars": "1397500",
+                "totalBackendLatencyMs": "3422"
+              },
+              "id": "synhalees_03_classical_literature_item-98a51ab7-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 29,
+            "outputTokens": 559,
+            "inputTokensCostNanodollars": "8700",
+            "outputTokensCostNanodollars": "1397500",
+            "totalBackendLatencyMs": "3422"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_03_014"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #14"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-2.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T12:36:11.018442Z",
+      "endTime": "2026-09-25T12:36:22.968735Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-a1e48dbe",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0daf\u0dc5\u0daf\u0dcf \u0db4\u0dd9\u0dbb\u0dc4\u0dd0\u0dbb \u0dc3\u0db8\u0dca\u0db4\u0dca\u200d\u0dbb\u0daf\u0dcf\u0dba\u0da7 \u0db8\u0dd6\u0dbd\u0dd2\u0d9a \u0dc0\u0dd4\u0db1 \u0d9c\u0dca\u200d\u0dbb\u0db1\u0dca\u0dae\u0dba \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0daf\u0dc5\u0daf\u0dcf \u0db4\u0dd9\u0dbb\u0dc4\u0dd0\u0dbb \u0dc3\u0db8\u0dca\u0db4\u0dca\u200d\u0dbb\u0daf\u0dcf\u0dba\u0da7 \u0db8\u0dd6\u0dbd\u0dd2\u0d9a \u0dc0\u0dd6 \u0d9c\u0dca\u200d\u0dbb\u0db1\u0dca\u0dae\u0dba \u0dbd\u0dd9\u0dc3 \u0dc3\u0dd0\u0dbd\u0d9a\u0dd9\u0db1\u0dca\u0db1\u0dda **\u0daf\u0dc5\u0daf\u0dcf \u0dc3\u0dd2\u0dbb\u0dd2\u0dad**\u0dba\u0dd2.\n\n**\u0daf\u0dc5\u0daf\u0dcf \u0dc3\u0dd2\u0dbb\u0dd2\u0dad** \u0d9c\u0dca\u200d\u0dbb\u0db1\u0dca\u0dae\u0dba\u0dda \u0daf\u0dcf\u0da8\u0dcf \u0db0\u0dcf\u0dad\u0dd6\u0db1\u0dca \u0dc0\u0dc4\u0db1\u0dca\u0dc3\u0dda\u0d9c\u0dda \u0d89\u0dad\u0dd2\u0dc4\u0dcf\u0dc3\u0dba, \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0da7 \u0dc0\u0dd0\u0da9\u0db8\u0dc0\u0dd3\u0db8 \u0dc3\u0dc4 \u0d9a\u0dd2\u0dad\u0dca\u0dc3\u0dd2\u0dbb\u0dd2\u0db8\u0dd9\u0dc0\u0db1\u0dca \u0dbb\u0da2\u0dd4 (\u0d9a\u0dca\u200d\u0dbb\u0dd2.\u0dc0. 4 \u0dc0\u0dd0\u0db1\u0dd2 \u0dc3\u0dd2\u0dba\u0dc0\u0dc3) \u0dc0\u0dd2\u0dc3\u0dd2\u0db1\u0dca \u0dc0\u0dcf\u0dbb\u0dca\u0dc2\u0dd2\u0d9a\u0dc0 \u0daf\u0dc5\u0daf\u0dcf \u0db4\u0dd9\u0dbb\u0dc4\u0dd0\u0dbb \u0db4\u0dd0\u0dc0\u0dd0\u0dad\u0dca\u0dc0\u0dd3\u0db8\u0dda \u0da0\u0dcf\u0dbb\u0dd2\u0dad\u0dca\u200d\u0dbb\u0dba \u0db4\u0dd2\u0dc4\u0dd2\u0da7\u0dd4\u0dc0\u0dd3\u0db8 \u0db4\u0dd2\u0dc5\u0dd2\u0db6\u0db3\u0dc0 \u0dc0\u0dd2\u0dc3\u0dca\u0dad\u0dbb\u0dcf\u0dad\u0dca\u0db8\u0d9a\u0dc0 \u0dc3\u0db3\u0dc4\u0db1\u0dca \u0dc0\u0dda. \u0db8\u0dd9\u0db8 \u0da0\u0dcf\u0dbb\u0dd2\u0dad\u0dca\u200d\u0dbb\u0dba \u0d86\u0dbb\u0db8\u0dca\u0db7 \u0d9a\u0dbb \u0d87\u0dad\u0dca\u0dad\u0dda \u0dc0\u0dd0\u0dc3\u0dd2 \u0dbd\u0db6\u0dcf \u0d9c\u0dd0\u0db1\u0dd3\u0db8 \u0dc3\u0dc4 \u0dbb\u0da7\u0da7 \u0dc3\u0dde\u0db7\u0dcf\u0d9c\u0dca\u200d\u0dba\u0dba \u0d8b\u0daf\u0dcf \u0d9a\u0dd2\u0dbb\u0dd3\u0db8 \u0dc3\u0db3\u0dc4\u0dcf\u0dba.\n\n\u0db8\u0dd9\u0db8 \u0d9c\u0dca\u200d\u0dbb\u0db1\u0dca\u0dae\u0dba \u0d9a\u0dca\u200d\u0dbb\u0dd2.\u0dc0. 14 \u0dc0\u0dd0\u0db1\u0dd2 \u0dc3\u0dd2\u0dba\u0dc0\u0dc3\u0dda (\u0dc4\u0dad\u0dbb\u0dc0\u0db1 \u0db4\u0dbb\u0dcf\u0d9a\u0dca\u200d\u0dbb\u0db8\u0db6\u0dcf\u0dc4\u0dd4 \u0dbb\u0da2\u0dd4\u0d9c\u0dda \u0d9a\u0dcf\u0dbd\u0dba\u0dda) \u0dbd\u0dd2\u0dba\u0db1 \u0dbd\u0daf \u0d91\u0d9a\u0d9a\u0dca \u0dc0\u0db1 \u0d85\u0dad\u0dbb, \u0daf\u0dc5\u0daf\u0dcf \u0dc0\u0dc4\u0db1\u0dca\u0dc3\u0dda\u0da7 \u0db4\u0dd6\u0da2\u0dcf \u0db4\u0dd0\u0dc0\u0dd0\u0dad\u0dca\u0dc0\u0dd3\u0db8\u0dda \u0da0\u0dcf\u0dbb\u0dd2\u0dad\u0dca\u200d\u0dbb \u0dc0\u0dcf\u0dbb\u0dd2\u0dad\u0dca\u200d\u0dbb \u0dc3\u0dc4 \u0db4\u0dd9\u0dbb\u0dc4\u0dd0\u0dbb \u0db4\u0dd0\u0dc0\u0dd0\u0dad\u0dca\u0dc0\u0dd3\u0db8\u0dda \u0dc3\u0db8\u0dca\u0db4\u0dca\u200d\u0dbb\u0daf\u0dcf\u0dba \u0dc0\u0dd2\u0db0\u0dd2\u0db8\u0dad\u0dca \u0dbd\u0dd9\u0dc3 \u0dc0\u0dd2\u0dc3\u0dca\u0dad\u0dbb \u0d9a\u0dbb\u0db1 \u0db8\u0dd6\u0dbd\u0dd2\u0d9a \u0db8\u0dd6\u0dbd\u0dcf\u0dc1\u0dca\u200d\u0dbb\u0dba\u0d9a\u0dca \u0dbd\u0dd9\u0dc3 \u0db8\u0dd9\u0dba \u0dc3\u0dd0\u0dbd\u0d9a\u0dda. \u0db4\u0dd9\u0dbb\u0dc4\u0dd0\u0dbb \u0dc3\u0db8\u0dca\u0db4\u0dca\u200d\u0dbb\u0daf\u0dcf\u0dba \u0d8a\u0da7 \u0db6\u0ddc\u0dc4\u0ddd \u0d9a\u0dbd\u0d9a\u0da7 \u0db4\u0dd9\u0dbb \u0d9a\u0dd2\u0dad\u0dca\u0dc3\u0dd2\u0dbb\u0dd2\u0db8\u0dd9\u0dc0\u0db1\u0dca \u0dbb\u0da2\u0dd4 \u0daf\u0dc0\u0dc3 \u0d86\u0dbb\u0db8\u0dca\u0db7 \u0dc0\u0dd6\u0dc0\u0daf, \u0d91\u0db8 \u0dc3\u0db8\u0dca\u0db4\u0dca\u200d\u0dbb\u0daf\u0dcf\u0dba \u0dc0\u0dd2\u0db0\u0dd2\u0db8\u0dad\u0dca \u0dbd\u0dd9\u0dc3 \u0dc0\u0dd2\u0dc3\u0dca\u0dad\u0dbb \u0d9a\u0dbb\u0db8\u0dd2\u0db1\u0dca, \u0d91\u0dba \u0db4\u0dc0\u0dad\u0dca\u0dc0\u0dcf\u0d9c\u0dd9\u0db1 \u0dba\u0dcf\u0db8 \u0dc3\u0db3\u0dc4\u0dcf \u0db8\u0dd6\u0dbd\u0dd2\u0d9a \u0d8b\u0db4\u0daf\u0dd9\u0dc3\u0dca \u0dc3\u0db4\u0dba\u0db1 \u0d9c\u0dca\u200d\u0dbb\u0db1\u0dca\u0dae\u0dba \u0daf\u0dc5\u0daf\u0dcf \u0dc3\u0dd2\u0dbb\u0dd2\u0dad\u0dba\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-2.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 28,
+                "outputTokens": 1841,
+                "inputTokensCostNanodollars": "8400",
+                "outputTokensCostNanodollars": "4602500",
+                "totalBackendLatencyMs": "11723"
+              },
+              "id": "synhalees_03_classical_literature_item-a1e48dbe-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 28,
+            "outputTokens": 1841,
+            "inputTokensCostNanodollars": "8400",
+            "outputTokensCostNanodollars": "4602500",
+            "totalBackendLatencyMs": "11723"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_03_012"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #12"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-2.5-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T12:36:20.729981Z",
+      "endTime": "2026-09-25T12:36:29.240751Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-ba4288fa",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dda \u0daf\u0dd0\u0db1\u0da7 \u0db1\u0dd0\u0dad\u0dd2 \u0d92\u0dad\u0dca \u0d89\u0d82\u0d9c\u0dca\u200d\u0dbb\u0dd3\u0dc3\u0dd2 \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dda \u0dad\u0dd2\u0dba\u0dd9\u0db1 \u0d85\u0d9a\u0dd4\u0dbb \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0d9a\u0dd0\u0db4\u0dd2\u0da7\u0dbd\u0dca \u0d85\u0d9a\u0dd4\u0dbb\u0d9a\u0dd2\u0db1\u0dca \u0daf\u0dd9\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "Q"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-2.5-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 47,
+                "outputTokens": 1227,
+                "inputTokensCostNanodollars": "14100",
+                "outputTokensCostNanodollars": "3067500",
+                "totalBackendLatencyMs": "8328"
+              },
+              "id": "synhalees_03_classical_literature_item-ba4288fa-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 47,
+            "outputTokens": 1227,
+            "inputTokensCostNanodollars": "14100",
+            "outputTokensCostNanodollars": "3067500",
+            "totalBackendLatencyMs": "8328"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_03_015"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #15"
+    }
+  ],
+  "pyRunId": "synhalees_03_classical_literature-Run #1"
+}

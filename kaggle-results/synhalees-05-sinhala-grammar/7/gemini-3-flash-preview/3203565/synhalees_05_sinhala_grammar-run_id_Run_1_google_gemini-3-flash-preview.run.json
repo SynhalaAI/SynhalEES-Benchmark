@@ -1,0 +1,1162 @@
+{
+  "taskVersion": {
+    "versionNumber": 1,
+    "name": "synhalees_05_sinhala_grammar",
+    "description": "SynhalEES pillar 05_sinhala_grammar: native Sinhala text accuracy.",
+    "definition": "@kbench.task(name=\"synhalees_05_sinhala_grammar\", description=\"SynhalEES pillar 05_sinhala_grammar: native Sinhala text accuracy.\")\ndef synhalees_task(llm) -> float:\n    '''Evaluate Sinhala Grammar (text); return accuracy in [0, 1].'''\n    import pandas as pd\n\n    rows = _rows()\n    if not rows:\n        raise ValueError(\n            \"No runnable text rows for Sinhala Grammar yet -- media files may \"\n            \"not be committed under benchmark_data/.\"\n        )\n    with kbench.client.enable_cache():\n        runs = synhalees_item.evaluate(\n            llm=[llm], evaluation_data=pd.DataFrame(rows),\n            n_jobs=2, max_attempts=2, on_failure=\"continue\",\n            remove_run_files=True,\n        )\n    correct = runs.as_dataframe().result.str.get(\"is_correct\").astype(\"boolean\").fillna(False)\n    return float(correct.mean())\n"
+  },
+  "modelVersion": {
+    "slug": "google/gemini-3-flash-preview"
+  },
+  "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+  "startTime": "2026-09-25T18:02:27.999366Z",
+  "endTime": "2026-09-25T18:03:09.147011Z",
+  "conversations": [
+    {
+      "id": "synhalees_05_sinhala_grammar-d76c6235",
+      "metrics": {},
+      "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+    }
+  ],
+  "results": [
+    {
+      "type": "AGGREGATED",
+      "numericResult": {
+        "value": 0.4
+      }
+    }
+  ],
+  "subruns": [
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_05_sinhala_grammar_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_05_sinhala_grammar_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3-flash-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T18:02:28.012748Z",
+      "endTime": "2026-09-25T18:02:30.256425Z",
+      "conversations": [
+        {
+          "id": "synhalees_05_sinhala_grammar_item-80b8e88d",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d8b\u0dad\u0dca\u0dad\u0db8 \u0db4\u0dd4\u0dbb\u0dd4\u0dc2 \u0d8b\u0d9a\u0dca\u0dad \u0d92\u0d9a \u0dc0\u0da0\u0db1 \u0db1\u0dcf\u0db8 \u0db4\u0daf\u0dba\u0d9a\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d8b\u0dad\u0dca\u0dad\u0db8 \u0db4\u0dd4\u0dbb\u0dd4\u0dc2 \u0d8b\u0d9a\u0dca\u0dad \u0d92\u0d9a \u0dc0\u0da0\u0db1 \u0db1\u0dcf\u0db8 \u0db4\u0daf\u0dba (\u0dc3\u0dbb\u0dca\u0dc0 \u0db1\u0dcf\u0db8\u0dba) \u0dc0\u0db1\u0dca\u0db1\u0dda:\n\n**\"\u0db8\u0db8\"** \u0dba\u0db1\u0dca\u0db1\u0dba\u0dd2.\n\n\u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0d9a\u0dca: **\u0db8\u0db8** \u0db4\u0dcf\u0dc3\u0dbd\u0dca \u0dba\u0db8\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3-flash-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 24,
+                "outputTokens": 318,
+                "inputTokensCostNanodollars": "12000",
+                "outputTokensCostNanodollars": "954000",
+                "totalBackendLatencyMs": "2056"
+              },
+              "id": "synhalees_05_sinhala_grammar_item-80b8e88d-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 24,
+            "outputTokens": 318,
+            "inputTokensCostNanodollars": "12000",
+            "outputTokensCostNanodollars": "954000",
+            "totalBackendLatencyMs": "2056"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_05_001"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_05_sinhala_grammar_item-Run #1"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_05_sinhala_grammar_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_05_sinhala_grammar_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3-flash-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T18:02:28.013260Z",
+      "endTime": "2026-09-25T18:02:30.807073Z",
+      "conversations": [
+        {
+          "id": "synhalees_05_sinhala_grammar_item-03107565",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d8b\u0dad\u0dca\u0dad\u0db8 \u0db4\u0dd4\u0dbb\u0dd4\u0dc2 \u0d85\u0db1\u0dd4\u0d9a\u0dca\u0dad \u0db6\u0dc4\u0dd4 \u0dc0\u0da0\u0db1 \u0db1\u0dcf\u0db8 \u0db4\u0daf\u0dba\u0d9a\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d8b\u0dad\u0dca\u0dad\u0db8 \u0db4\u0dd4\u0dbb\u0dd4\u0dc2 \u0d85\u0db1\u0dd4\u0d9a\u0dca\u0dad \u0db6\u0dc4\u0dd4 \u0dc0\u0da0\u0db1 \u0db4\u0daf\u0dba \u0dc0\u0db1\u0dca\u0db1\u0dda:\n\n**\"\u0d85\u0db4\"**\n\n\u0db1\u0dd2\u0daf\u0dc3\u0dd4\u0db1\u0d9a\u0dca \u0dbd\u0dd9\u0dc3:\n* \u0d8b\u0d9a\u0dca\u0dad \u0db6\u0dc4\u0dd4 \u0dc0\u0da0\u0db1\u0dba: **\u0d85\u0db4\u0dd2** (\u0d8b\u0daf\u0dcf: \u0d85\u0db4\u0dd2 \u0db4\u0dcf\u0dc3\u0dbd\u0dca \u0dba\u0db8\u0dd4.)\n* \u0d85\u0db1\u0dd4\u0d9a\u0dca\u0dad \u0db6\u0dc4\u0dd4 \u0dc0\u0da0\u0db1\u0dba: **\u0d85\u0db4** (\u0d8b\u0daf\u0dcf: \u0d9c\u0dd4\u0dbb\u0dd4\u0dc0\u0dbb\u0dba\u0dcf **\u0d85\u0db4** \u0d87\u0db8\u0dad\u0dd3\u0dba.)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3-flash-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 25,
+                "outputTokens": 517,
+                "inputTokensCostNanodollars": "12500",
+                "outputTokensCostNanodollars": "1551000",
+                "totalBackendLatencyMs": "2606"
+              },
+              "id": "synhalees_05_sinhala_grammar_item-03107565-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 25,
+            "outputTokens": 517,
+            "inputTokensCostNanodollars": "12500",
+            "outputTokensCostNanodollars": "1551000",
+            "totalBackendLatencyMs": "2606"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_05_002"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_05_sinhala_grammar_item-Run #2"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_05_sinhala_grammar_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_05_sinhala_grammar_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3-flash-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T18:02:30.811546Z",
+      "endTime": "2026-09-25T18:02:34.226320Z",
+      "conversations": [
+        {
+          "id": "synhalees_05_sinhala_grammar_item-2d2be028",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0dba\u0db1\u0dc0\u0dcf' \u0d9a\u0dd2\u0dba\u0db1 \u0db4\u0daf\u0dba\u0dda \u0d8b\u0dad\u0dca\u0dad\u0db8 \u0db4\u0dd4\u0dbb\u0dd4\u0dc2 \u0db6\u0dc4\u0dd4 \u0dc0\u0da0\u0db1 \u0d85\u0db1\u0dcf\u0d9c\u0dad\u0d9a\u0dcf\u0dbd \u0db4\u0daf\u0dda \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0dba\u0db1\u0dc0\u0dcf' \u0dba\u0db1 \u0db4\u0daf\u0dba\u0dda \u0d8b\u0dad\u0dca\u0dad\u0db8 \u0db4\u0dd4\u0dbb\u0dd4\u0dc2 \u0db6\u0dc4\u0dd4 \u0dc0\u0da0\u0db1 \u0d85\u0db1\u0dcf\u0d9c\u0dad\u0d9a\u0dcf\u0dbd \u0db4\u0daf\u0dba \u0dc0\u0db1\u0dca\u0db1\u0dda **\"\u0dba\u0db1\u0dca\u0db1\u0dd9\u0db8\u0dd4\"** \u0dc4\u0ddd **\"\u0dba\u0db1\u0dca\u0db1\u0db8\u0dd4\"** \u0dba\u0db1\u0dca\u0db1\u0dba\u0dd2.\n\n\u0db1\u0dd2\u0daf\u0dc3\u0dd4\u0db1:\n*   \u0d85\u0db4\u0dd2 \u0dc4\u0dd9\u0da7 \u0d91\u0dc4\u0dd2 **\u0dba\u0db1\u0dca\u0db1\u0dd9\u0db8\u0dd4**.\n*   \u0d85\u0db4\u0dd2 \u0dc4\u0dd9\u0da7 \u0d91\u0dc4\u0dd2 **\u0dba\u0db1\u0dca\u0db1\u0db8\u0dd4**."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3-flash-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 35,
+                "outputTokens": 561,
+                "inputTokensCostNanodollars": "17500",
+                "outputTokensCostNanodollars": "1683000",
+                "totalBackendLatencyMs": "3278"
+              },
+              "id": "synhalees_05_sinhala_grammar_item-2d2be028-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 35,
+            "outputTokens": 561,
+            "inputTokensCostNanodollars": "17500",
+            "outputTokensCostNanodollars": "1683000",
+            "totalBackendLatencyMs": "3278"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_05_004"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_05_sinhala_grammar_item-Run #4"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_05_sinhala_grammar_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_05_sinhala_grammar_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3-flash-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T18:02:30.261491Z",
+      "endTime": "2026-09-25T18:02:34.718576Z",
+      "conversations": [
+        {
+          "id": "synhalees_05_sinhala_grammar_item-9936c231",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0dba\u0db1\u0dc0\u0dcf' \u0d9a\u0dd2\u0dba\u0db1 \u0db4\u0daf\u0dba\u0dda \u0dc3\u0dca\u0dad\u0dca\u200d\u0dbb\u0dd3 \u0db4\u0dd4\u0dbb\u0dd4\u0dc2 \u0d85\u0dad\u0dd3\u0dad\u0d9a\u0dcf\u0dbd \u0db4\u0daf\u0dda \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0dba\u0db1\u0dc0\u0dcf' \u0dba\u0db1 \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf \u0db4\u0daf\u0dba\u0dda \u0d85\u0dad\u0dd3\u0dad \u0d9a\u0dcf\u0dbd \u0dc3\u0dca\u0dad\u0dca\u200d\u0dbb\u0dd3 \u0dc3\u0dc4 \u0db4\u0dd4\u0dbb\u0dd4\u0dc2 \u0dbd\u0dd2\u0d82\u0d9c \u0dbb\u0dd6\u0db4 \u0dc0\u0dca\u200d\u0dba\u0dcf\u0d9a\u0dbb\u0dab\u0dcf\u0db1\u0dd4\u0d9a\u0dd6\u0dbd\u0dc0 (\u0dbd\u0dd2\u0d9b\u0dd2\u0dad \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dda\u0daf\u0dd3) \u0db4\u0dc4\u0dad \u0db4\u0dbb\u0dd2\u0daf\u0dd2 \u0dc0\u0dda:\n\n*   **\u0db4\u0dd4\u0dbb\u0dd4\u0dc2 \u0dbd\u0dd2\u0d82\u0d9c:** \u0d9c\u0dd2\u0dba\u0dda\u0dba\n*   **\u0dc3\u0dca\u0dad\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0dd2\u0d82\u0d9c:** \u0d9c\u0dd2\u0dba\u0dcf\u0dba\n\n**\u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab:**\n*   \u0d94\u0dc4\u0dd4 \u0db4\u0dcf\u0dc3\u0dbd\u0dca **\u0d9c\u0dd2\u0dba\u0dda\u0dba**. (\u0db4\u0dd4\u0dbb\u0dd4\u0dc2)\n*   \u0d87\u0dba \u0db4\u0dcf\u0dc3\u0dbd\u0dca **\u0d9c\u0dd2\u0dba\u0dcf\u0dba**. (\u0dc3\u0dca\u0dad\u0dca\u200d\u0dbb\u0dd3)\n\n\u0db1\u0db8\u0dd4\u0dad\u0dca \u0d85\u0db4 \u0d9a\u0dae\u0dcf \u0d9a\u0dbb\u0db1 \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dda\u0daf\u0dd3 (\u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc4\u0dcf\u0dbb\u0dd2\u0d9a \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dda\u0daf\u0dd3) \u0dc3\u0dca\u0dad\u0dca\u200d\u0dbb\u0dd3/\u0db4\u0dd4\u0dbb\u0dd4\u0dc2 \u0daf\u0dd9\u0db4\u0dcf\u0dbb\u0dca\u0dc1\u0dc0\u0dba\u0da7\u0db8 \u0db4\u0ddc\u0daf\u0dd4\u0dc0\u0dda **\"\u0d9c\u0dd2\u0dba\u0dcf\"** \u0dba\u0db1 \u0db4\u0daf\u0dba \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0db1\u0dd4 \u0dbd\u0db6\u0dba\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3-flash-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 31,
+                "outputTokens": 719,
+                "inputTokensCostNanodollars": "15500",
+                "outputTokensCostNanodollars": "2157000",
+                "totalBackendLatencyMs": "4371"
+              },
+              "id": "synhalees_05_sinhala_grammar_item-9936c231-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 31,
+            "outputTokens": 719,
+            "inputTokensCostNanodollars": "15500",
+            "outputTokensCostNanodollars": "2157000",
+            "totalBackendLatencyMs": "4371"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_05_003"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_05_sinhala_grammar_item-Run #3"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_05_sinhala_grammar_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_05_sinhala_grammar_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3-flash-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T18:02:34.723146Z",
+      "endTime": "2026-09-25T18:02:36.690367Z",
+      "conversations": [
+        {
+          "id": "synhalees_05_sinhala_grammar_item-b0087b8b",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0d9a \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0 \u0dad\u0dd2\u0dba\u0dd9\u0db1\u0dca\u0db1\u0dda \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0dda \u0d9a\u0ddc\u0dc4\u0dd9\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba \u0d85\u0dc0\u0dc3\u0dcf\u0db1\u0dba\u0dda."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3-flash-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 33,
+                "outputTokens": 319,
+                "inputTokensCostNanodollars": "16500",
+                "outputTokensCostNanodollars": "957000",
+                "totalBackendLatencyMs": "1900"
+              },
+              "id": "synhalees_05_sinhala_grammar_item-b0087b8b-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 33,
+            "outputTokens": 319,
+            "inputTokensCostNanodollars": "16500",
+            "outputTokensCostNanodollars": "957000",
+            "totalBackendLatencyMs": "1900"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_05_006"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_05_sinhala_grammar_item-Run #6"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_05_sinhala_grammar_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_05_sinhala_grammar_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3-flash-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T18:02:34.230710Z",
+      "endTime": "2026-09-25T18:02:38.579146Z",
+      "conversations": [
+        {
+          "id": "synhalees_05_sinhala_grammar_item-ed50679a",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0d85\u0daf \u0dc0\u0dd0\u0dc3\u0dca\u0dc3\u0ddc\u0dad\u0dca, \u0d9c\u0d9f \u0d9c\u0dbd\u0dba\u0dd2' \u0d9a\u0dd2\u0dba\u0db1 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba \u0db8\u0ddc\u0db1 \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0\u0da7\u0daf \u0d85\u0dba\u0dd2\u0dad\u0dd2 \u0dc0\u0dd9\u0db1\u0dca\u0db1\u0dda? (\u0dc0\u0da0\u0db1 \u0dad\u0dd4\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0dd9\u0dba **\u0dc3\u0db8\u0dca\u0db7\u0dcf\u0dc0\u0dca\u200d\u0dba \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0\u0da7 \u0d85\u0dba\u0dad\u0dca** \u0dc0\u0dda."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3-flash-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 44,
+                "outputTokens": 723,
+                "inputTokensCostNanodollars": "22000",
+                "outputTokensCostNanodollars": "2169000",
+                "totalBackendLatencyMs": "4282"
+              },
+              "id": "synhalees_05_sinhala_grammar_item-ed50679a-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 44,
+            "outputTokens": 723,
+            "inputTokensCostNanodollars": "22000",
+            "outputTokensCostNanodollars": "2169000",
+            "totalBackendLatencyMs": "4282"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_05_005"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_05_sinhala_grammar_item-Run #5"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_05_sinhala_grammar_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_05_sinhala_grammar_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3-flash-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T18:02:36.694704Z",
+      "endTime": "2026-09-25T18:02:38.913783Z",
+      "conversations": [
+        {
+          "id": "synhalees_05_sinhala_grammar_item-4688cf07",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc4\u0ddd\u0da9\u0dd2\u0dba\u0dda \u0dc0\u0dca\u200d\u0dba\u0d82\u0da2\u0db1 \u0db4\u0dda\u0dc5\u0dd2\u0dba\u0dda \u0db4\u0dc5\u0dc0\u0dd9\u0db1\u0dd2 \u0d85\u0d9a\u0dd4\u0dbb\u0dda \u0db8\u0dc4\u0dcf\u0db4\u0dca\u200d\u0dbb\u0dcf\u0dab \u0d85\u0d9a\u0dd4\u0dbb \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc4\u0ddd\u0da9\u0dd2\u0dba\u0dda \u0dc0\u0dca\u200d\u0dba\u0d82\u0da2\u0db1 \u0db4\u0dda\u0dc5\u0dd2\u0dba\u0dda \u0db4\u0dc5\u0dc0\u0dd9\u0db1\u0dd2 \u0d85\u0d9a\u0dd4\u0dbb \u0dc0\u0db1\u0dca\u0db1\u0dda **'\u0d9a'** \u0d85\u0d9a\u0dd4\u0dbb\u0dba\u0dd2. \u0d91\u0dc4\u0dd2 \u0db8\u0dc4\u0dcf\u0db4\u0dca\u200d\u0dbb\u0dcf\u0dab \u0d85\u0d9a\u0dd4\u0dbb \u0dc0\u0db1\u0dca\u0db1\u0dda **'\u0d9b'** \u0dba\u0db1\u0dca\u0db1\u0dba\u0dd2.\n\n\u0db4\u0dd0\u0dc4\u0dd0\u0daf\u0dd2\u0dbd\u0dd2 \u0d9a\u0dd2\u0dbb\u0dd3\u0db8:\n*   \u0d85\u0dbd\u0dca\u0db4\u0db4\u0dca\u200d\u0dbb\u0dcf\u0dab \u0d85\u0d9a\u0dd4\u0dbb: **\u0d9a**\n*   \u0db8\u0dc4\u0dcf\u0db4\u0dca\u200d\u0dbb\u0dcf\u0dab \u0d85\u0d9a\u0dd4\u0dbb: **\u0d9b**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3-flash-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 39,
+                "outputTokens": 383,
+                "inputTokensCostNanodollars": "19500",
+                "outputTokensCostNanodollars": "1149000",
+                "totalBackendLatencyMs": "2159"
+              },
+              "id": "synhalees_05_sinhala_grammar_item-4688cf07-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 39,
+            "outputTokens": 383,
+            "inputTokensCostNanodollars": "19500",
+            "outputTokensCostNanodollars": "1149000",
+            "totalBackendLatencyMs": "2159"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_05_007"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_05_sinhala_grammar_item-Run #7"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_05_sinhala_grammar_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_05_sinhala_grammar_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3-flash-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T18:02:38.585453Z",
+      "endTime": "2026-09-25T18:02:40.058860Z",
+      "conversations": [
+        {
+          "id": "synhalees_05_sinhala_grammar_item-ec9d29ca",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9a\u0dbb\u0dca\u0db8\u0dba\u0dd9\u0db1\u0dca \u0db4\u0da7\u0db1\u0dca \u0d9c\u0db1\u0dca\u0db1 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba \u0dc0\u0dbd\u0da7 \u0db8\u0ddc\u0d9a\u0d9a\u0dca \u0d9a\u0dd2\u0dba\u0dbd\u0daf \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "**\u0d9a\u0dbb\u0dca\u0db8 \u0d9a\u0dcf\u0dbb\u0d9a** (Karma Karaka) - (Passive Voice)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3-flash-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 33,
+                "outputTokens": 196,
+                "inputTokensCostNanodollars": "16500",
+                "outputTokensCostNanodollars": "588000",
+                "totalBackendLatencyMs": "1400"
+              },
+              "id": "synhalees_05_sinhala_grammar_item-ec9d29ca-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 33,
+            "outputTokens": 196,
+            "inputTokensCostNanodollars": "16500",
+            "outputTokensCostNanodollars": "588000",
+            "totalBackendLatencyMs": "1400"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_05_008"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_05_sinhala_grammar_item-Run #8"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_05_sinhala_grammar_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_05_sinhala_grammar_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3-flash-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T18:02:38.918111Z",
+      "endTime": "2026-09-25T18:02:41.525586Z",
+      "conversations": [
+        {
+          "id": "synhalees_05_sinhala_grammar_item-76b79357",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0db8\u0db8 \u0d9a\u0dcf\u0db6\u0dd3 \u0d87\u0daf\u0dd4\u0db8\u0dca \u0d87\u0db3 \u0db4\u0dcf\u0dc3\u0dbd\u0da7 \u0dba\u0db8\u0dd2' \u0d9a\u0dd2\u0dba\u0db1 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0dda \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf \u0db4\u0daf\u0dba \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0dd9\u0dc4\u0dd2 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf \u0db4\u0daf\u0dba (\u0d86\u0d9b\u0dca\u200d\u0dba\u0dcf\u0dad\u0dba) \u0dc0\u0db1\u0dca\u0db1\u0dda **\"\u0dba\u0db8\u0dd2\"** \u0dba\u0db1\u0dca\u0db1\u0dba\u0dd2.\n\n\u0db8\u0dd3\u0da7 \u0d85\u0db8\u0dad\u0dbb\u0dc0 \u0db8\u0dd9\u0db8 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0dda \u0d85\u0dc3\u0db8\u0dca\u0db4\u0dd6\u0dbb\u0dca\u0dab \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf (\u0db4\u0dd6\u0dbb\u0dca\u0dc0 \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf) \u0daf\u0dd9\u0d9a\u0d9a\u0dca \u0daf \u0d87\u0dad:\n1. **\u0d9a\u0dcf\u0db6\u0dd3**\n2. **\u0d87\u0db3**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3-flash-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 34,
+                "outputTokens": 439,
+                "inputTokensCostNanodollars": "17000",
+                "outputTokensCostNanodollars": "1317000",
+                "totalBackendLatencyMs": "2550"
+              },
+              "id": "synhalees_05_sinhala_grammar_item-76b79357-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 34,
+            "outputTokens": 439,
+            "inputTokensCostNanodollars": "17000",
+            "outputTokensCostNanodollars": "1317000",
+            "totalBackendLatencyMs": "2550"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_05_009"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_05_sinhala_grammar_item-Run #9"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_05_sinhala_grammar_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_05_sinhala_grammar_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3-flash-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T18:02:40.063523Z",
+      "endTime": "2026-09-25T18:02:42.273661Z",
+      "conversations": [
+        {
+          "id": "synhalees_05_sinhala_grammar_item-183873a1",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0d85\u0db8\u0dbd\u0dca \u0d9c\u0db8 \u0dc4\u0dbb\u0dc4\u0dcf \u0dc0\u0dda\u0d9c\u0dd9\u0db1\u0dca \u0daf\u0dd4\u0dc0\u0db1\u0dc0\u0dcf' \u0d9a\u0dd2\u0dba\u0db1 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0dda '\u0dc0\u0dda\u0d9c\u0dd9\u0db1\u0dca' \u0d9a\u0dd2\u0dba\u0db1 \u0db4\u0daf\u0dda \u0d85\u0dba\u0dd2\u0dad\u0dd2 \u0dc0\u0dd2\u0dc1\u0dda\u0dc2 \u0db4\u0daf \u0dc0\u0dbb\u0dca\u0d9c\u0dba \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dc0\u0da0\u0db1 \u0dad\u0dd4\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0dc0\u0dda\u0d9c\u0dd9\u0db1\u0dca' \u0dba\u0db1\u0dd4 **\u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf \u0dc0\u0dd2\u0dc1\u0dda\u0dc2\u0dab \u0db4\u0daf\u0dba\u0d9a\u0dd2.**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3-flash-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 56,
+                "outputTokens": 373,
+                "inputTokensCostNanodollars": "28000",
+                "outputTokensCostNanodollars": "1119000",
+                "totalBackendLatencyMs": "2140"
+              },
+              "id": "synhalees_05_sinhala_grammar_item-183873a1-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 56,
+            "outputTokens": 373,
+            "inputTokensCostNanodollars": "28000",
+            "outputTokensCostNanodollars": "1119000",
+            "totalBackendLatencyMs": "2140"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_05_010"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_05_sinhala_grammar_item-Run #10"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_05_sinhala_grammar_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_05_sinhala_grammar_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3-flash-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_ERRORED",
+      "startTime": "2026-09-25T18:02:41.530269Z",
+      "endTime": "2026-09-25T18:02:47.732749Z",
+      "conversations": [
+        {
+          "id": "synhalees_05_sinhala_grammar_item-00a674d5",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0dda \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0dda \u0dad\u0dda\u0dbb\u0dd4\u0db8 \u0dc4\u0dbb\u0dd2 \u0d9c\u0dc3\u0dca\u0dc3\u0dbd\u0dcf \u0dbd\u0dc3\u0dca\u0dc3\u0db1 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0d9a\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1: \u0db8\u0d82 \u0d9c\u0dd2\u0dba\u0dcf \u0d9a\u0da9\u0dda \u0dc3\u0dd3\u0db1\u0dd2 \u0d9c\u0db1\u0dca\u0db1 \u0d8a\u0dba\u0dda"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d94\u0db6\u0dda \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba \u0dc0\u0da9\u0dcf\u0dad\u0dca \u0db1\u0dd2\u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0dc3\u0dc4 \u0dbd\u0dc3\u0dca\u0dc3\u0db1 \u0dbd\u0dd9\u0dc3 \u0d86\u0d9a\u0dcf\u0dbb \u0d9a\u0dd2\u0dc4\u0dd2\u0db4\u0dba\u0d9a\u0da7 \u0dbd\u0dd2\u0dc0\u0dd2\u0dba \u0dc4\u0dd0\u0d9a\u0dd2\u0dba\u0dd2. \u0d94\u0db6 \u0d9a\u0dd0\u0db8\u0dad\u0dd2 \u0d91\u0d9a\u0d9a\u0dca \u0dad\u0ddd\u0dbb\u0dcf\u0d9c\u0db1\u0dca\u0db1:\n\n1. **\u0dc0\u0da9\u0dcf\u0dad\u0dca \u0dc3\u0dca\u0dc0\u0db7\u0dcf\u0dc0\u0dd2\u0d9a \u0dc3\u0dc4 \u0db1\u0dd2\u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0d9a\u0dca\u200d\u0dbb\u0db8\u0dba (\u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dba):**\n   \"\u0db8\u0db8 \u0d8a\u0dba\u0dda \u0dc3\u0dd3\u0db1\u0dd2 \u0d9c\u0db1\u0dca\u0db1 \u0d9a\u0da9\u0dda\u0da7 \u0d9c\u0dd2\u0dba\u0dcf.\"\n\n2. **\u0da7\u0dd2\u0d9a\u0d9a\u0dca \u0dc0\u0dd2\u0db0\u0dd2\u0db8\u0dad\u0dca \u0dbd\u0dd9\u0dc3 (More Formal):**\n   \"\u0db8\u0db8 \u0d8a\u0dba\u0dda \u0dc3\u0dd3\u0db1\u0dd2 \u0db8\u0dd2\u0dbd\u0daf\u0dd3 \u0d9c\u0dd0\u0db1\u0dd3\u0db8\u0da7 \u0d9a\u0da9\u0dba\u0da7 \u0d9c\u0dd2\u0dba\u0dcf.\"\n\n3. **\u0dbd\u0dd2\u0dba\u0db1 \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dd9\u0db1\u0dca (Written Sinhala):**\n   \"\u0db8\u0db8 \u0d8a\u0dba\u0dda \u0daf\u0dd2\u0db1 \u0dc3\u0dd3\u0db1\u0dd2 \u0db8\u0dd2\u0dbd\u0daf\u0dd3 \u0d9c\u0dd0\u0db1\u0dd3\u0db8 \u0dc3\u0db3\u0dc4\u0dcf \u0d9a\u0da9\u0dba\u0da7 \u0d9c\u0dd2\u0dba\u0dd9\u0db8\u0dd2.\"\n\n4. **\u0d9a\u0dd9\u0da7\u0dd2 \u0dc3\u0dc4 \u0db4\u0dd0\u0dc4\u0dd0\u0daf\u0dd2\u0dbd\u0dd2 \u0dbd\u0dd9\u0dc3:**\n   \"\u0d8a\u0dba\u0dda \u0db8\u0db8 \u0dc3\u0dd3\u0db1\u0dd2 \u0d9c\u0db1\u0dca\u0db1 \u0d9a\u0da9\u0dda\u0da7 \u0d9c\u0dd2\u0dba\u0dcf.\"\n\n\u0db8\u0dd9\u0dc4\u0dd2\u0daf\u0dd3 \"\u0db8\u0d82\" \u0dc0\u0dd9\u0db1\u0dd4\u0dc0\u0da7 \"\u0db8\u0db8\" \u0dba\u0db1\u0dca\u0db1 \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dd2\u0dbb\u0dd3\u0db8 \u0dc3\u0dc4 \u0d9a\u0dcf\u0dbd\u0dba (\u0d8a\u0dba\u0dda) \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0dda \u0db8\u0dd4\u0dbd\u0da7 \u0dc4\u0ddd \u0db8\u0dd0\u0daf\u0da7 \u0d9c\u0dd0\u0db1\u0dd3\u0db8\u0dd9\u0db1\u0dca \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba \u0dc0\u0da9\u0dcf\u0dad\u0dca \u0d85\u0dbb\u0dca\u0dae\u0dc0\u0dad\u0dca \u0dc0\u0dda."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3-flash-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 41,
+                "outputTokens": 898,
+                "inputTokensCostNanodollars": "20500",
+                "outputTokensCostNanodollars": "2694000",
+                "totalBackendLatencyMs": "4621"
+              },
+              "id": "synhalees_05_sinhala_grammar_item-00a674d5-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 41,
+            "outputTokens": 898,
+            "inputTokensCostNanodollars": "20500",
+            "outputTokensCostNanodollars": "2694000",
+            "totalBackendLatencyMs": "4621"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        },
+        {
+          "id": "Response assessment with google/gemini-3.8-flash-70349e23",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\n        You are an impartial and strict technical evaluator.\n\n        ### Task\n        Verify if the **Generated Response** complies strictly with the **Criteria**.\n\n        ### Input Data\n        **Generated Response:**\n        \u0d94\u0db6\u0dda \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba \u0dc0\u0da9\u0dcf\u0dad\u0dca \u0db1\u0dd2\u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0dc3\u0dc4 \u0dbd\u0dc3\u0dca\u0dc3\u0db1 \u0dbd\u0dd9\u0dc3 \u0d86\u0d9a\u0dcf\u0dbb \u0d9a\u0dd2\u0dc4\u0dd2\u0db4\u0dba\u0d9a\u0da7 \u0dbd\u0dd2\u0dc0\u0dd2\u0dba \u0dc4\u0dd0\u0d9a\u0dd2\u0dba\u0dd2. \u0d94\u0db6 \u0d9a\u0dd0\u0db8\u0dad\u0dd2 \u0d91\u0d9a\u0d9a\u0dca \u0dad\u0ddd\u0dbb\u0dcf\u0d9c\u0db1\u0dca\u0db1:\n\n1. **\u0dc0\u0da9\u0dcf\u0dad\u0dca \u0dc3\u0dca\u0dc0\u0db7\u0dcf\u0dc0\u0dd2\u0d9a \u0dc3\u0dc4 \u0db1\u0dd2\u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0d9a\u0dca\u200d\u0dbb\u0db8\u0dba (\u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dba):**\n   \"\u0db8\u0db8 \u0d8a\u0dba\u0dda \u0dc3\u0dd3\u0db1\u0dd2 \u0d9c\u0db1\u0dca\u0db1 \u0d9a\u0da9\u0dda\u0da7 \u0d9c\u0dd2\u0dba\u0dcf.\"\n\n2. **\u0da7\u0dd2\u0d9a\u0d9a\u0dca \u0dc0\u0dd2\u0db0\u0dd2\u0db8\u0dad\u0dca \u0dbd\u0dd9\u0dc3 (More Formal):**\n   \"\u0db8\u0db8 \u0d8a\u0dba\u0dda \u0dc3\u0dd3\u0db1\u0dd2 \u0db8\u0dd2\u0dbd\u0daf\u0dd3 \u0d9c\u0dd0\u0db1\u0dd3\u0db8\u0da7 \u0d9a\u0da9\u0dba\u0da7 \u0d9c\u0dd2\u0dba\u0dcf.\"\n\n3. **\u0dbd\u0dd2\u0dba\u0db1 \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dd9\u0db1\u0dca (Written Sinhala):**\n   \"\u0db8\u0db8 \u0d8a\u0dba\u0dda \u0daf\u0dd2\u0db1 \u0dc3\u0dd3\u0db1\u0dd2 \u0db8\u0dd2\u0dbd\u0daf\u0dd3 \u0d9c\u0dd0\u0db1\u0dd3\u0db8 \u0dc3\u0db3\u0dc4\u0dcf \u0d9a\u0da9\u0dba\u0da7 \u0d9c\u0dd2\u0dba\u0dd9\u0db8\u0dd2.\"\n\n4. **\u0d9a\u0dd9\u0da7\u0dd2 \u0dc3\u0dc4 \u0db4\u0dd0\u0dc4\u0dd0\u0daf\u0dd2\u0dbd\u0dd2 \u0dbd\u0dd9\u0dc3:**\n   \"\u0d8a\u0dba\u0dda \u0db8\u0db8 \u0dc3\u0dd3\u0db1\u0dd2 \u0d9c\u0db1\u0dca\u0db1 \u0d9a\u0da9\u0dda\u0da7 \u0d9c\u0dd2\u0dba\u0dcf.\"\n\n\u0db8\u0dd9\u0dc4\u0dd2\u0daf\u0dd3 \"\u0db8\u0d82\" \u0dc0\u0dd9\u0db1\u0dd4\u0dc0\u0da7 \"\u0db8\u0db8\" \u0dba\u0db1\u0dca\u0db1 \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dd2\u0dbb\u0dd3\u0db8 \u0dc3\u0dc4 \u0d9a\u0dcf\u0dbd\u0dba (\u0d8a\u0dba\u0dda) \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0dda \u0db8\u0dd4\u0dbd\u0da7 \u0dc4\u0ddd \u0db8\u0dd0\u0daf\u0da7 \u0d9c\u0dd0\u0db1\u0dd3\u0db8\u0dd9\u0db1\u0dca \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba \u0dc0\u0da9\u0dcf\u0dad\u0dca \u0d85\u0dbb\u0dca\u0dae\u0dc0\u0dad\u0dca \u0dc0\u0dda.\n\n        **Criteria:**\n        1. The response conveys the same meaning as the reference answer: 'corrected_sentence_response'. Wording may differ; the meaning must match.\n2. The response reads like a native Sri Lankan Sinhala speaker wrote it -- natural register and idiom, not translated-sounding English.\n\n        ### Evaluation Protocol\n        1. Analyze the response against the criteria.\n        2. Be strict. If the text is ambiguous, the check fails.\n        3. Output your assessment using the specific structure requested below.\n"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                }
+              ],
+              "id": "Response assessment with google/gemini-3.8-flash-70349e23-req-1"
+            }
+          ],
+          "metrics": {},
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "booleanResult": false
+        }
+      ],
+      "pyRunId": "synhalees_05_sinhala_grammar_item-Run #11",
+      "errorMessage": "Traceback (most recent call last):\n  File \"/benchmarks/src/kaggle_benchmarks/tasks.py\", line 171, in run\n    run.result = self.func(*args, **kwargs)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/ipykernel_14/2904034336.py\", line 113, in synhalees_item\n    judge_passed = all(r.passed for r in report.results)\n                                         ^^^^^^^^^^^^^^\nAttributeError: 'NoneType' object has no attribute 'results'\n"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_05_sinhala_grammar_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_05_sinhala_grammar_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3-flash-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_ERRORED",
+      "startTime": "2026-09-25T18:02:42.277833Z",
+      "endTime": "2026-09-25T18:02:48.936564Z",
+      "conversations": [
+        {
+          "id": "synhalees_05_sinhala_grammar_item-a330e448",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0dda \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0dda \u0db4\u0dd2\u0dc5\u0dd2\u0dc0\u0dd9\u0dbd \u0dc0\u0dd0\u0dbb\u0daf\u0dd2\u0dba\u0dd2 \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0dc4\u0d9f\u0dc0\u0dbd\u0dcf \u0d92\u0d9a \u0db1\u0dd2\u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0d9a\u0dbb\u0d9c\u0db1\u0dca\u0db1 \u0dc0\u0dd2\u0daf\u0dd2\u0dc4 \u0db4\u0dd0\u0dc4\u0dd0\u0daf\u0dd2\u0dbd\u0dd2 \u0d9a\u0dbb\u0db1\u0dca\u0db1: \u0d9a\u0db1\u0dc0\u0dcf \u0db8\u0db8 \u0db6\u0dad\u0dca"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d94\u0db6 \u0dbd\u0db6\u0dcf\u0daf\u0dd4\u0db1\u0dca \"\u0d9a\u0db1\u0dc0\u0dcf \u0db8\u0db8 \u0db6\u0dad\u0dca\" \u0dba\u0db1 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0dda \u0db4\u0daf \u0db4\u0dd2\u0dc5\u0dd2\u0dc0\u0dd9\u0dc5 \u0dc0\u0dd0\u0dbb\u0daf\u0dd2\u0dba\u0dd2. \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dda \u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba \u0dbb\u0dd3\u0dad\u0dd2\u0dba\u0da7 \u0d85\u0db1\u0dd4\u0dc0 \u0db4\u0daf \u0db4\u0dd9\u0dc5\u0d9c\u0dd0\u0dc3\u0dd2\u0dba \u0dba\u0dd4\u0dad\u0dd4 \u0db1\u0dd2\u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0d86\u0d9a\u0dcf\u0dbb\u0dba \u0db4\u0dc4\u0dad \u0daf\u0dd0\u0d9a\u0dca\u0dc0\u0dda:\n\n### \u0db1\u0dd2\u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba:\n**\"\u0db8\u0db8 \u0db6\u0dad\u0dca \u0d9a\u0db1\u0dc0\u0dcf.\"**\n\n---\n\n### \u0d91\u0dba \u0db1\u0dd2\u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0d9a\u0dbb\u0d9c\u0db1\u0dca\u0db1\u0dcf \u0d86\u0d9a\u0dcf\u0dbb\u0dba \u0db4\u0dd2\u0dc5\u0dd2\u0db6\u0db3 \u0db4\u0dd0\u0dc4\u0dd0\u0daf\u0dd2\u0dbd\u0dd2 \u0d9a\u0dd2\u0dbb\u0dd3\u0db8:\n\n\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dda \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0d9a\u0dca \u0d9c\u0ddc\u0da9\u0db1\u0dd0\u0d9c\u0dd3\u0db8\u0dda\u0daf\u0dd3 \u0db6\u0ddc\u0dc4\u0ddd \u0dc0\u0dd2\u0da7 \u0d85\u0db1\u0dd4\u0d9c\u0db8\u0db1\u0dba \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda **SOV (Subject - Object - Verb)** \u0dba\u0db1 \u0dbb\u0da7\u0dcf\u0dc0\u0dba\u0dd2. \u0d91\u0db1\u0db8\u0dca:\n\n1.  **\u0d9a\u0dbb\u0dca\u0dad\u0dd8 (Subject):** \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0 \u0d9a\u0dbb\u0db1\u0dd4 \u0dbd\u0db6\u0db1 \u0dad\u0dd0\u0db1\u0dd0\u0dad\u0dca\u0dad\u0dcf (\u0db8\u0dd9\u0dc4\u0dd2\u0daf\u0dd3 - **\u0db8\u0db8**)\n2.  **\u0d9a\u0dbb\u0dca\u0db8\u0dba (Object):** \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0\u0da7 \u0db7\u0dcf\u0da2\u0db1\u0dba \u0dc0\u0db1 \u0daf\u0dd9\u0dba (\u0db8\u0dd9\u0dc4\u0dd2\u0daf\u0dd3 - **\u0db6\u0dad\u0dca**)\n3.  **\u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0 (Verb):** \u0dc3\u0dd2\u0daf\u0dd4 \u0d9a\u0dbb\u0db1 \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0 (\u0db8\u0dd9\u0dc4\u0dd2\u0daf\u0dd3 - **\u0d9a\u0db1\u0dc0\u0dcf**)\n\n**\u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0db4\u0dd2\u0dc5\u0dd2\u0dc0\u0dd9\u0dc5:** \u0d9a\u0db1\u0dc0\u0dcf (\u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0) + \u0db8\u0db8 (\u0d9a\u0dbb\u0dca\u0dad\u0dd8) + \u0db6\u0dad\u0dca (\u0d9a\u0dbb\u0dca\u0db8\u0dba)\n**\u0db1\u0dd2\u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0db4\u0dd2\u0dc5\u0dd2\u0dc0\u0dd9\u0dc5:** \u0db8\u0db8 (\u0d9a\u0dbb\u0dca\u0dad\u0dd8) + \u0db6\u0dad\u0dca (\u0d9a\u0dbb\u0dca\u0db8\u0dba) + \u0d9a\u0db1\u0dc0\u0dcf (\u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0)\n\n**\u0dc0\u0dd0\u0daf\u0d9c\u0dad\u0dca:** \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dda \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0 (Verb) \u0dc3\u0dd1\u0db8 \u0dc0\u0dd2\u0da7\u0db8 \u0db4\u0dcf\u0dc4\u0dda \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0d9a \u0d85\u0dc0\u0dc3\u0dcf\u0db1\u0dba\u0da7 \u0dba\u0dd9\u0daf\u0dda. \u0d91\u0db6\u0dd0\u0dc0\u0dd2\u0db1\u0dca \"\u0d9a\u0db1\u0dc0\u0dcf\" \u0dba\u0db1\u0dca\u0db1 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0dda \u0d85\u0d9c\u0da7 \u0dba\u0dd9\u0daf\u0dd3\u0db8\u0dd9\u0db1\u0dca \u0db1\u0dd2\u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0d85\u0dbb\u0dca\u0dae\u0dba\u0d9a\u0dca \u0dc3\u0dc4 \u0dc0\u0dca\u200d\u0dba\u0dcf\u0d9a\u0dbb\u0dab\u0dcf\u0db1\u0dd4\u0d9a\u0dd6\u0dbd \u0db6\u0dc0\u0d9a\u0dca \u0dbd\u0dd0\u0db6\u0dda."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3-flash-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 45,
+                "outputTokens": 983,
+                "inputTokensCostNanodollars": "22500",
+                "outputTokensCostNanodollars": "2949000",
+                "totalBackendLatencyMs": "5062"
+              },
+              "id": "synhalees_05_sinhala_grammar_item-a330e448-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 45,
+            "outputTokens": 983,
+            "inputTokensCostNanodollars": "22500",
+            "outputTokensCostNanodollars": "2949000",
+            "totalBackendLatencyMs": "5062"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        },
+        {
+          "id": "Response assessment with google/gemini-3.8-flash-ab86fc6f",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\n        You are an impartial and strict technical evaluator.\n\n        ### Task\n        Verify if the **Generated Response** complies strictly with the **Criteria**.\n\n        ### Input Data\n        **Generated Response:**\n        \u0d94\u0db6 \u0dbd\u0db6\u0dcf\u0daf\u0dd4\u0db1\u0dca \"\u0d9a\u0db1\u0dc0\u0dcf \u0db8\u0db8 \u0db6\u0dad\u0dca\" \u0dba\u0db1 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0dda \u0db4\u0daf \u0db4\u0dd2\u0dc5\u0dd2\u0dc0\u0dd9\u0dc5 \u0dc0\u0dd0\u0dbb\u0daf\u0dd2\u0dba\u0dd2. \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dda \u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba \u0dbb\u0dd3\u0dad\u0dd2\u0dba\u0da7 \u0d85\u0db1\u0dd4\u0dc0 \u0db4\u0daf \u0db4\u0dd9\u0dc5\u0d9c\u0dd0\u0dc3\u0dd2\u0dba \u0dba\u0dd4\u0dad\u0dd4 \u0db1\u0dd2\u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0d86\u0d9a\u0dcf\u0dbb\u0dba \u0db4\u0dc4\u0dad \u0daf\u0dd0\u0d9a\u0dca\u0dc0\u0dda:\n\n### \u0db1\u0dd2\u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba:\n**\"\u0db8\u0db8 \u0db6\u0dad\u0dca \u0d9a\u0db1\u0dc0\u0dcf.\"**\n\n---\n\n### \u0d91\u0dba \u0db1\u0dd2\u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0d9a\u0dbb\u0d9c\u0db1\u0dca\u0db1\u0dcf \u0d86\u0d9a\u0dcf\u0dbb\u0dba \u0db4\u0dd2\u0dc5\u0dd2\u0db6\u0db3 \u0db4\u0dd0\u0dc4\u0dd0\u0daf\u0dd2\u0dbd\u0dd2 \u0d9a\u0dd2\u0dbb\u0dd3\u0db8:\n\n\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dda \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0d9a\u0dca \u0d9c\u0ddc\u0da9\u0db1\u0dd0\u0d9c\u0dd3\u0db8\u0dda\u0daf\u0dd3 \u0db6\u0ddc\u0dc4\u0ddd \u0dc0\u0dd2\u0da7 \u0d85\u0db1\u0dd4\u0d9c\u0db8\u0db1\u0dba \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda **SOV (Subject - Object - Verb)** \u0dba\u0db1 \u0dbb\u0da7\u0dcf\u0dc0\u0dba\u0dd2. \u0d91\u0db1\u0db8\u0dca:\n\n1.  **\u0d9a\u0dbb\u0dca\u0dad\u0dd8 (Subject):** \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0 \u0d9a\u0dbb\u0db1\u0dd4 \u0dbd\u0db6\u0db1 \u0dad\u0dd0\u0db1\u0dd0\u0dad\u0dca\u0dad\u0dcf (\u0db8\u0dd9\u0dc4\u0dd2\u0daf\u0dd3 - **\u0db8\u0db8**)\n2.  **\u0d9a\u0dbb\u0dca\u0db8\u0dba (Object):** \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0\u0da7 \u0db7\u0dcf\u0da2\u0db1\u0dba \u0dc0\u0db1 \u0daf\u0dd9\u0dba (\u0db8\u0dd9\u0dc4\u0dd2\u0daf\u0dd3 - **\u0db6\u0dad\u0dca**)\n3.  **\u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0 (Verb):** \u0dc3\u0dd2\u0daf\u0dd4 \u0d9a\u0dbb\u0db1 \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0 (\u0db8\u0dd9\u0dc4\u0dd2\u0daf\u0dd3 - **\u0d9a\u0db1\u0dc0\u0dcf**)\n\n**\u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0db4\u0dd2\u0dc5\u0dd2\u0dc0\u0dd9\u0dc5:** \u0d9a\u0db1\u0dc0\u0dcf (\u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0) + \u0db8\u0db8 (\u0d9a\u0dbb\u0dca\u0dad\u0dd8) + \u0db6\u0dad\u0dca (\u0d9a\u0dbb\u0dca\u0db8\u0dba)\n**\u0db1\u0dd2\u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0db4\u0dd2\u0dc5\u0dd2\u0dc0\u0dd9\u0dc5:** \u0db8\u0db8 (\u0d9a\u0dbb\u0dca\u0dad\u0dd8) + \u0db6\u0dad\u0dca (\u0d9a\u0dbb\u0dca\u0db8\u0dba) + \u0d9a\u0db1\u0dc0\u0dcf (\u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0)\n\n**\u0dc0\u0dd0\u0daf\u0d9c\u0dad\u0dca:** \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dda \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0 (Verb) \u0dc3\u0dd1\u0db8 \u0dc0\u0dd2\u0da7\u0db8 \u0db4\u0dcf\u0dc4\u0dda \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0d9a \u0d85\u0dc0\u0dc3\u0dcf\u0db1\u0dba\u0da7 \u0dba\u0dd9\u0daf\u0dda. \u0d91\u0db6\u0dd0\u0dc0\u0dd2\u0db1\u0dca \"\u0d9a\u0db1\u0dc0\u0dcf\" \u0dba\u0db1\u0dca\u0db1 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0dda \u0d85\u0d9c\u0da7 \u0dba\u0dd9\u0daf\u0dd3\u0db8\u0dd9\u0db1\u0dca \u0db1\u0dd2\u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0d85\u0dbb\u0dca\u0dae\u0dba\u0d9a\u0dca \u0dc3\u0dc4 \u0dc0\u0dca\u200d\u0dba\u0dcf\u0d9a\u0dbb\u0dab\u0dcf\u0db1\u0dd4\u0d9a\u0dd6\u0dbd \u0db6\u0dc0\u0d9a\u0dca \u0dbd\u0dd0\u0db6\u0dda.\n\n        **Criteria:**\n        1. The response conveys the same meaning as the reference answer: 'grammar_correction_explanation'. Wording may differ; the meaning must match.\n2. The response reads like a native Sri Lankan Sinhala speaker wrote it -- natural register and idiom, not translated-sounding English.\n\n        ### Evaluation Protocol\n        1. Analyze the response against the criteria.\n        2. Be strict. If the text is ambiguous, the check fails.\n        3. Output your assessment using the specific structure requested below.\n"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                }
+              ],
+              "id": "Response assessment with google/gemini-3.8-flash-ab86fc6f-req-1"
+            }
+          ],
+          "metrics": {},
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "booleanResult": false
+        }
+      ],
+      "pyRunId": "synhalees_05_sinhala_grammar_item-Run #12",
+      "errorMessage": "Traceback (most recent call last):\n  File \"/benchmarks/src/kaggle_benchmarks/tasks.py\", line 171, in run\n    run.result = self.func(*args, **kwargs)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/ipykernel_14/2904034336.py\", line 113, in synhalees_item\n    judge_passed = all(r.passed for r in report.results)\n                                         ^^^^^^^^^^^^^^\nAttributeError: 'NoneType' object has no attribute 'results'\n"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_05_sinhala_grammar_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_05_sinhala_grammar_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3-flash-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_ERRORED",
+      "startTime": "2026-09-25T18:02:47.738037Z",
+      "endTime": "2026-09-25T18:02:57.729826Z",
+      "conversations": [
+        {
+          "id": "synhalees_05_sinhala_grammar_item-45f4f6c0",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d89\u0dbb\u0dd2 \u0dbd\u0d9a\u0dd4\u0dab\u0dd4 \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0dbd\u0dcf \u0d9a\u0dd9\u0da7\u0dd2 \u0d9a\u0dad\u0dcf\u0dc0\u0d9a \u0d86\u0dbb\u0db8\u0dca\u0db7\u0dba\u0d9a\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc3\u0dcf\u0dc4\u0dd2\u0dad\u0dca\u200d\u0dba\u0dba\u0dda \u0d89\u0dbb\u0dd2 \u0dbd\u0d9a\u0dd4\u0dab\u0dd4 (\u0dc0\u0dd2\u0dc1\u0dda\u0dc2\u0dba\u0dd9\u0db1\u0dca \u0daf\u0dd2\u0d9c\u0dd4 \u0d89\u0dbb \u2014 Em dash) \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0db8\u0dd2\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0db1 \u0dbd\u0daf \u0d9a\u0dd9\u0da7\u0dd2 \u0d9a\u0dad\u0dcf\u0dc0\u0d9a \u0d86\u0dbb\u0db8\u0dca\u0db7\u0dba\u0d9a\u0dca \u0db4\u0dc4\u0dad \u0daf\u0dd0\u0d9a\u0dca\u0dc0\u0dda.\n\n**\u0d9a\u0dad\u0dcf\u0dc0\u0dda \u0db8\u0dcf\u0dad\u0dd8\u0d9a\u0dcf\u0dc0: \u0d85\u0dad\u0dd3\u0dad\u0dba\u0dda \u0dc3\u0dd9\u0dc0\u0dab\u0dd0\u0dbd\u0dd2**\n\n\u0db8\u0dc4 \u0dc0\u0dd0\u0dc3\u0dca\u0dc3 \u0db1\u0dd2\u0dc3\u0ddc\u0dbd\u0dca\u0db8\u0db1\u0dca \u0dbb\u0dcf\u0dad\u0dca\u200d\u0dbb\u0dd2\u0dba \u0daf\u0dd9\u0daf\u0dbb\u0dd4\u0db8\u0dca \u0d9a\u0dbb\u0dc0\u0db8\u0dd2\u0db1\u0dca \u0d87\u0daf \u0dc4\u0dd0\u0dbd\u0dd9\u0dba\u0dd2. \u0d9c\u0dd4\u0dab\u0db4\u0dcf\u0dbd \u0db4\u0dd0\u0dbb\u0dab\u0dd2 \u0dc4\u0dcf\u0db1\u0dca\u0dc3\u0dd2 \u0db4\u0dd4\u0da7\u0dd4\u0dc0\u0da7 \u0db6\u0dbb \u0dc0\u0dd3 \u2014 \u0daf\u0dd1\u0dc3 \u0db4\u0dd2\u0dba\u0dcf\u0d9c\u0dd9\u0db1 \u2014 \u0d85\u0dad\u0dd3\u0dad\u0dba\u0dda \u0d85\u0dad\u0dbb\u0db8\u0d82 \u0dc0\u0dd3 \u0dc3\u0dd2\u0da7\u0dd2\u0dba\u0dda\u0dba. \u0dc0\u0dc4\u0dbd\u0dba\u0dd9\u0db1\u0dca \u0dc0\u0dd0\u0da7\u0dd9\u0db1 \u0dc0\u0dad\u0dd4\u0dbb \u0db6\u0dd2\u0d82\u0daf\u0dd4 \u0dc0\u0dbd \u0dc1\u0db6\u0dca\u0daf\u0dba \u0d94\u0dc4\u0dd4\u0da7 \u0d87\u0dc3\u0dd4\u0dab\u0dda \u0db8\u0dd3\u0da7 \u0dc0\u0dc3\u0dbb \u0dc0\u0dd2\u0dc3\u0dca\u0dc3\u0d9a\u0da7 \u0db4\u0dd9\u0dbb \u0d87\u0dc3\u0dd4\u0dab\u0dd4 \u0d92 \u0db8\u0dd2\u0dba\u0dd4\u0dbb\u0dd4 \u0dc3\u0d82\u0d9c\u0dd3\u0dad\u0dba \u0db8\u0dd9\u0db1\u0dd2.\n\n\"\u0dad\u0dcf\u0dad\u0dca\u0dad\u0dda... \u0dad\u0dcf\u0dad\u0dca\u0dad\u0dda...\" \u2014 \u0d92 \u0d94\u0dc4\u0dd4\u0d9c\u0dda \u0d9a\u0dd4\u0da9\u0dcf \u0db4\u0dd4\u0dad\u0dd4\u0d9c\u0dda \u0dc4\u0dac\u0daf? \u0db1\u0dd0\u0dad, \u0d91\u0dba \u0dc4\u0dd4\u0daf\u0dd9\u0d9a\u0dca \u0dc3\u0dd4\u0dc5\u0d9f\u0dda \u0dbb\u0dd0\u0dc0\u0dca \u0db4\u0dd2\u0dc5\u0dd2\u0dbb\u0dd0\u0dc0\u0dca \u0daf\u0dd9\u0db1 \u0db8\u0dad\u0d9a\u0dba\u0d9a\u0dca \u0db4\u0db8\u0dab\u0dd2. \n\n\u0da2\u0dd3\u0dc0\u0dd2\u0dad\u0dba \u2014 \u0d91\u0dba \u0d9a\u0dd9\u0dad\u0dbb\u0db8\u0dca \u0dc3\u0d82\u0d9a\u0dd3\u0dbb\u0dca\u0dab\u0daf? \u0d94\u0dc4\u0dd4 \u0d9a\u0dbd\u0dca\u0db4\u0db1\u0dcf \u0d9a\u0dc5\u0dda\u0dba. \u0d91\u0d9a\u0dbd \u0dad\u0dd2\u0db6\u0dd6 \u0d92 \u0dc3\u0dad\u0dd4\u0da7, \u0d92 \u0dc3\u0dd2\u0db1\u0dc4\u0dc0 \u0dc3\u0dc4 \u0db4\u0dd2\u0dbb\u0dd4\u0dab\u0dd4 \u0d9c\u0dd9\u0daf\u0dbb\u0daf\u0ddc\u0dbb \u0daf\u0dd0\u0db1\u0dca \u0d9c\u0dd2\u0dbd\u0dd2\u0dc4\u0dd3 \u0d9c\u0ddc\u0dc3\u0dca\u0dba. \u0d94\u0dc4\u0dd4 \u0dc3\u0dad\u0dd4 \u0d91\u0d9a\u0db8 \u0dc0\u0dc3\u0dca\u0dad\u0dd4\u0dc0 \u0daf\u0dd0\u0db1\u0dca \u0db8\u0dda \u0db4\u0dd0\u0dbb\u0dab\u0dd2 \u0db1\u0dd2\u0dc0\u0dc3\u0dad\u0dca \u2014 \u0d92 \u0dc4\u0dcf \u0db6\u0dd0\u0db3\u0dd4\u0dab\u0dd4 \u0dad\u0db1\u0dd2\u0d9a\u0db8\u0dad\u0dca \u2014 \u0db4\u0db8\u0dab\u0dd2. \u0dc4\u0daf\u0dd2\u0dc3\u0dd2\u0dba\u0dda\u0db8 \u0daf\u0ddc\u0dbb\u0da7 \u0dad\u0da7\u0dca\u0da7\u0dd4 \u0d9a\u0dbb\u0db1 \u0dc1\u0db6\u0dca\u0daf\u0dba\u0d9a\u0dca \u0d87\u0dc3\u0dd4\u0dab\u0dd2. \u0db8\u0dda \u0db8\u0db0\u0dca\u200d\u0dba\u0db8 \u0dbb\u0dcf\u0dad\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dda \u0d9a\u0dc0\u0dd4\u0dbb\u0dd4\u0db1\u0dca \u0dc0\u0dd2\u0dba \u0dc4\u0dd0\u0d9a\u0dd2\u0daf? \n\n\u0d94\u0dc4\u0dd4 \u0dc3\u0dd9\u0db8\u0dd2\u0db1\u0dca \u0db1\u0dd0\u0d9c\u0dd2\u0da7\u0dca\u0da7\u0dda\u0dba \u2014 \u0db6\u0dd2\u0dba\u0d9a\u0dca \u0dc3\u0dc4 \u0d9a\u0dd4\u0dad\u0dd4\u0dc4\u0dbd\u0dba\u0d9a\u0dca \u0db8\u0dd2\u0dc1\u0dca\u200d\u0dbb \u0dc4\u0dd0\u0d9f\u0dd3\u0db8\u0d9a\u0dd2\u0db1\u0dca \u0dba\u0dd4\u0dad\u0dd4\u0dc0\u0dba. \n\n\"\u0d9a\u0dc0\u0dd4\u0daf?\" \u2014 \u0d94\u0dc4\u0dd4 \u0dc0\u0dd9\u0dc0\u0dca\u0dbd\u0db1 \u0dc4\u0dac\u0dd2\u0db1\u0dca \u0d87\u0dc3\u0dd4\u0dc0\u0dda\u0dba.\n\n---\n**\u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb \u0d87\u0dad\u0dd2 \u0d89\u0dbb\u0dd2 \u0dbd\u0d9a\u0dd4\u0dab\u0dd4 \u0db4\u0dd2\u0dc5\u0dd2\u0db6\u0db3 \u0db4\u0dd0\u0dc4\u0dd0\u0daf\u0dd2\u0dbd\u0dd2 \u0d9a\u0dd2\u0dbb\u0dd3\u0db8:**\n1. **\u0d85\u0dad\u0dd4\u0dbb\u0dd4 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba \u0dc3\u0db3\u0dc4\u0dcf:** \"\u0daf\u0dd1\u0dc3 \u0db4\u0dd2\u0dba\u0dcf\u0d9c\u0dd9\u0db1\" \u0dc3\u0dc4 \"\u0dad\u0db1\u0dd2\u0d9a\u0db8\u0dad\u0dca\" \u0dc0\u0dd0\u0db1\u0dd2 \u0d9a\u0ddc\u0da7\u0dc3\u0dca \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0dd9\u0db1\u0dca \u0dc0\u0dd9\u0db1\u0dca \u0d9a\u0dbb \u0d85\u0dc0\u0db0\u0dcf\u0dbb\u0dab\u0dba \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0da7 \u0daf\u0dd2\u0d9c\u0dd4 \u0d89\u0dbb\u0dd2 (\u2014) \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb \u0d87\u0dad.\n2. **\u0dc3\u0d82\u0dc0\u0dcf\u0daf \u0d86\u0dbb\u0db8\u0dca\u0db7\u0dba\u0da7:** \u0da0\u0dbb\u0dd2\u0dad\u0dba\u0d9a\u0dca \u0db4\u0dc0\u0dc3\u0db1 \u0daf\u0dd9\u0dba\u0d9a\u0dca \u0dc4\u0db3\u0dd4\u0db1\u0dca\u0dc0\u0dcf \u0daf\u0dd3\u0db8\u0da7 \u0db8\u0dd4\u0dbd\u0dd2\u0db1\u0dca \u0daf\u0dd2\u0d9c\u0dd4 \u0d89\u0dbb \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dd2\u0dbb\u0dd3\u0db8 \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d9a\u0dd9\u0da7\u0dd2 \u0d9a\u0dad\u0dcf \u0d9a\u0dbd\u0dcf\u0dc0\u0dda \u0dc3\u0db8\u0dca\u0db4\u0dca\u200d\u0dbb\u0daf\u0dcf\u0dba\u0d9a\u0dd2. (\u0d8b\u0daf\u0dcf: \"\u0dad\u0dcf\u0dad\u0dca\u0dad\u0dda...\", \"\u0d9a\u0dc0\u0dd4\u0daf?\")\n3. **\u0dc0\u0dd2\u0dbb\u0dcf\u0db8\u0dba\u0d9a\u0dca \u0dc4\u0ddd \u0dc3\u0dd2\u0dad\u0dd4\u0dc0\u0dd2\u0dbd\u0dca\u0dbd\u0d9a\u0dca \u0db4\u0dd9\u0db1\u0dca\u0dc0\u0dd3\u0db8\u0da7:** \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0d9a\u0dca \u0db8\u0dd0\u0daf \u0d87\u0dad\u0dd2 \u0dc0\u0db1 \u0d9a\u0dd4\u0da9\u0dcf \u0db1\u0dd0\u0dc0\u0dad\u0dd3\u0db8\u0d9a\u0dca \u0db4\u0dd9\u0db1\u0dca\u0dc0\u0dd3\u0db8\u0da7 \u0daf \u0db8\u0dd9\u0dba \u0dba\u0ddc\u0daf\u0dcf \u0d9c\u0dd9\u0db1 \u0d87\u0dad."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3-flash-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 25,
+                "outputTokens": 1287,
+                "inputTokensCostNanodollars": "12500",
+                "outputTokensCostNanodollars": "3861000",
+                "totalBackendLatencyMs": "8391"
+              },
+              "id": "synhalees_05_sinhala_grammar_item-45f4f6c0-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 25,
+            "outputTokens": 1287,
+            "inputTokensCostNanodollars": "12500",
+            "outputTokensCostNanodollars": "3861000",
+            "totalBackendLatencyMs": "8391"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        },
+        {
+          "id": "Response assessment with google/gemini-3.8-flash-92ae1a0b",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\n        You are an impartial and strict technical evaluator.\n\n        ### Task\n        Verify if the **Generated Response** complies strictly with the **Criteria**.\n\n        ### Input Data\n        **Generated Response:**\n        \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc3\u0dcf\u0dc4\u0dd2\u0dad\u0dca\u200d\u0dba\u0dba\u0dda \u0d89\u0dbb\u0dd2 \u0dbd\u0d9a\u0dd4\u0dab\u0dd4 (\u0dc0\u0dd2\u0dc1\u0dda\u0dc2\u0dba\u0dd9\u0db1\u0dca \u0daf\u0dd2\u0d9c\u0dd4 \u0d89\u0dbb \u2014 Em dash) \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0db8\u0dd2\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0db1 \u0dbd\u0daf \u0d9a\u0dd9\u0da7\u0dd2 \u0d9a\u0dad\u0dcf\u0dc0\u0d9a \u0d86\u0dbb\u0db8\u0dca\u0db7\u0dba\u0d9a\u0dca \u0db4\u0dc4\u0dad \u0daf\u0dd0\u0d9a\u0dca\u0dc0\u0dda.\n\n**\u0d9a\u0dad\u0dcf\u0dc0\u0dda \u0db8\u0dcf\u0dad\u0dd8\u0d9a\u0dcf\u0dc0: \u0d85\u0dad\u0dd3\u0dad\u0dba\u0dda \u0dc3\u0dd9\u0dc0\u0dab\u0dd0\u0dbd\u0dd2**\n\n\u0db8\u0dc4 \u0dc0\u0dd0\u0dc3\u0dca\u0dc3 \u0db1\u0dd2\u0dc3\u0ddc\u0dbd\u0dca\u0db8\u0db1\u0dca \u0dbb\u0dcf\u0dad\u0dca\u200d\u0dbb\u0dd2\u0dba \u0daf\u0dd9\u0daf\u0dbb\u0dd4\u0db8\u0dca \u0d9a\u0dbb\u0dc0\u0db8\u0dd2\u0db1\u0dca \u0d87\u0daf \u0dc4\u0dd0\u0dbd\u0dd9\u0dba\u0dd2. \u0d9c\u0dd4\u0dab\u0db4\u0dcf\u0dbd \u0db4\u0dd0\u0dbb\u0dab\u0dd2 \u0dc4\u0dcf\u0db1\u0dca\u0dc3\u0dd2 \u0db4\u0dd4\u0da7\u0dd4\u0dc0\u0da7 \u0db6\u0dbb \u0dc0\u0dd3 \u2014 \u0daf\u0dd1\u0dc3 \u0db4\u0dd2\u0dba\u0dcf\u0d9c\u0dd9\u0db1 \u2014 \u0d85\u0dad\u0dd3\u0dad\u0dba\u0dda \u0d85\u0dad\u0dbb\u0db8\u0d82 \u0dc0\u0dd3 \u0dc3\u0dd2\u0da7\u0dd2\u0dba\u0dda\u0dba. \u0dc0\u0dc4\u0dbd\u0dba\u0dd9\u0db1\u0dca \u0dc0\u0dd0\u0da7\u0dd9\u0db1 \u0dc0\u0dad\u0dd4\u0dbb \u0db6\u0dd2\u0d82\u0daf\u0dd4 \u0dc0\u0dbd \u0dc1\u0db6\u0dca\u0daf\u0dba \u0d94\u0dc4\u0dd4\u0da7 \u0d87\u0dc3\u0dd4\u0dab\u0dda \u0db8\u0dd3\u0da7 \u0dc0\u0dc3\u0dbb \u0dc0\u0dd2\u0dc3\u0dca\u0dc3\u0d9a\u0da7 \u0db4\u0dd9\u0dbb \u0d87\u0dc3\u0dd4\u0dab\u0dd4 \u0d92 \u0db8\u0dd2\u0dba\u0dd4\u0dbb\u0dd4 \u0dc3\u0d82\u0d9c\u0dd3\u0dad\u0dba \u0db8\u0dd9\u0db1\u0dd2.\n\n\"\u0dad\u0dcf\u0dad\u0dca\u0dad\u0dda... \u0dad\u0dcf\u0dad\u0dca\u0dad\u0dda...\" \u2014 \u0d92 \u0d94\u0dc4\u0dd4\u0d9c\u0dda \u0d9a\u0dd4\u0da9\u0dcf \u0db4\u0dd4\u0dad\u0dd4\u0d9c\u0dda \u0dc4\u0dac\u0daf? \u0db1\u0dd0\u0dad, \u0d91\u0dba \u0dc4\u0dd4\u0daf\u0dd9\u0d9a\u0dca \u0dc3\u0dd4\u0dc5\u0d9f\u0dda \u0dbb\u0dd0\u0dc0\u0dca \u0db4\u0dd2\u0dc5\u0dd2\u0dbb\u0dd0\u0dc0\u0dca \u0daf\u0dd9\u0db1 \u0db8\u0dad\u0d9a\u0dba\u0d9a\u0dca \u0db4\u0db8\u0dab\u0dd2. \n\n\u0da2\u0dd3\u0dc0\u0dd2\u0dad\u0dba \u2014 \u0d91\u0dba \u0d9a\u0dd9\u0dad\u0dbb\u0db8\u0dca \u0dc3\u0d82\u0d9a\u0dd3\u0dbb\u0dca\u0dab\u0daf? \u0d94\u0dc4\u0dd4 \u0d9a\u0dbd\u0dca\u0db4\u0db1\u0dcf \u0d9a\u0dc5\u0dda\u0dba. \u0d91\u0d9a\u0dbd \u0dad\u0dd2\u0db6\u0dd6 \u0d92 \u0dc3\u0dad\u0dd4\u0da7, \u0d92 \u0dc3\u0dd2\u0db1\u0dc4\u0dc0 \u0dc3\u0dc4 \u0db4\u0dd2\u0dbb\u0dd4\u0dab\u0dd4 \u0d9c\u0dd9\u0daf\u0dbb\u0daf\u0ddc\u0dbb \u0daf\u0dd0\u0db1\u0dca \u0d9c\u0dd2\u0dbd\u0dd2\u0dc4\u0dd3 \u0d9c\u0ddc\u0dc3\u0dca\u0dba. \u0d94\u0dc4\u0dd4 \u0dc3\u0dad\u0dd4 \u0d91\u0d9a\u0db8 \u0dc0\u0dc3\u0dca\u0dad\u0dd4\u0dc0 \u0daf\u0dd0\u0db1\u0dca \u0db8\u0dda \u0db4\u0dd0\u0dbb\u0dab\u0dd2 \u0db1\u0dd2\u0dc0\u0dc3\u0dad\u0dca \u2014 \u0d92 \u0dc4\u0dcf \u0db6\u0dd0\u0db3\u0dd4\u0dab\u0dd4 \u0dad\u0db1\u0dd2\u0d9a\u0db8\u0dad\u0dca \u2014 \u0db4\u0db8\u0dab\u0dd2. \u0dc4\u0daf\u0dd2\u0dc3\u0dd2\u0dba\u0dda\u0db8 \u0daf\u0ddc\u0dbb\u0da7 \u0dad\u0da7\u0dca\u0da7\u0dd4 \u0d9a\u0dbb\u0db1 \u0dc1\u0db6\u0dca\u0daf\u0dba\u0d9a\u0dca \u0d87\u0dc3\u0dd4\u0dab\u0dd2. \u0db8\u0dda \u0db8\u0db0\u0dca\u200d\u0dba\u0db8 \u0dbb\u0dcf\u0dad\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dda \u0d9a\u0dc0\u0dd4\u0dbb\u0dd4\u0db1\u0dca \u0dc0\u0dd2\u0dba \u0dc4\u0dd0\u0d9a\u0dd2\u0daf? \n\n\u0d94\u0dc4\u0dd4 \u0dc3\u0dd9\u0db8\u0dd2\u0db1\u0dca \u0db1\u0dd0\u0d9c\u0dd2\u0da7\u0dca\u0da7\u0dda\u0dba \u2014 \u0db6\u0dd2\u0dba\u0d9a\u0dca \u0dc3\u0dc4 \u0d9a\u0dd4\u0dad\u0dd4\u0dc4\u0dbd\u0dba\u0d9a\u0dca \u0db8\u0dd2\u0dc1\u0dca\u200d\u0dbb \u0dc4\u0dd0\u0d9f\u0dd3\u0db8\u0d9a\u0dd2\u0db1\u0dca \u0dba\u0dd4\u0dad\u0dd4\u0dc0\u0dba. \n\n\"\u0d9a\u0dc0\u0dd4\u0daf?\" \u2014 \u0d94\u0dc4\u0dd4 \u0dc0\u0dd9\u0dc0\u0dca\u0dbd\u0db1 \u0dc4\u0dac\u0dd2\u0db1\u0dca \u0d87\u0dc3\u0dd4\u0dc0\u0dda\u0dba.\n\n---\n**\u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb \u0d87\u0dad\u0dd2 \u0d89\u0dbb\u0dd2 \u0dbd\u0d9a\u0dd4\u0dab\u0dd4 \u0db4\u0dd2\u0dc5\u0dd2\u0db6\u0db3 \u0db4\u0dd0\u0dc4\u0dd0\u0daf\u0dd2\u0dbd\u0dd2 \u0d9a\u0dd2\u0dbb\u0dd3\u0db8:**\n1. **\u0d85\u0dad\u0dd4\u0dbb\u0dd4 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba \u0dc3\u0db3\u0dc4\u0dcf:** \"\u0daf\u0dd1\u0dc3 \u0db4\u0dd2\u0dba\u0dcf\u0d9c\u0dd9\u0db1\" \u0dc3\u0dc4 \"\u0dad\u0db1\u0dd2\u0d9a\u0db8\u0dad\u0dca\" \u0dc0\u0dd0\u0db1\u0dd2 \u0d9a\u0ddc\u0da7\u0dc3\u0dca \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0dd9\u0db1\u0dca \u0dc0\u0dd9\u0db1\u0dca \u0d9a\u0dbb \u0d85\u0dc0\u0db0\u0dcf\u0dbb\u0dab\u0dba \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0da7 \u0daf\u0dd2\u0d9c\u0dd4 \u0d89\u0dbb\u0dd2 (\u2014) \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb \u0d87\u0dad.\n2. **\u0dc3\u0d82\u0dc0\u0dcf\u0daf \u0d86\u0dbb\u0db8\u0dca\u0db7\u0dba\u0da7:** \u0da0\u0dbb\u0dd2\u0dad\u0dba\u0d9a\u0dca \u0db4\u0dc0\u0dc3\u0db1 \u0daf\u0dd9\u0dba\u0d9a\u0dca \u0dc4\u0db3\u0dd4\u0db1\u0dca\u0dc0\u0dcf \u0daf\u0dd3\u0db8\u0da7 \u0db8\u0dd4\u0dbd\u0dd2\u0db1\u0dca \u0daf\u0dd2\u0d9c\u0dd4 \u0d89\u0dbb \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dd2\u0dbb\u0dd3\u0db8 \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d9a\u0dd9\u0da7\u0dd2 \u0d9a\u0dad\u0dcf \u0d9a\u0dbd\u0dcf\u0dc0\u0dda \u0dc3\u0db8\u0dca\u0db4\u0dca\u200d\u0dbb\u0daf\u0dcf\u0dba\u0d9a\u0dd2. (\u0d8b\u0daf\u0dcf: \"\u0dad\u0dcf\u0dad\u0dca\u0dad\u0dda...\", \"\u0d9a\u0dc0\u0dd4\u0daf?\")\n3. **\u0dc0\u0dd2\u0dbb\u0dcf\u0db8\u0dba\u0d9a\u0dca \u0dc4\u0ddd \u0dc3\u0dd2\u0dad\u0dd4\u0dc0\u0dd2\u0dbd\u0dca\u0dbd\u0d9a\u0dca \u0db4\u0dd9\u0db1\u0dca\u0dc0\u0dd3\u0db8\u0da7:** \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0d9a\u0dca \u0db8\u0dd0\u0daf \u0d87\u0dad\u0dd2 \u0dc0\u0db1 \u0d9a\u0dd4\u0da9\u0dcf \u0db1\u0dd0\u0dc0\u0dad\u0dd3\u0db8\u0d9a\u0dca \u0db4\u0dd9\u0db1\u0dca\u0dc0\u0dd3\u0db8\u0da7 \u0daf \u0db8\u0dd9\u0dba \u0dba\u0ddc\u0daf\u0dcf \u0d9c\u0dd9\u0db1 \u0d87\u0dad.\n\n        **Criteria:**\n        1. The response conveys the same meaning as the reference answer: 'punctuation_usage_response'. Wording may differ; the meaning must match.\n2. The response reads like a native Sri Lankan Sinhala speaker wrote it -- natural register and idiom, not translated-sounding English.\n\n        ### Evaluation Protocol\n        1. Analyze the response against the criteria.\n        2. Be strict. If the text is ambiguous, the check fails.\n        3. Output your assessment using the specific structure requested below.\n"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                }
+              ],
+              "id": "Response assessment with google/gemini-3.8-flash-92ae1a0b-req-1"
+            }
+          ],
+          "metrics": {},
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "booleanResult": false
+        }
+      ],
+      "pyRunId": "synhalees_05_sinhala_grammar_item-Run #13",
+      "errorMessage": "Traceback (most recent call last):\n  File \"/benchmarks/src/kaggle_benchmarks/tasks.py\", line 171, in run\n    run.result = self.func(*args, **kwargs)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/ipykernel_14/2904034336.py\", line 113, in synhalees_item\n    judge_passed = all(r.passed for r in report.results)\n                                         ^^^^^^^^^^^^^^\nAttributeError: 'NoneType' object has no attribute 'results'\n"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_05_sinhala_grammar_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_05_sinhala_grammar_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3-flash-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_ERRORED",
+      "startTime": "2026-09-25T18:02:48.943346Z",
+      "endTime": "2026-09-25T18:03:01.547374Z",
+      "conversations": [
+        {
+          "id": "synhalees_05_sinhala_grammar_item-9bc5d0b5",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dbb\u0da0\u0db1\u0dcf\u0dc0\u0d9a\u0da7 \u0d9c\u0dd0\u0dc5\u0db4\u0dd9\u0db1 \u0dc4\u0ddc\u0db3 \u0dbd\u0dc3\u0dca\u0dc3\u0db1 \u0d86\u0dbb\u0db8\u0dca\u0db7\u0dba\u0d9a\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1 - \u0db8\u0dcf\u0dad\u0dd8\u0d9a\u0dcf\u0dc0: \u0d9c\u0db8\u0dda \u0dc3\u0dd2\u0dbb\u0dd2\u0dba"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\"\u0d9c\u0db8\u0dda \u0dc3\u0dd2\u0dbb\u0dd2\u0dba\" \u0dba\u0db1 \u0db8\u0dcf\u0dad\u0dd8\u0d9a\u0dcf\u0dc0\u0da7 \u0d9c\u0dd0\u0dc5\u0db4\u0dd9\u0db1, \u0db1\u0dd2\u0dbb\u0dca\u0db8\u0dcf\u0dab\u0dcf\u0dad\u0dca\u0db8\u0d9a \u0dc3\u0dc4 \u0d86\u0d9a\u0dbb\u0dca\u0dc2\u0dab\u0dd3\u0dba \u0d86\u0dbb\u0db8\u0dca\u0db7\u0dba\u0db1\u0dca \u0d9a\u0dd2\u0dc4\u0dd2\u0db4\u0dba\u0d9a\u0dca \u0db4\u0dc4\u0dad \u0daf\u0dd0\u0d9a\u0dca\u0dc0\u0dda. \u0d94\u0db6\u0dda \u0dbb\u0da0\u0db1\u0dcf\u0dc0\u0dda \u0dc3\u0dca\u0dc0\u0db7\u0dcf\u0dc0\u0dba \u0d85\u0db1\u0dd4\u0dc0 \u0d94\u0db6\u0da7 \u0d9a\u0dd0\u0db8\u0dad\u0dd2 \u0d91\u0d9a\u0d9a\u0dca \u0dad\u0ddd\u0dbb\u0dcf\u0d9c\u0dad \u0dc4\u0dd0\u0d9a.\n\n**\u0dc0\u0dd2\u0d9a\u0dbd\u0dca\u0db4 1: \u0dc3\u0dca\u0dc0\u0db7\u0dcf\u0dc0\u0db0\u0dbb\u0dca\u0db8\u0dba\u0dda \u0d85\u0dc3\u0dd2\u0dbb\u0dd2\u0dba \u0dc0\u0dbb\u0dca\u0dab\u0db1\u0dcf \u0d9a\u0dbb\u0db8\u0dd2\u0db1\u0dca (\u0dc0\u0da9\u0dcf\u0dad\u0dca \u0d9a\u0dcf\u0dc0\u0dca\u200d\u0dba\u0db8\u0dba \u0d86\u0dbb\u0db8\u0dca\u0db7\u0dba\u0d9a\u0dca)**\n\n> \"\u0dc4\u0dd2\u0db8\u0dd2\u0daf\u0dd2\u0dbb\u0dd2 \u0d8b\u0daf\u0dd1\u0dc3\u0db1 \u0db4\u0dd2\u0dab\u0dd2 \u0daf\u0dd2\u0dba\u0dd9\u0db1\u0dca \u0db1\u0dd0\u0dc0\u0dd4\u0db8\u0dca \u0dc0\u0dd6 \u0dad\u0dd4\u0dbb\u0dd4\u0dbd\u0dad\u0dcf\u0dc0\u0db1\u0dca \u0d85\u0dad\u0dbb\u0dd2\u0db1\u0dca \u0dc4\u0db8\u0dcf \u0d91\u0db1 \u0dc3\u0dd2\u0dc3\u0dd2\u0dbd\u0dca \u0db8\u0daf \u0db4\u0dc0\u0db1\u0dad\u0dca, \u0dad\u0dd4\u0dbb\u0dd4 \u0d85\u0d9c \u0dc3\u0dd2\u0da7 \u0d9c\u0dd3 \u0d9c\u0dba\u0db1 \u0d9a\u0dd4\u0dbb\u0dd4\u0dbd\u0dd4 \u0d9a\u0dd0\u0dbd\u0d9c\u0dda \u0db8\u0dd2\u0dba\u0dd4\u0dbb\u0dd4 \u0db1\u0dcf\u0daf\u0dba\u0dad\u0dca \u0d9c\u0dd0\u0db8\u0dd2 \u0db4\u0dbb\u0dd2\u0dc3\u0dbb\u0dba\u0da7 \u0d91\u0d9a\u0dca \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda \u0d85\u0db8\u0dd4\u0dad\u0dd4\u0db8 \u0da2\u0dd3\u0dc0\u0dba\u0d9a\u0dd2. \u0db1\u0dcf\u0d9c\u0dbb\u0dd2\u0d9a \u0d9a\u0dbd\u0db6\u0dbd\u0dba\u0dd9\u0db1\u0dca \u0db8\u0dd2\u0daf\u0dd3 \u0db1\u0dd2\u0daf\u0dc4\u0dc3\u0dca \u0dc3\u0dd4\u0dc0\u0dba \u0dc3\u0ddc\u0dba\u0db1\u0dca\u0db1\u0dd9\u0d9a\u0dd4\u0da7 \u0d9c\u0db8 \u0dba\u0db1\u0dd4 \u0db8\u0dd2\u0dc4\u0dd2\u0db4\u0dd2\u0da7 \u0d87\u0dad\u0dd2 \u0dc3\u0dd4\u0dbb\u0db4\u0dd4\u0dbb\u0dba\u0d9a\u0dd2. \u0dc0\u0dd0\u0dc0\u0dba\u0dd2, \u0daf\u0dcf\u0d9c\u0dd0\u0db6\u0dba\u0dd2, \u0d9a\u0dd9\u0dad\u0dca \u0dba\u0dcf\u0dba\u0dba\u0dd2 \u0d91\u0d9a\u0dca\u0dc0 \u0db8\u0dc0\u0db1 \u0d92 \u0db8\u0db1\u0dbb\u0db8\u0dca \u0daf\u0dc3\u0dd4\u0db1 \u0d95\u0db1\u0dd1\u0db8 \u0d85\u0dba\u0dd9\u0d9a\u0dd4\u0d9c\u0dda \u0dc3\u0dd2\u0dad \u0db1\u0dd2\u0dc0\u0dcf \u0dc3\u0db1\u0dc3\u0db1 \u0d94"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3-flash-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 33,
+                "outputTokens": 1207,
+                "inputTokensCostNanodollars": "16500",
+                "outputTokensCostNanodollars": "3621000",
+                "totalBackendLatencyMs": "10902"
+              },
+              "id": "synhalees_05_sinhala_grammar_item-9bc5d0b5-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 33,
+            "outputTokens": 1207,
+            "inputTokensCostNanodollars": "16500",
+            "outputTokensCostNanodollars": "3621000",
+            "totalBackendLatencyMs": "10902"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        },
+        {
+          "id": "Response assessment with google/gemini-3.8-flash-4c3f6725",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\n        You are an impartial and strict technical evaluator.\n\n        ### Task\n        Verify if the **Generated Response** complies strictly with the **Criteria**.\n\n        ### Input Data\n        **Generated Response:**\n        \"\u0d9c\u0db8\u0dda \u0dc3\u0dd2\u0dbb\u0dd2\u0dba\" \u0dba\u0db1 \u0db8\u0dcf\u0dad\u0dd8\u0d9a\u0dcf\u0dc0\u0da7 \u0d9c\u0dd0\u0dc5\u0db4\u0dd9\u0db1, \u0db1\u0dd2\u0dbb\u0dca\u0db8\u0dcf\u0dab\u0dcf\u0dad\u0dca\u0db8\u0d9a \u0dc3\u0dc4 \u0d86\u0d9a\u0dbb\u0dca\u0dc2\u0dab\u0dd3\u0dba \u0d86\u0dbb\u0db8\u0dca\u0db7\u0dba\u0db1\u0dca \u0d9a\u0dd2\u0dc4\u0dd2\u0db4\u0dba\u0d9a\u0dca \u0db4\u0dc4\u0dad \u0daf\u0dd0\u0d9a\u0dca\u0dc0\u0dda. \u0d94\u0db6\u0dda \u0dbb\u0da0\u0db1\u0dcf\u0dc0\u0dda \u0dc3\u0dca\u0dc0\u0db7\u0dcf\u0dc0\u0dba \u0d85\u0db1\u0dd4\u0dc0 \u0d94\u0db6\u0da7 \u0d9a\u0dd0\u0db8\u0dad\u0dd2 \u0d91\u0d9a\u0d9a\u0dca \u0dad\u0ddd\u0dbb\u0dcf\u0d9c\u0dad \u0dc4\u0dd0\u0d9a.\n\n**\u0dc0\u0dd2\u0d9a\u0dbd\u0dca\u0db4 1: \u0dc3\u0dca\u0dc0\u0db7\u0dcf\u0dc0\u0db0\u0dbb\u0dca\u0db8\u0dba\u0dda \u0d85\u0dc3\u0dd2\u0dbb\u0dd2\u0dba \u0dc0\u0dbb\u0dca\u0dab\u0db1\u0dcf \u0d9a\u0dbb\u0db8\u0dd2\u0db1\u0dca (\u0dc0\u0da9\u0dcf\u0dad\u0dca \u0d9a\u0dcf\u0dc0\u0dca\u200d\u0dba\u0db8\u0dba \u0d86\u0dbb\u0db8\u0dca\u0db7\u0dba\u0d9a\u0dca)**\n\n> \"\u0dc4\u0dd2\u0db8\u0dd2\u0daf\u0dd2\u0dbb\u0dd2 \u0d8b\u0daf\u0dd1\u0dc3\u0db1 \u0db4\u0dd2\u0dab\u0dd2 \u0daf\u0dd2\u0dba\u0dd9\u0db1\u0dca \u0db1\u0dd0\u0dc0\u0dd4\u0db8\u0dca \u0dc0\u0dd6 \u0dad\u0dd4\u0dbb\u0dd4\u0dbd\u0dad\u0dcf\u0dc0\u0db1\u0dca \u0d85\u0dad\u0dbb\u0dd2\u0db1\u0dca \u0dc4\u0db8\u0dcf \u0d91\u0db1 \u0dc3\u0dd2\u0dc3\u0dd2\u0dbd\u0dca \u0db8\u0daf \u0db4\u0dc0\u0db1\u0dad\u0dca, \u0dad\u0dd4\u0dbb\u0dd4 \u0d85\u0d9c \u0dc3\u0dd2\u0da7 \u0d9c\u0dd3 \u0d9c\u0dba\u0db1 \u0d9a\u0dd4\u0dbb\u0dd4\u0dbd\u0dd4 \u0d9a\u0dd0\u0dbd\u0d9c\u0dda \u0db8\u0dd2\u0dba\u0dd4\u0dbb\u0dd4 \u0db1\u0dcf\u0daf\u0dba\u0dad\u0dca \u0d9c\u0dd0\u0db8\u0dd2 \u0db4\u0dbb\u0dd2\u0dc3\u0dbb\u0dba\u0da7 \u0d91\u0d9a\u0dca \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda \u0d85\u0db8\u0dd4\u0dad\u0dd4\u0db8 \u0da2\u0dd3\u0dc0\u0dba\u0d9a\u0dd2. \u0db1\u0dcf\u0d9c\u0dbb\u0dd2\u0d9a \u0d9a\u0dbd\u0db6\u0dbd\u0dba\u0dd9\u0db1\u0dca \u0db8\u0dd2\u0daf\u0dd3 \u0db1\u0dd2\u0daf\u0dc4\u0dc3\u0dca \u0dc3\u0dd4\u0dc0\u0dba \u0dc3\u0ddc\u0dba\u0db1\u0dca\u0db1\u0dd9\u0d9a\u0dd4\u0da7 \u0d9c\u0db8 \u0dba\u0db1\u0dd4 \u0db8\u0dd2\u0dc4\u0dd2\u0db4\u0dd2\u0da7 \u0d87\u0dad\u0dd2 \u0dc3\u0dd4\u0dbb\u0db4\u0dd4\u0dbb\u0dba\u0d9a\u0dd2. \u0dc0\u0dd0\u0dc0\u0dba\u0dd2, \u0daf\u0dcf\u0d9c\u0dd0\u0db6\u0dba\u0dd2, \u0d9a\u0dd9\u0dad\u0dca \u0dba\u0dcf\u0dba\u0dba\u0dd2 \u0d91\u0d9a\u0dca\u0dc0 \u0db8\u0dc0\u0db1 \u0d92 \u0db8\u0db1\u0dbb\u0db8\u0dca \u0daf\u0dc3\u0dd4\u0db1 \u0d95\u0db1\u0dd1\u0db8 \u0d85\u0dba\u0dd9\u0d9a\u0dd4\u0d9c\u0dda \u0dc3\u0dd2\u0dad \u0db1\u0dd2\u0dc0\u0dcf \u0dc3\u0db1\u0dc3\u0db1 \u0d94\n\n        **Criteria:**\n        1. The response conveys the same meaning as the reference answer: 'essay_opening_response'. Wording may differ; the meaning must match.\n2. The response reads like a native Sri Lankan Sinhala speaker wrote it -- natural register and idiom, not translated-sounding English.\n\n        ### Evaluation Protocol\n        1. Analyze the response against the criteria.\n        2. Be strict. If the text is ambiguous, the check fails.\n        3. Output your assessment using the specific structure requested below.\n"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                }
+              ],
+              "id": "Response assessment with google/gemini-3.8-flash-4c3f6725-req-1"
+            }
+          ],
+          "metrics": {},
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "booleanResult": false
+        }
+      ],
+      "pyRunId": "synhalees_05_sinhala_grammar_item-Run #14",
+      "errorMessage": "Traceback (most recent call last):\n  File \"/benchmarks/src/kaggle_benchmarks/tasks.py\", line 171, in run\n    run.result = self.func(*args, **kwargs)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/ipykernel_14/2904034336.py\", line 113, in synhalees_item\n    judge_passed = all(r.passed for r in report.results)\n                                         ^^^^^^^^^^^^^^\nAttributeError: 'NoneType' object has no attribute 'results'\n"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_05_sinhala_grammar_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_05_sinhala_grammar_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3-flash-preview"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_ERRORED",
+      "startTime": "2026-09-25T18:02:57.735411Z",
+      "endTime": "2026-09-25T18:03:09.127109Z",
+      "conversations": [
+        {
+          "id": "synhalees_05_sinhala_grammar_item-32cba776",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db1\u0dd2\u0dbd \u0dbd\u0dd2\u0db4\u0dd2\u0dba\u0d9a\u0dca \u0dc3\u0dc4 \u0dba\u0dcf\u0dc5\u0dd4\u0dc0\u0dd9\u0d9a\u0dd4\u0da7 \u0dba\u0dc0\u0db1 \u0db4\u0dab\u0dd2\u0dc0\u0dd2\u0da9\u0dba\u0d9a\u0dca \u0d85\u0dad\u0dbb \u0db7\u0dcf\u0dc2\u0dcf \u0dc0\u0dd9\u0db1\u0dc3 \u0db4\u0dd0\u0dc4\u0dd0\u0daf\u0dd2\u0dbd\u0dd2 \u0d9a\u0dbb\u0dbd\u0dcf \u0daf\u0dd9\u0d9a\u0da7\u0db8 \u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db1\u0dd2\u0dbd \u0dbd\u0dd2\u0db4\u0dd2\u0dba\u0d9a\u0dca (Formal Letter) \u0dc3\u0dc4 \u0db8\u0dd2\u0dad\u0dd4\u0dbb\u0dd9\u0d9a\u0dd4\u0da7 \u0dba\u0dc0\u0db1 \u0db4\u0dab\u0dd2\u0dc0\u0dd2\u0da9\u0dba\u0d9a\u0dca (Informal Message) \u0d85\u0dad\u0dbb \u0db7\u0dcf\u0dc2\u0dcf\u0db8\u0dba \u0dc0\u0dc1\u0dba\u0dd9\u0db1\u0dca \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dc0\u0dd9\u0db1\u0dc3\u0dca\u0d9a\u0db8\u0dca \u0d9a\u0dd2\u0dc4\u0dd2\u0db4\u0dba\u0d9a\u0dca \u0db4\u0dc0\u0dad\u0dd3. \u0db4\u0dc4\u0dad \u0daf\u0dd0\u0d9a\u0dca\u0dc0\u0dd9\u0db1\u0dca\u0db1\u0dda \u0d91\u0db8 \u0dc0\u0dd9\u0db1\u0dc3\u0dca\u0d9a\u0db8\u0dca \u0dc3\u0dc4 \u0d92 \u0dc3\u0db3\u0dc4\u0dcf \u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab\u0dba\u0dd2.\n\n### \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dc0\u0dd9\u0db1\u0dc3\u0dca\u0d9a\u0db8\u0dca\n\n| \u0dbd\u0d9a\u0dca\u0dc2\u0dab\u0dba | \u0db1\u0dd2\u0dbd \u0dbd\u0dd2\u0db4\u0dd2\u0dba | \u0db8\u0dd2\u0dad\u0dd4\u0dbb\u0dd9\u0d9a\u0dd4\u0da7 \u0dba\u0dc0\u0db1 \u0db4\u0dab\u0dd2\u0dc0\u0dd2\u0da9\u0dba |\n| :--- | :--- | :--- |\n| **\u0db7\u0dcf\u0dc2\u0dcf \u0dc1\u0ddb\u0dbd\u0dd2\u0dba** | \u0dc3\u0db8\u0dca\u0db8\u0dad \u0dbd\u0dd2\u0d9b\u0dd2\u0dad \u0db7\u0dcf\u0dc2\u0dcf\u0dc0 (\u0db7\u0dcf\u0dc2\u0dcf \u0dbb\u0dd3\u0dad\u0dd2\u0dc0\u0dbd\u0da7 \u0d85\u0db1\u0dd4\u0d9a\u0dd6\u0dbd\u0dc0) \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0dba\u0dd2. | \u0d9a\u0dae\u0db1 \u0db7\u0dcf\u0dc2\u0dcf\u0dc0 \u0dc4\u0ddd \u0dc3\u0dbb\u0dbd \u0dc3\u0dd4\u0dc4\u0daf \u0db7\u0dcf\u0dc2\u0dcf\u0dc0 \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0dba\u0dd2. |\n| **\u0d86\u0db8\u0db1\u0dca\u0dad\u0dca\u200d\u0dbb\u0dab\u0dba** | \"\u0d9c\u0dbb\u0dd4 \u0db8\u0dba\u0dcf/\u0db8\u0dd2\u0dba\", \"\u0db8\u0dc4\u0dad\u0dca\u0db8\u0dba\u0dcf\u0dab\u0db1\u0dd2\" \u0dc0\u0dd0\u0db1\u0dd2 \u0d9c\u0dde\u0dbb\u0dc0\u0db1\u0dd3\u0dba \u0db4\u0daf \u0dba\u0ddc\u0daf\u0dba\u0dd2. | \"\u0db8\u0da0\u0d82\", \"\u0dba\u0dcf\u0dbd\u0dd4\u0dc0\u0dcf\" \u0dc4\u0ddd \u0db1\u0db8 \u0d9a\u0dd2\u0dba\u0dcf \u0dc3\u0dbb\u0dbd\u0dc0 \u0d85\u0db8\u0dad\u0dba\u0dd2. |\n| **\u0d85\u0db1\u0dca\u0dad\u0dbb\u0dca\u0d9c\u0dad\u0dba** | \u0d9a\u0dd9\u0da7\u0dd2, \u0db4\u0dd0\u0dc4\u0dd0\u0daf\u0dd2\u0dbd\u0dd2 \u0dc3\u0dc4 \u0d85\u0daf\u0dcf\u0dc5 \u0d9a\u0dbb\u0dd4\u0dab\u0da7 \u0db4\u0db8\u0dab\u0d9a\u0dca \u0dc3\u0dd3\u0db8\u0dcf \u0dc0\u0dda. | \u0daf\u0dd2\u0d9c\u0dd4 \u0dc4\u0ddd \u0d9a\u0dd9\u0da7\u0dd2 \u0dc0\u0dd2\u0dba \u0dc4\u0dd0\u0d9a\u0dd2 \u0d85\u0dad\u0dbb \u0d95\u0db4\u0dcf\u0daf\u0dd6\u0db4 \u0dc4\u0ddd \u0db4\u0dde\u0daf\u0dca\u0d9c\u0dbd\u0dd2\u0d9a \u0dc0\u0dd2\u0dc3\u0dca\u0dad\u0dbb \u0d87\u0dad\u0dd4\u0dc5\u0dad\u0dca \u0dc0\u0dd2\u0dba \u0dc4\u0dd0\u0d9a. |\n| **\u0d85\u0dbb\u0db8\u0dd4\u0dab** | \u0db4\u0dd0\u0db8\u0dd2\u0dab\u0dd2\u0dbd\u0dca\u0dbd\u0d9a\u0dca, \u0d89\u0dbd\u0dca\u0dbd\u0dd3\u0db8\u0d9a\u0dca \u0dc4\u0ddd \u0db1\u0dd2\u0dbd \u0daf\u0dd0\u0db1\u0dd4\u0db8\u0dca\u0daf\u0dd3\u0db8\u0d9a\u0dca \u0dc0\u0dd0\u0db1\u0dd2 \u0dbb\u0dcf\u0da2\u0d9a\u0dcf\u0dbb\u0dd2\u0db8\u0dba \u0d85\u0dc0\u0dc1\u0dca\u200d\u0dba\u0dad\u0dcf\u0dc0\u0d9a\u0dca. | \u0dc3\u0dd4\u0dc4\u0daf\u0dad\u0dca\u0dc0\u0dba \u0d85\u0dbd\u0dd4\u0dad\u0dca \u0d9a\u0dbb \u0d9c\u0dd0\u0db1\u0dd3\u0db8 \u0dc4\u0ddd \u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba \u0dad\u0ddc\u0dbb\u0dad\u0dd4\u0dbb\u0dd4 \u0dc4\u0dd4\u0dc0\u0db8\u0dcf\u0dbb\u0dd4\u0dc0. |\n| **\u0db1\u0dd2\u0db8\u0dcf\u0dc0** | \"\u0db8\u0dd3\u0da7, \u0dc0\u0dd2\u0dc1\u0dca\u0dc0\u0dcf\u0dc3\u0dd3,\" \u0dc0\u0dd0\u0db1\u0dd2 \u0dc0\u0dd2\u0db0\u0dd2\u0db8\u0dad\u0dca \u0d85\u0dc0\u0dc3\u0dcf\u0db1\u0dba\u0d9a\u0dca \u0d87\u0dad. | \"\u0db4\u0dc3\u0dca\u0dc3\u0dda \u0dc3\u0dd9\u0da7\u0dca \u0dc0\u0dd9\u0db8\u0dd4\", \"\u0db6\u0dd4\u0daf\u0dd4 \u0dc3\u0dbb\u0dab\u0dba\u0dd2\" \u0dc0\u0dd0\u0db1\u0dd2 \u0dc3\u0dbb\u0dbd \u0d85\u0dc0\u0dc3\u0dcf\u0db1\u0dba\u0d9a\u0dca \u0d87\u0dad. |\n\n---\n\n### 1. \u0db1\u0dd2\u0dbd \u0dbd\u0dd2\u0db4\u0dd2\u0dba\u0d9a\u0da7 \u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab\u0dba\u0d9a\u0dca\n**\u0db8\u0dcf\u0dad\u0dd8\u0d9a\u0dcf\u0dc0: \u0d85\u0dc3\u0db1\u0dd3\u0db4 \u0dad\u0dad\u0dca\u0dad\u0dca\u0dc0\u0dba\u0d9a\u0dca \u0dc4\u0dda\u0dad\u0dd4\u0dc0\u0dd9\u0db1\u0dca \u0db1\u0dd2\u0dc0\u0dcf\u0da9\u0dd4 \u0dc0\u0dcf\u0dbb\u0dca\u0dad\u0dcf \u0d9a\u0dd2\u0dbb\u0dd3\u0db8.**\n\n\u0d91\u0db1\u0dca. \u0db4\u0dd9\u0dbb\u0dda\u0dbb\u0dcf,\n\u0d85\u0d82\u0d9a 12, \u0d9c\u0dcf\u0dbd\u0dd4 \u0db4\u0dcf\u0dbb,\n\u0d9a\u0ddc\u0dc5\u0db9 03.\n\n\u0d9a\u0dc5\u0db8\u0db1\u0dcf\u0d9a\u0dbb\u0dd4,\nABC \u0db4\u0dde\u0daf\u0dca\u0d9c\u0dbd\u0dd2\u0d9a \u0d86\u0dba\u0dad\u0db1\u0dba,\n\u0d9a\u0ddc\u0dc5\u0db9 02.\n\n2023.10.27\n\n\u0db8\u0dc4\u0dad\u0dca\u0db8\u0dba\u0dcf\u0dab\u0db1\u0dd2,\n\n**\u0d85\u0dc3\u0db1\u0dd3\u0db4 \u0dad\u0dad\u0dca\u0dad\u0dca\u0dc0\u0dba\u0d9a\u0dca \u0dc4\u0dda\u0dad\u0dd4\u0dc0\u0dd9\u0db1\u0dca \u0dc3\u0dda\u0dc0\u0dba\u0da7 \u0dc0\u0dcf\u0dbb\u0dca\u0dad\u0dcf \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0da7 \u0db1\u0ddc\u0dc4\u0dd0\u0d9a\u0dd2 \u0dc0\u0dd3\u0db8 \u0db4\u0dd2\u0dc5\u0dd2\u0db6\u0db3\u0dc0\u0dba\u0dd2.**\n\n\u0dc4\u0daf\u0dd2\u0dc3\u0dd2\u0dba\u0dda \u0d87\u0dad\u0dd2 \u0dc0\u0dd6 \u0daf\u0dd0\u0da9\u0dd2 \u0d8b\u0dab \u0dbb\u0ddd\u0d9c\u0dd3 \u0dad\u0dad\u0dca\u0dad\u0dca\u0dc0\u0dba\u0d9a\u0dca \u0dc4\u0dda\u0dad\u0dd4\u0dc0\u0dd9\u0db1\u0dca \u0db8\u0da7 2023.10.27 \u0dc0\u0db1 \u0d85\u0daf \u0daf\u0dd2\u0db1 \u0dc3\u0dda\u0dc0\u0dba\u0da7 \u0dc0\u0dcf\u0dbb\u0dca\u0dad\u0dcf \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0da7 \u0db1\u0ddc\u0dc4\u0dd0\u0d9a\u0dd2 \u0dc0\u0db1 \u0db6\u0dc0 \u0d9a\u0dcf\u0dbb\u0dd4\u0dab\u0dd2\u0d9a\u0dc0 \u0daf\u0db1\u0dca\u0dc0\u0dcf \u0dc3\u0dd2\u0da7\u0dd2\u0db8\u0dd2. \u0db8\u0dda \u0db4\u0dd2\u0dc5\u0dd2\u0db6\u0db3\u0dc0 \u0dc3\u0dbd\u0d9a\u0dcf \u0db6\u0dbd\u0dcf \u0d85\u0daf \u0daf\u0dd2\u0db1 \u0dc3\u0db3\u0dc4\u0dcf \u0db8\u0da7 \u0db1\u0dd2\u0dc0\u0dcf\u0da9\u0dd4 \u0d85\u0db1\u0dd4\u0db8\u0dad \u0d9a\u0dbb \u0daf\u0dd9\u0db1 \u0db8\u0dd9\u0db1\u0dca \u0d89\u0dad\u0dcf \u0d9c\u0dde\u0dbb\u0dc0\u0dba\u0dd9\u0db1\u0dca \u0d89\u0dbd\u0dca\u0dbd\u0dcf \u0dc3\u0dd2\u0da7\u0dd2\u0db8\u0dd2.\n\n\u0dc3\u0dca\u0dad\u0dd6\u0dad\u0dd2\u0dba\u0dd2.\n\n\u0db8\u0dd3\u0da7 \u0dc0\u0dd2\u0dc1\u0dca\u0dc0\u0dcf\u0dc3\u0dd3,\n(\u0d85\u0dad\u0dca\u0dc3\u0db1)\n\u0d91\u0db1\u0dca. \u0db4\u0dd9\u0dbb\u0dda\u0dbb\u0dcf.\n\n---\n\n### 2. \u0db8\u0dd2\u0dad\u0dd4\u0dbb\u0dd9\u0d9a\u0dd4\u0da7 \u0dba\u0dc0\u0db1 \u0db4\u0dab\u0dd2\u0dc0\u0dd2\u0da9\u0dba\u0d9a\u0da7 \u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab\u0dba\u0d9a\u0dca (WhatsApp/SMS)\n**\u0d85\u0dbb\u0db8\u0dd4\u0dab: \u0dc3\u0dc0\u0dc3\u0dca \u0dc0\u0dbb\u0dd4\u0dc0\u0dda \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0d9a\u0da7\u0dca \u0dc3\u0dd9\u0dbd\u0dca\u0dbd\u0db8\u0dca \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0da7 \u0d86\u0dbb\u0dcf\u0db0\u0db1\u0dcf \u0d9a\u0dd2\u0dbb\u0dd3\u0db8.**\n\n\"\u0db8\u0da0\u0d82 \u0d9a\u0db8\u0dbd\u0dca, \u0d9a\u0ddc\u0dc4\u0ddc\u0db8\u0daf? \n\n\u0d85\u0daf \u0dc4\u0dc0\u0dc3 \u0dc4\u0dad\u0dbb\u0da7 \u0dc0\u0dd2\u0dad\u0dbb \u0d85\u0db4\u0dd2 \u0dc4\u0dd0\u0db8\u0ddd\u0db8 \u0d9c\u0dca\u200d\u0dbb\u0dc0\u0dd4\u0db1\u0dca\u0da9\u0dca \u0d91\u0d9a\u0da7 \u0dba\u0db1\u0dc0\u0dcf \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0d9a\u0da7\u0dca \u0db4\u0dcf\u0dbb\u0d9a\u0dca \u0d9c\u0dc4\u0db1\u0dca\u0db1. \u0d8b\u0db9\u0da7\u0dad\u0dca \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca\u0daf \u0d91\u0db1\u0dca\u0db1? \u0d85\u0db1\u0dd2\u0dad\u0dca \u0dc3\u0dd9\u0da7\u0dca \u0d91\u0d9a\u0dad\u0dca \u0d91\u0db1\u0dc0\u0dcf \u0d9a\u0dd2\u0dc0\u0dca\u0dc0\u0dcf. \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca \u0db1\u0db8\u0dca \u0d89\u0d9a\u0dca\u0db8\u0db1\u0da7 \u0db8\u0dd0\u0dc3\u0dda\u0da2\u0dca \u0d91\u0d9a\u0d9a\u0dca \u0daf\u0dcf\u0db4\u0db1\u0dca. \n\n\u0d91\u0dc4\u0dd9\u0db1\u0db8\u0dca \u0dc4\u0dc0\u0dc3 \u0dc4\u0db8\u0dca\u0db6\u0dd9\u0db8\u0dd4. \u0db4\u0dbb\u0dd2\u0dc3\u0dca\u0dc3\u0db8\u0dd9\u0db1\u0dca \u0d89\u0db3\u0db4\u0db1\u0dca!\"\n\n---\n\n**\u0dc3\u0dcf\u0dbb\u0dcf\u0d82\u0dc1\u0dba:**\n\u0db1\u0dd2\u0dbd \u0dbd\u0dd2\u0db4\u0dd2\u0dba\u0d9a\u0daf\u0dd3 **\u0d9c\u0dde\u0dbb\u0dc0\u0dba \u0dc3\u0dc4 \u0dc0\u0dd2\u0db1\u0dba** \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dc0\u0db1 \u0d85\u0dad\u0dbb, \u0db8\u0dd2\u0dad\u0dd4\u0dbb\u0dd9\u0d9a\u0dd4\u0da7 \u0dba\u0dc0\u0db1 \u0db4\u0dab\u0dd2\u0dc0\u0dd2\u0da9\u0dba\u0d9a\u0daf\u0dd3 **\u0dc3\u0db8\u0dd3\u0db4 \u0db6\u0dc0 \u0dc3\u0dc4 \u0dc3\u0dbb\u0dbd \u0db6\u0dc0** \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dc0\u0dda."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3-flash-preview"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 45,
+                "outputTokens": 1717,
+                "inputTokensCostNanodollars": "22500",
+                "outputTokensCostNanodollars": "5151000",
+                "totalBackendLatencyMs": "9880"
+              },
+              "id": "synhalees_05_sinhala_grammar_item-32cba776-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 45,
+            "outputTokens": 1717,
+            "inputTokensCostNanodollars": "22500",
+            "outputTokensCostNanodollars": "5151000",
+            "totalBackendLatencyMs": "9880"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        },
+        {
+          "id": "Response assessment with google/gemini-3.8-flash-11804ff5",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\n        You are an impartial and strict technical evaluator.\n\n        ### Task\n        Verify if the **Generated Response** complies strictly with the **Criteria**.\n\n        ### Input Data\n        **Generated Response:**\n        \u0db1\u0dd2\u0dbd \u0dbd\u0dd2\u0db4\u0dd2\u0dba\u0d9a\u0dca (Formal Letter) \u0dc3\u0dc4 \u0db8\u0dd2\u0dad\u0dd4\u0dbb\u0dd9\u0d9a\u0dd4\u0da7 \u0dba\u0dc0\u0db1 \u0db4\u0dab\u0dd2\u0dc0\u0dd2\u0da9\u0dba\u0d9a\u0dca (Informal Message) \u0d85\u0dad\u0dbb \u0db7\u0dcf\u0dc2\u0dcf\u0db8\u0dba \u0dc0\u0dc1\u0dba\u0dd9\u0db1\u0dca \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dc0\u0dd9\u0db1\u0dc3\u0dca\u0d9a\u0db8\u0dca \u0d9a\u0dd2\u0dc4\u0dd2\u0db4\u0dba\u0d9a\u0dca \u0db4\u0dc0\u0dad\u0dd3. \u0db4\u0dc4\u0dad \u0daf\u0dd0\u0d9a\u0dca\u0dc0\u0dd9\u0db1\u0dca\u0db1\u0dda \u0d91\u0db8 \u0dc0\u0dd9\u0db1\u0dc3\u0dca\u0d9a\u0db8\u0dca \u0dc3\u0dc4 \u0d92 \u0dc3\u0db3\u0dc4\u0dcf \u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab\u0dba\u0dd2.\n\n### \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dc0\u0dd9\u0db1\u0dc3\u0dca\u0d9a\u0db8\u0dca\n\n| \u0dbd\u0d9a\u0dca\u0dc2\u0dab\u0dba | \u0db1\u0dd2\u0dbd \u0dbd\u0dd2\u0db4\u0dd2\u0dba | \u0db8\u0dd2\u0dad\u0dd4\u0dbb\u0dd9\u0d9a\u0dd4\u0da7 \u0dba\u0dc0\u0db1 \u0db4\u0dab\u0dd2\u0dc0\u0dd2\u0da9\u0dba |\n| :--- | :--- | :--- |\n| **\u0db7\u0dcf\u0dc2\u0dcf \u0dc1\u0ddb\u0dbd\u0dd2\u0dba** | \u0dc3\u0db8\u0dca\u0db8\u0dad \u0dbd\u0dd2\u0d9b\u0dd2\u0dad \u0db7\u0dcf\u0dc2\u0dcf\u0dc0 (\u0db7\u0dcf\u0dc2\u0dcf \u0dbb\u0dd3\u0dad\u0dd2\u0dc0\u0dbd\u0da7 \u0d85\u0db1\u0dd4\u0d9a\u0dd6\u0dbd\u0dc0) \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0dba\u0dd2. | \u0d9a\u0dae\u0db1 \u0db7\u0dcf\u0dc2\u0dcf\u0dc0 \u0dc4\u0ddd \u0dc3\u0dbb\u0dbd \u0dc3\u0dd4\u0dc4\u0daf \u0db7\u0dcf\u0dc2\u0dcf\u0dc0 \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0dba\u0dd2. |\n| **\u0d86\u0db8\u0db1\u0dca\u0dad\u0dca\u200d\u0dbb\u0dab\u0dba** | \"\u0d9c\u0dbb\u0dd4 \u0db8\u0dba\u0dcf/\u0db8\u0dd2\u0dba\", \"\u0db8\u0dc4\u0dad\u0dca\u0db8\u0dba\u0dcf\u0dab\u0db1\u0dd2\" \u0dc0\u0dd0\u0db1\u0dd2 \u0d9c\u0dde\u0dbb\u0dc0\u0db1\u0dd3\u0dba \u0db4\u0daf \u0dba\u0ddc\u0daf\u0dba\u0dd2. | \"\u0db8\u0da0\u0d82\", \"\u0dba\u0dcf\u0dbd\u0dd4\u0dc0\u0dcf\" \u0dc4\u0ddd \u0db1\u0db8 \u0d9a\u0dd2\u0dba\u0dcf \u0dc3\u0dbb\u0dbd\u0dc0 \u0d85\u0db8\u0dad\u0dba\u0dd2. |\n| **\u0d85\u0db1\u0dca\u0dad\u0dbb\u0dca\u0d9c\u0dad\u0dba** | \u0d9a\u0dd9\u0da7\u0dd2, \u0db4\u0dd0\u0dc4\u0dd0\u0daf\u0dd2\u0dbd\u0dd2 \u0dc3\u0dc4 \u0d85\u0daf\u0dcf\u0dc5 \u0d9a\u0dbb\u0dd4\u0dab\u0da7 \u0db4\u0db8\u0dab\u0d9a\u0dca \u0dc3\u0dd3\u0db8\u0dcf \u0dc0\u0dda. | \u0daf\u0dd2\u0d9c\u0dd4 \u0dc4\u0ddd \u0d9a\u0dd9\u0da7\u0dd2 \u0dc0\u0dd2\u0dba \u0dc4\u0dd0\u0d9a\u0dd2 \u0d85\u0dad\u0dbb \u0d95\u0db4\u0dcf\u0daf\u0dd6\u0db4 \u0dc4\u0ddd \u0db4\u0dde\u0daf\u0dca\u0d9c\u0dbd\u0dd2\u0d9a \u0dc0\u0dd2\u0dc3\u0dca\u0dad\u0dbb \u0d87\u0dad\u0dd4\u0dc5\u0dad\u0dca \u0dc0\u0dd2\u0dba \u0dc4\u0dd0\u0d9a. |\n| **\u0d85\u0dbb\u0db8\u0dd4\u0dab** | \u0db4\u0dd0\u0db8\u0dd2\u0dab\u0dd2\u0dbd\u0dca\u0dbd\u0d9a\u0dca, \u0d89\u0dbd\u0dca\u0dbd\u0dd3\u0db8\u0d9a\u0dca \u0dc4\u0ddd \u0db1\u0dd2\u0dbd \u0daf\u0dd0\u0db1\u0dd4\u0db8\u0dca\u0daf\u0dd3\u0db8\u0d9a\u0dca \u0dc0\u0dd0\u0db1\u0dd2 \u0dbb\u0dcf\u0da2\u0d9a\u0dcf\u0dbb\u0dd2\u0db8\u0dba \u0d85\u0dc0\u0dc1\u0dca\u200d\u0dba\u0dad\u0dcf\u0dc0\u0d9a\u0dca. | \u0dc3\u0dd4\u0dc4\u0daf\u0dad\u0dca\u0dc0\u0dba \u0d85\u0dbd\u0dd4\u0dad\u0dca \u0d9a\u0dbb \u0d9c\u0dd0\u0db1\u0dd3\u0db8 \u0dc4\u0ddd \u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba \u0dad\u0ddc\u0dbb\u0dad\u0dd4\u0dbb\u0dd4 \u0dc4\u0dd4\u0dc0\u0db8\u0dcf\u0dbb\u0dd4\u0dc0. |\n| **\u0db1\u0dd2\u0db8\u0dcf\u0dc0** | \"\u0db8\u0dd3\u0da7, \u0dc0\u0dd2\u0dc1\u0dca\u0dc0\u0dcf\u0dc3\u0dd3,\" \u0dc0\u0dd0\u0db1\u0dd2 \u0dc0\u0dd2\u0db0\u0dd2\u0db8\u0dad\u0dca \u0d85\u0dc0\u0dc3\u0dcf\u0db1\u0dba\u0d9a\u0dca \u0d87\u0dad. | \"\u0db4\u0dc3\u0dca\u0dc3\u0dda \u0dc3\u0dd9\u0da7\u0dca \u0dc0\u0dd9\u0db8\u0dd4\", \"\u0db6\u0dd4\u0daf\u0dd4 \u0dc3\u0dbb\u0dab\u0dba\u0dd2\" \u0dc0\u0dd0\u0db1\u0dd2 \u0dc3\u0dbb\u0dbd \u0d85\u0dc0\u0dc3\u0dcf\u0db1\u0dba\u0d9a\u0dca \u0d87\u0dad. |\n\n---\n\n### 1. \u0db1\u0dd2\u0dbd \u0dbd\u0dd2\u0db4\u0dd2\u0dba\u0d9a\u0da7 \u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab\u0dba\u0d9a\u0dca\n**\u0db8\u0dcf\u0dad\u0dd8\u0d9a\u0dcf\u0dc0: \u0d85\u0dc3\u0db1\u0dd3\u0db4 \u0dad\u0dad\u0dca\u0dad\u0dca\u0dc0\u0dba\u0d9a\u0dca \u0dc4\u0dda\u0dad\u0dd4\u0dc0\u0dd9\u0db1\u0dca \u0db1\u0dd2\u0dc0\u0dcf\u0da9\u0dd4 \u0dc0\u0dcf\u0dbb\u0dca\u0dad\u0dcf \u0d9a\u0dd2\u0dbb\u0dd3\u0db8.**\n\n\u0d91\u0db1\u0dca. \u0db4\u0dd9\u0dbb\u0dda\u0dbb\u0dcf,\n\u0d85\u0d82\u0d9a 12, \u0d9c\u0dcf\u0dbd\u0dd4 \u0db4\u0dcf\u0dbb,\n\u0d9a\u0ddc\u0dc5\u0db9 03.\n\n\u0d9a\u0dc5\u0db8\u0db1\u0dcf\u0d9a\u0dbb\u0dd4,\nABC \u0db4\u0dde\u0daf\u0dca\u0d9c\u0dbd\u0dd2\u0d9a \u0d86\u0dba\u0dad\u0db1\u0dba,\n\u0d9a\u0ddc\u0dc5\u0db9 02.\n\n2023.10.27\n\n\u0db8\u0dc4\u0dad\u0dca\u0db8\u0dba\u0dcf\u0dab\u0db1\u0dd2,\n\n**\u0d85\u0dc3\u0db1\u0dd3\u0db4 \u0dad\u0dad\u0dca\u0dad\u0dca\u0dc0\u0dba\u0d9a\u0dca \u0dc4\u0dda\u0dad\u0dd4\u0dc0\u0dd9\u0db1\u0dca \u0dc3\u0dda\u0dc0\u0dba\u0da7 \u0dc0\u0dcf\u0dbb\u0dca\u0dad\u0dcf \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0da7 \u0db1\u0ddc\u0dc4\u0dd0\u0d9a\u0dd2 \u0dc0\u0dd3\u0db8 \u0db4\u0dd2\u0dc5\u0dd2\u0db6\u0db3\u0dc0\u0dba\u0dd2.**\n\n\u0dc4\u0daf\u0dd2\u0dc3\u0dd2\u0dba\u0dda \u0d87\u0dad\u0dd2 \u0dc0\u0dd6 \u0daf\u0dd0\u0da9\u0dd2 \u0d8b\u0dab \u0dbb\u0ddd\u0d9c\u0dd3 \u0dad\u0dad\u0dca\u0dad\u0dca\u0dc0\u0dba\u0d9a\u0dca \u0dc4\u0dda\u0dad\u0dd4\u0dc0\u0dd9\u0db1\u0dca \u0db8\u0da7 2023.10.27 \u0dc0\u0db1 \u0d85\u0daf \u0daf\u0dd2\u0db1 \u0dc3\u0dda\u0dc0\u0dba\u0da7 \u0dc0\u0dcf\u0dbb\u0dca\u0dad\u0dcf \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0da7 \u0db1\u0ddc\u0dc4\u0dd0\u0d9a\u0dd2 \u0dc0\u0db1 \u0db6\u0dc0 \u0d9a\u0dcf\u0dbb\u0dd4\u0dab\u0dd2\u0d9a\u0dc0 \u0daf\u0db1\u0dca\u0dc0\u0dcf \u0dc3\u0dd2\u0da7\u0dd2\u0db8\u0dd2. \u0db8\u0dda \u0db4\u0dd2\u0dc5\u0dd2\u0db6\u0db3\u0dc0 \u0dc3\u0dbd\u0d9a\u0dcf \u0db6\u0dbd\u0dcf \u0d85\u0daf \u0daf\u0dd2\u0db1 \u0dc3\u0db3\u0dc4\u0dcf \u0db8\u0da7 \u0db1\u0dd2\u0dc0\u0dcf\u0da9\u0dd4 \u0d85\u0db1\u0dd4\u0db8\u0dad \u0d9a\u0dbb \u0daf\u0dd9\u0db1 \u0db8\u0dd9\u0db1\u0dca \u0d89\u0dad\u0dcf \u0d9c\u0dde\u0dbb\u0dc0\u0dba\u0dd9\u0db1\u0dca \u0d89\u0dbd\u0dca\u0dbd\u0dcf \u0dc3\u0dd2\u0da7\u0dd2\u0db8\u0dd2.\n\n\u0dc3\u0dca\u0dad\u0dd6\u0dad\u0dd2\u0dba\u0dd2.\n\n\u0db8\u0dd3\u0da7 \u0dc0\u0dd2\u0dc1\u0dca\u0dc0\u0dcf\u0dc3\u0dd3,\n(\u0d85\u0dad\u0dca\u0dc3\u0db1)\n\u0d91\u0db1\u0dca. \u0db4\u0dd9\u0dbb\u0dda\u0dbb\u0dcf.\n\n---\n\n### 2. \u0db8\u0dd2\u0dad\u0dd4\u0dbb\u0dd9\u0d9a\u0dd4\u0da7 \u0dba\u0dc0\u0db1 \u0db4\u0dab\u0dd2\u0dc0\u0dd2\u0da9\u0dba\u0d9a\u0da7 \u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab\u0dba\u0d9a\u0dca (WhatsApp/SMS)\n**\u0d85\u0dbb\u0db8\u0dd4\u0dab: \u0dc3\u0dc0\u0dc3\u0dca \u0dc0\u0dbb\u0dd4\u0dc0\u0dda \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0d9a\u0da7\u0dca \u0dc3\u0dd9\u0dbd\u0dca\u0dbd\u0db8\u0dca \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0da7 \u0d86\u0dbb\u0dcf\u0db0\u0db1\u0dcf \u0d9a\u0dd2\u0dbb\u0dd3\u0db8.**\n\n\"\u0db8\u0da0\u0d82 \u0d9a\u0db8\u0dbd\u0dca, \u0d9a\u0ddc\u0dc4\u0ddc\u0db8\u0daf? \n\n\u0d85\u0daf \u0dc4\u0dc0\u0dc3 \u0dc4\u0dad\u0dbb\u0da7 \u0dc0\u0dd2\u0dad\u0dbb \u0d85\u0db4\u0dd2 \u0dc4\u0dd0\u0db8\u0ddd\u0db8 \u0d9c\u0dca\u200d\u0dbb\u0dc0\u0dd4\u0db1\u0dca\u0da9\u0dca \u0d91\u0d9a\u0da7 \u0dba\u0db1\u0dc0\u0dcf \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0d9a\u0da7\u0dca \u0db4\u0dcf\u0dbb\u0d9a\u0dca \u0d9c\u0dc4\u0db1\u0dca\u0db1. \u0d8b\u0db9\u0da7\u0dad\u0dca \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca\u0daf \u0d91\u0db1\u0dca\u0db1? \u0d85\u0db1\u0dd2\u0dad\u0dca \u0dc3\u0dd9\u0da7\u0dca \u0d91\u0d9a\u0dad\u0dca \u0d91\u0db1\u0dc0\u0dcf \u0d9a\u0dd2\u0dc0\u0dca\u0dc0\u0dcf. \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca \u0db1\u0db8\u0dca \u0d89\u0d9a\u0dca\u0db8\u0db1\u0da7 \u0db8\u0dd0\u0dc3\u0dda\u0da2\u0dca \u0d91\u0d9a\u0d9a\u0dca \u0daf\u0dcf\u0db4\u0db1\u0dca. \n\n\u0d91\u0dc4\u0dd9\u0db1\u0db8\u0dca \u0dc4\u0dc0\u0dc3 \u0dc4\u0db8\u0dca\u0db6\u0dd9\u0db8\u0dd4. \u0db4\u0dbb\u0dd2\u0dc3\u0dca\u0dc3\u0db8\u0dd9\u0db1\u0dca \u0d89\u0db3\u0db4\u0db1\u0dca!\"\n\n---\n\n**\u0dc3\u0dcf\u0dbb\u0dcf\u0d82\u0dc1\u0dba:**\n\u0db1\u0dd2\u0dbd \u0dbd\u0dd2\u0db4\u0dd2\u0dba\u0d9a\u0daf\u0dd3 **\u0d9c\u0dde\u0dbb\u0dc0\u0dba \u0dc3\u0dc4 \u0dc0\u0dd2\u0db1\u0dba** \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dc0\u0db1 \u0d85\u0dad\u0dbb, \u0db8\u0dd2\u0dad\u0dd4\u0dbb\u0dd9\u0d9a\u0dd4\u0da7 \u0dba\u0dc0\u0db1 \u0db4\u0dab\u0dd2\u0dc0\u0dd2\u0da9\u0dba\u0d9a\u0daf\u0dd3 **\u0dc3\u0db8\u0dd3\u0db4 \u0db6\u0dc0 \u0dc3\u0dc4 \u0dc3\u0dbb\u0dbd \u0db6\u0dc0** \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dc0\u0dda.\n\n        **Criteria:**\n        1. The response conveys the same meaning as the reference answer: 'register_comparison_response'. Wording may differ; the meaning must match.\n2. The response reads like a native Sri Lankan Sinhala speaker wrote it -- natural register and idiom, not translated-sounding English.\n\n        ### Evaluation Protocol\n        1. Analyze the response against the criteria.\n        2. Be strict. If the text is ambiguous, the check fails.\n        3. Output your assessment using the specific structure requested below.\n"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                }
+              ],
+              "id": "Response assessment with google/gemini-3.8-flash-11804ff5-req-1"
+            }
+          ],
+          "metrics": {},
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "booleanResult": false
+        }
+      ],
+      "pyRunId": "synhalees_05_sinhala_grammar_item-Run #15",
+      "errorMessage": "Traceback (most recent call last):\n  File \"/benchmarks/src/kaggle_benchmarks/tasks.py\", line 171, in run\n    run.result = self.func(*args, **kwargs)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/ipykernel_14/2904034336.py\", line 113, in synhalees_item\n    judge_passed = all(r.passed for r in report.results)\n                                         ^^^^^^^^^^^^^^\nAttributeError: 'NoneType' object has no attribute 'results'\n"
+    }
+  ],
+  "pyRunId": "synhalees_05_sinhala_grammar-Run #1"
+}

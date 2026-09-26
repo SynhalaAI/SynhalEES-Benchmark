@@ -1,0 +1,1067 @@
+{
+  "taskVersion": {
+    "versionNumber": 1,
+    "name": "synhalees_11_astrology_beliefs",
+    "description": "SynhalEES pillar 11_astrology_beliefs: native Sinhala text accuracy.",
+    "definition": "@kbench.task(name=\"synhalees_11_astrology_beliefs\", description=\"SynhalEES pillar 11_astrology_beliefs: native Sinhala text accuracy.\")\ndef synhalees_task(llm) -> float:\n    '''Evaluate Astrology Beliefs (text); return accuracy in [0, 1].'''\n    import pandas as pd\n\n    rows = _rows()\n    if not rows:\n        raise ValueError(\n            \"No runnable text rows for Astrology Beliefs yet -- media files may \"\n            \"not be committed under benchmark_data/.\"\n        )\n    with kbench.client.enable_cache():\n        runs = synhalees_item.evaluate(\n            llm=[llm], evaluation_data=pd.DataFrame(rows),\n            n_jobs=2, max_attempts=2, on_failure=\"continue\",\n            remove_run_files=True,\n        )\n    correct = runs.as_dataframe().result.str.get(\"is_correct\").astype(\"boolean\").fillna(False)\n    return float(correct.mean())\n"
+  },
+  "modelVersion": {
+    "slug": "google/gemini-3.7-flash"
+  },
+  "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+  "startTime": "2026-09-25T09:45:25.621541Z",
+  "endTime": "2026-09-25T09:45:45.763934Z",
+  "conversations": [
+    {
+      "id": "synhalees_11_astrology_beliefs-ab9eab70",
+      "metrics": {},
+      "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+    }
+  ],
+  "results": [
+    {
+      "type": "AGGREGATED",
+      "numericResult": {
+        "value": 0.6666666666666666
+      }
+    }
+  ],
+  "subruns": [
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_11_astrology_beliefs_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_11_astrology_beliefs_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.7-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T09:45:25.633128Z",
+      "endTime": "2026-09-25T09:45:27.586395Z",
+      "conversations": [
+        {
+          "id": "synhalees_11_astrology_beliefs_item-54001aed",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d85\u0dc0\u0dd4\u0dbb\u0dd4\u0daf\u0dca\u0daf\u0d9a\u0da7 \u0dad\u0dd2\u0dba\u0dd9\u0db1 \u0db1\u0d9a\u0dca\u0dc2\u0dad\u0dca\u200d\u0dbb \u0d9c\u0dcf\u0dab \u0d9a\u0dd3\u0dba\u0daf? (\u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1 \u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "**\u0dc0\u0dd2\u0dc3\u0dd2 \u0dc4\u0dad**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.7-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 34,
+                "outputTokens": 279,
+                "inputTokensCostNanodollars": "25500",
+                "outputTokensCostNanodollars": "1046250",
+                "totalBackendLatencyMs": "1773"
+              },
+              "id": "synhalees_11_astrology_beliefs_item-54001aed-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 34,
+            "outputTokens": 279,
+            "inputTokensCostNanodollars": "25500",
+            "outputTokensCostNanodollars": "1046250",
+            "totalBackendLatencyMs": "1773"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_11_001"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_11_astrology_beliefs_item-Run #1"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_11_astrology_beliefs_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_11_astrology_beliefs_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.7-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T09:45:25.633926Z",
+      "endTime": "2026-09-25T09:45:27.887905Z",
+      "conversations": [
+        {
+          "id": "synhalees_11_astrology_beliefs_item-fc639210",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd9\u0db1\u0dc3\u0dd4\u0dbb\u0dcf\u0daf\u0dcf\u0da7 \u0d85\u0daf\u0dcf\u0dc5 \u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba\u0dcf \u0d9a\u0dc0\u0dd4\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd9\u0db1\u0dc3\u0dd4\u0dbb\u0dcf\u0daf\u0dcf \u0daf\u0dd2\u0db1\u0dba\u0da7 \u0d85\u0daf\u0dcf\u0dc5 \u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba\u0dcf \u0dc0\u0db1\u0dca\u0db1\u0dda **\u0dc3\u0dd9\u0db1\u0dc3\u0dd4\u0dbb\u0dd4 (\u0dc1\u0db1\u0dd2)** \u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba\u0dcf\u0dba\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.7-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 18,
+                "outputTokens": 306,
+                "inputTokensCostNanodollars": "13500",
+                "outputTokensCostNanodollars": "1147500",
+                "totalBackendLatencyMs": "2077"
+              },
+              "id": "synhalees_11_astrology_beliefs_item-fc639210-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 18,
+            "outputTokens": 306,
+            "inputTokensCostNanodollars": "13500",
+            "outputTokensCostNanodollars": "1147500",
+            "totalBackendLatencyMs": "2077"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_11_002"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_11_astrology_beliefs_item-Run #2"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_11_astrology_beliefs_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_11_astrology_beliefs_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.7-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T09:45:27.591668Z",
+      "endTime": "2026-09-25T09:45:29.574485Z",
+      "conversations": [
+        {
+          "id": "synhalees_11_astrology_beliefs_item-66dc1d8b",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db6\u0daf\u0dcf\u0daf\u0dcf\u0da7 \u0d85\u0daf\u0dcf\u0dc5 \u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba\u0dcf \u0d9a\u0dc0\u0dd4\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db6\u0daf\u0dcf\u0daf\u0dcf\u0da7 \u0d85\u0daf\u0dcf\u0dc5 \u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba\u0dcf \u0dc0\u0db1\u0dca\u0db1\u0dda **\u0db6\u0dd4\u0db0 (Mercury)** \u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba\u0dcf\u0dba."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.7-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 16,
+                "outputTokens": 391,
+                "inputTokensCostNanodollars": "12000",
+                "outputTokensCostNanodollars": "1466250",
+                "totalBackendLatencyMs": "1888"
+              },
+              "id": "synhalees_11_astrology_beliefs_item-66dc1d8b-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 16,
+            "outputTokens": 391,
+            "inputTokensCostNanodollars": "12000",
+            "outputTokensCostNanodollars": "1466250",
+            "totalBackendLatencyMs": "1888"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_11_003"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_11_astrology_beliefs_item-Run #3"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_11_astrology_beliefs_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_11_astrology_beliefs_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.7-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T09:45:27.892099Z",
+      "endTime": "2026-09-25T09:45:29.875908Z",
+      "conversations": [
+        {
+          "id": "synhalees_11_astrology_beliefs_item-bf76ce1a",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd2\u0d9a\u0dd4\u0dbb\u0dcf\u0daf\u0dcf\u0da7 \u0d85\u0daf\u0dcf\u0dc5 \u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba\u0dcf \u0d9a\u0dc0\u0dd4\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd2\u0d9a\u0dd4\u0dbb\u0dcf\u0daf\u0dcf \u0daf\u0dd2\u0db1\u0dba\u0da7 \u0d85\u0daf\u0dcf\u0dc5 \u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba\u0dcf \u0dc0\u0db1\u0dca\u0db1\u0dda **\u0dc3\u0dd2\u0d9a\u0dd4\u0dbb\u0dd4 (Venus)** \u0dc4\u0dd9\u0dc0\u0dad\u0dca \u0da2\u0dca\u200d\u0dba\u0ddc\u0dad\u0dd2\u0dc2\u0dba\u0da7 \u0d85\u0db1\u0dd4\u0dc0 **\u0dc1\u0dd4\u0d9a\u0dca\u200d\u0dbb** \u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba\u0dcf \u0dba."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.7-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 18,
+                "outputTokens": 435,
+                "inputTokensCostNanodollars": "13500",
+                "outputTokensCostNanodollars": "1631250",
+                "totalBackendLatencyMs": "1928"
+              },
+              "id": "synhalees_11_astrology_beliefs_item-bf76ce1a-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 18,
+            "outputTokens": 435,
+            "inputTokensCostNanodollars": "13500",
+            "outputTokensCostNanodollars": "1631250",
+            "totalBackendLatencyMs": "1928"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_11_004"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_11_astrology_beliefs_item-Run #4"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_11_astrology_beliefs_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_11_astrology_beliefs_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.7-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T09:45:29.578631Z",
+      "endTime": "2026-09-25T09:45:31.571167Z",
+      "conversations": [
+        {
+          "id": "synhalees_11_astrology_beliefs_item-bbcb1751",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d85\u0d9f\u0dc4\u0dbb\u0dd4\u0dc0\u0dcf\u0daf\u0dcf\u0da7 \u0d85\u0daf\u0dcf\u0dc5 \u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba\u0dcf \u0d9a\u0dc0\u0dd4\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d85\u0d9f\u0dc4\u0dbb\u0dd4\u0dc0\u0dcf\u0daf\u0dcf\u0da7 \u0d85\u0daf\u0dcf\u0dc5 \u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba\u0dcf \u0dc0\u0db1\u0dca\u0db1\u0dda **\u0d85\u0d9f\u0dc4\u0dbb\u0dd4 (Mars)** \u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba\u0dcf\u0dba\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.7-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 19,
+                "outputTokens": 355,
+                "inputTokensCostNanodollars": "14250",
+                "outputTokensCostNanodollars": "1331250",
+                "totalBackendLatencyMs": "1934"
+              },
+              "id": "synhalees_11_astrology_beliefs_item-bbcb1751-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 19,
+            "outputTokens": 355,
+            "inputTokensCostNanodollars": "14250",
+            "outputTokensCostNanodollars": "1331250",
+            "totalBackendLatencyMs": "1934"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_11_005"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_11_astrology_beliefs_item-Run #5"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_11_astrology_beliefs_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_11_astrology_beliefs_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.7-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T09:45:29.880036Z",
+      "endTime": "2026-09-25T09:45:31.688469Z",
+      "conversations": [
+        {
+          "id": "synhalees_11_astrology_beliefs_item-99d15250",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dbb\u0dcf\u0dc1\u0dd2 \u0da0\u0d9a\u0dca\u200d\u0dbb\u0dba\u0dda \u0dbb\u0dcf\u0dc1\u0dd2 \u0d9c\u0dcf\u0dab \u0d9a\u0dd3\u0dba\u0daf? (\u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dbb\u0dcf\u0dc1\u0dd2 \u0da0\u0d9a\u0dca\u200d\u0dbb\u0dba\u0dda \u0dbb\u0dcf\u0dc1\u0dd2 **\u0daf\u0ddc\u0dc5\u0dc4\u0d9a\u0dca (12)** \u0d87\u0dad. \n\n(\u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca: **\u0daf\u0ddc\u0dc5\u0dc4\u0dba\u0dd2**)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.7-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 26,
+                "outputTokens": 322,
+                "inputTokensCostNanodollars": "19500",
+                "outputTokensCostNanodollars": "1207500",
+                "totalBackendLatencyMs": "1739"
+              },
+              "id": "synhalees_11_astrology_beliefs_item-99d15250-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 26,
+            "outputTokens": 322,
+            "inputTokensCostNanodollars": "19500",
+            "outputTokensCostNanodollars": "1207500",
+            "totalBackendLatencyMs": "1739"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_11_006"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_11_astrology_beliefs_item-Run #6"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_11_astrology_beliefs_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_11_astrology_beliefs_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.7-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T09:45:31.576355Z",
+      "endTime": "2026-09-25T09:45:33.389225Z",
+      "conversations": [
+        {
+          "id": "synhalees_11_astrology_beliefs_item-6f8ba0ce",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0dda\u0dc2 \u0dbb\u0dcf\u0dc1\u0dd2\u0dba\u0dda \u0d85\u0db0\u0dd2\u0db4\u0dad\u0dd2 \u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba\u0dcf \u0d9a\u0dc0\u0dd4\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0dda\u0dc2 \u0dbb\u0dcf\u0dc1\u0dd2\u0dba\u0dda \u0d85\u0db0\u0dd2\u0db4\u0dad\u0dd2 \u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba\u0dcf \u0dc0\u0db1\u0dca\u0db1\u0dda **\u0d85\u0d9f\u0dc4\u0dbb\u0dd4 (\u0d9a\u0dd4\u0da2)** \u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba\u0dcf\u0dba."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.7-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 18,
+                "outputTokens": 256,
+                "inputTokensCostNanodollars": "13500",
+                "outputTokensCostNanodollars": "960000",
+                "totalBackendLatencyMs": "1754"
+              },
+              "id": "synhalees_11_astrology_beliefs_item-6f8ba0ce-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 18,
+            "outputTokens": 256,
+            "inputTokensCostNanodollars": "13500",
+            "outputTokensCostNanodollars": "960000",
+            "totalBackendLatencyMs": "1754"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_11_007"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_11_astrology_beliefs_item-Run #7"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_11_astrology_beliefs_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_11_astrology_beliefs_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.7-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T09:45:33.393517Z",
+      "endTime": "2026-09-25T09:45:35.560039Z",
+      "conversations": [
+        {
+          "id": "synhalees_11_astrology_beliefs_item-0259e1c0",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9c\u0dca\u200d\u0dbb\u0dc4 \u0db1\u0dc0\u0d9a\u0dba\u0da7 \u0d85\u0dba\u0dad\u0dca \u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba\u0db1\u0dca \u0dc3\u0d82\u0d9b\u0dca\u200d\u0dba\u0dcf\u0dc0 \u0d9a\u0dd3\u0dba\u0daf? (\u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9c\u0dca\u200d\u0dbb\u0dc4 \u0db1\u0dc0\u0d9a\u0dba\u0da7 \u0d85\u0dba\u0dad\u0dca \u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba\u0db1\u0dca \u0dc3\u0d82\u0d9b\u0dca\u200d\u0dba\u0dcf\u0dc0 **\u0db1\u0dc0\u0dba\u0d9a\u0dd2** (\u0db1\u0db8\u0dba\u0d9a\u0dd2)."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.7-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 29,
+                "outputTokens": 282,
+                "inputTokensCostNanodollars": "21750",
+                "outputTokensCostNanodollars": "1057500",
+                "totalBackendLatencyMs": "2106"
+              },
+              "id": "synhalees_11_astrology_beliefs_item-0259e1c0-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 29,
+            "outputTokens": 282,
+            "inputTokensCostNanodollars": "21750",
+            "outputTokensCostNanodollars": "1057500",
+            "totalBackendLatencyMs": "2106"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_11_009"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_11_astrology_beliefs_item-Run #9"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_11_astrology_beliefs_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_11_astrology_beliefs_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.7-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T09:45:31.694938Z",
+      "endTime": "2026-09-25T09:45:36.122288Z",
+      "conversations": [
+        {
+          "id": "synhalees_11_astrology_beliefs_item-a87fa8f8",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dbb\u0ddd\u0dc4\u0dd2\u0dab \u0db1\u0d9a\u0dca\u0dc2\u0dad\u0dca\u200d\u0dbb\u0dba\u0dda \u0d85\u0db0\u0dd2\u0db4\u0dad\u0dd2 \u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba\u0dcf \u0d9a\u0dc0\u0dd4\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dbb\u0ddd\u0dc4\u0dd2\u0dab\u0dd3 \u0db1\u0d9a\u0dca\u0dc2\u0dad\u0dca\u200d\u0dbb\u0dba\u0dda (\u0db1\u0dd0\u0d9a\u0dad\u0dda) \u0d85\u0db0\u0dd2\u0db4\u0dad\u0dd2 \u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba\u0dcf \u0dc0\u0db1\u0dca\u0db1\u0dda **\u0dc3\u0db3\u0dd4 (\u0da0\u0db1\u0dca\u0daf\u0dca\u200d\u0dbb\u0dba\u0dcf)** \u0dba."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.7-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 21,
+                "outputTokens": 527,
+                "inputTokensCostNanodollars": "15750",
+                "outputTokensCostNanodollars": "1976250",
+                "totalBackendLatencyMs": "4346"
+              },
+              "id": "synhalees_11_astrology_beliefs_item-a87fa8f8-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 21,
+            "outputTokens": 527,
+            "inputTokensCostNanodollars": "15750",
+            "outputTokensCostNanodollars": "1976250",
+            "totalBackendLatencyMs": "4346"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_11_008"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_11_astrology_beliefs_item-Run #8"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_11_astrology_beliefs_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_11_astrology_beliefs_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.7-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T09:45:36.126416Z",
+      "endTime": "2026-09-25T09:45:37.791017Z",
+      "conversations": [
+        {
+          "id": "synhalees_11_astrology_beliefs_item-2abdae4e",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc4\u0dd2\u0dbb\u0dd4 \u0db8\u0dd3\u0db1 \u0dbb\u0dcf\u0dc1\u0dd2\u0dba\u0dda \u0d89\u0db3\u0db1\u0dca \u0db8\u0dda\u0dc2 \u0dbb\u0dcf\u0dc1\u0dd2\u0dba\u0da7 \u0dba\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0db1 \u0db8\u0dcf\u0dc3\u0dd9\u0daf? (\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d9a\u0dd0\u0dbd\u0dd0\u0db1\u0dca\u0da9\u0dbb\u0dda\u0da7 \u0d85\u0db1\u0dd4\u0dc0 \u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "**\u0db6\u0d9a\u0dca \u0db8\u0dcf\u0dc3\u0dba**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.7-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 51,
+                "outputTokens": 214,
+                "inputTokensCostNanodollars": "38250",
+                "outputTokensCostNanodollars": "802500",
+                "totalBackendLatencyMs": "1605"
+              },
+              "id": "synhalees_11_astrology_beliefs_item-2abdae4e-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 51,
+            "outputTokens": 214,
+            "inputTokensCostNanodollars": "38250",
+            "outputTokensCostNanodollars": "802500",
+            "totalBackendLatencyMs": "1605"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_11_011"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_11_astrology_beliefs_item-Run #11"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_11_astrology_beliefs_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_11_astrology_beliefs_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.7-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T09:45:35.564168Z",
+      "endTime": "2026-09-25T09:45:38.660015Z",
+      "conversations": [
+        {
+          "id": "synhalees_11_astrology_beliefs_item-36e3ee4d",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dbb\u0dcf\u0dc4\u0dd4 \u0d9a\u0dda\u0dad\u0dd4 \u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba\u0db1\u0dca \u0dc4\u0db3\u0dd4\u0db1\u0dca\u0dc0\u0db1 \u0db4\u0ddc\u0daf\u0dd4 \u0db1\u0db8 \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dbb\u0dcf\u0dc4\u0dd4 \u0dc3\u0dc4 \u0d9a\u0dda\u0dad\u0dd4 \u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba\u0db1\u0dca \u0db4\u0ddc\u0daf\u0dd4\u0dc0\u0dda \u0dc4\u0db3\u0dd4\u0db1\u0dca\u0dc0\u0db1\u0dca\u0db1\u0dda **\"\u0da1\u0dcf\u0dba\u0dcf \u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba\u0db1\u0dca\"** (Shadow Planets) \u0dba\u0db1 \u0db1\u0db8\u0dd2\u0db1\u0dd2. \n\n\u0db8\u0ddc\u0dc0\u0dd4\u0db1\u0dca \u0dc3\u0dd0\u0db6\u0dd1 \u0db7\u0dde\u0dad\u0dd2\u0d9a \u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dbd\u0ddd\u0d9a \u0db1\u0ddc\u0dc0\u0db1 \u0d85\u0dad\u0dbb, \u0dc3\u0dd6\u0dbb\u0dca\u0dba\u0dba\u0dcf \u0dc3\u0dc4 \u0da0\u0db1\u0dca\u0daf\u0dca\u200d\u0dbb\u0dba\u0dcf\u0d9c\u0dda \u0d9c\u0db8\u0db1\u0dca \u0db8\u0dcf\u0dbb\u0dca\u0d9c \u0d91\u0d9a\u0dd2\u0db1\u0dd9\u0d9a \u0da1\u0dda\u0daf\u0db1\u0dba \u0dc0\u0db1 \u0dbd\u0d9a\u0dca\u0dc2\u0dca\u200d\u0dba (Lunar Nodes) \u0dc0\u0db1 \u0db6\u0dd0\u0dc0\u0dd2\u0db1\u0dca \u0da2\u0dca\u200d\u0dba\u0ddc\u0dad\u0dd2\u0dc2\u0dba\u0dda\u0daf\u0dd3 \u0db8\u0ddc\u0dc0\u0dd4\u0db1\u0dca\u0dc0 **\"\u0db4\u0dcf\u0dad \u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba\u0db1\u0dca\"** \u0dbd\u0dd9\u0dc3\u0daf \u0dc4\u0db3\u0dd4\u0db1\u0dca\u0dc0\u0db1\u0dd4 \u0dbd\u0dd0\u0db6\u0dda."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.7-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 23,
+                "outputTokens": 708,
+                "inputTokensCostNanodollars": "17250",
+                "outputTokensCostNanodollars": "2655000",
+                "totalBackendLatencyMs": "3033"
+              },
+              "id": "synhalees_11_astrology_beliefs_item-36e3ee4d-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 23,
+            "outputTokens": 708,
+            "inputTokensCostNanodollars": "17250",
+            "outputTokensCostNanodollars": "2655000",
+            "totalBackendLatencyMs": "3033"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_11_010"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_11_astrology_beliefs_item-Run #10"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_11_astrology_beliefs_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_11_astrology_beliefs_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.7-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T09:45:37.795279Z",
+      "endTime": "2026-09-25T09:45:41.153035Z",
+      "conversations": [
+        {
+          "id": "synhalees_11_astrology_beliefs_item-b5e3c305",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db6\u0dbd\u0dd2 \u0dba\u0dcf\u0d9c\u0dba\u0d9a\u0daf\u0dd3 \u0db6\u0dbd\u0dd2 \u0dbb\u0dd6\u0db4 \u0dad\u0dd2\u0dba\u0db1 \u0dad\u0dd0\u0db1\u0da7 \u0db8\u0ddc\u0d9a\u0d9a\u0dca \u0d9a\u0dd2\u0dba\u0dbd\u0daf \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db6\u0dbd\u0dd2 \u0dba\u0dcf\u0d9c\u0dba\u0d9a\u0daf\u0dd3 \u0db6\u0dbd\u0dd2 \u0dbb\u0dd6\u0db4 \u0d85\u0db9\u0dcf \u0dad\u0dd0\u0db1\u0dca\u0db4\u0dad\u0dca \u0d9a\u0dbb \u0dad\u0db6\u0db1 \u0dc0\u0dd2\u0dc1\u0dda\u0dc2\u0dd2\u0dad \u0dc3\u0dca\u0dae\u0dcf\u0db1\u0dba (\u0dbb\u0dcf\u0db8\u0dd4\u0dc0) \u0dc4\u0db3\u0dd4\u0db1\u0dca\u0dc0\u0db1\u0dca\u0db1\u0dda **\"\u0db6\u0dbd\u0dd2 \u0d87\u0db3\"** (\u0dc4\u0ddd **\u0db6\u0dbd\u0dd2 \u0db8\u0dd0\u0dc3\u0dca\u0dc3**) \u0dba\u0db1 \u0db1\u0db8\u0dd2\u0db1\u0dd2. \n\n\u0d91\u0db8\u0dd9\u0db1\u0dca\u0db8 \u0db8\u0dd9\u0db8 \u0db6\u0dbd\u0dd2 \u0dbb\u0dd6\u0db4 \u0dad\u0dd0\u0db1\u0dca\u0db4\u0dad\u0dca \u0d9a\u0dbb \u0dba\u0dcf\u0d9c\u0dba \u0db4\u0dc0\u0dad\u0dca\u0dc0\u0db1 \u0dc3\u0db8\u0dca\u0db4\u0dd6\u0dbb\u0dca\u0dab \u0dad\u0dcf\u0dc0\u0d9a\u0dcf\u0dbd\u0dd2\u0d9a \u0db8\u0dab\u0dca\u0da9\u0db4\u0dba **\"\u0db6\u0dbd\u0dd2 \u0db8\u0da9\u0dd4\u0dc0\"** (\u0dc4\u0ddd \u0db6\u0dbd\u0dd2 \u0dad\u0ddc\u0da7\u0dd4\u0db4\u0dc5) \u0dbd\u0dd9\u0dc3 \u0dc4\u0dd0\u0db3\u0dd2\u0db1\u0dca\u0dc0\u0dda."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.7-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 26,
+                "outputTokens": 803,
+                "inputTokensCostNanodollars": "19500",
+                "outputTokensCostNanodollars": "3011250",
+                "totalBackendLatencyMs": "3297"
+              },
+              "id": "synhalees_11_astrology_beliefs_item-b5e3c305-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 26,
+            "outputTokens": 803,
+            "inputTokensCostNanodollars": "19500",
+            "outputTokensCostNanodollars": "3011250",
+            "totalBackendLatencyMs": "3297"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_11_012"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_11_astrology_beliefs_item-Run #12"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_11_astrology_beliefs_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_11_astrology_beliefs_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.7-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T09:45:38.664271Z",
+      "endTime": "2026-09-25T09:45:43.411610Z",
+      "conversations": [
+        {
+          "id": "synhalees_11_astrology_beliefs_item-6b799f6f",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dd4\u0db7 \u0db8\u0ddc\u0dc4\u0ddc\u0dad \u0dad\u0dd3\u0dbb\u0dab\u0dba \u0d9a\u0dbb\u0db1\u0dca\u0db1 \u0db6\u0dbd\u0db1 \u0daf\u0dd2\u0db1 \u0daf\u0dbb\u0dca\u0dc1\u0db1\u0dba \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dd4\u0db7 \u0db8\u0ddc\u0dc4\u0ddc\u0dad\u0dc0\u0dbd\u0dca (\u0db1\u0dd0\u0d9a\u0dad\u0dca) \u0dad\u0dd3\u0dbb\u0dab\u0dba \u0d9a\u0dd2\u0dbb\u0dd3\u0db8 \u0dc3\u0db3\u0dc4\u0dcf \u0dc3\u0dcf\u0db8\u0dca\u0db4\u0dca\u200d\u0dbb\u0daf\u0dcf\u0dba\u0dd2\u0d9a\u0dc0 \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda **\"\u0db4\u0d82\u0da0\u0dcf\u0d82\u0d9c \u0dbd\u0dd2\u0dad\"** (Panchanga Litha) \u0dba\u0dd2. \n\n\u0da2\u0dca\u200d\u0dba\u0ddc\u0dad\u0dd2\u0dc2\u0dba\u0da7 \u0d85\u0db1\u0dd4\u0dc0 \u0dc1\u0dd4\u0db7 \u0db8\u0dd4\u0dc4\u0dd4\u0dbb\u0dca\u0dad\u0dba\u0d9a\u0dca \u0dad\u0dd3\u0dbb\u0dab\u0dba \u0d9a\u0dd2\u0dbb\u0dd3\u0db8 \u0dc3\u0db3\u0dc4\u0dcf \u0db4\u0d82\u0da0\u0dcf\u0d82\u0d9c \u0dbd\u0dd2\u0dad\u0dd9\u0dc4\u0dd2 \u0dc3\u0db3\u0dc4\u0db1\u0dca \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0d85\u0d82\u0d9c 5\u0d9a\u0dca \u0dc3\u0dbd\u0d9a\u0dcf \u0db6\u0dbd\u0db1\u0dd4 \u0dbd\u0dd0\u0db6\u0dda. \u0d91\u0db1\u0db8\u0dca:\n\n1. **\u0dad\u0dd2\u0dae\u0dd2\u0dba** (Tithi - \u0da0\u0db1\u0dca\u0daf\u0dca\u200d\u0dbb \u0daf\u0dd2\u0db1\u0dba)\n2. **\u0dc0\u0dcf\u0dbb\u0dba** (Vaara - \u0dc3\u0dad\u0dd2\u0dba\u0dda \u0daf\u0dd2\u0db1\u0dba)\n3. **\u0db1\u0dd0\u0d9a\u0dad** (Nakshatra - \u0da0\u0db1\u0dca\u0daf\u0dca\u200d\u0dbb\u0dba\u0dcf \u0d9c\u0db8\u0db1\u0dca \u0d9a\u0dbb\u0db1 \u0dad\u0dcf\u0dbb\u0d9a\u0dcf \u0dbb\u0da7\u0dcf\u0dc0)\n4. **\u0dba\u0ddd\u0d9c\u0dba** (Yoga - \u0dc3\u0dd6\u0dbb\u0dca\u0dba \u0dc3\u0dc4 \u0da0\u0db1\u0dca\u0daf\u0dca\u200d\u0dbb \u0db4\u0dd2\u0dc4\u0dd2\u0da7\u0dd3\u0db8\u0dca \u0d91\u0d9a\u0dad\u0dd4\u0dc0)\n5. **\u0d9a\u0dbb\u0dab\u0dba** (Karana - \u0dad\u0dd2\u0dae\u0dd2\u0dba\u0dd9\u0db1\u0dca \u0d85\u0da9\u0d9a\u0dca)\n\n\u0db8\u0dd3\u0da7 \u0d85\u0db8\u0dad\u0dbb\u0dc0, \u0dc1\u0dd4\u0db7 \u0db8\u0ddc\u0dc4\u0ddc\u0dad\u0d9a\u0dca \u0dc3\u0dcf\u0daf\u0dcf \u0d9c\u0dd0\u0db1\u0dd3\u0db8\u0dda\u0daf\u0dd3 \u0dbd\u0dd2\u0dad \u0d86\u0dc1\u0dca\u200d\u0dbb\u0dba\u0dd9\u0db1\u0dca **\u0dbb\u0dcf\u0dc4\u0dd4 \u0d9a\u0dcf\u0dbd\u0dba**, **\u0dc4\u0ddd\u0dbb\u0dcf\u0dc0**, **\u0db4\u0d82\u0da0 \u0db4\u0d9a\u0dca\u0dc2\u0dd2\u0dba\u0dcf** \u0dc3\u0dc4 **\u0db8\u0dbb\u0dd4 \u0dc3\u0dd2\u0da7\u0dd2\u0db1 \u0daf\u0dd2\u0dc1\u0dcf\u0dc0** \u0d86\u0daf\u0dd2\u0dba \u0daf \u0db4\u0dbb\u0dd3\u0d9a\u0dca\u0dc2\u0dcf \u0d9a\u0dbb \u0db6\u0dbd\u0db1\u0dd4 \u0dbd\u0dd0\u0db6\u0dda."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.7-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 24,
+                "outputTokens": 1090,
+                "inputTokensCostNanodollars": "18000",
+                "outputTokensCostNanodollars": "4087500",
+                "totalBackendLatencyMs": "4687"
+              },
+              "id": "synhalees_11_astrology_beliefs_item-6b799f6f-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 24,
+            "outputTokens": 1090,
+            "inputTokensCostNanodollars": "18000",
+            "outputTokensCostNanodollars": "4087500",
+            "totalBackendLatencyMs": "4687"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_11_013"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_11_astrology_beliefs_item-Run #13"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_11_astrology_beliefs_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_11_astrology_beliefs_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.7-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T09:45:41.157384Z",
+      "endTime": "2026-09-25T09:45:45.229970Z",
+      "conversations": [
+        {
+          "id": "synhalees_11_astrology_beliefs_item-0b167500",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9c\u0dca\u200d\u0dbb\u0dc4 \u0db1\u0dc0\u0d9a\u0dba\u0dda \u0db1\u0dc0\u0dc0\u0dd0\u0db1\u0dd2 \u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba\u0dcf \u0d9a\u0dc0\u0dd4\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0dd9\u0db8 \u0db4\u0dca\u200d\u0dbb\u0dc1\u0dca\u0db1\u0dba\u0da7 \u0da2\u0dca\u200d\u0dba\u0ddc\u0dad\u0dd2\u0dc2\u0dba \u0dc3\u0dc4 \u0dad\u0dcf\u0dbb\u0d9a\u0dcf \u0dc0\u0dd2\u0daf\u0dca\u200d\u0dba\u0dcf\u0dc0 \u0dba\u0db1 \u0d9a\u0dca\u0dc2\u0dda\u0dad\u0dca\u200d\u0dbb \u0daf\u0dd9\u0d9a \u0d85\u0db1\u0dd4\u0dc0 \u0db4\u0dd2\u0dc5\u0dd2\u0dad\u0dd4\u0dbb\u0dd4 \u0dbd\u0db6\u0dcf \u0daf\u0dd2\u0dba \u0dc4\u0dd0\u0d9a:\n\n1. **\u0da2\u0dca\u200d\u0dba\u0ddc\u0dad\u0dd2\u0dc2\u0dba\u0da7 \u0d85\u0db1\u0dd4\u0dc0 (\u0dc3\u0dcf\u0db8\u0dca\u0db4\u0dca\u200d\u0dbb\u0daf\u0dcf\u0dba\u0dd2\u0d9a \u0db1\u0dc0\u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba\u0db1\u0dca):** \n   \u0db1\u0dc0\u0dc0\u0dd0\u0db1\u0dd2 \u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba\u0dcf \u0dc0\u0db1\u0dca\u0db1\u0dda **\u0d9a\u0dda\u0dad\u0dd4** \u0dba. \n   *(\u0db4\u0dd2\u0dc5\u0dd2\u0dc0\u0dd9\u0dc5: \u0dbb\u0dc0\u0dd2, \u0dc3\u0db3\u0dd4, \u0d9a\u0dd4\u0da2, \u0db6\u0dd4\u0db0, \u0d9c\u0dd4\u0dbb\u0dd4, \u0dc3\u0dd2\u0d9a\u0dd4\u0dbb\u0dd4, \u0dc1\u0db1\u0dd2, \u0dbb\u0dcf\u0dc4\u0dd4, \u0d9a\u0dda\u0dad\u0dd4)*\n\n2. **\u0dad\u0dcf\u0dbb\u0d9a\u0dcf \u0dc0\u0dd2\u0daf\u0dca\u200d\u0dba\u0dcf\u0dc0\u0da7 \u0d85\u0db1\u0dd4\u0dc0 (\u0dc3\u0dde\u0dbb\u0d9c\u0dca\u200d\u0dbb\u0dc4 \u0db8\u0dab\u0dca\u0da9\u0dbd\u0dba\u0dda \u0d93\u0dad\u0dd2\u0dc4\u0dcf\u0dc3\u0dd2\u0d9a \u0dc0\u0dbb\u0dca\u0d9c\u0dd3\u0d9a\u0dbb\u0dab\u0dba):** \n   \u0dc3\u0dd6\u0dbb\u0dca\u0dba\u0dba\u0dcf\u0d9c\u0dda \u0dc3\u0dd2\u0da7 9 \u0dc0\u0dd0\u0db1\u0dd2 \u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba\u0dcf \u0dbd\u0dd9\u0dc3 \u0d9a\u0dbd\u0dd2\u0db1\u0dca \u0dc3\u0dbd\u0d9a\u0db1\u0dd4 \u0dbd\u0dd0\u0db6\u0dd4\u0dc0\u0dda **\u0db4\u0dca\u0dbd\u0dd6\u0da7\u0ddd (Pluto)** \u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba\u0dcf\u0dba\u0dd2. \n   *(\u0d9a\u0dd9\u0dc3\u0dda \u0dc0\u0dd9\u0dad\u0dad\u0dca, 2006 \u0dc0\u0dc3\u0dbb\u0dda\u0daf\u0dd3 \u0da2\u0dcf\u0dad\u0dca\u200d\u0dba\u0db1\u0dca\u0dad\u0dbb \u0dad\u0dcf\u0dbb\u0d9a\u0dcf \u0dc0\u0dd2\u0daf\u0dca\u200d\u0dba\u0dcf \u0dc3\u0d82\u0d9c\u0db8\u0dba \u0db8\u0d9c\u0dd2\u0db1\u0dca \u0db4\u0dca\u0dbd\u0dd6\u0da7\u0ddd '\u0dc0\u0dcf\u0db8\u0db1 \u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba\u0dd9\u0d9a\u0dd4' (Dwarf planet) \u0dbd\u0dd9\u0dc3 \u0db1\u0dd0\u0dc0\u0dad \u0dc0\u0dbb\u0dca\u0d9c\u0dd3\u0d9a\u0dbb\u0dab\u0dba \u0d9a\u0dbb\u0db1 \u0dbd\u0daf\u0dd3).*"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.7-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 18,
+                "outputTokens": 971,
+                "inputTokensCostNanodollars": "13500",
+                "outputTokensCostNanodollars": "3641250",
+                "totalBackendLatencyMs": "3987"
+              },
+              "id": "synhalees_11_astrology_beliefs_item-0b167500-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 18,
+            "outputTokens": 971,
+            "inputTokensCostNanodollars": "13500",
+            "outputTokensCostNanodollars": "3641250",
+            "totalBackendLatencyMs": "3987"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_11_014"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_11_astrology_beliefs_item-Run #14"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_11_astrology_beliefs_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_11_astrology_beliefs_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "google/gemini-3.7-flash"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-25T09:45:43.416536Z",
+      "endTime": "2026-09-25T09:45:45.745679Z",
+      "conversations": [
+        {
+          "id": "synhalees_11_astrology_beliefs_item-d0f8e522",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d85\u0dbd\u0dd4\u0dad\u0dca \u0d85\u0dc0\u0dd4\u0dbb\u0dd4\u0daf\u0dca\u0daf \u0daf\u0dc0\u0dc3\u0da7 \u0dc4\u0dd2\u0dbb\u0dd4 \u0db8\u0dda\u0dc2 \u0dbb\u0dcf\u0dc1\u0dd2\u0dba\u0da7 \u0d91\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0db1 \u0dbb\u0dcf\u0dc1\u0dd2\u0dba\u0dda \u0d89\u0db3\u0db1\u0dca\u0daf? (\u0dad\u0db1\u0dd2 \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0dd3\u0db1"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.7-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 41,
+                "outputTokens": 318,
+                "inputTokensCostNanodollars": "30750",
+                "outputTokensCostNanodollars": "1192500",
+                "totalBackendLatencyMs": "2272"
+              },
+              "id": "synhalees_11_astrology_beliefs_item-d0f8e522-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 41,
+            "outputTokens": 318,
+            "inputTokensCostNanodollars": "30750",
+            "outputTokensCostNanodollars": "1192500",
+            "totalBackendLatencyMs": "2272"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_11_015"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_11_astrology_beliefs_item-Run #15"
+    }
+  ],
+  "pyRunId": "synhalees_11_astrology_beliefs-Run #1"
+}
