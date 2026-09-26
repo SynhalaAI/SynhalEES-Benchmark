@@ -289,6 +289,6 @@ Rules:
    kaggle-results`) -- never the repo root. Each run exposes only an overall
    score, so a task scoped to one pillar maps to one scorecard row;
 
-8. **Colab slim-export flow (metered internet).** `kaggle/colab_slim_export.ipynb` (tracked) runs the heavy pull on free Colab, then `synhalees kaggle slim-export <task>` writes a KB-sized `kaggle-results/<task>.slim.csv`; download ONLY that file home and run `synhalees kaggle slim-import <file>` (no Kaggle download, then rebuild). Drift rule: the notebook mirrors the `EXT_HEADER` schema and pillar/task mapping in `synhalees/cli.py` -- any change to that schema or mapping MUST review notebook cells 3-4 in the same change (see AGENTS.md).
+8. **Colab slim-export flow (metered internet).** `kaggle/colab_slim_export.ipynb` (tracked) runs the heavy pull on free Colab, then `synhalees kaggle slim-export <task>` writes a KB-sized `kaggle-results/<task>.slim.csv`; download ONLY that file home and run `synhalees kaggle slim-import <file>` (no Kaggle download, then `synhalees build`). Drift rule: the notebook mirrors the `EXT_HEADER` schema and pillar/task mapping in `synhalees/cli.py` -- any change to that schema or mapping MUST review notebook cells 3-4 in the same change (see AGENTS.md).
    multi-pillar (vision/audio) tasks cannot be split per pillar yet (see
    `submissions/README.md`).

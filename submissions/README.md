@@ -41,7 +41,7 @@ per-pillar breakdown**. Because a row here needs a pillar, map accordingly:
 - multi-pillar tasks (vision/audio) only report one overall number, so their
   score cannot be split per pillar on the site yet.
 
-On metered internet use the Colab flow instead of a home pull: open `kaggle/colab_slim_export.ipynb` on Colab (free internet), pull + `slim-export` there, download ONLY the KB-sized `*.slim.csv`, then at home run `synhalees kaggle slim-import <file>` (no Kaggle download; writes the same rows + rebuilds).
+On metered internet use the Colab flow instead of a home pull: open `kaggle/colab_slim_export.ipynb` on Colab (free internet), pull + `slim-export` there, download ONLY the KB-sized `*.slim.csv`, then at home run `synhalees kaggle slim-import <file>` (no Kaggle download; writes the same rows; run `synhalees build` when ready).
 
 Use `provider=kaggle` and the Kaggle model slug as `model` (e.g.
 `gemini-3.7-flash`); `tools/build_leaderboard.py` infers the brand (Google)

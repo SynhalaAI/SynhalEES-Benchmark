@@ -403,7 +403,7 @@ def cmd_kaggle_import(a):
                 continue
             print(f"[{i}/{len(names)}] importing {slug}")
             rc = cmd_kaggle_import(argparse.Namespace(
-                task=slug, slug=None, dry_run=a.dry_run, no_pull=True))
+                task=slug, slug=None, dry_run=a.dry_run, no_pull=True, build=False, _in_batch=True))
             if rc:
                 failed.append(slug)
             else:
@@ -415,6 +415,9 @@ def cmd_kaggle_import(a):
             print(f"imported {done} Kaggle task(s)" +
                   (f"; skipped {len(skipped)} with no local artifacts: " +
                    ", ".join(skipped) if skipped else ""))
+            if getattr(a, "build", False):
+                return rebuild_and_check()
+            print("hint: run 'synhalees build' to regenerate docs/assets/data/*")
         return 0
     slug = resolve_task_name(a.task)
     pillar = pillar_from_task(slug)
@@ -483,10 +486,15 @@ def cmd_kaggle_import(a):
                 w.writerow(old_row + [""] * (len(EXT_HEADER) - len(old_row)))
             w.writerow(row)
         print(f"wrote {path.relative_to(ROOT)} ({len(keep) + 1} rows)")
-    code = rebuild_and_check()
-    if not code:
-        print("import done: commit submissions/*.csv with docs/assets/data/*")
-    return code
+    if getattr(a, "_in_batch", False):
+        return 0
+    if getattr(a, "build", False):
+        code = rebuild_and_check()
+        if not code:
+            print("import done: commit submissions/*.csv with docs/assets/data/*")
+        return code
+    print("hint: run 'synhalees build' to regenerate docs/assets/data/*")
+    return 0
 
 
 def cmd_kaggle_slim_export(a):
@@ -562,10 +570,13 @@ def cmd_kaggle_slim_import(a):
                 w.writerow(old_row + [""] * (len(EXT_HEADER) - len(old_row)))
             w.writerow(full[:len(EXT_HEADER)])
         print(f"wrote {path.relative_to(ROOT)} ({len(keep) + 1} rows)")
-    code = rebuild_and_check()
-    if not code:
-        print("slim-import done: commit submissions/*.csv with docs/assets/data/*")
-    return code
+    if getattr(a, "build", False):
+        code = rebuild_and_check()
+        if not code:
+            print("slim-import done: commit submissions/*.csv with docs/assets/data/*")
+        return code
+    print("hint: run 'synhalees build' to regenerate docs/assets/data/*")
+    return 0
 
 def build_parser():
     top = argparse.ArgumentParser(
@@ -624,8 +635,9 @@ def build_parser():
     p.add_argument("--slug", default=None, help="force the model slug (single model only)")
     p.add_argument("-o", "--output", default=None, help="output CSV path (default: kaggle-results/<task>.slim.csv)")
     p.set_defaults(func=cmd_kaggle_slim_export)
-    p = ks.add_parser("slim-import", help="slim CSV -> submissions/*.csv + rebuild (home PC, no download)")
+    p = ks.add_parser("slim-import", help="slim CSV -> submissions/*.csv (home PC, no download)")
     p.add_argument("file", help="slim CSV path (downloaded from Colab)")
+    p.add_argument("--build", action="store_true", help="auto-rebuild leaderboard data after importing (default: off; run 'synhalees build' when ready)")
     p.set_defaults(func=cmd_kaggle_slim_import)
     p = ks.add_parser("pull", help="download artifacts -> kaggle-results/ (default: all text tasks)")
     p.add_argument("task", nargs="?", default="all", help="task slug or 'all' (default: all)")
@@ -640,6 +652,7 @@ def build_parser():
     p.add_argument("--slug", default=None, help="force the model slug (single model only)")
     p.add_argument("--dry-run", action="store_true", help="print the rows, write nothing")
     p.add_argument("--no-pull", action="store_true", help="use local artifacts only")
+    p.add_argument("--build", action="store_true", help="auto-rebuild leaderboard data after importing (default: off; run 'synhalees build' when ready)")
     p.set_defaults(func=cmd_kaggle_import)
     return top
 
