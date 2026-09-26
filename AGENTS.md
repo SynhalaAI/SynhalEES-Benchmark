@@ -114,7 +114,10 @@ in `STRUCTURE.md` -- no scratch `.txt` / `.log` / `.csv` dumps, ever.
 - **Home-internet saver (Colab flow).** Pulls are heavy (tens of MB per run: `*.run.json` carries base64 media). On metered internet, do the pull on free Colab with `kaggle/colab_slim_export.ipynb`, `slim-export` the KB-sized `*.slim.csv`, download ONLY that file, and run `synhalees kaggle slim-import <file>` at home (zero Kaggle download). Schema drift rule: `slim-export`/`slim-import` share the `EXT_HEADER` schema (`model,provider,date,pillar,modality,score,cost_usd,tokens,latency_ms`) and the pillar/task mapping in `synhalees/cli.py` with `kaggle import` -- if you change that schema or mapping, you MUST review the notebook cells 3-4 (row order + header) in the same change.
 - **`kaggle b t download` writes into the current directory when `-o` is
   omitted -- always pass `-o kaggle-results`** (`synhalees kaggle pull <task>`
-  forces it for you).
+  forces it for you). `synhalees kaggle pull all` downloads only the **15 text
+  tasks** by default (~145MB); the heavy vision/audio artifacts (~730MB) need an
+  explicit `--modality vision|audio|all` (the Colab notebook exposes the same
+  `MODALITY` selector).
 - **Never pass a bare flag to a tool whose output path is positional.**
   `kaggle/generate_tasks.py` reads a bare argument as the output directory, so
   a mistyped flag once created a junk `--dry-run/` folder at the repo root
