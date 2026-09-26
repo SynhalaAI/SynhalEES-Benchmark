@@ -550,15 +550,15 @@ def cmd_kaggle_slim_export(a):
     return 0
 
 
-def cmd_kaggle_slim_import(a):
-    """Import a slim CSV (exported on Colab) into submissions/*.csv + rebuild."""
-    src = Path(a.file)
+def import_single_slim(src: Path) -> int:
+    """Import rows from a single slim CSV file into submissions/."""
     if not src.is_file():
         raise SystemExit(f"slim file not found: {src}")
     with open(src, newline="", encoding="utf-8-sig") as fh:
         rows = list(csv.reader(fh))
     if not rows or rows[0][:len(HEADER)] != HEADER:
         raise SystemExit(f"{src}: expected header {chr(44).join(HEADER)}")
+    imported = 0
     for row in rows[1:]:
         if len(row) < 6:
             raise SystemExit(f"{src}: bad row: {row}")
@@ -577,12 +577,36 @@ def cmd_kaggle_slim_import(a):
                 w.writerow(old_row + [""] * (len(EXT_HEADER) - len(old_row)))
             w.writerow(full[:len(EXT_HEADER)])
         print(f"wrote {path.relative_to(ROOT)} ({len(keep) + 1} rows)")
+        imported += 1
+    return imported
+
+
+def cmd_kaggle_slim_import(a):
+    """Import a slim CSV (exported on Colab) or all slim files into submissions/*.csv + rebuild."""
+    target = getattr(a, "file", "all")
+    if target == "all":
+        slim_files = sorted(KG_RESULTS.glob("*.slim.csv"))
+        if not slim_files:
+            raise SystemExit(f"no *.slim.csv files found in {KG_RESULTS.relative_to(ROOT)}")
+        for sf in slim_files:
+            print(f"\n--- Importing {sf.name} ---")
+            import_single_slim(sf)
+    else:
+        src = Path(target)
+        if not src.is_file() and not src.is_absolute():
+            candidate = KG_RESULTS / target
+            if candidate.is_file():
+                src = candidate
+            elif (KG_RESULTS / f"{target}.slim.csv").is_file():
+                src = KG_RESULTS / f"{target}.slim.csv"
+        import_single_slim(src)
+
     if getattr(a, "build", False):
         code = rebuild_and_check()
         if not code:
             print("slim-import done: commit submissions/*.csv with docs/assets/data/*")
         return code
-    print("hint: run 'synhalees build' to regenerate docs/assets/data/*")
+    print("\nhint: run 'synhalees build' to regenerate docs/assets/data/*")
     return 0
 
 def build_parser():
@@ -643,7 +667,7 @@ def build_parser():
     p.add_argument("-o", "--output", default=None, help="output CSV path (default: kaggle-results/<task>.slim.csv)")
     p.set_defaults(func=cmd_kaggle_slim_export)
     p = ks.add_parser("slim-import", help="slim CSV -> submissions/*.csv (home PC, no download)")
-    p.add_argument("file", help="slim CSV path (downloaded from Colab)")
+    p.add_argument("file", nargs="?", default="all", help="slim CSV path or 'all' (default: all *.slim.csv in kaggle-results/)")
     p.add_argument("--build", action="store_true", help="auto-rebuild leaderboard data after importing (default: off; run 'synhalees build' when ready)")
     p.set_defaults(func=cmd_kaggle_slim_import)
     p = ks.add_parser("pull", help="download artifacts -> kaggle-results/ (default: all text tasks)")
