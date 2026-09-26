@@ -120,6 +120,36 @@ BRAND_TOKENS = (
 )
 
 
+# Known open-weight / open-source model families.
+OPEN_SOURCE_FAMILIES = (
+    "llama",
+    "qwen",
+    "mistral",
+    "mixtral",
+    "deepseek",
+    "gemma",
+    "phi",
+    "starcoder",
+    "falcon",
+    "vicuna",
+    "zephyr",
+    "yi",
+    "olmo",
+    "command-r",
+)
+
+
+def is_open_source(model_id: str = "", provider: str = "", explicit: str = "") -> bool:
+    """Determine whether a model is Open Source / Open Weights or Proprietary."""
+    exp = (explicit or "").strip().lower()
+    if exp in {"open", "open_source", "open-source", "oss", "true", "yes", "1"}:
+        return True
+    if exp in {"proprietary", "closed", "commercial", "false", "no", "0"}:
+        return False
+    haystack = f"{model_id} {provider}".lower()
+    return any(token in haystack for token in OPEN_SOURCE_FAMILIES)
+
+
 def pretty_provider(host: str, model_id: str = "") -> str:
     """Org that BUILT the model, not the API host.
 
@@ -231,6 +261,74 @@ def write_pillars() -> None:
     write_json_and_js(OUT.parent / "pillars.json", "SYNHALEES_PILLARS", pillars_data())
 
 
+SITE_URL = "https://synhalaai.github.io/SynhalEES-Benchmark/"
+
+
+def seo_structured_data(payload: dict) -> str:
+    """JSON-LD Dataset block for docs/index.html (Google Dataset Search + rich results).
+
+    Generated from the same payload as leaderboard.json so scores never drift.
+    Crawlers read it without executing JS, which the canvas table requires.
+    """
+    import html as _html
+    models = payload.get("models", [])
+    best = max((m["modalities"].get("text") or 0 for m in models), default=0)
+    rows = []
+    for m in sorted(models, key=lambda x: x["modalities"].get("text") or 0, reverse=True):
+        rows.append({
+            "@type": "ListItem",
+            "position": len(rows) + 1,
+            "item": {
+                "@type": "ComputerLanguage" if False else "SoftwareApplication",
+                "name": _html.unescape(m["name"]),
+                "applicationCategory": "Artificial Intelligence Language Model",
+                "operatingSystem": "Web API",
+                "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
+                "additionalProperty": [
+                    {"@type": "PropertyValue", "name": "provider", "value": m["provider"]},
+                    {"@type": "PropertyValue", "name": "text_score", "value": m["modalities"].get("text")},
+                    {"@type": "PropertyValue", "name": "license_type", "value": "Open Source" if m.get("open_source") else "Proprietary"},
+                ],
+            },
+        })
+    data = {
+        "@context": "https://schema.org",
+        "@type": "Dataset",
+        "name": "SynhalEES Benchmark Leaderboard — Sinhala LLM Evaluation",
+        "description": ("Tri-modal (text, vision, audio) evaluation of large language models "
+                        "on 15 pillars of Sinhala cultural knowledge. Higher score is better (0-100)."),
+        "url": SITE_URL,
+        "keywords": ["Sinhala", "Sinhala AI benchmark", "LLM leaderboard", "Sri Lanka", "Sinhala NLP"],
+        "creator": {"@type": "Organization", "name": "SynhalaAI", "url": "https://github.com/SynhalaAI"},
+        "license": "https://github.com/SynhalaAI/License/blob/main/SSRL.md",
+        "dateModified": payload.get("updated", ""),
+        "variableMeasured": "Accuracy (0-100) per pillar and modality",
+        "mainEntity": {"@type": "ItemList", "numberOfItems": len(models), "itemListElement": rows},
+    }
+    return json.dumps(data, ensure_ascii=False, indent=2)
+
+
+def write_seo_block(payload: dict) -> None:
+    """Write docs/seo-structured-data.json + inject the JSON-LD into docs/index.html."""
+    ld = seo_structured_data(payload)
+    seo_path = ROOT / "docs" / "seo-structured-data.json"
+    seo_path.write_text(ld + chr(10), encoding="utf-8")
+    print(f"wrote {seo_path}")
+    index = ROOT / "docs" / "index.html"
+    html = index.read_text(encoding="utf-8")
+    start_tag = '<script type="application/ld+json" id="seo-jsonld">'
+    block = start_tag + chr(10) + ld + chr(10) + "</scr" + "ipt>"
+    if start_tag in html:
+        import re as _re
+        html = _re.sub(start_tag + r".*?</script>", lambda _m: block, html, count=1, flags=_re.DOTALL)
+    else:
+        anchor2 = "</head>"
+        assert anchor2 in html
+    html = html.replace(anchor2, "  " + block + chr(10) + anchor2, 1)
+    index.write_text(html, encoding="utf-8")
+    print(f"injected JSON-LD into {index} ({len(payload.get('models', []))} models)")
+
+
 def demo() -> dict:
     rng = random.Random(19960414)  # deterministic - Sri Lanka independence day
     models = []
@@ -266,6 +364,7 @@ def demo() -> dict:
         models.append({
             "name": name,
             "provider": provider,
+            "open_source": is_open_source(name, provider),
             "date": "2026-09-20",
             "modalities": {m: modalities.get(m) for m in ("text", "vision", "audio")},
             "pillars": pillar_scores,
@@ -297,9 +396,13 @@ def build_real(csv_paths: list[Path]) -> dict:
         with path.open(newline="", encoding="utf-8-sig") as fh:
             for row in csv.DictReader(fh):
                 key = row["model"]
+                raw_prov = row.get("provider", "")
+                prov = pretty_provider(raw_prov, key)
+                explicit_type = row.get("type") or row.get("open_source") or row.get("license") or ""
                 entry = acc.setdefault(key, {
                     "name": pretty_model(key),
-                    "provider": pretty_provider(row.get("provider", ""), key),
+                    "provider": prov,
+                    "open_source": is_open_source(key, f"{raw_prov} {prov}", explicit_type),
                     "date": "",
                     "modalities": {"text": None, "vision": None, "audio": None},
                     "pillars": {},
@@ -382,6 +485,16 @@ def main() -> int:
         ok = check_json_and_js(OUT, "SYNHALEES_LEADERBOARD", payload)
         ok = check_json_and_js(OUT.parent / "pillars.json",
                                "SYNHALEES_PILLARS", pillars_data()) and ok
+        # SEO block must be in sync too (generated file + injected tag)
+        seo_text = seo_structured_data(payload)
+        seo_path = ROOT / "docs" / "seo-structured-data.json"
+        if (not seo_path.is_file() or _normalize(seo_path.read_text(encoding="utf-8")) != _normalize(seo_text + chr(10))):
+            print("[!!] stale generated file: " + str(seo_path))
+            ok = False
+        index_html = (ROOT / "docs" / "index.html").read_text(encoding="utf-8")
+        if seo_text not in index_html:
+            print("[!!] stale JSON-LD in docs/index.html")
+            ok = False
         if not ok:
             print("\nRebuild with: python tools/build_leaderboard.py")
             return 1
@@ -392,6 +505,7 @@ def main() -> int:
     OUT.parent.mkdir(parents=True, exist_ok=True)
     write_pillars()
     write_json_and_js(OUT, "SYNHALEES_LEADERBOARD", payload)
+    write_seo_block(payload)
     print(f"  -> {len(payload['models'])} models, demo={payload['demo']}")
     return 0
 

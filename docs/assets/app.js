@@ -16,6 +16,7 @@
     sortKey: "score",
     sortDir: -1,
     search: "",
+    typeFilter: "",
     hidden: {},             // model names unchecked in the Models filter dropdown
     bootAnim: true          // first-load entrance animations
   };
@@ -141,12 +142,22 @@
 
   function tableRows() {
     var rows = state.models.filter(function (m) {
-      return !state.hidden[m.name] && m.name.toLowerCase().indexOf(state.search) !== -1 && scoreOf(m) != null;
+      if (state.hidden[m.name]) return false;
+      if (m.name.toLowerCase().indexOf(state.search) === -1) return false;
+      if (scoreOf(m) == null) return false;
+      if (state.typeFilter === "open" && !m.open_source) return false;
+      if (state.typeFilter === "proprietary" && m.open_source) return false;
+      return true;
     });
     rows.sort(function (a, b) {
       var k = state.sortKey, va, vb;
       if (k === "name" || k === "provider" || k === "date") {
         va = a[k]; vb = b[k];
+        return va < vb ? -state.sortDir : va > vb ? state.sortDir : 0;
+      }
+      if (k === "type") {
+        va = a.open_source ? "Open Source" : "Proprietary";
+        vb = b.open_source ? "Open Source" : "Proprietary";
         return va < vb ? -state.sortDir : va > vb ? state.sortDir : 0;
       }
       if (k === "cost" || k === "tokens" || k === "latency") {
@@ -194,6 +205,7 @@
         "<td><span class=\"model-name\">" + esc(m.name) + "</span>" +
         "<div class=\"scorebar\"><span style=\"width:" + s + "%\"></span></div></td>" +
         "<td class=\"provider\">" + providerLogo(m.provider) + esc(m.provider) + "</td>" +
+        "<td class=\"col-type\"><span class=\"type-badge " + (m.open_source ? "open" : "proprietary") + "\">" + (m.open_source ? "Open Source" : "Proprietary") + "</span></td>" +
         "<td class=\"num\"><span class=\"score-pill" + (s === best ? " top" : "") + "\">" + fmt(s) + "</span></td>" +
         "<td class=\"num\">" + fmtCost(usageOf(m)) + "</td>" +
         "<td class=\"num\">" + fmtTokens(usageOf(m)) + "</td>" +
@@ -749,6 +761,7 @@
       { label: "#", w: 52, align: "right" },
       { label: "Model", w: Math.ceil(nameW) + 26, align: "left" },
       { label: "Provider", w: Math.ceil(provW) + 62, align: "left" },
+      { label: "Type", w: 98, align: "left" },
       { label: scoreLbl, w: Math.max(88, Math.ceil(ctx.measureText(scoreLbl).width) + 26), align: "right" },
       { label: "Cost", w: 76, align: "right" },
       { label: "Tokens", w: 72, align: "right" },
@@ -860,6 +873,19 @@
       ctx.font = "400 12.5px " + FONT;
       ctx.fillText(fitText(m.provider, cols[2].w - 62), cxx + 42, cy);
       cxx += cols[2].w;
+      // type badge pill in canvas
+      var typeText = m.open_source ? "Open Source" : "Proprietary";
+      var typeBadgeW = m.open_source ? 74 : 70;
+      var typeBadgeH = 18;
+      var typeBadgeY = ry + (ROW_H - typeBadgeH) / 2;
+      ctx.fillStyle = m.open_source ? "rgba(46, 204, 113, 0.14)" : "rgba(100, 149, 237, 0.14)";
+      rrect(cxx + 10, typeBadgeY, typeBadgeW, typeBadgeH, 9);
+      ctx.fill();
+      ctx.font = "700 9.5px " + FONT;
+      ctx.fillStyle = m.open_source ? "#2ecc71" : "#8ab4f8";
+      ctx.textAlign = "center";
+      ctx.fillText(typeText, cxx + 10 + typeBadgeW / 2, typeBadgeY + 12.5);
+      cxx += cols[3].w;
       // score (best gets the red accent, like .score-pill.top) + usage telemetry
       var uu = usageOf(m);
       var vals = [fmt(sv), fmtCost(uu), fmtTokens(uu), fmtLatency(uu)];
@@ -867,14 +893,14 @@
         ctx.textAlign = "right";
         ctx.font = (vi === 0 ? "800" : "600") + " 13px " + FONT;
         ctx.fillStyle = v === "\u2014" ? C.muted : (vi === 0 && sv === best ? C.red : C.text);
-        ctx.fillText(v, cxx + cols[3 + vi].w - 12, cy);
-        cxx += cols[3 + vi].w;
+        ctx.fillText(v, cxx + cols[4 + vi].w - 12, cy);
+        cxx += cols[4 + vi].w;
       });
       // date
       ctx.textAlign = "right";
       ctx.font = "400 12px " + FONT;
       ctx.fillStyle = C.muted;
-      ctx.fillText(m.date || "\u2014", cxx + cols[7].w - 12, cy);
+      ctx.fillText(m.date || "\u2014", cxx + cols[8].w - 12, cy);
     });
     ctx.restore();
 
@@ -1032,8 +1058,9 @@
 
   function openModal(m) {
     $("#modal-title").textContent = m.name;
+    var typeBadgeHtml = " <span class=\"type-badge " + (m.open_source ? "open" : "proprietary") + "\">" + (m.open_source ? "Open Source" : "Proprietary") + "</span>";
     $("#modal-sub").innerHTML =
-      providerLogo(m.provider) + esc(m.provider) +
+      providerLogo(m.provider) + esc(m.provider) + typeBadgeHtml +
       " · Text " + fmt(m.modalities.text) +
       " · Vision " + fmt(m.modalities.vision) +
       " · Audio " + fmt(m.modalities.audio);
@@ -1375,6 +1402,14 @@
       renderTable();
     });
 
+    var typeSel = $("#type-select");
+    if (typeSel) {
+      typeSel.addEventListener("change", function (e) {
+        state.typeFilter = e.target.value;
+        renderTable();
+      });
+    }
+
     $("#search").addEventListener("input", function (e) {
       state.search = e.target.value.toLowerCase();
       renderTable();
@@ -1385,7 +1420,7 @@
         var key = th.getAttribute("data-sort");
         if (key === "rank") return;
         if (state.sortKey === key) state.sortDir *= -1;
-        else { state.sortKey = key; state.sortDir = key === "name" || key === "provider" ? 1 : -1; }
+        else { state.sortKey = key; state.sortDir = (key === "name" || key === "provider" || key === "type") ? 1 : -1; }
         document.querySelectorAll("#leaderboard th").forEach(function (h) {
           h.classList.remove("sorted-desc", "sorted-asc");
         });

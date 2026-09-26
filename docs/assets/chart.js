@@ -11,6 +11,7 @@
     px: "cost",             // pareto x-axis: cost | latency | tokens
     barM: "score",          // bar-view measure: score | cost | latency | tokens
     provider: "",          // "" = all organizations
+    type: "",              // "" = all types | open | proprietary
     limit: MAX_BARS,       // bars shown when no custom selection
     selected: null,        // null = top-N by metric; else map of picked names
     hover: null            // model under the cursor (Pareto emphasis reset)
@@ -220,6 +221,8 @@
     var rows = state.models.filter(function (m) {
       if (metricOf(m) == null) return false;
       if (st.provider && m.provider !== st.provider) return false;
+      if (st.type === "open" && !m.open_source) return false;
+      if (st.type === "proprietary" && m.open_source) return false;
       if (st.selected && !st.selected[m.name]) return false;
       return true;
     });
@@ -961,7 +964,10 @@
     return state.models.filter(function (m) {
       if (metricOf(m) == null) return false;
       if (st.view === "bar" && st.barM !== "score" && barVal(m) == null) return false;
-      return !st.provider || m.provider === st.provider;
+      if (st.provider && m.provider !== st.provider) return false;
+      if (st.type === "open" && !m.open_source) return false;
+      if (st.type === "proprietary" && m.open_source) return false;
+      return true;
     }).length;
   }
 
@@ -1120,6 +1126,17 @@
       updateCountLabel();
       draw();
     });
+
+    // license-type filter (mirrors the leaderboard #type-select)
+    var typeSel = $("#chart-type");
+    if (typeSel) {
+      typeSel.addEventListener("change", function () {
+        st.type = typeSel.value;
+        hideTip();
+        updateCountLabel();
+        draw();
+      });
+    }
 
     // "N of M models" limit selector
     var limSel = $("#chart-limit");
