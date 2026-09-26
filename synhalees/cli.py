@@ -122,8 +122,27 @@ def task_modality(name):
     return "text"
 
 
+def parse_modality(value):
+    """'text' | 'vision | audio' | 'vision,audio' -> tuple of modality tokens.
+
+    'all' wins over anything else; duplicates collapse in order.
+    """
+    parts = []
+    for chunk in str(value).replace("|", ",").split(","):
+        parts += [w.lower() for w in str(chunk).split() if w]
+    if not parts:
+        raise SystemExit(f"--modality needs one of: {', '.join(MODALITIES)}")
+    bad = [p for p in parts if p not in MODALITIES]
+    if bad:
+        raise SystemExit(f"--modality must be one or more of: {', '.join(MODALITIES)} "
+                         f"(combine with | or ,): {', '.join(bad)}")
+    if "all" in parts:
+        return ("all",)
+    return tuple(dict.fromkeys(parts))
+
+
 def pop_modality(args):
-    """Pull --modality [x] / --modality=x out of raw args -> (modality|None, rest).
+    """Pull --modality [x] / --modality=x out of raw args -> ((tokens|None), rest).
 
     'pull' argv is often forwarded without argparse (see _KFWD), so the flag is
     extracted here and validated the same way for both entry paths.
@@ -136,18 +155,16 @@ def pop_modality(args):
         if tok == "--modality":
             if i + 1 >= len(args):
                 raise SystemExit(f"--modality needs one of: {', '.join(MODALITIES)}")
-            modality = str(args[i + 1]).lower()
+            modality = args[i + 1]
             i += 2
             continue
         if tok.startswith("--modality="):
-            modality = tok.split("=", 1)[1].lower()
+            modality = tok.split("=", 1)[1]
             i += 1
             continue
         rest.append(tok)
         i += 1
-    if modality is not None and modality not in MODALITIES:
-        raise SystemExit(f"--modality must be one of: {', '.join(MODALITIES)}")
-    return modality, rest
+    return (parse_modality(modality) if modality is not None else None), rest
 
 
 def load_scorecard(path):
@@ -271,17 +288,20 @@ def cmd_kaggle_pull(a):
         raw.insert(0, str(task))      # fast path ate the flag: 'pull --modality vision'
         task = None
     modality, args = pop_modality(raw)
-    modality = modality or getattr(a, "modality", None) or "text"
+    if modality is None:
+        cli_mod = getattr(a, "modality", None)
+        modality = parse_modality(cli_mod) if cli_mod else ("text",)
     if "-o" in args or "--output" in args:
         raise SystemExit("drop -o: artifacts always go to kaggle-results/ (repo hygiene)")
     if task in (None, "all"):
         files = sorted(TASKS_DIR.glob("*.py"))
         if not files:
             raise SystemExit(f"no task files in {TASKS_DIR} (run: synhalees kaggle gen)")
-        picked = [f for f in files
-                  if modality == "all" or task_modality(task_name_for(f)) == modality]
+        sel = {"text", "vision", "audio"} if "all" in modality else set(modality)
+        picked = [f for f in files if task_modality(task_name_for(f)) in sel]
         if not picked:
-            raise SystemExit(f"no '{modality}' task files in {TASKS_DIR} (run: synhalees kaggle gen)")
+            raise SystemExit(f"no '{'|'.join(modality)}' task files in {TASKS_DIR} "
+                             f"(run: synhalees kaggle gen)")
         failed = []
         for i, f in enumerate(picked, 1):
             name = task_name_for(f)
@@ -292,10 +312,10 @@ def cmd_kaggle_pull(a):
         if failed:
             print(f"pull failed for {len(failed)} task(s): {', '.join(failed)}")
             return 1
-        print(f"pulled {len(picked)} {modality} task(s) -> {KG_RESULTS.relative_to(ROOT)}/")
-        if modality == "text":
+        print(f"pulled {len(picked)} [{'|'.join(modality)}] task(s) -> {KG_RESULTS.relative_to(ROOT)}/")
+        if sel == {"text"}:
             print("note: vision+audio skipped by default (~730MB more) - "
-                  "add --modality vision | audio | all to pull them")
+                  "add --modality 'vision|audio' (or vision / audio / all) to pull them")
         return 0
     return sh([kaggle_bin(), "b", "t", "download", resolve_task_name(task), "-o", str(KG_RESULTS), *args])
 
@@ -582,9 +602,10 @@ def build_parser():
     p.set_defaults(func=cmd_kaggle_slim_import)
     p = ks.add_parser("pull", help="download artifacts -> kaggle-results/ (default: all text tasks)")
     p.add_argument("task", nargs="?", default="all", help="task slug or 'all' (default: all)")
-    p.add_argument("--modality", choices=MODALITIES, default=None,
+    p.add_argument("--modality", default=None,
                    help="modality filter for 'all': text (default, 15 tasks ~145MB) | "
-                        "vision | audio | all; an explicit task slug always wins")
+                        "vision | audio | all; combine with | or , "
+                        "(e.g. 'vision|audio'); an explicit task slug always wins")
     p.add_argument("args", nargs=argparse.REMAINDER, help="extra flags, e.g. -m <model>, -f")
     p.set_defaults(func=cmd_kaggle_pull)
     p = ks.add_parser("import", help="import one text task or all 15 text tasks -> submissions/*.csv")

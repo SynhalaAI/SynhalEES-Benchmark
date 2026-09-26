@@ -116,8 +116,9 @@ in `STRUCTURE.md` -- no scratch `.txt` / `.log` / `.csv` dumps, ever.
   omitted -- always pass `-o kaggle-results`** (`synhalees kaggle pull <task>`
   forces it for you). `synhalees kaggle pull all` downloads only the **15 text
   tasks** by default (~145MB); the heavy vision/audio artifacts (~730MB) need an
-  explicit `--modality vision|audio|all` (the Colab notebook exposes the same
-  `MODALITY` selector).
+  explicit `--modality vision|audio|all` - combinations like
+  `--modality 'vision|audio'` pull both without the text tasks (the Colab notebook
+  exposes the same `MODALITY` selector, e.g. `MODALITY = 'vision | audio'`).
 - **Never pass a bare flag to a tool whose output path is positional.**
   `kaggle/generate_tasks.py` reads a bare argument as the output directory, so
   a mistyped flag once created a junk `--dry-run/` folder at the repo root
