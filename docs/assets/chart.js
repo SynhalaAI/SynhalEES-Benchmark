@@ -530,7 +530,8 @@
     var textCol = cssVar("--text") || "#eef0f6";
     var mutedCol = cssVar("--muted") || "#9aa1b5";
     var borderCol = cssVar("--border") || "#3a4157";
-    var goldCol = cssVar("--gold") || "#f5b301";
+    // strokes need 3:1 against the card, so use the dedicated stroke token
+    var goldCol = cssVar("--gold-stroke") || cssVar("--gold") || "#f5b301";
     var featRed = cssVar("--red-bright") || "#E04545";
     // colour of the surface the chart sits on: the card on screen, the export
     // sheet in the PNG. Used to halo label text so dashed lines never cut it.

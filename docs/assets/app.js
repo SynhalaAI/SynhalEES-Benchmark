@@ -606,8 +606,11 @@
       var px = midX - pw / 2, py = ty + 82;
       if (feat) { ctx.fillStyle = C.gold; rrect(px, py, pw, 18, 9); ctx.fill(); }
       else { ctx.strokeStyle = C.border; ctx.lineWidth = 1; rrect(px, py, pw, 18, 9); ctx.stroke(); }
-      drawCrown(px + 9, py + 3.5, feat ? "#1d2230" : C.muted);
-      ctx.fillStyle = feat ? "#1d2230" : C.muted;
+      // dark ink on the gold pill: the pill fill is the same in both themes,
+      // so this stays dark navy in either one
+      var inkOnGold = "#1d2230";
+      drawCrown(px + 9, py + 3.5, feat ? inkOnGold : C.muted);
+      ctx.fillStyle = feat ? inkOnGold : C.muted;
       ctx.textAlign = "left";
       ctx.fillText(pillTxt, px + 24, py + 13);
     });
@@ -844,7 +847,7 @@
         ctx.beginPath();
         ctx.arc(cxx + cols[0].w - 24, ry + ROW_H / 2, 10, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = "#1d2230";
+        ctx.fillStyle = "#1d2230";  // dark ink on the bright medal disc
       } else {
         ctx.fillStyle = C.muted;
       }
@@ -1284,6 +1287,17 @@
     var dark = document.documentElement.getAttribute("data-theme") !== "light";
     var colGrid = dark ? "#3a4157" : "#d9dce6";
     var colText = dark ? "#9aa1b5" : "#5b6274";
+    // dot colours come from the theme tokens so the light theme does not keep
+    // the dark-only palette. Read them per draw: the theme can flip at any time.
+    var rcs = getComputedStyle(document.documentElement);
+    function rcv(nm, fb) { var v = rcs.getPropertyValue(nm).trim(); return v || fb; }
+    var dotRed = rcv("--red-bright", "#e53935");
+    var dotRedHi = rcv("--red-hi", "#ff6f60");
+    var dotGold = rcv("--gold", "#f5b301");
+    // the ring that separates a dot from the polygon wash behind it.
+    // NOT a token: the dark ring is #10131c, darker than --navy-card (#262b3c),
+    // so reading --navy-card here would have lightened every dark-theme edge.
+    var dotRing = dark ? "#10131c" : rcv("--navy-card", "#ffffff");
 
     // per-vertex progress (null input = all fully grown)
     var vp = [], progSum = 0;
@@ -1336,7 +1350,7 @@
     ctx.closePath();
     ctx.fillStyle = "rgba(198, 40, 40, " + (0.30 * progMean).toFixed(3) + ")";
     ctx.fill();
-    ctx.strokeStyle = "#e53935";
+    ctx.strokeStyle = dotRed;
     ctx.lineWidth = 2;
     ctx.stroke();
 
@@ -1377,10 +1391,10 @@
 
         ctx.beginPath();
         ctx.arc(vx, vy, rr * dotT, 0, Math.PI * 2);
-        ctx.fillStyle = hoverIdx === k ? "#ff6f60" : isTop ? "#f5b301" : "#e53935";
+        ctx.fillStyle = hoverIdx === k ? dotRedHi : isTop ? dotGold : dotRed;
         ctx.fill();
         ctx.lineWidth = 1.5;
-        ctx.strokeStyle = dark ? "#10131c" : "#ffffff";
+        ctx.strokeStyle = dotRing;
         ctx.stroke();
       }
     }
