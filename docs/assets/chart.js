@@ -234,7 +234,7 @@
   // space beside a narrow plot, so the on-screen chart gets shorter. The PNG
   // export passes an explicit height and is therefore unaffected.
   function chartHeight() {
-    return window.innerWidth < 640 ? 360 : 460;
+    return window.innerWidth < 640 ? 420 : 460;
   }
 
   /* ---------- drawing ---------- */
@@ -742,14 +742,23 @@
       ctx.font = (isFeat ? "700 " : "600 ") + "11px Inter, sans-serif";
       ctx.fillStyle = hasFeatured ? (isFeat ? featRed : mutedCol) : textCol;
       ctx.textBaseline = "middle";
-      var nm = m.name.length > 20 ? m.name.slice(0, 19) + "..." : m.name;
+      // narrow plots cannot fit 20-character names without the labels piling
+      // up, so shorten harder as the canvas narrows (the tooltip keeps the full
+      // name)
+      var maxName = W < 420 ? 12 : (W < 620 ? 16 : 20);
+      var nm = m.name.length > maxName ? m.name.slice(0, maxName - 1) + "..." : m.name;
       var tw = ctx.measureText(nm).width;
       var lh = 14;
       var gap = chipR + (opt ? 5 : 3);   // clear the gold halo when there is one
       var candidates = [
         { align: "center", lx: x, ly: y - gap - lh / 2 },
         { align: "left", lx: x + chipR + 8, ly: y },
-        { align: "right", lx: x - chipR - 8, ly: y }
+        { align: "right", lx: x - chipR - 8, ly: y },
+        { align: "center", lx: x, ly: y + gap + lh / 2 },
+        { align: "left", lx: x + chipR + 8, ly: y - lh },
+        { align: "right", lx: x - chipR - 8, ly: y + lh },
+        { align: "left", lx: x + chipR + 8, ly: y + lh },
+        { align: "right", lx: x - chipR - 8, ly: y - lh }
       ];
       var placed = null;
       for (var ci = 0; ci < candidates.length; ci++) {
