@@ -230,6 +230,13 @@
     return rows.slice(0, st.selected ? MAX_BARS : st.limit);
   }
 
+  // The chart canvas is 460px tall on desktop; on a phone that is mostly empty
+  // space beside a narrow plot, so the on-screen chart gets shorter. The PNG
+  // export passes an explicit height and is therefore unaffected.
+  function chartHeight() {
+    return window.innerWidth < 640 ? 360 : 460;
+  }
+
   /* ---------- drawing ---------- */
 
   // Featured model (picked via the chart's own dropdown, independent of
@@ -248,7 +255,7 @@
     var canvas = (opts && opts.canvas) || $("#chart");
     if (!canvas || !state.models.length) return;
     var W = (opts && opts.width) || canvas.parentElement.clientWidth;
-    var H = (opts && opts.height) || 460;
+    var H = (opts && opts.height) || chartHeight();
     var dpr = (opts && opts.dpr) || window.devicePixelRatio || 1;
     canvas.width = W * dpr;
     canvas.height = H * dpr;
@@ -490,7 +497,7 @@
     var canvas = (opts && opts.canvas) || $("#chart");
     if (!canvas || !state.models.length) return;
     var W = (opts && opts.width) || canvas.parentElement.clientWidth;
-    var H = (opts && opts.height) || 460;
+    var H = (opts && opts.height) || chartHeight();
     var dpr = (opts && opts.dpr) || window.devicePixelRatio || 1;
     canvas.width = W * dpr;
     canvas.height = H * dpr;

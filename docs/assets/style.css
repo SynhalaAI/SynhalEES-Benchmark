@@ -37,9 +37,15 @@ body {
   line-height: 1.55;
 }
 
+/* One gutter system for the whole page: the sticky header, the main column and
+   the footer all use .wrap, so they share the same responsive inline gutter at
+   every width (16px on a phone -> 40px on a desktop) instead of each adding
+   their own padding on top of it. */
 .wrap {
-  width: min(1440px, 96%);
-  margin: 0 auto;
+  width: 100%;
+  max-width: 1440px;
+  margin-inline: auto;
+  padding-inline: clamp(16px, 3.2vw, 40px);
 }
 
 .accent {
@@ -63,20 +69,30 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 20px;
+  gap: 12px;
+  padding: 10px 0;   /* .wrap owns the inline gutter */
+  min-width: 0;
 }
 
 .brand {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
   text-decoration: none;
   color: var(--text);
 }
 
+/* the mark is 3331x592, so a fixed 44px height makes it ~250px wide and pushes
+   the header actions off-screen on a 320px phone. Let it shrink with the
+   viewport instead - height stays proportional because both dimensions are
+   auto and only a max-width is applied. */
 .brand-logo {
-  height: 44px;
   width: auto;
+  height: auto;
+  min-width: 0;
+  max-width: min(50vw, 250px);
+  max-height: 44px;
   background: #fff;
   border-radius: 8px;
   padding: 3px 8px;
@@ -85,6 +101,7 @@ a {
 .header-actions {
   display: flex;
   align-items: center;
+  flex: none;
   gap: 10px;
 }
 
@@ -121,9 +138,12 @@ a {
 }
 
 .hero h1 {
-  font-size: 2.1rem;
+  /* fluid rather than a fixed size: the Sinhala headline has to fit a 320px
+     viewport without pushing the page into a horizontal scroll */
+  font-size: clamp(1.4rem, 4.4vw + .6rem, 2.1rem);
   margin: 0 0 10px;
   font-weight: 800;
+  overflow-wrap: break-word;
 }
 
 .tagline {
@@ -203,8 +223,29 @@ a {
 }
 
 .search {
-  flex: 1;
-  min-width: 160px;
+  flex: 1 1 160px;
+  min-width: 140px;
+}
+
+/* Leaderboard filter row: the pillar select shares whatever room is left over
+   instead of claiming a hard 320px, so the row reflows rather than overflowing. */
+.controls>.pillar-select {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.controls>.type-select {
+  flex: 0 1 auto;
+}
+
+/* search + Models filter + PNG export travel as one group, so the export icon
+   can never be orphaned alone on a row of its own at any viewport width. */
+.controls-end {
+  display: flex;
+  flex: 1 1 340px;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
 }
 
 /* table */
@@ -212,7 +253,10 @@ a {
   background: var(--navy-card);
   border: 1px solid var(--border);
   border-radius: 14px;
-  overflow: hidden;
+  /* the leaderboard table gets a min-width on narrow screens, so the card
+     scrolls horizontally (the same pattern .compare-wrap already uses)
+     instead of the page scrolling sideways */
+  overflow-x: auto;
   box-shadow: var(--shadow);
 }
 
@@ -386,8 +430,9 @@ a {
 
 .pillar-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 16px;
+  /* min() stops a 320px track from forcing a 320px phone to scroll sideways */
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+  gap: clamp(12px, 2.2vw, 16px);
 }
 
 .pillar-card {
@@ -730,15 +775,9 @@ a {
   text-align: center;
 }
 
+/* phones: keep the table to its essentials. Provider, license and run date
+   stay in the DOM and in the PNG export - only the on-screen table is trimmed. */
 @media (max-width: 640px) {
-  .wrap {
-    width: calc(100% - 32px);
-  }
-
-  .hero h1 {
-    font-size: 1.5rem;
-  }
-
   .lb-table th:nth-child(9),
   .lb-table td:nth-child(9),
   .lb-table th:nth-child(4),
@@ -1175,7 +1214,9 @@ a {
   right: 0;
   top: calc(100% + 6px);
   z-index: 30;
-  width: 260px;
+  /* never wider than the viewport: a 260px panel anchored to a trigger that
+     sits near the left edge would otherwise run off-screen */
+  width: min(260px, calc(100vw - 32px));
   max-height: 330px;
   display: flex;
   flex-direction: column;
@@ -1297,6 +1338,7 @@ a {
   border-radius: 10px;
   color: var(--text);
   font: inherit;
+  flex: none;
   padding: 9px 34px 9px 12px;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239aa1b5' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
@@ -1319,6 +1361,7 @@ a {
   align-items: center;
   justify-content: center;
   align-self: stretch; /* same height as the search/select/Models controls */
+  flex: none;
   padding: 0 13px;
   border-radius: 10px;
 }
@@ -1516,6 +1559,31 @@ a {
 .cmp-tip:focus-visible::after {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
+}
+
+/* The three export buttons sit at the right edge of their row, so their tooltip
+   grows leftwards. A centred bubble on a right-edge button sticks past the
+   viewport, and because it is only transparent (not display:none) it still
+   widens the page into a sideways scroll. */
+#lb-export::after,
+.cmp-export-btn::after {
+  left: auto;
+  right: 0;
+  transform: translateY(3px);
+}
+
+#lb-export:hover::after,
+#lb-export:focus-visible::after,
+.cmp-export-btn:hover::after,
+.cmp-export-btn:focus-visible::after {
+  transform: translateY(0);
+}
+
+/* no hover on a touch screen, so the bubble is dead weight there */
+@media (hover: none) {
+  .cmp-tip::after {
+    display: none;
+  }
 }
 
 .compare-wrap {
@@ -1725,5 +1793,160 @@ thead th.cmp-featured {
 
   .compare-controls {
     justify-content: flex-start;
+  }
+}
+
+/* ---------- responsive layout ----------
+   One consolidated block for the narrow end of the range. The page itself must
+   never scroll sideways and every control must stay a comfortable tap target
+   from 320px upwards; wide tables scroll inside their own card, never the page. */
+
+@media (max-width: 1100px) {
+  /* the filter row can no longer hold every control on one line - let the
+     group wrap to a full-width second row instead of squeezing the controls */
+  .controls {
+    row-gap: 10px;
+  }
+}
+
+@media (max-width: 760px) {
+  /* tighter card padding gives the data more room */
+  .chart-card,
+  .compare-card {
+    padding: 14px 14px 10px;
+  }
+
+  .compare-wrap {
+    margin: 0 -14px;
+    padding: 0 14px 6px;
+  }
+
+  .pillars {
+    margin: 32px 0 44px;
+  }
+
+  .methodology-card {
+    gap: 12px;
+    padding: 18px 18px 16px;
+    margin: 32px 0 20px;
+  }
+
+  /* icon-only PNG export buttons hug the right edge of their row instead of
+     floating alone at the left when the row wraps */
+  .chart-controls .cmp-export-btn,
+  .compare-controls .cmp-export-btn,
+  #lb-export {
+    margin-left: auto;
+  }
+
+  /* the leaderboard table scrolls inside its card rather than crushing columns */
+  .lb-table {
+    min-width: 620px;
+  }
+
+  .lb-table th,
+  .lb-table td {
+    padding: 10px 12px;
+  }
+}
+
+@media (max-width: 640px) {
+  /* comfortable tap targets (>= 44px) on every interactive control */
+  .tab {
+    padding: 10px 12px;
+  }
+
+  .pillar-select,
+  .search,
+  .controls .chart-pick,
+  .chart-pick,
+  .chart-select,
+  #lb-export {
+    min-height: 44px;
+  }
+
+  .chart-pick,
+  .chart-select {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  /* leaderboard controls stack into predictable rows:
+     tabs / pillar / type / search + Models + export */
+  .controls>.tabs {
+    flex: 1 1 100%;
+  }
+
+  .controls>.tabs .tab {
+    flex: 1 1 auto;
+  }
+
+  .controls>.pillar-select,
+  .controls>.type-select {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+
+  .controls-end {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+  }
+
+  .controls-end .search {
+    flex: 1 1 100%;
+  }
+
+  /* popovers become bottom sheets: a right-anchored dropdown would run off the
+     edge of a phone once the trigger sits near the left of a wrapped row */
+  .chart-picker {
+    position: fixed;
+    top: auto;
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    width: auto;
+    max-height: 330px;
+    max-height: min(62vh, 380px);
+    max-height: min(62dvh, 380px);
+    z-index: 60;
+  }
+
+  /* six columns still need room; the card scrolls, the page does not */
+  .lb-table {
+    min-width: 560px;
+  }
+
+  .header-inner {
+    padding: 8px 0;
+  }
+
+  .site-footer {
+    padding: 18px 0;
+  }
+
+  .modal {
+    padding: 12px;
+  }
+
+  .modal-card {
+    padding: 18px 16px;
+    /* never taller than the viewport: the card scrolls internally instead of
+       clipping the radar chart on a short screen */
+    max-height: calc(100vh - 24px);
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+/* very narrow phones: trim the last few pixels of chrome */
+@media (max-width: 380px) {
+  .tab {
+    padding: 10px 9px;
+    font-size: .92rem;
+  }
+
+  .brand-logo {
+    max-width: 42vw;
   }
 }
