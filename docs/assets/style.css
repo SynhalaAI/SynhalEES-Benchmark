@@ -45,6 +45,8 @@
 html {
   scrollbar-color: var(--sb-thumb) var(--sb-track);
   scrollbar-width: thin;
+  /* an anchor jump must not park its target underneath the sticky header */
+  scroll-padding-top: 80px;
 }
 
 ::-webkit-scrollbar {
@@ -80,6 +82,30 @@ body {
   background: var(--navy-deep);
   color: var(--text);
   line-height: 1.55;
+  /* iOS Safari inflates text in landscape and on some home screens, which breaks
+     every width the layout above was tuned against */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* The page must never scroll sideways. `clip` rather than `hidden`: `hidden`
+     would make the body a scroll container and silently kill every
+     `position: sticky` cell inside the leaderboard table. */
+  overflow-x: clip;
+}
+
+/* kill the 300ms tap delay and the blue flash on Android Chrome, both of which
+   make the tab rows feel sluggish on a phone */
+button,
+select,
+a,
+.tab,
+.lb-table tbody tr {
+  touch-action: manipulation;
+}
+
+button,
+select,
+input {
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* One gutter system for the whole page: the sticky header, the main column and
@@ -134,7 +160,9 @@ a {
      /right back to 0 and throw the shared gutter away (the header content
      then sat ~40px outside the main column). Longhand keeps the inline
      gutter owned by .wrap alone. */
-  padding-block: 10px;
+  /* top inset for notched phones; the plain 10px is the everywhere-else value */
+  padding-top: max(10px, env(safe-area-inset-top));
+  padding-bottom: 10px;
   min-width: 0;
 }
 
@@ -338,6 +366,8 @@ a {
   background: var(--navy-card);
   border: 1px solid var(--border);
   border-radius: 14px;
+  /* iOS needs this for momentum inside a horizontal scroller; harmless elsewhere */
+  -webkit-overflow-scrolling: touch;
   /* the leaderboard table gets a min-width on narrow screens, so the card
      scrolls horizontally (the same pattern .compare-wrap already uses)
      instead of the page scrolling sideways */
@@ -1733,6 +1763,8 @@ a {
 
 .compare-wrap {
   overflow-x: auto;
+  /* iOS needs this for momentum inside a horizontal scroller; harmless elsewhere */
+  -webkit-overflow-scrolling: touch;
   margin: 0 -18px;
   padding: 0 18px 6px;
 }
@@ -2198,6 +2230,97 @@ thead th.cmp-featured {
   }
 }
 
+/* ---------- phone polish (360px class) ----------
+   Everything here is scoped to the phone range, so the desktop layout that was
+   tuned at 1200px+ is untouched. */
+
+@media (max-width: 640px) {
+
+  /* the sticky header eats a lot of a short phone screen; the logo and the two
+     icon buttons are the only things in it, so the block shrinks to them */
+  .brand-logo {
+    max-height: 36px;
+  }
+
+  /* the chart tooltip is a hover affordance, but a tap-drag on a phone fires
+     mousemove too, so it still has to fit the narrow card */
+  .chart-tip {
+    min-width: 0;
+    max-width: calc(100vw - 32px);
+    font-size: .8rem;
+  }
+
+  /* A phone has no hover, so a pressed row needs a visible cue (the desktop
+     hover tint never fires on touch). Matches the desktop hover fill so the two
+     read as the same interaction. */
+  .lb-table tbody tr:active td {
+    background: var(--row-alt);
+  }
+
+  .lb-table tbody tr:active td:nth-child(1),
+  .lb-table tbody tr:active td:nth-child(2) {
+    background: var(--row-alt);
+  }
+
+  /* 30px square is a mouse target, not a finger one */
+  .modal-close,
+  .modal-export {
+    width: 44px;
+    height: 44px;
+    right: 8px;
+  }
+
+  .modal-export {
+    top: 54px;
+  }
+
+  .modal-close .icon,
+  .modal-export .icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* picker rows: 5px padding gives a ~30px hit area, below the 44px minimum */
+  .pk-item {
+    padding: 10px 8px;
+  }
+
+  /* the picker sheet gets a grab-bar so it reads as a dismissible layer */
+  .chart-picker::before {
+    content: "";
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--border);
+    margin: 8px auto 4px;
+    flex: none;
+  }
+
+  .chart-picker .pk-head {
+    padding-top: 6px;
+  }
+}
+
+@media (max-width: 420px) {
+
+  /* The comparison bar is one labelled button plus an icon button, which does fit
+     2-up at this width - but the labelled one should take the slack so the pair
+     fills the row evenly instead of leaving a gap. The icon button is excluded:
+     it is icon-only, and letting it flex would stretch it across the card. */
+  .compare-controls .chart-pick-wrap {
+    flex: 1 1 auto;
+  }
+
+  .compare-controls .chart-pick-wrap .chart-pick {
+    width: 100%;
+  }
+
+  .compare-controls .cmp-export-btn {
+    flex: none;
+  }
+}
+
 /* very narrow phones: trim the last few pixels of chrome */
 @media (max-width: 380px) {
   .tab {
@@ -2207,5 +2330,22 @@ thead th.cmp-featured {
 
   .brand-logo {
     max-width: 42vw;
+  }
+}
+
+/* ---------- notched phones (last word on the safe-area insets) ----------
+   These live at the end on purpose: .header-inner and .site-footer both use the
+   `padding` shorthand further up, which would reset padding-top / padding-bottom
+   back to 0 if these landed before them. viewport-fit=cover in the viewport meta
+   lets the page paint into the cutout area, so the header and footer have to
+   pad themselves clear of it. max() keeps the normal padding on every device
+   without a safe area. */
+.site-footer {
+  padding-bottom: max(22px, env(safe-area-inset-bottom));
+}
+
+@media (max-width: 640px) {
+  .site-footer {
+    padding-bottom: max(18px, env(safe-area-inset-bottom));
   }
 }

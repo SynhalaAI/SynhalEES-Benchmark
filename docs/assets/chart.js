@@ -249,6 +249,14 @@
     return state.models.length ? state.models[0].name : "";
   }
 
+  // Phone-sized label shortening, used by both views. opts.canvas means this is
+  // the PNG export rendering offscreen, which always keeps the roomier desktop
+  // label sizing - the export is a fixed-size artefact, not a phone screen.
+  function narrowStep(W, opts) {
+    if (opts && opts.canvas) return 0;
+    return W < 420 ? 2 : (W < 620 ? 1 : 0);
+  }
+
   function draw(opts) {
     if (st.view === "pareto") return drawPareto(opts);
     scatterPts = [];
@@ -292,7 +300,13 @@
     }
 
     var padL = 38, padR = 10, padT = 26;
-    var logoH = 28, nameH = 96;                 // bottom band: logos + rotated names
+    // bottom band: logos + rotated model names. A 22-character name at 11px
+    // needs ~96px of vertical room once rotated 45 degrees, which a 360px
+    // phone does not have to spare - shorten the band and the names together
+    // so the labels are not clipped by the canvas edge.
+    var narrow = narrowStep(W, opts);   // 0 = desktop sizing
+    var logoH = narrow ? 22 : 28;
+    var nameH = narrow ? (narrow === 2 ? 62 : 78) : 96;
     var plotB = H - logoH - nameH - 6;
     var plotH = plotB - padT;
     var maxV = Math.max.apply(null, rows.map(barVal));
@@ -393,7 +407,7 @@
 
       // value label: inside the bar when it fits, else above it
       var label = fmtBarVal(v);
-      ctx.font = "700 13px Inter, sans-serif";
+      ctx.font = "700 " + (narrow ? 11 : 13) + "px Inter, sans-serif";
       ctx.textAlign = "center";
       var labelW = ctx.measureText(label).width;
       if (h > 30 && barW >= 26 && labelW <= barW - 8) {
@@ -408,18 +422,20 @@
 
       // provider brand chip (or initial disc) under the axis
       var cx = padL + slot * i + slot / 2;
-      drawBrandChip(ctx, cx, plotB + 17, 24, col,
+      var chip = narrow ? 20 : 24;
+      drawBrandChip(ctx, cx, plotB + (narrow ? 14 : 17), chip, col,
         logoArt(logoFile(m.provider), opts && opts.noImgs),
         m.provider.charAt(0).toUpperCase());
 
       // rotated model name
       ctx.save();
-      ctx.translate(cx + 4, plotB + logoH + 12);
+      ctx.translate(cx + (narrow ? 3 : 4), plotB + logoH + 12);
       ctx.rotate(-Math.PI / 4);
       ctx.fillStyle = hasFeatured ? (isFeat ? featRed : mutedCol) : textCol;
-      ctx.font = (isFeat ? "700 " : "") + "11px Inter, sans-serif";
+      ctx.font = (isFeat ? "700 " : "") + (narrow ? 10 : 11) + "px Inter, sans-serif";
       ctx.textAlign = "right";
-      var nm = m.name.length > 22 ? m.name.slice(0, 21) + "..." : m.name;
+      var maxName = narrow ? (narrow === 2 ? 13 : 18) : 22;
+      var nm = m.name.length > maxName ? m.name.slice(0, maxName - 1) + "..." : m.name;
       ctx.fillText(nm, 0, 0);
       ctx.restore();
     });
@@ -745,7 +761,8 @@
       // narrow plots cannot fit 20-character names without the labels piling
       // up, so shorten harder as the canvas narrows (the tooltip keeps the full
       // name)
-      var maxName = W < 420 ? 12 : (W < 620 ? 16 : 20);
+      var pStep = narrowStep(W, opts);
+      var maxName = pStep === 2 ? 12 : (pStep === 1 ? 16 : 20);
       var nm = m.name.length > maxName ? m.name.slice(0, maxName - 1) + "..." : m.name;
       var tw = ctx.measureText(nm).width;
       var lh = 14;
