@@ -39,9 +39,18 @@ import sys
 from datetime import date
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parent.parent
+
+# Make the repo root importable so `synhalees` resolves when this file is run
+# directly (`python tools/build_leaderboard.py`). Without it sys.path[0] is
+# tools/, the package is not found, and CI fails with ModuleNotFoundError.
+# A src-layout package is normally installed; this keeps the tool runnable
+# straight from a fresh clone with no install step and no PYTHONPATH.
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 from synhalees.registry import default_registry
 
-ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "docs" / "assets" / "data" / "leaderboard.json"
 # Committed, one CSV per model: the published source of truth for the site.
 SUBMISSIONS_DIR = ROOT / "submissions"
