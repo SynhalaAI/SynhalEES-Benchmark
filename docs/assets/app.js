@@ -215,6 +215,11 @@
       body.appendChild(tr);
     });
 
+    // Past 10 models the table stops stretching to fill the card and scrolls
+    // horizontally inside it instead (see .lb-table.is-capped). The toggle has
+    // to live here because only JS knows the filtered row count.
+    $("#leaderboard").classList.toggle("is-capped", rows.length > 10);
+
     // first-load cascade (rows animate in once on page open)
     if (state.bootAnim) {
       body.classList.add("rows-boot");

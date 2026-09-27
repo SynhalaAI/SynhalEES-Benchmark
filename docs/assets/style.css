@@ -12,6 +12,11 @@
   --row-alt: #232838;
   --good: #2e9e5b;
   --shadow: 0 10px 30px rgba(0, 0, 0, .35);
+  /* scrollbars follow the theme instead of the OS default (a light grey bar
+     read as a foreign element on the navy cards) */
+  --sb-track: #171b26;
+  --sb-thumb: #454d66;
+  --sb-thumb-hover: #5b6480;
 }
 
 [data-theme="light"] {
@@ -23,10 +28,50 @@
   --border: #d9dce6;
   --row-alt: #f0f1f7;
   --shadow: 0 10px 26px rgba(43, 48, 68, .10);
+  --sb-track: #eceef4;
+  --sb-thumb: #c3c8d6;
+  --sb-thumb-hover: #a8aebe;
 }
 
 * {
   box-sizing: border-box;
+}
+
+/* ---------- themed scrollbars ----------
+   Two layers, because browsers need both: the standard scrollbar-color applies
+   in Firefox and modern Chromium, while the ::-webkit pseudo-elements cover
+   older WebKit/Blink builds that ignore it. Colours come from the theme
+   variables above, so the light theme gets a light bar automatically. */
+html {
+  scrollbar-color: var(--sb-thumb) var(--sb-track);
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--sb-track);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--sb-thumb);
+  border-radius: 6px;
+  /* 3px transparent border + background-clip gives the thumb visual padding
+     without the box growing, so the rounded pill reads correctly on the track */
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--sb-thumb-hover);
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--sb-track);
 }
 
 body {
@@ -49,6 +94,17 @@ body {
   max-width: 1680px;
   margin-inline: auto;
   padding-inline: clamp(16px, 3.2vw, 40px);
+}
+
+/* Wide monitors: give the content real breathing room at the screen edges.
+   The 1920px cap keeps rows from stretching uncomfortably wide on an ultrawide
+   while the larger gutter stops the layout from sitting flush against the bezel.
+   Tablet and phone widths keep the base clamp above. */
+@media (min-width: 1200px) {
+  .wrap {
+    max-width: 1920px;
+    padding-inline: clamp(24px, 1vw, 40px);
+  }
 }
 
 .accent {
@@ -154,15 +210,24 @@ a {
   overflow-wrap: break-word;
 }
 
-/* Tall desktops do not need the phone-sized breathing room above the
-   headline; the extra pixels were pure gap above the controls. */
+/* Desktop: the hero is the page's only vertical break, and a tall monitor has
+   room to spare, so open it up - more air above the headline and a wider gap
+   before the control bar. The phone/tablet values above stay tight. */
 @media (min-width: 1100px) {
   .hero {
-    padding: 32px 0 20px;
+    padding: 48px 0 48px;
   }
 
   .hero h1 {
-    margin-bottom: 8px;
+    margin-bottom: 16px;
+  }
+
+  .updated {
+    margin-top: 22px;
+  }
+
+  .controls {
+    margin-bottom: 22px;
   }
 }
 
@@ -292,6 +357,32 @@ a {
   text-align: left;
 }
 
+/* Set by app.js once the leaderboard holds more than 10 models. Past that point
+   the table is given a max-width instead of growing with the row count, so the
+   columns keep a steady, readable width and .table-card (overflow-x: auto)
+   scrolls it sideways. Without this the table just gets taller and each row
+   stretches to whatever the viewport happens to be. */
+.lb-table.is-capped {
+  max-width: 1180px;
+}
+
+/* Auto table layout sizes each column from its widest cell. The moment a value
+   like "236.1K" or "2026-09-26" wraps onto a second line, that column resolves to a
+   different width on every row and the values stop lining up under their
+   headers. Keeping cells on one line costs nothing here: .table-card already
+   scrolls horizontally when the table outgrows the viewport. */
+.lb-table td {
+  white-space: nowrap;
+}
+
+/* The model name is the one cell allowed to wrap - it carries the score bar
+   underneath, and long names grow the column instead of overflowing it. */
+.lb-table td:nth-child(2) {
+  white-space: normal;
+  min-width: 190px;
+  max-width: 320px;
+}
+
 .lb-table th {
   background: var(--navy);
   color: var(--muted);
@@ -303,9 +394,21 @@ a {
   white-space: nowrap;
 }
 
-.lb-table th.num,
-.lb-table td.num {
-  text-align: right;
+/* Centre every column except the model name. The model column (2) stays
+   left-aligned because it is the row identity - a name reads from a fixed
+   left edge far better than floating mid-column. The rank badge (1) IS
+   centred, so the # header sits on the same line as the medal circles.
+   Centring the rest also removes the header/value mismatch the inline sort
+   arrow used to cause: centred text is symmetric, so the arrow no longer
+   pushes the label off the data's centre line. */
+.lb-table th,
+.lb-table td {
+  text-align: center;
+}
+
+.lb-table th:nth-child(2),
+.lb-table td:nth-child(2) {
+  text-align: left;
 }
 
 .lb-table tbody tr {
@@ -346,16 +449,19 @@ a {
   letter-spacing: .02em;
   border: 1px solid transparent;
 }
+
 .type-badge.open {
   color: #2ecc71;
   background: rgba(46, 204, 113, .14);
   border-color: rgba(46, 204, 113, .35);
 }
+
 .type-badge.proprietary {
   color: #8ab4f8;
   background: rgba(100, 149, 237, .14);
   border-color: rgba(100, 149, 237, .35);
 }
+
 .type-select {
   width: auto;
   min-width: 140px;
@@ -755,7 +861,8 @@ a {
 }
 
 .modal-export {
-  top: 46px; /* stacked under the close button */
+  top: 46px;
+  /* stacked under the close button */
   right: 14px;
 }
 
@@ -795,11 +902,14 @@ a {
   text-align: center;
 }
 
-/* phones: keep the table to its essentials. Provider, license and run date
-   stay in the DOM and in the PNG export - only the on-screen table is trimmed. */
+/* Phones: trim the table to the columns that actually earn their width.
+   Provider (3) and license type (4) are reference metadata - both stay in the
+   DOM and in the PNG export, they are just not worth a column on a phone.
+   The run date (9) is deliberately KEPT: it is the one remaining column that
+   tells you how fresh a result is, and now that the rank + model columns are
+   frozen and the rest scrolls, there is room to reach it by swiping. */
 @media (max-width: 640px) {
-  .lb-table th:nth-child(9),
-  .lb-table td:nth-child(9),
+
   .lb-table th:nth-child(4),
   .lb-table td:nth-child(4),
   .lb-table th:nth-child(3),
@@ -1202,9 +1312,11 @@ a {
 }
 
 .chart-select {
-  width: auto;   /* override .pillar-select fixed 320px so controls fit one line */
+  width: auto;
+  /* override .pillar-select fixed 320px so controls fit one line */
   padding: 7px 10px;
-  padding-right: 32px; /* keep room for the .pillar-select chevron (padding shorthand above would otherwise reset it) */
+  padding-right: 32px;
+  /* keep room for the .pillar-select chevron (padding shorthand above would otherwise reset it) */
   font-size: .85rem;
 }
 
@@ -1380,7 +1492,8 @@ a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  align-self: stretch; /* same height as the search/select/Models controls */
+  align-self: stretch;
+  /* same height as the search/select/Models controls */
   flex: none;
   padding: 0 13px;
   border-radius: 10px;
@@ -1822,6 +1935,7 @@ thead th.cmp-featured {
    from 320px upwards; wide tables scroll inside their own card, never the page. */
 
 @media (max-width: 1100px) {
+
   /* the filter row can no longer hold every control on one line - let the
      group wrap to a full-width second row instead of squeezing the controls */
   .controls {
@@ -1830,6 +1944,7 @@ thead th.cmp-featured {
 }
 
 @media (max-width: 760px) {
+
   /* tighter card padding gives the data more room */
   .chart-card,
   .compare-card {
@@ -1871,6 +1986,7 @@ thead th.cmp-featured {
 }
 
 @media (max-width: 640px) {
+
   /* comfortable tap targets (>= 44px) on every interactive control */
   .tab {
     padding: 10px 12px;
@@ -1891,8 +2007,12 @@ thead th.cmp-featured {
     padding-bottom: 6px;
   }
 
-  /* leaderboard controls stack into predictable rows:
-     tabs / pillar / type / search + Models + export */
+  /* Leaderboard controls pack into three rows instead of five, so no single
+     control is stretched across the full width of a phone (which made the
+     selects look oversized):
+       row 1  Text / Vision / Audio
+       row 2  All 15 Pillars  +  All types      (50/50)
+       row 3  search  +  Models  +  export      (search flexes, icons fixed) */
   .controls>.tabs {
     flex: 1 1 100%;
   }
@@ -1901,19 +2021,24 @@ thead th.cmp-featured {
     flex: 1 1 auto;
   }
 
+  /* the two selects share one row; each gives up the 6px gap between them */
   .controls>.pillar-select,
   .controls>.type-select {
-    flex: 1 1 100%;
+    flex: 1 1 calc(50% - 6px);
+    width: auto;
     max-width: none;
   }
 
   .controls-end {
     flex: 1 1 100%;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
   }
 
+  /* search absorbs the leftover width and is allowed to shrink below its own
+     basis so the Models + export buttons keep their tap targets intact */
   .controls-end .search {
-    flex: 1 1 100%;
+    flex: 1 1 60px;
+    min-width: 0;
   }
 
   /* popovers become bottom sheets: a right-anchored dropdown would run off the
@@ -1931,9 +2056,63 @@ thead th.cmp-featured {
     z-index: 60;
   }
 
-  /* six columns still need room; the card scrolls, the page does not */
+  /* Visible columns are rank + model (frozen) and score, cost, tokens, latency,
+     date (scrolling). The min-width has to cover all of them, otherwise the
+     date is reachable only by squeezing the last column past the card edge. */
   .lb-table {
-    min-width: 560px;
+    min-width: 660px;
+  }
+
+  /* Freeze the rank + model columns. Without this the model name scrolls out of
+     view and a horizontally scrolled row cannot be identified at all, because
+     the number and the name live in the same row. Everything to the right
+     (score, cost, tokens, latency, date) scrolls as one block.
+     Both frozen cells need an OPAQUE background - the row stripe is a
+     transparent odd row, so a transparent sticky cell would let the scrolled
+     columns show straight through it. */
+  .lb-table th:nth-child(1),
+  .lb-table td:nth-child(1) {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    width: 44px;
+    min-width: 44px;
+    padding-inline: 8px;
+    background: var(--navy);
+  }
+
+  .lb-table th:nth-child(2),
+  .lb-table td:nth-child(2) {
+    position: sticky;
+    left: 44px;
+    z-index: 3;
+    width: 200px;
+    min-width: 200px;
+    max-width: 200px;
+    background: var(--navy);
+  }
+
+  /* the frozen body cells take the row stripe, matching their row exactly */
+  .lb-table tbody td:nth-child(1),
+  .lb-table tbody td:nth-child(2) {
+    background: var(--navy-card);
+  }
+
+  .lb-table tbody tr:nth-child(even) td:nth-child(1),
+  .lb-table tbody tr:nth-child(even) td:nth-child(2) {
+    background: var(--row-alt);
+  }
+
+  /* hairline + soft shadow on the frozen edge so it reads as pinned, not broken */
+  .lb-table th:nth-child(2),
+  .lb-table td:nth-child(2) {
+    box-shadow: 1px 0 0 var(--border), 6px 0 10px -6px rgba(0, 0, 0, .5);
+  }
+
+  /* keep the hover outline from being clipped by the frozen columns */
+  .lb-table tbody tr:hover td:nth-child(1),
+  .lb-table tbody tr:hover td:nth-child(2) {
+    background: var(--navy-card);
   }
 
   .header-inner {
