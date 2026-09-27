@@ -184,12 +184,12 @@ lines from the checkpoint (or rerun with `--fresh`) once the problem is fixed.
 **👉 [View the live benchmark results](https://synhalaai.github.io/SynhalEES-Benchmark/)**
 
 <p align="center">
-  <img src="logo/screenshot-dark.png" alt="SynhalEES leaderboard — dark theme, ranked models with score, cost, token and latency telemetry" width="100%"/>
+  <img src="docs/screenshot-dark.png" alt="SynhalEES leaderboard — dark theme, ranked models with score, cost, token and latency telemetry" width="100%"/>
   <br/><sub>Dark theme — ranked by Text score across all 15 pillars</sub>
 </p>
 
 <p align="center">
-  <img src="logo/screenshot-light.png" alt="SynhalEES leaderboard — light theme, same ranked model table" width="100%"/>
+  <img src="docs/screenshot-light.png" alt="SynhalEES leaderboard — light theme, same ranked model table" width="100%"/>
   <br/><sub>Light theme — the same view, with WCAG AA contrast on every colour token</sub>
 </p>
 
