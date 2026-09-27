@@ -64,7 +64,8 @@ SynhalEES/
 │   ├── icon.png                                 # App/favicon icon
 │   ├── icon-white.png                           # Favicon variant on white rounded chip
 │   ├── logo.jpg / logo.af                       # JPG export + Affinity source file
-│   └── cover.jpg / cover.af                     # Cover art + Affinity source file
+│   ├── cover.jpg / cover.af                     # Cover art + Affinity source file
+│   └── synhalees_benchmark_brand_book_by_pomelli.pdf  # Brand book (6pp, delivered as PDF)
 │
 ├── tools/                                       # Data-collection helper tools
 │   ├── compare_runs.py                        # Compares runs/<model-slug>/ folders -> runs/all_submissions.csv + matrix report
