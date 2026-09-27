@@ -257,22 +257,26 @@
     return W < 420 ? 2 : (W < 620 ? 1 : 0);
   }
 
+  // Horizontal scrolling is a phone/tablet affordance only. From SCROLL_MAX_W up,
+  // a wide screen has room to spare, so the plot simply compresses to fit the
+  // wrapper (the original behaviour) and never grows a scroller - a 25-model
+  // chart on a desktop fits the card instead of demanding a swipe. The PNG
+  // export renders offscreen at a fixed width and never scrolls either way.
+  var SCROLL_MAX_W = 900;
+  function mayScroll(opts) {
+    if (opts && opts.canvas) return false;
+    return canvasWidth() <= SCROLL_MAX_W;
+  }
+  function canvasWidth() {
+    var c = $("#chart");
+    return c && c.parentElement ? c.parentElement.clientWidth : 0;
+  }
+
   function draw(opts) {
     if (st.view === "pareto") return drawPareto(opts);
     scatterPts = [];
     var canvas = (opts && opts.canvas) || $("#chart");
     if (!canvas || !state.models.length) return;
-    var W = (opts && opts.width) || canvas.parentElement.clientWidth;
-    var H = (opts && opts.height) || chartHeight();
-    var dpr = (opts && opts.dpr) || window.devicePixelRatio || 1;
-    canvas.width = W * dpr;
-    canvas.height = H * dpr;
-    canvas.style.width = W + "px";
-    canvas.style.height = H + "px";
-    var ctx = canvas.getContext("2d");
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, W, H);
-
     var rows = visibleModels();
     if (st.barM !== "score") {
       // usage measure: drop models without telemetry, then order best-first.
@@ -283,6 +287,32 @@
       rows = rows.filter(function (m) { return barVal(m) != null; });
       rows.sort(function (a, b) { return barVal(a) - barVal(b); });
     }
+
+    // Bar size is frozen at the width 10 bars get. Up to 10 the chart fits the
+    // wrapper exactly as before; from the 11th on, the canvas grows past the
+    // wrapper and .chart-wrap scrolls sideways (the same pattern .table-card
+    // and .compare-wrap use) instead of every bar being squeezed thinner.
+    // Deriving the slot from the 10-bar width - rather than a fixed pixel floor
+    // - is what keeps the bars the SAME size at 10 and at 25.
+    var FREE_BARS = 10;                      // bars that fit before scrolling starts
+    var availW = (opts && opts.width) || canvas.parentElement.clientWidth;
+    var H = (opts && opts.height) || chartHeight();
+    var dpr = (opts && opts.dpr) || window.devicePixelRatio || 1;
+    var minSlot = (availW - 38 - 10) / FREE_BARS;   // padL + padR gutter
+    var needW = 38 + 10 + rows.length * minSlot;      // width the bars would need
+    // scroll only on a narrow viewport; a wide screen just compresses to fit
+    var scroll = mayScroll(opts) && needW > availW;
+    var W = (opts && opts.width) ? opts.width : (scroll ? needW : availW);
+    var wrapEl = canvas.parentElement;
+    if (wrapEl) wrapEl.classList.toggle("is-scrollable", scroll);
+
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width = W + "px";
+    canvas.style.height = H + "px";
+    var ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
     var textCol = cssVar("--text") || "#eef0f6";
     var mutedCol = cssVar("--muted") || "#9aa1b5";
     var borderCol = cssVar("--border") || "#3a4157";
@@ -304,7 +334,7 @@
     // needs ~96px of vertical room once rotated 45 degrees, which a 360px
     // phone does not have to spare - shorten the band and the names together
     // so the labels are not clipped by the canvas edge.
-    var narrow = narrowStep(W, opts);   // 0 = desktop sizing
+    var narrow = narrowStep(availW, opts);   // 0 = desktop sizing
     var logoH = narrow ? 22 : 28;
     var nameH = narrow ? (narrow === 2 ? 62 : 78) : 96;
     var plotB = H - logoH - nameH - 6;
@@ -347,25 +377,37 @@
       ctx.fillText(fmtBarTick(t), padL - 7, gy);
     });
 
-    // subtle brand watermark in the top-right corner (AA-style attribution)
-    var wmX = W - padR, wmY = 13;
-    ctx.font = "600 12px Inter, sans-serif";
-    ctx.textAlign = "right";
-    ctx.fillStyle = mutedCol;
-    ctx.fillText(" Benchmark", wmX, wmY);
-    var benchW = ctx.measureText(" Benchmark").width;
-    ctx.fillStyle = textCol;
-    ctx.fillText("SynhalEES", wmX - benchW, wmY);
-    var synW = ctx.measureText("SynhalEES").width;
-    var bimg = (opts && opts.noImgs) ? null : brandImg();
-    if (bimg) {
-      // SB brand icon badge (has its own light bg, works on dark mode too)
-      ctx.drawImage(bimg, wmX - benchW - synW - 17, wmY - 7, 14, 14);
+    // Subtle brand watermark in the top-right corner (AA-style attribution).
+    // Painted into the canvas ONLY when the chart does not scroll. Once
+    // .chart-wrap scrolls, anything drawn here travels with the bars and the
+    // attribution would slide out of view, so the pinned .chart-wm DOM element
+    // takes over instead (CSS shows it only for .is-scrollable).
+    if (W <= availW) {
+      var wmX = W - padR, wmY = 13;
+      ctx.font = "600 12px Inter, sans-serif";
+      ctx.textAlign = "right";
+      ctx.fillStyle = mutedCol;
+      ctx.fillText(" Benchmark", wmX, wmY);
+      var benchW = ctx.measureText(" Benchmark").width;
+      ctx.fillStyle = textCol;
+      ctx.fillText("SynhalEES", wmX - benchW, wmY);
+      var synW = ctx.measureText("SynhalEES").width;
+      var bimg = (opts && opts.noImgs) ? null : brandImg();
+      if (bimg) {
+        // SB brand icon badge (has its own light bg, works on dark mode too)
+        ctx.drawImage(bimg, wmX - benchW - synW - 17, wmY - 7, 14, 14);
+      } else {
+        ctx.fillStyle = "#E04545";         // fallback: SynhalaAI brand red accent dot
+        ctx.beginPath();
+        ctx.arc(wmX - benchW - synW - 9, wmY, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
     } else {
-      ctx.fillStyle = "#E04545";         // fallback: SynhalaAI brand red accent dot
-      ctx.beginPath();
-      ctx.arc(wmX - benchW - synW - 9, wmY, 3.5, 0, Math.PI * 2);
-      ctx.fill();
+      brandImg();                          // warm the cache for the DOM <img>
+      var wmImg = document.querySelector(".chart-wm-mark");
+      if (wmImg && !wmImg.getAttribute("src")) {
+        wmImg.src = window.SYNHALEES_BRAND_ICON || "assets/icon.png";
+      }
     }
     var n = rows.length;
     var slot = (W - padL - padR) / n;
@@ -512,9 +554,22 @@
   function drawPareto(opts) {
     var canvas = (opts && opts.canvas) || $("#chart");
     if (!canvas || !state.models.length) return;
-    var W = (opts && opts.width) || canvas.parentElement.clientWidth;
+    // The scatter needs more room per model than the bars do - a chip plus its
+    // name, not just a bar - so it switches to scrolling at 5 points rather
+    // than the bar view's 10. The per-model share is still derived from the
+    // FREE_PTS-model width, so the spacing never changes, it only stops fitting.
+    var rows = paretoRows();
+    var FREE_PTS = 5;                       // points that fit before scrolling starts
+    var availW = (opts && opts.width) || canvas.parentElement.clientWidth;
+    var perPt = (availW - 62 - 26) / FREE_PTS;            // padL + padR gutter
+    var needW = 62 + 26 + rows.length * perPt;
     var H = (opts && opts.height) || chartHeight();
     var dpr = (opts && opts.dpr) || window.devicePixelRatio || 1;
+    // scroll only on a narrow viewport; a wide screen just compresses to fit
+    var scroll = mayScroll(opts) && needW > availW;
+    var W = (opts && opts.width) ? opts.width : (scroll ? needW : availW);
+    var wrapEl = canvas.parentElement;
+    if (wrapEl) wrapEl.classList.toggle("is-scrollable", scroll);
     canvas.width = W * dpr;
     canvas.height = H * dpr;
     canvas.style.width = W + "px";
@@ -526,7 +581,6 @@
     scatterPts = [];
     var labelBoxes = [];   // placed label rects (collision avoidance)
 
-    var rows = paretoRows();
     var textCol = cssVar("--text") || "#eef0f6";
     var mutedCol = cssVar("--muted") || "#9aa1b5";
     var borderCol = cssVar("--border") || "#3a4157";
@@ -681,28 +735,42 @@
     ctx.lineTo(W - padR, plotB);
     ctx.stroke();
 
-    // subtle brand watermark in the top-right corner (mirrors the bar view)
-    var wmX = W - padR, wmY = 14;
-    ctx.font = "600 12px Inter, sans-serif";
-    ctx.textAlign = "right";
-    ctx.textBaseline = "alphabetic";
-    ctx.fillStyle = mutedCol;
-    ctx.fillText(" Benchmark", wmX, wmY);
-    var benchW = ctx.measureText(" Benchmark").width;
-    ctx.fillStyle = textCol;
-    ctx.fillText("SynhalEES", wmX - benchW, wmY);
-    var synW = ctx.measureText("SynhalEES").width;
-    var bimg = (opts && opts.noImgs) ? null : brandImg();
-    if (bimg) {
-      ctx.drawImage(bimg, wmX - benchW - synW - 17, wmY - 10, 14, 14);
+    // Subtle brand watermark, top-right (mirrors the bar view). Painted into the
+    // canvas ONLY when the plot does not scroll - once .chart-wrap scrolls,
+    // anything drawn here travels with the points, so the pinned .chart-wm DOM
+    // element (a sibling of the scroller) takes over instead. The two are
+    // mutually exclusive, so the brand can never appear twice.
+    if (W <= availW) {
+      var wmX = W - padR, wmY = 14;
+      ctx.font = "600 12px Inter, sans-serif";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "alphabetic";
+      ctx.fillStyle = mutedCol;
+      ctx.fillText(" Benchmark", wmX, wmY);
+      var benchW = ctx.measureText(" Benchmark").width;
+      ctx.fillStyle = textCol;
+      ctx.fillText("SynhalEES", wmX - benchW, wmY);
+      var synW = ctx.measureText("SynhalEES").width;
+      var bimg = (opts && opts.noImgs) ? null : brandImg();
+      if (bimg) {
+        ctx.drawImage(bimg, wmX - benchW - synW - 17, wmY - 10, 14, 14);
+      } else {
+        ctx.fillStyle = "#E04545";
+        ctx.beginPath();
+        ctx.arc(wmX - benchW - synW - 9, wmY - 3.5, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // reserve the watermark band so no model name is printed over the brand
+      labelBoxes.push({ x0: wmX - benchW - synW - 24, x1: wmX + 2, y0: 1, y1: 23 });
     } else {
-      ctx.fillStyle = "#E04545";
-      ctx.beginPath();
-      ctx.arc(wmX - benchW - synW - 9, wmY - 3.5, 3.5, 0, Math.PI * 2);
-      ctx.fill();
+      brandImg();                          // warm the cache for the DOM <img>
+      var wmImg = document.querySelector(".chart-wm-mark");
+      if (wmImg && !wmImg.getAttribute("src")) {
+        wmImg.src = window.SYNHALEES_BRAND_ICON || "assets/icon.png";
+      }
+      // keep model labels clear of the pinned watermark sitting over the plot
+      labelBoxes.push({ x0: availW - 150, x1: availW, y0: 1, y1: 23 });
     }
-    // reserve the watermark band so no model name is printed over the brand
-    labelBoxes.push({ x0: wmX - benchW - synW - 24, x1: wmX + 2, y0: 1, y1: 23 });
 
     // ---- Pareto frontier (dashed gold staircase, lower-left -> upper-right) ----
     if (front.length > 1) {
@@ -885,9 +953,14 @@
           // lights up - the score is on the y-axis and reads as a plain value
           "<div class='ct-row on'><span>" + PX_LABEL[st.px] + "</span><span>" + fmtPx(hit.xv) + "</span></div>";
         tip.hidden = false;
-        var pwrap = canvas.parentElement.getBoundingClientRect();
-        var ptx = e.clientX - pwrap.left + 14;
-        if (ptx + tip.offsetWidth > pwrap.width) ptx = e.clientX - pwrap.left - tip.offsetWidth - 14;
+        var pEl = canvas.parentElement;
+        var pwrap = pEl.getBoundingClientRect();
+        // + scrollLeft: the tip is a child of the (now scrollable) wrapper, so it
+        // is positioned in content space, not viewport space
+        var ptx = e.clientX - pwrap.left + pEl.scrollLeft + 14;
+        if (ptx + tip.offsetWidth > pEl.scrollWidth) {
+          ptx = e.clientX - pwrap.left + pEl.scrollLeft - tip.offsetWidth - 14;
+        }
         tip.style.left = ptx + "px";
         tip.style.top = (e.clientY - pwrap.top - 10) + "px";
         canvas.style.cursor = "pointer";
@@ -905,9 +978,14 @@
             METRIC_LABEL[k] + "</span><span>" + (v == null ? "-" : v.toFixed(1)) + "</span></div>";
         }).join("");
       tip.hidden = false;
-      var wrap = canvas.parentElement.getBoundingClientRect();
-      var tx = e.clientX - wrap.left + 14;
-      if (tx + tip.offsetWidth > wrap.width) tx = e.clientX - wrap.left - tip.offsetWidth - 14;
+      var wEl = canvas.parentElement;
+      var wrap = wEl.getBoundingClientRect();
+      // + scrollLeft: the tip is a child of the (now scrollable) wrapper, so it
+      // is positioned in content space, not viewport space
+      var tx = e.clientX - wrap.left + wEl.scrollLeft + 14;
+      if (tx + tip.offsetWidth > wEl.scrollWidth) {
+        tx = e.clientX - wrap.left + wEl.scrollLeft - tip.offsetWidth - 14;
+      }
       tip.style.left = tx + "px";
       tip.style.top = (e.clientY - wrap.top - 10) + "px";
       canvas.style.cursor = "pointer";

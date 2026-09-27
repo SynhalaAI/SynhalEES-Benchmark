@@ -202,7 +202,7 @@
       var tr = document.createElement("tr");
       tr.innerHTML =
         "<td class=\"num medal\">" + medal(i + 1) + "</td>" +
-        "<td><span class=\"model-name\">" + esc(m.name) + "</span>" +
+        "<td><span class=\"model-name\" title=\"" + esc(m.name) + "\">" + esc(m.name) + "</span>" +
         "<div class=\"scorebar\"><span style=\"width:" + s + "%\"></span></div></td>" +
         "<td class=\"provider\">" + providerLogo(m.provider) + esc(m.provider) + "</td>" +
         "<td class=\"col-type\"><span class=\"type-badge " + (m.open_source ? "open" : "proprietary") + "\">" + (m.open_source ? "Open Source" : "Proprietary") + "</span></td>" +
@@ -400,7 +400,7 @@
       html += "<th scope='col' class='cmp-model" + (feat ? " cmp-featured" : "") + "'>" +
         "<span class='cmp-model-box'>" +
         (logo ? logo : "") +
-        "<span class='cmp-name'>" + m.name + "</span>" +
+        "<span class='cmp-name' title='" + esc(m.name) + "'>" + esc(m.name) + "</span>" +
         "<span class='cmp-provider'>" + m.provider + "</span>" +
         "<span class='cmp-wins" + (feat ? " top" : "") + "'>" +
         SVG_OPEN + ICONS.crown + "</svg>" + wins[m.name] + " wins</span>" +

@@ -491,6 +491,15 @@ a {
 
 .model-name {
   font-weight: 700;
+  /* Clamp to 2 lines: a long name ("Gemini 3.1 Flash lite Preview") otherwise
+     wraps to 3+ lines and makes one row twice as tall as its neighbours.
+     app.js puts the full name in `title`, so nothing is actually lost. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
 }
 
 .provider {
@@ -1317,9 +1326,11 @@ a {
 }
 
 /* bar <-> Pareto analytics switch, tab-style like the metric tabs;
-   both tabs always render -> identical footprint in both views */
-.chart-head h2 .view-tabs {
-  margin-left: 2px;
+   both tabs always render -> identical footprint in both views.
+   It is the first item in .chart-controls so on a wide screen it sits right
+   beside the Text/Vision/Audio tabs instead of hugging the card title. */
+.chart-controls>.view-tabs {
+  flex: none;
 }
 
 .chart-controls {
@@ -1589,8 +1600,61 @@ a {
   border-color: var(--red-bright);
 }
 
+/* .chart-stage is the positioning context; .chart-wrap inside it is the
+   horizontal scroller. Keeping them separate is what lets the watermark sit
+   OUTSIDE the scroller, so it stays put while the bars slide under it. */
+.chart-stage {
+  position: relative;
+}
+
 .chart-wrap {
   position: relative;
+}
+
+/* Brand watermark - DOM, not painted into the canvas, precisely so it cannot
+   scroll away. Hidden by default; chart.js reveals it only while the chart is
+   actually scrollable (the canvas draws its own copy when it is not, so the
+   two can never overlap). */
+.chart-wm {
+  display: none;
+  position: absolute;
+  top: 6px;
+  right: 0;
+  z-index: 2;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.chart-wrap.is-scrollable + .chart-wm {
+  display: inline-flex;
+}
+
+.chart-wm-mark {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}
+
+.chart-wm-name {
+  color: var(--text);
+}
+
+/* Past ~10 models the chart canvas is wider than its wrapper (chart.js floors
+   the per-bar slot at 68px instead of crushing every bar), so the wrapper
+   becomes a horizontal scroller - the same pattern .table-card and
+   .compare-wrap use. Toggled by JS only when the canvas actually overflows, so
+   a short chart never grows a scrollbar. */
+.chart-wrap.is-scrollable {
+  overflow-x: auto;
+  /* iOS needs this for momentum inside a horizontal scroller; harmless elsewhere */
+  -webkit-overflow-scrolling: touch;
+  /* the rotated bar labels hang below the plot, so keep them off the card edge */
+  padding-bottom: 4px;
 }
 
 #chart {
@@ -1640,21 +1704,41 @@ a {
 }
 
 @media (max-width: 720px) {
+  /* Dissolve the control row so its children join the header's own flex line.
+     Without this the header stacks (title on row 1, controls on row 2) and the
+     Bars/Pareto switch - which lives in the control row - can never share the
+     title's line. With `display: contents` the switch becomes a direct flex item
+     of .chart-head, so it sits beside the title and the rest of the controls
+     wrap underneath as before. */
   .chart-head {
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    row-gap: 10px;
   }
 
-  /* the title row also carries the Bars/Pareto switch, so let it wrap instead of
-     forcing the switch onto a line of its own on the narrowest phones */
+  .chart-controls {
+    display: contents;
+  }
+
+  /* the title takes the slack, the switch keeps its intrinsic size */
   .chart-head h2 {
+    flex: 1 1 auto;
+    min-width: 0;
     flex-wrap: wrap;
     row-gap: 8px;
   }
 
-  .chart-controls {
-    justify-content: flex-start;
+  /* pushed to the far right of the title's line, as on the wide layout */
+  .chart-controls>.view-tabs {
+    order: 0;
+    flex: 0 0 auto;
+    margin-left: auto;
   }
+
+  /* the remaining controls (Text/Vision/Audio, the selects, the picker) wrap
+     onto the following lines at their natural sizes; the max-width: 640px
+     block below still gives them their own row layout. */
 
   /* the scatter needs vertical room for its labels on a narrow plot */
   .chart-card .chart-wrap {
@@ -1914,6 +1998,16 @@ a {
 .cmp-name {
   font-weight: 800;
   font-size: .95rem;
+  /* Same 2-line clamp as the leaderboard model column, so one long model name
+     cannot stretch the whole head-to-head header on a phone. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  width: 100%;
+  min-width: 0;
 }
 
 .cmp-provider {
@@ -2072,6 +2166,24 @@ thead th.cmp-featured {
     min-width: 620px;
   }
 
+  /* Head-to-Head on a phone: the sticky metric column only holds a short label
+     (e.g. "Sinhala Grammar") plus a tiny icon, so 230-300px was mostly wasted -
+     it pushed every model column so narrow that the model names had to wrap
+     hard. Give the label what it needs and the names the rest. */
+  .cmp-rowhead {
+    min-width: 132px;
+    max-width: 160px;
+  }
+
+  .compare-table th,
+  .compare-table td {
+    padding: 8px 10px;
+  }
+
+  .compare-table {
+    min-width: 560px;
+  }
+
   .lb-table th,
   .lb-table td {
     padding: 10px 12px;
@@ -2139,15 +2251,16 @@ thead th.cmp-featured {
        row 1  Text / Vision / Audio
        row 2  organization + featured model  (50/50)
        row 3  top-N + count, then Select models + export */
-  .chart-controls {
-    row-gap: 8px;
-  }
+  /* .chart-controls is `display: contents` at this width, so its own row-gap is
+     inert - the row spacing now comes from .chart-head in the 720px block. */
 
-  .chart-controls>.chart-tabs {
+  /* #chart-tabs, not .chart-tabs: the Bars/Pareto switch carries the same class
+     but is a 2-tab control that must stay on one line with the row below it */
+  .chart-controls>#chart-tabs {
     flex: 1 1 100%;
   }
 
-  .chart-controls>.chart-tabs .tab {
+  .chart-controls>#chart-tabs .tab {
     flex: 1 1 auto;
   }
 
@@ -2201,7 +2314,7 @@ thead th.cmp-featured {
      date (scrolling). The min-width has to cover all of them, otherwise the
      date is reachable only by squeezing the last column past the card edge. */
   .lb-table {
-    min-width: 660px;
+    min-width: 616px;
   }
 
   /* Freeze the rank + model columns. Without this the model name scrolls out of
@@ -2227,9 +2340,11 @@ thead th.cmp-featured {
     position: sticky;
     left: 44px;
     z-index: 3;
-    width: 200px;
-    min-width: 200px;
-    max-width: 200px;
+    /* Narrower than the 200px desktop width: the name is clamped to 2 lines
+       (see .model-name) so a short column no longer buys extra wrapping. */
+    width: 156px;
+    min-width: 156px;
+    max-width: 156px;
     background: var(--navy);
   }
 
