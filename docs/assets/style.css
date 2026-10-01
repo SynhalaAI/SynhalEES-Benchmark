@@ -433,16 +433,42 @@ a {
   outline-offset: 1px;
 }
 
-/* The pillar filter is a custom listbox, not a native <select>. Chrome renders
-   a native dropdown in OS chrome - it cannot be themed, and with 15 long options
-   it flips upward when the control sits low in the viewport and runs off the top
-   of the screen. A real popover lets us keep the dark theme and cap its height.
+/* Every .pillar-select on the page is turned into a themed popover by
+   assets/dropdown.js. Chrome renders a native dropdown in OS chrome: it cannot
+   be themed against this palette, and with long option lists it flips upward
+   and runs off the top of the screen. The popover keeps the dark theme, caps its
+   height and scrolls, and flips up only when it genuinely will not fit below.
 
-   The trigger keeps the .pillar-select look so the filter row looks unchanged. */
+   The wrapper is injected in front of the <select> and becomes the flex child
+   of the control row, so it carries the sizing that used to sit on the select. */
 .pillar-dd {
   position: relative;
-  flex: 1 1 220px;
+  display: inline-flex;
   min-width: 0;
+}
+
+/* Only the leaderboard control row wants the filter to absorb spare width. Every
+   other row (chart controls, compare picker) keeps its content-driven width,
+   which is what the raw <select> did before it was wrapped. */
+.controls>.pillar-dd {
+  flex: 1 1 220px;
+}
+
+/* The native control stays in the DOM (its options and .value are the single
+   source of truth, and every existing change listener reads them) - it is just
+   taken out of the layout and the accessibility tree, since the trigger button
+   carries the accessible name and the listbox role. */
+.pillar-dd-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 .pillar-dd-btn {
