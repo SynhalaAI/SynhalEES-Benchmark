@@ -14,6 +14,7 @@
     type: "",              // "" = all types | open | proprietary
     limit: MAX_BARS,       // bars shown when no custom selection
     selected: null,        // null = top-N by metric; else map of picked names
+    featured: "",          // highlighted model name ("" = none) - star in the picker
     hover: null            // model under the cursor (Pareto emphasis reset)
   };
 
@@ -239,14 +240,13 @@
 
   /* ---------- drawing ---------- */
 
-  // Featured model (picked via the chart's own dropdown, independent of
-  // the head-to-head compare table): its bar gets the SynhalaAI red while
-  // every rival bar is dimmed to a neutral tone -- same emphasis pattern
-  // as the compare table + PNG export.
+  // Featured model (starred inside the chart's own model picker - the old
+  // "No highlight" dropdown was folded into that list - independent of the
+  // head-to-head compare table): its bar gets the SynhalaAI red while every
+  // rival bar is dimmed to a neutral tone -- same emphasis pattern as the
+  // compare table + PNG export.
   function featuredName() {
-    var fsel = $("#chart-featured");
-    if (fsel) return fsel.value;   // "" = "No highlight"
-    return state.models.length ? state.models[0].name : "";
+    return st.featured;   // "" = "No highlight"
   }
 
   // Phone-sized label shortening, used by both views. opts.canvas means this is
@@ -1277,23 +1277,6 @@
       });
     });
 
-    // featured-model selector (independent of the head-to-head compare's one)
-    var featSel = $("#chart-featured");
-    if (featSel) {
-      var noneOpt = document.createElement("option");
-      noneOpt.value = "";
-      noneOpt.textContent = "No highlight";
-      featSel.appendChild(noneOpt);
-      state.models.forEach(function (m) {
-        var opt = document.createElement("option");
-        opt.value = m.name;
-        opt.textContent = m.name;
-        featSel.appendChild(opt);
-      });
-      // default stays "" ("No highlight") - every bar keeps its provider color
-      featSel.addEventListener("change", function () { hideTip(); draw(); });
-    }
-
     // organization filter
     var provSel = $("#chart-provider");
     var provs = {};
@@ -1350,17 +1333,64 @@
     var panel = $("#chart-picker");
     var list = $("#chart-picker-list");
 
+    // star = highlight this model in the chart (replaces the old standalone
+    // "No highlight" dropdown). Single-highlight invariant: starring a new
+    // model moves the highlight; starring the active one clears it.
+    function syncStars() {
+      Array.prototype.forEach.call(list.querySelectorAll(".pk-star"), function (s) {
+        var on = s.getAttribute("data-name") === st.featured;
+        s.setAttribute("aria-pressed", on ? "true" : "false");
+        s.setAttribute("aria-label", on ? "Remove highlight" : "Highlight " + s.getAttribute("data-name"));
+        s.title = on ? "Remove highlight" : "Highlight this model";
+      });
+    }
+
+    function setFeatured(name) {
+      st.featured = name;
+      syncStars();
+      hideTip();
+      draw();
+    }
+
     var sorted = state.models.slice().sort(function (a, b) { return (b.modalities.text || 0) - (a.modalities.text || 0); });
     sorted.forEach(function (m) {
+      var row = document.createElement("span");
+      row.className = "pk-item";
       var lab = document.createElement("label");
-      lab.className = "pk-item";
+      lab.className = "pk-item-main";
       var file = logoFile(m.provider);
       lab.innerHTML =
         "<input type='checkbox' value=\"" + esc(m.name) + "\" checked>" +
         (file ? "<img src='assets/logos/" + file + ".svg' alt='' loading='lazy' onerror='this.remove()'>" : "") +
         "<span>" + esc(m.name) + "</span>";
-      list.appendChild(lab);
+      row.appendChild(lab);
+      var star = document.createElement("button");
+      star.type = "button";
+      star.className = "pk-star";
+      star.setAttribute("data-name", m.name);
+      star.setAttribute("aria-pressed", "false");
+      star.innerHTML =
+        "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'>" +
+        "<polygon points='12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2'/></svg>";
+      star.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        setFeatured(st.featured === m.name ? "" : m.name);
+      });
+      row.appendChild(star);
+      list.appendChild(row);
     });
+    syncStars();
+
+    // same header as the leaderboard model filter: "x / y shown" + All/None
+    function updatePickerCount() {
+      var cnt = $("#chart-picker-count");
+      if (!cnt) return;
+      var boxes = list.querySelectorAll("input[type=checkbox]");
+      var n = 0;
+      Array.prototype.forEach.call(boxes, function (b) { if (b.checked) n++; });
+      cnt.textContent = n + " / " + boxes.length + " shown";
+    }
 
     list.addEventListener("change", function () {
       var boxes = list.querySelectorAll("input[type=checkbox]");
@@ -1371,6 +1401,7 @@
       st.selected = all ? null : sel;
       hideTip();
       updatePickBtn();
+      updatePickerCount();
       draw();
     });
 
@@ -1381,10 +1412,24 @@
       st.selected = v ? null : {};
       hideTip();
       updatePickBtn();
+      updatePickerCount();
       draw();
     }
     $("#chart-pick-all").addEventListener("click", function () { setAll(true); });
     $("#chart-pick-none").addEventListener("click", function () { setAll(false); });
+
+    // same filter box as the leaderboard model filter: narrows the list live
+    var search = $("#chart-picker-search");
+    if (search) {
+      search.addEventListener("input", function () {
+        var q = search.value.trim().toLowerCase();
+        Array.prototype.forEach.call(list.querySelectorAll(".pk-item"), function (it) {
+          it.hidden = !!q && it.textContent.toLowerCase().indexOf(q) === -1;
+        });
+      });
+    }
+
+    updatePickerCount();
 
     btn.addEventListener("click", function (e) {
       e.stopPropagation();
@@ -1393,6 +1438,13 @@
       // so flip it above when the list will not fit below the trigger
       panel.classList.remove("open-up");
       if (!panel.hidden) {
+        // pillar popovers + any other picker panel (model filter, compare) must
+        // not sit open behind this one - only one menu may be open at a time
+        if (window.SynhalEESDropdowns) {
+          if (window.SynhalEESDropdowns.closeAll) window.SynhalEESDropdowns.closeAll();
+          if (window.SynhalEESDropdowns.closePickers) window.SynhalEESDropdowns.closePickers(panel);
+        }
+        if (search) { search.value = ""; search.dispatchEvent(new Event("input")); search.focus(); }
         var need = Math.min(320, panel.scrollHeight);
         var below = window.innerHeight - panel.getBoundingClientRect().top;
         if (below < need + 16) panel.classList.add("open-up");

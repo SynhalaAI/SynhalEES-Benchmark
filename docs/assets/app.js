@@ -475,6 +475,7 @@
     var atMax = state.compare.length >= CMP_MAX - 1; // -1: featured model fills the first slot
     var atMin = state.compare.length <= CMP_MIN - 1;
     for (var i = 0; i < cbs.length; i++) {
+      if (cbs[i].getAttribute("data-featured") === "1") { cbs[i].disabled = true; continue; }
       cbs[i].disabled = (atMax && !cbs[i].checked) || (atMin && cbs[i].checked);
     }
     var cnt = $("#compare-count");
@@ -487,6 +488,18 @@
     cnt.classList.remove("flash");
     void cnt.offsetWidth; // restart the animation
     cnt.classList.add("flash");
+  }
+
+  // Live name filter for the compare picker list - the same box the leaderboard
+  // model filter and the chart picker carry. Re-applied after every rebuild so
+  // a featured-model switch never resurrects rows the search had hidden.
+  function filterCompareList() {
+    var s = $("#compare-picker-search");
+    var q = s ? s.value.trim().toLowerCase() : "";
+    var items = document.querySelectorAll("#compare-picker-list .pk-item");
+    Array.prototype.forEach.call(items, function (it) {
+      it.hidden = !!q && it.textContent.toLowerCase().indexOf(q) === -1;
+    });
   }
 
   /* ---------- PNG export (canvas-rendered, dependency-free, safe on file://) ---------- */
@@ -1018,44 +1031,48 @@
     }
   }
 
+  // same star glyph as the chart picker's highlight star (assets/chart.js)
+  var COMPARE_STAR_SVG =
+    "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'>" +
+    "<polygon points='12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2'/></svg>";
+
   function buildComparePicker() {
     var list = $("#compare-picker-list");
     if (!list) return;
-    // featured-model dropdown (single choice; change handler bound once)
-    var fsel = $("#compare-featured");
-    if (fsel) {
-      fsel.innerHTML = "";
-      state.models.forEach(function (m) {
-        var opt = document.createElement("option");
-        opt.value = m.name;
-        opt.textContent = m.name;
-        if (m.name === state.featured) opt.selected = true;
-        fsel.appendChild(opt);
-      });
-      if (!fsel.dataset.bound) {
-        fsel.dataset.bound = "1";
-        fsel.addEventListener("change", function () {
-          state.featured = fsel.value;
-          state.compare = state.compare.filter(function (n) { return n !== state.featured; });
-          // top up rivals if the new featured model was one of them
-          for (var i = 0; i < state.models.length && state.compare.length < CMP_MIN - 1; i++) {
-            var nm = state.models[i].name;
-            if (nm !== state.featured && state.compare.indexOf(nm) === -1) state.compare.push(nm);
-          }
-          buildComparePicker();
-          renderCompare();
-        });
+    // Star = feature that model (always the first column). The old Featured
+    // <select> at the top of this panel is gone: every row now carries the
+    // same star button the chart picker uses, and one model is starred at a
+    // time - starring another moves the pin, exactly like the chart highlight.
+    function setFeatured(name) {
+      if (name === state.featured) return;
+      state.featured = name;
+      state.compare = state.compare.filter(function (n) { return n !== state.featured; });
+      // top up rivals if the new featured model was one of them
+      for (var i = 0; i < state.models.length && state.compare.length < CMP_MIN - 1; i++) {
+        var nm = state.models[i].name;
+        if (nm !== state.featured && state.compare.indexOf(nm) === -1) state.compare.push(nm);
       }
+      buildComparePicker();
+      renderCompare();
     }
     list.innerHTML = "";
     state.models.forEach(function (m) {
-      if (m.name === state.featured) return; // pinned via the featured dropdown above
-      var item = document.createElement("label");
-      item.className = "pk-item";
+      var feat = m.name === state.featured;
+      var row = document.createElement("span");
+      row.className = "pk-item";
+      var lab = document.createElement("label");
+      lab.className = "pk-item-main";
       var cb = document.createElement("input");
       cb.type = "checkbox";
-      cb.checked = state.compare.indexOf(m.name) !== -1;
+      cb.checked = feat || state.compare.indexOf(m.name) !== -1;
+      if (feat) {
+        // the starred model is pinned into the table; changing that is the
+        // star's job, so its checkbox rides along disabled
+        cb.disabled = true;
+        cb.setAttribute("data-featured", "1");
+      }
       cb.addEventListener("change", function () {
+        if (feat) { cb.checked = true; return; }
         if (cb.checked && state.compare.length >= CMP_MAX - 1) {
           cb.checked = false; flashCompareLimit(); return;
         }
@@ -1067,20 +1084,37 @@
         updateComparePickerState();
         renderCompare();
       });
-      item.appendChild(cb);
+      lab.appendChild(cb);
       // providerLogo() returns ready-made HTML (<img> or fallback chip), not a URL
       var logo = providerLogo(m.provider);
       if (logo) {
         var logoWrap = document.createElement("span");
         logoWrap.innerHTML = logo;
-        item.appendChild(logoWrap);
+        lab.appendChild(logoWrap);
       }
       var span = document.createElement("span");
       span.textContent = m.name;
-      item.appendChild(span);
-      list.appendChild(item);
+      lab.appendChild(span);
+      row.appendChild(lab);
+      var star = document.createElement("button");
+      star.type = "button";
+      star.className = "pk-star";
+      star.setAttribute("aria-pressed", feat ? "true" : "false");
+      star.setAttribute("aria-label", feat
+        ? m.name + " is featured - click another star to switch"
+        : "Feature " + m.name + " in the first column");
+      star.title = feat ? "Featured - always first" : "Feature this model";
+      star.innerHTML = COMPARE_STAR_SVG;
+      star.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        setFeatured(m.name);
+      });
+      row.appendChild(star);
+      list.appendChild(row);
     });
     updateComparePickerState();
+    filterCompareList(); // keep an active search across featured/model rebuilds
   }
   function buildModelFilter() {
     var list = $("#model-filter-list");
@@ -2290,6 +2324,15 @@
         e.stopPropagation();
         var p = $("#compare-picker");
         p.hidden = !p.hidden;
+        if (!p.hidden) {
+          // one menu at a time: dismiss pillar popovers + the other pickers
+          if (window.SynhalEESDropdowns) {
+            if (window.SynhalEESDropdowns.closeAll) window.SynhalEESDropdowns.closeAll();
+            if (window.SynhalEESDropdowns.closePickers) window.SynhalEESDropdowns.closePickers(p);
+          }
+          var s = $("#compare-picker-search");
+          if (s) { s.value = ""; filterCompareList(); s.focus(); }
+        }
       });
       $("#compare-picker").addEventListener("click", function (e) { e.stopPropagation(); });
       document.addEventListener("click", function () {
@@ -2302,6 +2345,8 @@
         buildComparePicker();
         renderCompare();
       });
+      var cpSearch = $("#compare-picker-search");
+      if (cpSearch) cpSearch.addEventListener("input", filterCompareList);
 
       var expBtn = $("#compare-export");
       if (expBtn) expBtn.addEventListener("click", exportComparePNG);
@@ -2316,8 +2361,9 @@
         p.hidden = !p.hidden;
         mfBtn.setAttribute("aria-expanded", p.hidden ? "false" : "true");
         if (!p.hidden) {
-          if (window.SynhalEESDropdowns && window.SynhalEESDropdowns.closeAll) {
-            window.SynhalEESDropdowns.closeAll();
+          if (window.SynhalEESDropdowns) {
+            if (window.SynhalEESDropdowns.closeAll) window.SynhalEESDropdowns.closeAll();
+            if (window.SynhalEESDropdowns.closePickers) window.SynhalEESDropdowns.closePickers(p);
           }
           var s = $("#model-filter-search");
           if (s) { s.value = ""; s.dispatchEvent(new Event("input")); s.focus(); }

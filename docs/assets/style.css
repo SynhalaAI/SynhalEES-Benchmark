@@ -321,7 +321,7 @@ a {
   background: var(--navy-card);
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 4px;
+  padding: 3px;
 }
 
 .tab {
@@ -330,7 +330,7 @@ a {
   color: var(--muted);
   font: inherit;
   font-weight: 600;
-  padding: 7px 16px;
+  padding: 6px 16px;
   border-radius: 8px;
   cursor: pointer;
 }
@@ -1634,7 +1634,81 @@ a {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  align-items: stretch;
+}
+
+/* chart control rows share one control height so tab pills, selects,
+   the +Select models button and the export icon all line up edge-to-edge.
+   The pill groups are double-layered (container padding + button padding),
+   so their inner paddings are trimmed to land on the same box height.
+   Desktop only: at <=640px the 44px tap-target block below takes over. */
+@media (min-width: 641px) {
+.chart-head,
+.chart-controls,
+.pareto-bar {
+  --chart-ctl-h: 36px;
+}
+.chart-controls>.tabs,
+.chart-controls>.chart-select,
+.chart-controls>.pillar-dd,
+.chart-controls>.chart-count-wrap,
+.chart-controls>.chart-pick-wrap,
+.chart-controls>.cmp-export-btn,
+.pareto-bar>.chart-select,
+.pareto-bar>.pillar-dd {
+  height: var(--chart-ctl-h);
+  min-height: var(--chart-ctl-h);
+}
+/* dropdown.js wraps the chart <select>s in .pillar-dd, so the visible button
+   is one level down - it must fill the wrapper and use the compact chart font */
+.chart-controls>.pillar-dd .pillar-dd-btn {
+  height: 100%;
+  min-height: 0;
+  display: inline-flex;
   align-items: center;
+  font-size: .85rem;
+}
+.chart-controls>.tabs {
+  display: inline-flex;
+  align-items: stretch;
+}
+.chart-controls>.tabs .tab {
+  display: inline-flex;
+  align-items: center;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  min-height: 0;
+}
+.chart-controls>.chart-select,
+.chart-controls .chart-pick,
+.pareto-bar>.chart-select,
+.pareto-bar .pillar-dd-btn {
+  height: 100%;
+  min-height: 0;
+  display: inline-flex;
+  align-items: center;
+}
+.chart-controls>.chart-count-wrap {
+  display: inline-flex;
+  align-items: center;
+}
+.chart-controls>.chart-count-wrap .chart-select {
+  height: 100%;
+  min-height: 0;
+}
+/* Top 25 lives one level deeper (wrap > .pillar-dd > button), so the height
+   must land on the inner wrapper and its visible button, not the hidden select */
+.chart-controls .chart-count-wrap .pillar-dd {
+  height: 100%;
+  min-height: 0;
+}
+.chart-controls .chart-count-wrap .pillar-dd .pillar-dd-btn {
+  height: 100%;
+  min-height: 0;
+  display: inline-flex;
+  align-items: center;
+  font-size: .85rem;
+}
 }
 
 .chart-tabs {
@@ -1666,6 +1740,19 @@ a {
 
 .pareto-bar[hidden] {
   display: none;
+}
+
+/* .pareto-bar runs its OWN filled fadeUp animation, so it is a stacking
+   context of its own: everything inside it (incl. the Score/Cost popover with
+   its z-index 30/60 menu) paints atomically with the bar row. The chart canvas
+   lives in .chart-wrap (position: relative, z-index: auto), which is a LATER
+   sibling painted after this in-flow row - so while the measure dropdown was
+   open the bars drew straight over the menu. Raising the whole bar above the
+   canvas while a menu inside it is open is the same trick .pillar-dd documents
+   for .chart-card; :has keeps the resting paint order untouched. */
+.pareto-bar:has(.pillar-dd.is-open) {
+  position: relative;
+  z-index: 60;
 }
 
 .pareto-bar .chart-select {
@@ -1771,29 +1858,6 @@ a {
   text-decoration: underline;
 }
 
-.pk-featured {
-  display: block;
-  padding: 9px 12px 10px;
-  border-bottom: 1px solid var(--border);
-}
-
-.pk-featured-label {
-  display: block;
-  font-size: .68rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: .07em;
-  color: var(--gold-text);
-  margin-bottom: 5px;
-}
-
-.pk-featured-select {
-  width: 100%;
-  padding-top: 6px;
-  padding-bottom: 6px;
-  font-size: .82rem;
-}
-
 .pk-list {
   overflow-y: auto;
   padding: 6px;
@@ -1824,6 +1888,68 @@ a {
   height: 16px;
   object-fit: contain;
   flex: none;
+}
+
+/* chart picker rows: checkbox + logo + name grow, then a star button that
+   highlights that model in the chart (the old "No highlight" dropdown).
+   The label is the clickable name area; the star is a sibling so clicking it
+   can never toggle the checkbox through label forwarding. */
+.pk-item-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.pk-star {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  /* dimmed at rest so the star never competes with the checkbox + name;
+     comes to full strength on hover/focus (and stays there while active) */
+  opacity: .45;
+  transition: opacity .15s ease;
+}
+
+.pk-star svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.pk-star:hover,
+.pk-star:focus-visible {
+  background: var(--row-alt);
+  color: var(--gold-text);
+  opacity: 1;
+}
+
+.pk-star:focus-visible {
+  outline: 2px solid var(--red-bright);
+  outline-offset: 1px;
+}
+
+/* active = this model is highlighted in the chart (always full strength) */
+.pk-star[aria-pressed="true"] {
+  color: var(--gold-text);
+  opacity: 1;
+}
+
+.pk-star[aria-pressed="true"] svg {
+  fill: currentColor;
 }
 
 /* All / None quick actions inside the Models filter header */
@@ -2461,6 +2587,16 @@ thead th.cmp-featured {
   opacity: .55;
 }
 
+/* ...except the starred compare row: pinned to the first column, so its
+   disabled checkbox is a lock and the row keeps full strength */
+#compare-picker-list .pk-item:has(input[data-featured="1"]) {
+  opacity: 1;
+}
+
+#compare-picker-list .pk-item input[data-featured="1"] {
+  opacity: 1;
+}
+
 @media (max-width: 720px) {
   .compare-head {
     flex-direction: column;
@@ -2675,7 +2811,7 @@ thead th.cmp-featured {
   /* chart controls pack like the leaderboard filter row instead of each select
      stretching across the full width of the card:
        row 1  Text / Vision / Audio
-       row 2  organization + featured model  (50/50)
+       row 2  organization (full width; the highlight moved into the picker star)
        row 3  top-N + count, then Select models + export */
   /* .chart-controls is `display: contents` at this width, so its own row-gap is
      inert - the row spacing now comes from .chart-head in the 720px block. */
@@ -2693,15 +2829,40 @@ thead th.cmp-featured {
   .chart-controls>.chart-select {
     flex: 1 1 calc(50% - 5px);
     min-width: 0;
+    height: var(--ctl-h);
+  }
+  /* only the organization filter sits at this level now (featured moved into
+     the picker star), so it takes the whole row instead of half of it */
+  .chart-controls>.pillar-dd {
+    flex: 1 1 100%;
+    width: auto;
+    max-width: none;
+    min-width: 0;
+    height: var(--ctl-h);
+  }
+  .chart-controls>.pillar-dd .pillar-dd-btn {
+    height: 100%;
+    min-height: 0;
+    font-size: .85rem;
   }
 
   .chart-count-wrap {
     flex: 1 1 calc(50% - 5px);
     min-width: 0;
+    height: var(--ctl-h);
   }
-
   .chart-count-wrap .chart-select {
     min-width: 0;
+  }
+  .chart-count-wrap>.pillar-dd {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 100%;
+  }
+  .chart-count-wrap .pillar-dd .pillar-dd-btn {
+    height: 100%;
+    min-height: 0;
+    font-size: .85rem;
   }
 
   .chart-pick-wrap {
@@ -2716,9 +2877,18 @@ thead th.cmp-featured {
     row-gap: 8px;
   }
 
-  .pareto-bar>.chart-select {
+  .pareto-bar>.chart-select,
+  .pareto-bar>.pillar-dd {
     flex: 1 1 calc(50% - 5px);
+    width: auto;
+    max-width: none;
     min-width: 0;
+    height: var(--ctl-h);
+  }
+  .pareto-bar>.pillar-dd .pillar-dd-btn {
+    height: 100%;
+    min-height: 0;
+    font-size: .85rem;
   }
 
   /* "+ Select models" opens directly under its own button rather than as the
@@ -2727,16 +2897,29 @@ thead th.cmp-featured {
      pinned to the bottom of the screen is detached from it and buries the chart
      it is filtering. Left+right anchor to the trigger so a narrow phone cannot
      push the panel off either edge. */
+  /* same footprint as the leaderboard model filter (#model-filter below), so
+     both model pickers read as one menu on a phone: 300px wide, right-anchored
+     under the trigger, up to 62dvh tall. The old trigger-width box squeezed the
+     count + All/None header into a wrapped 2-line stub. */
   #chart-picker {
     position: absolute;
     top: calc(100% + 6px);
     right: 0;
     bottom: auto;
-    left: 0;
-    width: auto;
-    max-height: 48vh;
-    max-height: min(48dvh, 320px);
+    left: auto;
+    width: min(300px, calc(100vw - 32px));
+    max-height: min(62vh, 380px);
+    max-height: min(62dvh, 380px);
     z-index: 60;
+  }
+
+  /* keep the header on one line at the 300px width */
+  #chart-picker .pk-head {
+    flex-wrap: nowrap;
+  }
+
+  #chart-picker .compare-count {
+    white-space: nowrap;
   }
 
   /* the grab-bar is a bottom-sheet affordance, not an anchored dropdown's */
@@ -2935,6 +3118,17 @@ thead th.cmp-featured {
   /* picker rows: 5px padding gives a ~30px hit area, below the 44px minimum */
   .pk-item {
     padding: 10px 8px;
+  }
+
+  /* finger-sized star, still inside the 44px+ row */
+  .pk-star {
+    width: 44px;
+    height: 44px;
+  }
+
+  .pk-star svg {
+    width: 19px;
+    height: 19px;
   }
 
   /* Grab-bar for the bottom-sheet presentation. #chart-picker and #compare-picker

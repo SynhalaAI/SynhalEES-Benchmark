@@ -49,6 +49,21 @@
     });
   }
 
+  // Hide every open picker panel (.chart-picker: the leaderboard model filter,
+  // the chart picker, the head-to-head compare picker) except `except`.
+  // Each trigger stops propagation on its own click, so the other panels'
+  // document-level outside-click handlers never fire - without this they would
+  // happily sit open on top of each other (e.g. "Top 25" + "+ Select models").
+  function closePickers(except) {
+    Array.prototype.forEach.call(document.querySelectorAll(".chart-picker"), function (p) {
+      if (p === except || p.hidden) return;
+      p.hidden = true;
+      p.classList.remove("open-up");
+      var trig = p.id === "model-filter" ? document.getElementById("model-filter-btn") : null;
+      if (trig) trig.setAttribute("aria-expanded", "false");
+    });
+  }
+
   function setOpen(dd, open) {
     var btn = dd.querySelector(".pillar-dd-btn");
     var menu = dd.querySelector(".pillar-dd-menu");
@@ -56,13 +71,8 @@
     if (open) {
       // Close any other open dropdowns first so menus do not overlap
       closeAll(dd);
-      // Close model-filter if open
-      var mf = document.getElementById("model-filter");
-      if (mf && !mf.hidden) {
-        mf.hidden = true;
-        var mfBtn = document.getElementById("model-filter-btn");
-        if (mfBtn) mfBtn.setAttribute("aria-expanded", "false");
-      }
+      // a pillar popover opening must also dismiss any open picker panel
+      closePickers();
       // Self-heal: the <select> is the source of truth, and its options can be
       // rewritten after this menu was built (chart.js populates the chart selects
       // in JS). Rebuilding here is a handful of DOM nodes and makes the popover
@@ -281,7 +291,8 @@
       if (sel) refresh(sel); else all.forEach(function (dd) { if (dd.__sel) refresh(dd.__sel); });
     },
     sync: syncLabels,
-    closeAll: closeAll
+    closeAll: closeAll,
+    closePickers: closePickers
   };
 
   if (document.readyState === "loading") {
