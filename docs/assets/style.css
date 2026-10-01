@@ -2114,7 +2114,33 @@ a {
   letter-spacing: .09em;
   text-transform: uppercase;
   color: var(--muted);
-  padding: 6px 14px;
+  /* the inline inset lives on the sticky label below, not here: padding on
+     the cell sits OUTSIDE the pinned box, so the label would jump inward the
+     moment pinning starts and would not line up with the pinned row labels */
+  padding: 6px 0;
+}
+
+/* The MODALITIES / PILLARS bands are one colspan cell, so panning the table
+   sideways used to slide them out of view while every other row label stayed
+   pinned: .cmp-rowhead never applies to them, and sticking the CELL cannot
+   work either -- its containing block is the row, which is exactly as wide as
+   the cell, so sticky has no room to shift it. The label is wrapped in a span
+   whose containing block is the wide cell content, so it can slide and pin its
+   left edge to the scrollport. It pins at left: 0 and carries the indent as
+   its own padding, exactly like .cmp-rowhead, so it stays flush with the
+   pinned row labels whichever box the engine measures the inset against. The
+   opaque background keeps scrolled columns from showing through it. */
+.cmp-group .cmp-glabel {
+  position: sticky;
+  left: 0;
+  display: inline-block;
+  z-index: 2;
+  /* opaque, so scrolled columns never show through the pinned label */
+  background: var(--row-alt);
+  /* the indent rides on the pinned box (same trick .cmp-rowhead uses), so the
+     label stays flush with the pinned row labels at every scroll offset */
+  padding-left: 14px;
+  padding-right: 10px;
 }
 
 .cmp-hero td {
@@ -2235,6 +2261,16 @@ thead th.cmp-featured {
   .cmp-rowhead {
     min-width: 132px;
     max-width: 160px;
+  }
+
+  /* .compare-table td drops to a 10px inline inset here, so the band label has
+     to follow it or it would sit out of line with the pinned row labels */
+  .compare-table .cmp-group td {
+    padding: 8px 0;
+  }
+
+  .compare-table .cmp-group .cmp-glabel {
+    padding-left: 10px;
   }
 
   .compare-table th,

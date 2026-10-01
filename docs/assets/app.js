@@ -416,7 +416,12 @@
 
     rows.forEach(function (r) {
       if (r.group) {
-        html += "<tr class='cmp-group'><td colspan='" + (models.length + 1) + "'>" + r.group + "</td></tr>";
+        // the band label gets its own span so CSS can pin it with sticky while
+        // the columns pan underneath: a full-width colspan cell cannot be
+        // pinned at all, because sticky may never leave its containing block
+        // (the row), which is exactly as wide as the cell.
+        html += "<tr class='cmp-group'><td colspan='" + (models.length + 1) +
+          "'><span class='cmp-glabel'>" + r.group + "</span></td></tr>";
         return;
       }
       var best = -Infinity, n = 0;
