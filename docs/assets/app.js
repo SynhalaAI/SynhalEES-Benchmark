@@ -777,15 +777,15 @@
       dateW = Math.max(dateW, ctx.measureText(m.date || "\u2014").width);
     });
     var cols = [
-      { label: "#", w: 52, align: "right" },
-      { label: "Model", w: Math.ceil(nameW) + 26, align: "left" },
-      { label: "Provider", w: Math.ceil(provW) + 62, align: "left" },
-      { label: "Type", w: 98, align: "left" },
-      { label: scoreLbl, w: Math.max(88, Math.ceil(ctx.measureText(scoreLbl).width) + 26), align: "right" },
-      { label: "Cost", w: 76, align: "right" },
-      { label: "Tokens", w: 72, align: "right" },
-      { label: "Latency", w: 76, align: "right" },
-      { label: "Date", w: Math.max(92, Math.ceil(dateW) + 22), align: "right" }
+      { label: "#", w: 52, align: "center" },
+      { label: "Model", w: Math.max(190, Math.ceil(nameW) + 40), align: "left" },
+      { label: "Provider", w: Math.ceil(provW) + 62, align: "center" },
+      { label: "Type", w: 98, align: "center" },
+      { label: scoreLbl, w: Math.max(88, Math.ceil(ctx.measureText(scoreLbl).width) + 26), align: "center" },
+      { label: "Cost", w: 76, align: "center" },
+      { label: "Tokens", w: 72, align: "center" },
+      { label: "Latency", w: 76, align: "center" },
+      { label: "Date", w: Math.max(92, Math.ceil(dateW) + 24), align: "center" }
     ];
     var tableW = 0;
     cols.forEach(function (c) { tableW += c.w; });
@@ -837,7 +837,8 @@
     ctx.fillStyle = C.muted;
     cols.forEach(function (c) {
       ctx.textAlign = c.align;
-      ctx.fillText(c.label.toUpperCase(), c.align === "right" ? cx + c.w - 12 : cx + 12, y + 26);
+      ctx.fillText(c.label.toUpperCase(),
+                   c.align === "center" ? cx + c.w / 2 : cx + 12, y + 26);
       cx += c.w;
     });
     ctx.fillStyle = C.border;
@@ -856,7 +857,7 @@
       if (MEDAL[rank]) {
         ctx.fillStyle = MEDAL[rank];
         ctx.beginPath();
-        ctx.arc(cxx + cols[0].w - 24, ry + ROW_H / 2, 10, 0, Math.PI * 2);
+        ctx.arc(cxx + cols[0].w / 2, ry + ROW_H / 2, 10, 0, Math.PI * 2);
         ctx.fill();
         ctx.fillStyle = "#1d2230";  // dark ink on the bright medal disc
       } else {
@@ -864,23 +865,26 @@
       }
       ctx.textAlign = "center";
       ctx.font = "800 11.5px " + FONT;
-      ctx.fillText(String(rank), cxx + cols[0].w - 24, ry + ROW_H / 2 + 4);
+      ctx.fillText(String(rank), cxx + cols[0].w / 2, ry + ROW_H / 2 + 4);
       cxx += cols[0].w;
       // model name + mini score bar
       var sv = scoreOf(m);
       ctx.textAlign = "left";
       ctx.font = "700 13.5px " + FONT;
       ctx.fillStyle = C.text;
-      ctx.fillText(fitText(m.name, cols[1].w - 26), cxx + 12, cy - 2);
+      ctx.fillText(fitText(m.name, cols[1].w - 28), cxx + 14, cy - 2);
       if (sv != null) {
         ctx.fillStyle = C.border;
-        ctx.fillRect(cxx + 12, ry + ROW_H - 11, cols[1].w - 26, 3);
+        ctx.fillRect(cxx + 14, ry + ROW_H - 11, cols[1].w - 28, 3);
         ctx.fillStyle = C.red;
-        ctx.fillRect(cxx + 12, ry + ROW_H - 11, (cols[1].w - 26) * Math.min(100, Math.max(0, sv)) / 100, 3);
+        ctx.fillRect(cxx + 14, ry + ROW_H - 11, (cols[1].w - 28) * Math.min(100, Math.max(0, sv)) / 100, 3);
       }
       cxx += cols[1].w;
       // provider (real logo painted later over this white chip)
-      m._lx = cxx + 12; m._ly = ry + (ROW_H - 22) / 2;
+      var provTxt = fitText(m.provider, cols[2].w - 62);
+      var provW2 = ctx.measureText(provTxt).width;
+      var provX = cxx + (cols[2].w - (22 + 8 + provW2)) / 2;  // centred block
+      m._lx = provX; m._ly = ry + (ROW_H - 22) / 2;
       ctx.fillStyle = "#ffffff";
       rrect(m._lx, m._ly, 22, 22, 6);
       ctx.fill();
@@ -890,7 +894,7 @@
       ctx.fillText(m.provider.charAt(0).toUpperCase(), m._lx + 11, m._ly + 15);
       ctx.textAlign = "left";
       ctx.font = "400 12.5px " + FONT;
-      ctx.fillText(fitText(m.provider, cols[2].w - 62), cxx + 42, cy);
+      ctx.fillText(provTxt, provX + 22 + 8, cy);
       cxx += cols[2].w;
       // type badge pill in canvas
       var typeText = m.open_source ? "Open Source" : "Proprietary";
@@ -898,12 +902,13 @@
       var typeBadgeH = 18;
       var typeBadgeY = ry + (ROW_H - typeBadgeH) / 2;
       ctx.fillStyle = m.open_source ? "rgba(46, 204, 113, 0.14)" : "rgba(100, 149, 237, 0.14)";
-      rrect(cxx + 10, typeBadgeY, typeBadgeW, typeBadgeH, 9);
+      var typeBadgeX = cxx + (cols[3].w - typeBadgeW) / 2;
+      rrect(typeBadgeX, typeBadgeY, typeBadgeW, typeBadgeH, 9);
       ctx.fill();
       ctx.font = "700 9.5px " + FONT;
       ctx.fillStyle = m.open_source ? "#2ecc71" : "#8ab4f8";
       ctx.textAlign = "center";
-      ctx.fillText(typeText, cxx + 10 + typeBadgeW / 2, typeBadgeY + 12.5);
+      ctx.fillText(typeText, typeBadgeX + typeBadgeW / 2, typeBadgeY + 12.5);
       cxx += cols[3].w;
       // score pill (mirrors the table's .score-pill; the leader gets the red .top
       // fill) + usage telemetry, which stay plain like their <td class="num">
@@ -916,7 +921,7 @@
           var isTop = !na && sv === best;
           ctx.font = "800 13px " + FONT;
           var pw = Math.max(58, ctx.measureText(v).width + 20), ph = 20;
-          var px = cxx + colW - 12 - pw, py = cy - 4.5 - ph / 2;
+          var px = cxx + (colW - pw) / 2, py = cy - 4.5 - ph / 2;
           rrect(px, py, pw, ph, ph / 2);
           ctx.fillStyle = isTop ? C.red : C.navy;
           ctx.fill();
@@ -927,17 +932,17 @@
           cxx += colW;
           return;
         }
-        ctx.textAlign = "right";
+        ctx.textAlign = "center";
         ctx.font = "600 13px " + FONT;
         ctx.fillStyle = v === "\u2014" ? C.muted : C.text;
-        ctx.fillText(v, cxx + colW - 12, cy);
+        ctx.fillText(v, cxx + colW / 2, cy);
         cxx += colW;
       });
       // date
-      ctx.textAlign = "right";
+      ctx.textAlign = "center";
       ctx.font = "400 12px " + FONT;
       ctx.fillStyle = C.muted;
-      ctx.fillText(m.date || "\u2014", cxx + cols[8].w - 12, cy);
+      ctx.fillText(m.date || "\u2014", cxx + cols[8].w / 2, cy);
     });
     ctx.restore();
 
