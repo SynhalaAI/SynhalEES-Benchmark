@@ -779,7 +779,7 @@
     var cols = [
       { label: "#", w: 52, align: "center" },
       { label: "Model", w: Math.max(190, Math.ceil(nameW) + 40), align: "left" },
-      { label: "Provider", w: Math.ceil(provW) + 62, align: "center" },
+      { label: "Provider", w: Math.ceil(provW) + 62, align: "left" },
       { label: "Type", w: 98, align: "center" },
       { label: scoreLbl, w: Math.max(88, Math.ceil(ctx.measureText(scoreLbl).width) + 26), align: "center" },
       { label: "Cost", w: 76, align: "center" },
@@ -838,7 +838,7 @@
     cols.forEach(function (c) {
       ctx.textAlign = c.align;
       ctx.fillText(c.label.toUpperCase(),
-                   c.align === "center" ? cx + c.w / 2 : cx + 12, y + 26);
+                   c.align === "center" ? cx + c.w / 2 : cx + PAD_X, y + 26);
       cx += c.w;
     });
     ctx.fillStyle = C.border;
