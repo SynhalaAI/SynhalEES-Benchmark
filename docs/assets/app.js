@@ -2068,10 +2068,49 @@
       });
     }
 
-    $("#search").addEventListener("input", function (e) {
-      state.search = e.target.value.toLowerCase();
-      renderTable();
-    });
+    // Leaderboard search: hide the browser's own clear glyph and show a themed
+    // one instead (see the .search-clear / .search-field CSS), exactly like the
+    // radar modal's compare search. Deriving visibility from the input value in
+    // one place keeps it right on type, on clear and on Escape.
+
+    function syncSearchField() {
+      var input = $("#search"), clear = $("#search-clear");
+      if (!input) return;
+      if (clear) clear.hidden = input.value.length === 0;
+    }
+
+    var searchInput = $("#search");
+    if (searchInput) {
+      searchInput.addEventListener("input", function (e) {
+        state.search = e.target.value.toLowerCase();
+        syncSearchField();
+        renderTable();
+      });
+      // Escape clears, matching the other pickers in the page
+      searchInput.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && searchInput.value) {
+          e.preventDefault();
+          searchInput.value = "";
+          state.search = "";
+          syncSearchField();
+          renderTable();
+        }
+      });
+
+      var searchClear = $("#search-clear");
+      if (searchClear) {
+        searchClear.addEventListener("click", function (e) {
+          e.preventDefault();
+          searchInput.value = "";
+          state.search = "";
+          syncSearchField();
+          renderTable();
+          // keep focus in the box so typing can continue straight away
+          searchInput.focus();
+        });
+      }
+      syncSearchField();
+    }
 
     document.querySelectorAll("#leaderboard th").forEach(function (th) {
       th.addEventListener("click", function () {
