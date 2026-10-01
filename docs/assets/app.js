@@ -2316,6 +2316,9 @@
         p.hidden = !p.hidden;
         mfBtn.setAttribute("aria-expanded", p.hidden ? "false" : "true");
         if (!p.hidden) {
+          if (window.SynhalEESDropdowns && window.SynhalEESDropdowns.closeAll) {
+            window.SynhalEESDropdowns.closeAll();
+          }
           var s = $("#model-filter-search");
           if (s) { s.value = ""; s.dispatchEvent(new Event("input")); s.focus(); }
         }

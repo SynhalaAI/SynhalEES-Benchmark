@@ -2565,18 +2565,62 @@ thead th.cmp-featured {
 
 @media (max-width: 640px) {
 
-  /* comfortable tap targets (>= 44px) on every interactive control */
-  .tab {
-    padding: 10px 12px;
+  /* comfortable tap targets (>= 44px) + consistent row heights: one height token so tabs, dropdowns, search, Models + export all render at 44px */
+  .controls {
+    --ctl-h: 44px;
   }
-
+  .controls>.tabs {
+    height: var(--ctl-h);
+    min-height: var(--ctl-h);
+    padding: 4px;
+    align-items: stretch;
+  }
+  .controls>.tabs .tab {
+    padding: 6px 12px;
+    min-height: 0;
+    height: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.2;
+  }
   .pillar-select,
   .search,
+  .pillar-dd-btn,
   .controls .chart-pick,
   .chart-pick,
-  .chart-select,
+  .chart-select {
+    height: var(--ctl-h);
+    min-height: var(--ctl-h);
+  }
+  .pillar-dd-btn,
+  .controls .chart-pick {
+    display: inline-flex;
+    align-items: center;
+  }
+  .controls>.pillar-dd,
+  .controls-end .chart-pick-wrap {
+    height: var(--ctl-h);
+  }
+  .controls>.pillar-dd .pillar-dd-btn,
+  .controls-end .chart-pick-wrap .chart-pick {
+    height: 100%;
+    min-height: 0;
+  }
+  .controls-end {
+    align-items: stretch;
+  }
+  .controls-end .search-field {
+    height: var(--ctl-h);
+  }
+  .controls-end .search-field .search {
+    height: 100%;
+    min-height: 0;
+  }
   #lb-export {
-    min-height: 44px;
+    height: var(--ctl-h);
+    min-height: var(--ctl-h);
+    align-self: auto;
   }
 
   .chart-pick,
@@ -2708,21 +2752,22 @@ thead th.cmp-featured {
   }
 
 
-  /* The leaderboard Models filter stays a bottom sheet. Its trigger sits at the
-     right end of the controls row on a phone, so a right-anchored panel would be
-     squeezed against the edge, and this list is a search box over many rows - it
-     needs the full width to be usable. Unlike the two pickers above it is opened
-     from a control row that may itself have scrolled out of view. */
+  /* The leaderboard Models filter anchors directly under its trigger button
+     just like #chart-picker and #compare-picker. */
   #model-filter {
-    position: fixed;
-    top: auto;
-    right: 12px;
-    bottom: 12px;
-    left: 12px;
-    width: auto;
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    bottom: auto;
+    left: auto;
+    width: min(300px, calc(100vw - 32px));
     max-height: min(62vh, 380px);
     max-height: min(62dvh, 380px);
     z-index: 60;
+  }
+
+  #model-filter::before {
+    display: none;
   }
 
   /* The Head-to-Head picker opens directly under its own button rather than
@@ -2801,6 +2846,17 @@ thead th.cmp-featured {
   .lb-table th:nth-child(2),
   .lb-table td:nth-child(2) {
     box-shadow: 1px 0 0 var(--border), var(--col-shadow);
+  }
+
+  /* frozen HEADERS stay above the horizontally scrolling headers. When the table
+     is capped every thead th is sticky (top) with z-index 5, which painted TEXT
+     SCORE / COST over the pinned # + MODEL headers (all were z-index 3). 7 wins
+     over the scrolling headers; body cells stay at 3 so the header row still
+     covers them on vertical scroll. top: 0 keeps the vertical freeze working. */
+  .lb-table thead th:nth-child(1),
+  .lb-table thead th:nth-child(2) {
+    top: 0;
+    z-index: 7;
   }
 
   /* keep the hover outline from being clipped by the frozen columns */

@@ -43,11 +43,26 @@
     return !!m && !m.hidden;
   }
 
+  function closeAll(except) {
+    all.forEach(function (dd) {
+      if (dd !== except && isOpen(dd)) setOpen(dd, false);
+    });
+  }
+
   function setOpen(dd, open) {
     var btn = dd.querySelector(".pillar-dd-btn");
     var menu = dd.querySelector(".pillar-dd-menu");
     if (!btn || !menu) return;
     if (open) {
+      // Close any other open dropdowns first so menus do not overlap
+      closeAll(dd);
+      // Close model-filter if open
+      var mf = document.getElementById("model-filter");
+      if (mf && !mf.hidden) {
+        mf.hidden = true;
+        var mfBtn = document.getElementById("model-filter-btn");
+        if (mfBtn) mfBtn.setAttribute("aria-expanded", "false");
+      }
       // Self-heal: the <select> is the source of truth, and its options can be
       // rewritten after this menu was built (chart.js populates the chart selects
       // in JS). Rebuilding here is a handful of DOM nodes and makes the popover
@@ -265,7 +280,8 @@
     refresh: function (sel) {
       if (sel) refresh(sel); else all.forEach(function (dd) { if (dd.__sel) refresh(dd.__sel); });
     },
-    sync: syncLabels
+    sync: syncLabels,
+    closeAll: closeAll
   };
 
   if (document.readyState === "loading") {
