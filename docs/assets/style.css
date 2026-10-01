@@ -1995,6 +1995,26 @@ a {
   font-weight: 600;
 }
 
+/* .compare-wrap is a horizontal scroller that pulls itself 18px out of the card
+   (margin: 0 -18px) and pads the content back in by the same 18px. That padding
+   sits INSIDE the scrollport, but a sticky left:0 cell pins to the CONTENT edge,
+   so the 18px strip to its left was never covered by the frozen column: the table
+   scrolled underneath it and the featured column's red inset border bled down the
+   left edge of the Head-to-Head table. This pseudo-element is a plain opaque plate
+   in the frozen cell's own colour spanning exactly that gutter. It travels with the
+   cell, so nothing can show in the strip at any scroll offset, and it needs no
+   layout change (no shift, no width change), so the pinned column keeps the exact
+   size and text inset it already had. The scrollport clips it at the card edge. */
+.cmp-rowhead::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -18px;
+  width: 18px;
+  background: var(--navy-card);
+}
+
 .cmp-metriccount {
   color: var(--muted);
   font-size: .75rem;
@@ -2118,6 +2138,19 @@ a {
      the cell sits OUTSIDE the pinned box, so the label would jump inward the
      moment pinning starts and would not line up with the pinned row labels */
   padding: 6px 0;
+}
+
+/* the band label is pinned like .cmp-rowhead, so it needs the same gutter plate,
+   in the band stripe colour -- otherwise the band rows are the one place the
+   scrolled table still shows through beside the frozen column */
+.cmp-group .cmp-glabel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -18px;
+  width: 18px;
+  background: var(--row-alt);
 }
 
 /* The MODALITIES / PILLARS bands are one colspan cell, so panning the table
@@ -2271,6 +2304,13 @@ thead th.cmp-featured {
 
   .compare-table .cmp-group .cmp-glabel {
     padding-left: 10px;
+  }
+
+  /* .compare-wrap drops to a 14px inset on a phone, so the gutter plates match */
+  .cmp-rowhead::before,
+  .cmp-group .cmp-glabel::before {
+    left: -14px;
+    width: 14px;
   }
 
   .compare-table th,
