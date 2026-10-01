@@ -27,7 +27,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNS = ROOT / "runs"
-from synhalees.registry import default_registry
+from synhalees.registry import canonical_model_slug, default_registry
 
 SUBMISSIONS = ROOT / "submissions"
 KG_RESULTS = ROOT / "kaggle-results"
@@ -316,6 +316,8 @@ def cmd_kaggle_pull(a):
             rc = sh([kaggle_bin(), "b", "t", "download", name, "-o", str(KG_RESULTS), *args])
             if rc:
                 failed.append(name)
+            else:
+                _note_normalized(name, normalize_pulled_runs(name))
         if failed:
             print(f"pull failed for {len(failed)} task(s): {', '.join(failed)}")
             return 1
@@ -324,7 +326,50 @@ def cmd_kaggle_pull(a):
             print("note: vision+audio skipped by default (~730MB more) - "
                   "add --modality 'vision|audio' (or vision / audio / all) to pull them")
         return 0
-    return sh([kaggle_bin(), "b", "t", "download", resolve_task_name(task), "-o", str(KG_RESULTS), *args])
+    name = resolve_task_name(task)
+    rc = sh([kaggle_bin(), "b", "t", "download", name, "-o", str(KG_RESULTS), *args])
+    if not rc:
+        _note_normalized(name, normalize_pulled_runs(name))
+    return rc
+
+
+def _note_normalized(task_slug, count):
+    """One line after a pull, so a renamed folder never looks like a mystery."""
+    if count:
+        print(f"normalized {count} run folder(s) in {task_slug}/ to canonical slugs")
+
+
+def normalize_pulled_runs(task_slug):
+    """Rename Kaggle's run folders under kaggle-results/<task>/ to canonical slugs.
+
+    Kaggle names those folders with its own pin marker ('claude-opus-5-default'),
+    so the next pull would otherwise drop a legacy folder next to the canonical
+    one and duplicate every run. Run ids are unique, so canonical names that
+    collide merge their run folders rather than clobbering them. Returns the
+    number of folders renamed; safe to run on an already-normal tree.
+    """
+    task_dir = KG_RESULTS / task_slug
+    if not task_dir.is_dir():
+        return 0
+    renamed = 0
+    for version in sorted(d for d in task_dir.iterdir() if d.is_dir()):
+        for model_dir in sorted(d for d in version.iterdir() if d.is_dir()):
+            canon = canonical_model_slug(model_dir.name)
+            if not canon or canon == model_dir.name:
+                continue
+            target = model_dir.with_name(canon)
+            if target.exists():
+                for run in sorted(r for r in model_dir.iterdir() if r.is_dir()):
+                    dest = target / run.name
+                    if not dest.exists():
+                        run.rename(dest)
+                if not any(model_dir.iterdir()):
+                    model_dir.rmdir()
+                    renamed += 1
+                continue
+            model_dir.rename(target)
+            renamed += 1
+    return renamed
 
 
 def kaggle_run_usage(result_path):
@@ -454,6 +499,7 @@ def cmd_kaggle_import(a):
         rc = sh([kaggle_bin(), "b", "t", "download", slug, "-o", str(KG_RESULTS)])
         if rc:
             return rc
+        _note_normalized(slug, normalize_pulled_runs(slug))
         newest = collect()
     if not newest:
         raise SystemExit(f"no *.result.json under {task_dir} (synhalees kaggle pull {slug})")
@@ -467,7 +513,7 @@ def cmd_kaggle_import(a):
             pct = float(score)
         except (TypeError, ValueError):
             raise SystemExit(f"{name}: result.json has no numeric rewards.score")
-        model = a.slug or name.split("/")[-1]
+        model = a.slug or canonical_model_slug(name)
         date = (fin or data.get("started_at") or "")[:10]
         modality = "vision" if slug == "synhalees-vision" else "audio" if slug == "synhalees-audio" else "text"
         cost, tokens, latency = kaggle_run_usage(result_path)
@@ -527,9 +573,10 @@ def cmd_kaggle_slim_export(a):
             found[name] = (fin, data, f)
     if not found:
         raise SystemExit(f"no *.result.json under {task_dir} (synhalees kaggle pull {slug})")
-    buf = _io.StringIO()
-    w = csv.writer(buf)
-    w.writerow(list(EXT_HEADER))
+    out = Path(a.output) if getattr(a, "output", None) else (KG_RESULTS / (slug + ".slim.csv"))
+    previous = {} if getattr(a, "replace", False) else load_slim_rows(out)
+    merged = dict(previous)
+    fresh = set()
     modality = "vision" if slug == "synhalees-vision" else "audio" if slug == "synhalees-audio" else "text"
     for name in sorted(found):
         fin, data, result_path = found[name]
@@ -538,16 +585,44 @@ def cmd_kaggle_slim_export(a):
             pct = float(score)
         except (TypeError, ValueError):
             raise SystemExit(f"{name}: result.json has no numeric rewards.score")
-        model = a.slug or name.split("/")[-1]
+        model = a.slug or canonical_model_slug(name)
         date = (fin or data.get("started_at") or "")[:10]
         cost, tokens, latency = kaggle_run_usage(result_path)
-        w.writerow([model, "kaggle", date, pillar, modality, f"{round(pct * 100, 1):.1f}", cost, tokens, latency])
+        merged[(model, pillar, modality)] = [model, "kaggle", date, pillar, modality,
+                                              f"{round(pct * 100, 1):.1f}", cost, tokens, latency]
+        fresh.add((model, pillar, modality))
         print(f"{model:<30} {modality} overall {round(pct * 100, 1):>6} ({date})")
-    out = Path(a.output) if getattr(a, "output", None) else (KG_RESULTS / (slug + ".slim.csv"))
+    buf = _io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(list(EXT_HEADER))
+    for key in sorted(merged):
+        w.writerow(merged[key])
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(buf.getvalue(), encoding="utf-8", newline="")
-    print(f"wrote {out} ({out.stat().st_size} bytes) -- download THIS file only")
+    print(f"wrote {out} ({out.stat().st_size} bytes) -- {len(merged)} row(s):"
+          f" {len(fresh)} from this run, {len(merged) - len(fresh)} kept from earlier exports")
     return 0
+
+
+def load_slim_rows(path):
+    """Existing slim-CSV rows keyed by (model, pillar, modality); {} when absent.
+
+    slim-export merges into this so a filtered pull (PROVIDER = 'gemini') never
+    drops the rows an earlier full pull wrote for the other providers.
+    """
+    if not Path(path).is_file():
+        return {}
+    with open(path, newline="", encoding="utf-8-sig") as fh:
+        rows = list(csv.reader(fh))
+    if not rows or rows[0][:len(EXT_HEADER)] != EXT_HEADER:
+        return {}
+    keyed = {}
+    for row in rows[1:]:
+        if len(row) < len(HEADER):
+            continue
+        full = list(row)[:len(EXT_HEADER)] + [""] * (len(EXT_HEADER) - len(row))
+        keyed[(full[0], full[3], full[4])] = full
+    return keyed
 
 
 def import_single_slim(src: Path) -> int:
@@ -665,6 +740,8 @@ def build_parser():
     p.add_argument("task", help="task slug (e.g. synhalees-05-sinhala-grammar)")
     p.add_argument("--slug", default=None, help="force the model slug (single model only)")
     p.add_argument("-o", "--output", default=None, help="output CSV path (default: kaggle-results/<task>.slim.csv)")
+    p.add_argument("--replace", action="store_true",
+                   help="rebuild from scratch instead of merging into an existing slim CSV")
     p.set_defaults(func=cmd_kaggle_slim_export)
     p = ks.add_parser("slim-import", help="slim CSV -> submissions/*.csv (home PC, no download)")
     p.add_argument("file", nargs="?", default="all", help="slim CSV path or 'all' (default: all *.slim.csv in kaggle-results/)")

@@ -1,0 +1,1067 @@
+{
+  "taskVersion": {
+    "versionNumber": 1,
+    "name": "synhalees_01_buddhist_culture",
+    "description": "SynhalEES pillar 01_buddhist_culture: native Sinhala text accuracy.",
+    "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture\", description=\"SynhalEES pillar 01_buddhist_culture: native Sinhala text accuracy.\")\ndef synhalees_task(llm) -> float:\n    '''Evaluate Buddhist Culture (text); return accuracy in [0, 1].'''\n    import pandas as pd\n\n    rows = _rows()\n    if not rows:\n        raise ValueError(\n            \"No runnable text rows for Buddhist Culture yet -- media files may \"\n            \"not be committed under benchmark_data/.\"\n        )\n    with kbench.client.enable_cache():\n        runs = synhalees_item.evaluate(\n            llm=[llm], evaluation_data=pd.DataFrame(rows),\n            n_jobs=2, max_attempts=2, on_failure=\"continue\",\n            remove_run_files=True,\n        )\n    correct = runs.as_dataframe().result.str.get(\"is_correct\").astype(\"boolean\").fillna(False)\n    return float(correct.mean())\n"
+  },
+  "modelVersion": {
+    "slug": "anthropic/claude-sonnet-4-5@20250929"
+  },
+  "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+  "startTime": "2026-09-27T15:26:21.212614Z",
+  "endTime": "2026-09-27T15:26:55.302602Z",
+  "conversations": [
+    {
+      "id": "synhalees_01_buddhist_culture-6f72bfa9",
+      "metrics": {},
+      "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+    }
+  ],
+  "results": [
+    {
+      "type": "AGGREGATED",
+      "numericResult": {
+        "value": 0.13333333333333333
+      }
+    }
+  ],
+  "subruns": [
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_01_buddhist_culture_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:26:21.226953Z",
+      "endTime": "2026-09-27T15:26:25.398181Z",
+      "conversations": [
+        {
+          "id": "synhalees_01_buddhist_culture_item-13c32e19",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc4\u0dcf\u0db8\u0dd4\u0daf\u0dd4\u0dbb\u0dd4\u0dc0\u0db1\u0dca\u0da7 \u0dc4\u0dc0\u0dc3\u0da7 \u0daf\u0dd9\u0db1 \u0daf\u0dcf\u0db1\u0dba\u0dda \u0db1\u0db8 \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc4\u0dcf\u0db8\u0dd4\u0daf\u0dd4\u0dbb\u0dd4\u0dc0\u0db1\u0dca\u0da7 \u0dc4\u0dc0\u0dc3\u0da7 \u0daf\u0dd9\u0db1 \u0daf\u0dcf\u0db1\u0dba\u0dda \u0db1\u0db8 **\u0d9c\u0dd2\u0dbd\u0dcf\u0db1\u0daf\u0dcf\u0db1** \u0dba\u0db1\u0dd4\u0dc0\u0dd9\u0db1\u0dca \u0dc4\u0db3\u0dd4\u0db1\u0dca\u0dc0\u0db1\u0dc0\u0dcf.\n\n(\u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca - \u0d9c\u0dd2-\u0dbd\u0dcf-\u0db1-\u0daf\u0dcf-\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 57,
+                "outputTokens": 85,
+                "inputTokensCostNanodollars": "171000",
+                "outputTokensCostNanodollars": "1275000",
+                "totalBackendLatencyMs": "3337"
+              },
+              "id": "synhalees_01_buddhist_culture_item-13c32e19-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 57,
+            "outputTokens": 85,
+            "inputTokensCostNanodollars": "171000",
+            "outputTokensCostNanodollars": "1275000",
+            "totalBackendLatencyMs": "3337"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_01_001"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_01_buddhist_culture_item-Run #1"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_01_buddhist_culture_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:26:25.404418Z",
+      "endTime": "2026-09-27T15:26:31.991524Z",
+      "conversations": [
+        {
+          "id": "synhalees_01_buddhist_culture_item-248f35b3",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0daf\u0dc0\u0dc3\u0da7 \u0d9a\u0dd3\u0db4\u0dcf\u0dbb\u0d9a\u0dca \u0db4\u0db1\u0dca\u0dc3\u0dbd\u0dda \u0db6\u0dd4\u0daf\u0dca\u0db0 \u0db4\u0dd6\u0da2\u0dcf\u0dc0 \u0dc3\u0d9a\u0dc3\u0dca \u0d9a\u0dbb\u0db1\u0dc0\u0daf? (\u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0daf\u0dc0\u0dc3\u0da7 **\u0dad\u0dd4\u0db1\u0dca\u0db4\u0dcf\u0dbb\u0d9a\u0dca** \u0db4\u0db1\u0dca\u0dc3\u0dbd\u0dda \u0db6\u0dd4\u0daf\u0dca\u0db0 \u0db4\u0dd6\u0da2\u0dcf\u0dc0 \u0dc3\u0d9a\u0dc3\u0dca \u0d9a\u0dbb\u0db1\u0dc0\u0dcf.\n\n\u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba\u0dba\u0dd9\u0db1\u0dca \u0db4\u0dd6\u0da2\u0dcf\u0dc0 \u0d9a\u0dbb\u0db1 \u0dc0\u0dda\u0dbd\u0dcf\u0dc0\u0db1\u0dca:\n1. **\u0d8b\u0daf\u0dd1\u0dc3\u0db1** (\u0d8b\u0daf\u0dd1\u0dc3\u0db1 \u0db4\u0dd6\u0da2\u0dcf\u0dc0)\n2. **\u0db8\u0db0\u0dca\u200d\u0dba\u0dcf\u0dc4\u0dca\u0db1\u0dba\u0dda** (\u0daf\u0dc0\u0dbd\u0dca \u0db4\u0dd6\u0da2\u0dcf\u0dc0)\n3. **\u0dc3\u0dc0\u0dc3\u0dda/\u0dbb\u0dcf\u0dad\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dda** (\u0dc3\u0dc0\u0dc3\u0dca \u0db4\u0dd6\u0da2\u0dcf\u0dc0)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 62,
+                "outputTokens": 165,
+                "inputTokensCostNanodollars": "186000",
+                "outputTokensCostNanodollars": "2475000",
+                "totalBackendLatencyMs": "6361"
+              },
+              "id": "synhalees_01_buddhist_culture_item-248f35b3-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 62,
+            "outputTokens": 165,
+            "inputTokensCostNanodollars": "186000",
+            "outputTokensCostNanodollars": "2475000",
+            "totalBackendLatencyMs": "6361"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_01_003"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_01_buddhist_culture_item-Run #3"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_01_buddhist_culture_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:26:31.997098Z",
+      "endTime": "2026-09-27T15:26:33.594786Z",
+      "conversations": [
+        {
+          "id": "synhalees_01_buddhist_culture_item-594a56b9",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d85\u0db8\u0db1\u0dd4\u0dc2\u0dca\u200d\u0dba\u0dba\u0db1\u0dca\u0d9c\u0dda \u0db7\u0dd2\u0d9a\u0dca\u0dc2\u0dd6\u0db1\u0dca \u0dc0\u0dc4\u0db1\u0dca\u0dc3\u0dda\u0dbd\u0dcf\u0da7 \u0dc0\u0dd9\u0db1 \u0d9a\u0dbb\u0daf\u0dbb \u0dc0\u0dbd\u0dd2\u0db1\u0dca \u0db6\u0dda\u0dbb\u0dd9\u0db1\u0dca\u0db1 \u0db6\u0dd4\u0daf\u0dd4 \u0dbb\u0da2\u0dcf\u0dab\u0db1\u0dca\u0dc0\u0dc4\u0db1\u0dca\u0dc3\u0dda \u0db7\u0dd2\u0d9a\u0dca\u0dc2\u0dd6\u0db1\u0dca \u0dc0\u0dc4\u0db1\u0dca\u0dc3\u0dda\u0dbd\u0dcf\u0da7 \u0daf\u0dda\u0dc1\u0db1\u0dcf \u0d9a\u0dbb\u0db4\u0dd4 \u0dc3\u0dd6\u0dad\u0dca\u200d\u0dbb\u0dba \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d86\u0da7\u0dcf\u0db1\u0dcf\u0da7\u0dd2\u0dba \u0dc3\u0dd6\u0dad\u0dca\u200d\u0dbb\u0dba"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 141,
+                "outputTokens": 19,
+                "inputTokensCostNanodollars": "423000",
+                "outputTokensCostNanodollars": "285000",
+                "totalBackendLatencyMs": "1324"
+              },
+              "id": "synhalees_01_buddhist_culture_item-594a56b9-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 141,
+            "outputTokens": 19,
+            "inputTokensCostNanodollars": "423000",
+            "outputTokensCostNanodollars": "285000",
+            "totalBackendLatencyMs": "1324"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_01_004"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_01_buddhist_culture_item-Run #4"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_01_buddhist_culture_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:26:21.228253Z",
+      "endTime": "2026-09-27T15:26:33.988225Z",
+      "conversations": [
+        {
+          "id": "synhalees_01_buddhist_culture_item-ea864431",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db6\u0dde\u0daf\u0dca\u0db0\u0dba\u0db1\u0dca\u0d9c\u0dda \u0db8\u0dd4\u0daf\u0dd4\u0db1\u0dca \u0db8\u0dbd\u0dca\u0d9a\u0da9 \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0dc4\u0db3\u0dd4\u0db1\u0dca\u0dc0\u0db1 \u0d8b\u0dad\u0dd4\u0db8\u0dca \u0dc3\u0dca\u0dae\u0dcf\u0db1\u0dba \u0d9a\u0dd4\u0db8\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db6\u0dde\u0daf\u0dca\u0db0\u0dba\u0db1\u0dca\u0d9c\u0dda \u0db8\u0dd4\u0daf\u0dd4\u0db1\u0dca \u0db8\u0dbd\u0dca\u0d9a\u0da9 \u0dbd\u0dd9\u0dc3 \u0dc4\u0db3\u0dd4\u0db1\u0dca\u0dc0\u0db1 \u0d8b\u0dad\u0dd4\u0db8\u0dca \u0dc3\u0dca\u0dae\u0dcf\u0db1\u0dba **\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0db4\u0dcf\u0daf\u0dba** (\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0db4\u0dcf\u0daf \u0db4\u0dbb\u0dca\u0dc0\u0dad\u0dba) \u0dc0\u0dda.\n\n\u0db8\u0dd9\u0dba **\u0dc3\u0db8\u0db1\u0dca\u0dad\u0d9a\u0dd6\u0da7\u0dba** \u0dbd\u0dd9\u0dc3\u0daf \u0dc4\u0db3\u0dd4\u0db1\u0dca\u0dc0\u0db1\u0dd4 \u0dbd\u0db6\u0db1 \u0d85\u0dad\u0dbb, \u0dbb\u0dad\u0dca\u0db1\u0db4\u0dd4\u0dbb \u0daf\u0dd2\u0dc3\u0dca\u0dad\u0dca\u200d\u0dbb\u0dd2\u0d9a\u0dca\u0d9a\u0dba\u0dda \u0db4\u0dd2\u0dc4\u0dd2\u0da7\u0dd2 \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0db6\u0dde\u0daf\u0dca\u0db0\u0dba\u0db1\u0dca\u0da7 \u0d89\u0dad\u0dcf \u0db4\u0dd6\u0da2\u0db1\u0dd3\u0dba \u0dc3\u0dca\u0dae\u0dcf\u0db1\u0dba\u0d9a\u0dd2. \n\n\u0db8\u0dd9\u0dc4\u0dd2 \u0d87\u0dad\u0dd2 **\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0db4\u0dcf\u0daf \u0db8\u0d82\u0d9c\u0dbd\u0dca\u200d\u0dba\u0dba** (\u0db4\u0dcf\u0daf\u0dba\u0dda \u0dc3\u0dc5\u0d9a\u0dd4\u0dab) \u0d9c\u0dde\u0dad\u0db8 \u0db6\u0dd4\u0daf\u0dd4\u0dbb\u0da2\u0dcf\u0dab\u0db1\u0dca \u0dc0\u0dc4\u0db1\u0dca\u0dc3\u0dda\u0d9c\u0dda \u0dc0\u0db8\u0dca \u0db4\u0dcf\u0daf\u0dba\u0dda \u0dc3\u0dc5\u0d9a\u0dd4\u0dab \u0dbd\u0dd9\u0dc3 \u0db6\u0dde\u0daf\u0dca\u0db0\u0dba\u0ddd \u0dc0\u0dd2\u0dc1\u0dca\u0dc0\u0dcf\u0dc3 \u0d9a\u0dbb\u0db1 \u0d85\u0dad\u0dbb, \u0d91\u0dba \u0db6\u0dde\u0daf\u0dca\u0db0\u0dba\u0db1\u0dca\u0d9c\u0dda \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1\u0dad\u0db8 \u0dc0\u0db1\u0dca\u0daf\u0db1\u0dcf \u0dc3\u0dca\u0dae\u0dcf\u0db1\u0dba\u0d9a\u0dca \u0dc0\u0dd3 \u0d87\u0dad."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 66,
+                "outputTokens": 374,
+                "inputTokensCostNanodollars": "198000",
+                "outputTokensCostNanodollars": "5610000",
+                "totalBackendLatencyMs": "12435"
+              },
+              "id": "synhalees_01_buddhist_culture_item-ea864431-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 66,
+            "outputTokens": 374,
+            "inputTokensCostNanodollars": "198000",
+            "outputTokensCostNanodollars": "5610000",
+            "totalBackendLatencyMs": "12435"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_01_002"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_01_buddhist_culture_item-Run #2"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_01_buddhist_culture_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:26:33.600107Z",
+      "endTime": "2026-09-27T15:26:34.990097Z",
+      "conversations": [
+        {
+          "id": "synhalees_01_buddhist_culture_item-faa952f4",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db7\u0dd2\u0d9a\u0dca\u0dc2\u0dd6\u0db1\u0dca \u0dc0\u0dc4\u0dc3\u0dda\u0dbd\u0dcf\u0da7 \u0daf\u0dcf\u0db1\u0dba \u0db4\u0db1\u0dca\u0dc3\u0dbd\u0da7\u0db8 \u0d9c\u0dd9\u0db1\u0dbd\u0dca\u0dbd\u0dcf \u0daf\u0dd9\u0db1 \u0d9a\u0dcf\u0dbd\u0dba \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db4\u0dd2\u0db1\u0dca\u0daf\u0db4\u0dcf\u0dad \u0d9a\u0dcf\u0dbd\u0dba"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 77,
+                "outputTokens": 14,
+                "inputTokensCostNanodollars": "231000",
+                "outputTokensCostNanodollars": "210000",
+                "totalBackendLatencyMs": "1126"
+              },
+              "id": "synhalees_01_buddhist_culture_item-faa952f4-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 77,
+            "outputTokens": 14,
+            "inputTokensCostNanodollars": "231000",
+            "outputTokensCostNanodollars": "210000",
+            "totalBackendLatencyMs": "1126"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_01_005"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_01_buddhist_culture_item-Run #5"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_01_buddhist_culture_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:26:34.994659Z",
+      "endTime": "2026-09-27T15:26:37.820250Z",
+      "conversations": [
+        {
+          "id": "synhalees_01_buddhist_culture_item-ac06682c",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc0\u0dc3\u0dca\u0dc3\u0dcf\u0db1 \u0d9a\u0dcf\u0dbd\u0dda \u0d86\u0dbb\u0db8\u0dca\u0db7 \u0dc0\u0dd4\u0db1\u0dcf\u0db8 \u0dbb\u0dd1 \u0db4\u0db1\u0dca\u0dc3\u0dbd\u0dda \u0dad\u0dd2\u0dba\u0dd9\u0db1 \u0dc0\u0dd2\u0dc1\u0dda\u0dc2 \u0db4\u0dd2\u0db1\u0dca\u0d9a\u0db8 \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dc0\u0da0\u0db1 \u0dad\u0dd4\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db0\u0dbb\u0dca\u0db8 \u0daf\u0dd9\u0dc3\u0db1\u0dcf \u0d85\u0dc3\u0dd3\u0db8\n\n(\u0dc4\u0ddd: \u0db4\u0ddc\u0dba \u0daf\u0dd9\u0dc3\u0db1\u0dcf \u0d85\u0dc3\u0dd3\u0db8 / \u0daf\u0dc4\u0db8\u0dca \u0daf\u0dd9\u0dc3\u0dd3\u0db8 \u0d85\u0dc3\u0dd3\u0db8)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 82,
+                "outputTokens": 55,
+                "inputTokensCostNanodollars": "246000",
+                "outputTokensCostNanodollars": "825000",
+                "totalBackendLatencyMs": "2602"
+              },
+              "id": "synhalees_01_buddhist_culture_item-ac06682c-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 82,
+            "outputTokens": 55,
+            "inputTokensCostNanodollars": "246000",
+            "outputTokensCostNanodollars": "825000",
+            "totalBackendLatencyMs": "2602"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_01_007"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_01_buddhist_culture_item-Run #7"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_01_buddhist_culture_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:26:37.824556Z",
+      "endTime": "2026-09-27T15:26:40.324901Z",
+      "conversations": [
+        {
+          "id": "synhalees_01_buddhist_culture_item-b785479d",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db1\u0dd2\u0dc0\u0db1\u0dca \u0db8\u0d9f\u0da7 \u0dba\u0db1 \u0db4\u0dcf\u0dbb \u0dc4\u0db3\u0dd4\u0db1\u0dca\u0dc0\u0db1 \u0db1\u0db8 \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dc0\u0da0\u0db1 \u0dad\u0dd4\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d86\u0dbb\u0dca\u0dba \u0d85\u0dc2\u0dca\u0da7\u0dcf\u0d82\u0d9c\u0dd2\u0d9a \u0db8\u0dcf\u0dbb\u0dca\u0d9c\u0dba"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 56,
+                "outputTokens": 27,
+                "inputTokensCostNanodollars": "168000",
+                "outputTokensCostNanodollars": "405000",
+                "totalBackendLatencyMs": "2280"
+              },
+              "id": "synhalees_01_buddhist_culture_item-b785479d-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 56,
+            "outputTokens": 27,
+            "inputTokensCostNanodollars": "168000",
+            "outputTokensCostNanodollars": "405000",
+            "totalBackendLatencyMs": "2280"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_01_008"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_01_buddhist_culture_item-Run #8"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_01_buddhist_culture_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:26:33.993010Z",
+      "endTime": "2026-09-27T15:26:45.552574Z",
+      "conversations": [
+        {
+          "id": "synhalees_01_buddhist_culture_item-b7fa897c",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db4\u0db1\u0dca\u0dc3\u0dd2\u0dbd\u0dca \u0db4\u0daf 5\u0dc4\u0dda \u0d85\u0dc0\u0dc3\u0dcf\u0db1 \u0dc3\u0dd2\u0dbd\u0dca\u0db4\u0daf\u0dba \u0d91\u0d9a \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db4\u0dcf\u0dab\u0dcf\u0dad\u0dd2\u0db4\u0dcf\u0dad\u0dcf \u0dc0\u0dd9\u0dbb\u0db8\u0dab\u0dd3 \u0dc3\u0dd2\u0d9a\u0dca\u0d9b\u0dcf\u0db4\u0daf\u0d82 \u0dc3\u0db8\u0dcf\u0daf\u0dd2\u0dba\u0dcf\u0db8\u0dd2.\n\n\u0dc3\u0dd6\u0dbb\u0dcf\u0db8\u0dd9\u0dbb\u0dba \u0db8\u0da2\u0dca\u0da2\u0db4\u0db8\u0dcf\u0daf\u0da7\u0dca\u0da8\u0dcf\u0db1\u0dcf \u0dc0\u0dd9\u0dbb\u0db8\u0dab\u0dd3 \u0dc3\u0dd2\u0d9a\u0dca\u0d9b\u0dcf\u0db4\u0daf\u0d82 \u0dc3\u0db8\u0dcf\u0daf\u0dd2\u0dba\u0dcf\u0db8\u0dd2.\n\n\u0d9a\u0dcf\u0db8\u0dd9\u0dc3\u0dd4 \u0db8\u0dd2\u0da0\u0dca\u0da1\u0dcf\u0da0\u0dcf\u0dbb\u0dcf \u0dc0\u0dd9\u0dbb\u0db8\u0dab\u0dd3 \u0dc3\u0dd2\u0d9a\u0dca\u0d9b\u0dcf\u0db4\u0daf\u0d82 \u0dc3\u0db8\u0dcf\u0daf\u0dd2\u0dba\u0dcf\u0db8\u0dd2.\n\n\u0db8\u0dd4\u0dc3\u0dcf\u0dc0\u0dcf\u0daf\u0dcf \u0dc0\u0dd9\u0dbb\u0db8\u0dab\u0dd3 \u0dc3\u0dd2\u0d9a\u0dca\u0d9b\u0dcf\u0db4\u0daf\u0d82 \u0dc3\u0db8\u0dcf\u0daf\u0dd2\u0dba\u0dcf\u0db8\u0dd2.\n\n\u0d85\u0daf\u0dd2\u0db1\u0dca\u0db1\u0dcf\u0daf\u0dcf\u0db1\u0dcf \u0dc0\u0dd9\u0dbb\u0db8\u0dab\u0dd3 \u0dc3\u0dd2\u0d9a\u0dca\u0d9b\u0dcf\u0db4\u0daf\u0d82 \u0dc3\u0db8\u0dcf\u0daf\u0dd2\u0dba\u0dcf\u0db8\u0dd2.\n\n\u0db4\u0db1\u0dca\u0dc3\u0dd2\u0dbd\u0dca \u0db4\u0daf 5\u0dc4\u0dd2 \u0d85\u0dc0\u0dc3\u0dcf\u0db1 \u0dc3\u0dd2\u0dbd\u0dca\u0db4\u0daf\u0dba \u0d91\u0d9a \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca: **\u0dc3\u0dd6\u0dbb\u0dcf\u0db8\u0dd9\u0dbb\u0dba\u0db8\u0da2\u0dca\u0da2\u0db4\u0db8\u0dcf\u0daf\u0da7\u0dca\u0da8\u0dcf\u0db1\u0dcf**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 48,
+                "outputTokens": 263,
+                "inputTokensCostNanodollars": "144000",
+                "outputTokensCostNanodollars": "3945000",
+                "totalBackendLatencyMs": "11320"
+              },
+              "id": "synhalees_01_buddhist_culture_item-b7fa897c-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 48,
+            "outputTokens": 263,
+            "inputTokensCostNanodollars": "144000",
+            "outputTokensCostNanodollars": "3945000",
+            "totalBackendLatencyMs": "11320"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_01_006"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_01_buddhist_culture_item-Run #6"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_01_buddhist_culture_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:26:45.556831Z",
+      "endTime": "2026-09-27T15:26:46.733146Z",
+      "conversations": [
+        {
+          "id": "synhalees_01_buddhist_culture_item-9c086c55",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0dc4 \u0db4\u0dd9\u0dbb\u0dc4\u0dd0\u0dbb \u0dad\u0dd2\u0dba\u0dd9\u0db1 \u0db8\u0dcf\u0dc3\u0dda \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d9a\u0dd0\u0dbd\u0db1\u0dca\u0da9\u0dbb\u0dca \u0d91\u0d9a\u0da7 \u0d85\u0db1\u0dd4\u0dc0, \u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d91\u0dc3\u0dc5 \u0db8\u0dcf\u0dc3\u0dda"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 76,
+                "outputTokens": 12,
+                "inputTokensCostNanodollars": "228000",
+                "outputTokensCostNanodollars": "180000",
+                "totalBackendLatencyMs": "936"
+              },
+              "id": "synhalees_01_buddhist_culture_item-9c086c55-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 76,
+            "outputTokens": 12,
+            "inputTokensCostNanodollars": "228000",
+            "outputTokensCostNanodollars": "180000",
+            "totalBackendLatencyMs": "936"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_01_010"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_01_buddhist_culture_item-Run #10"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_01_buddhist_culture_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:26:46.738392Z",
+      "endTime": "2026-09-27T15:26:49.524359Z",
+      "conversations": [
+        {
+          "id": "synhalees_01_buddhist_culture_item-622fdd30",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d85\u0da7\u0db4\u0da7\u0dca\u0da7\u0db8\u0dda \u0dad\u0dca\u200d\u0dbb\u0dd2\u0d9a\u0ddd\u0dab \u0d85\u0da7\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0d9a\u0d9a\u0dca \u0d9c\u0dd0\u0db1\u0daf? (\u0dc0\u0da0\u0db1 \u0dad\u0dd4\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d85\u0da7\u0db4\u0da7\u0dca\u0da7\u0db8\u0dda \u0dad\u0dca\u200d\u0dbb\u0dd2\u0d9a\u0ddd\u0dab \u0d85\u0da7\u0dba\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda **\u0db6\u0dd4\u0daf\u0dd4\u0db1\u0dca\u0d9c\u0dda \u0db0\u0dbb\u0dca\u0db8 \u0daf\u0dda\u0dc1\u0db1\u0dcf** \u0d9c\u0dd0\u0db1\u0dba\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 70,
+                "outputTokens": 69,
+                "inputTokensCostNanodollars": "210000",
+                "outputTokensCostNanodollars": "1035000",
+                "totalBackendLatencyMs": "2569"
+              },
+              "id": "synhalees_01_buddhist_culture_item-622fdd30-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 70,
+            "outputTokens": 69,
+            "inputTokensCostNanodollars": "210000",
+            "outputTokensCostNanodollars": "1035000",
+            "totalBackendLatencyMs": "2569"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_01_011"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_01_buddhist_culture_item-Run #11"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_01_buddhist_culture_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:26:40.329258Z",
+      "endTime": "2026-09-27T15:26:51.389759Z",
+      "conversations": [
+        {
+          "id": "synhalees_01_buddhist_culture_item-58db4c63",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db4\u0dd9\u0dc4\u0dd9\u0dc0\u0dad\u0dca \u0dc3\u0db8\u0dcf\u0daf\u0db1\u0dca \u0dc0\u0dd9\u0db1\u0d9a\u0ddc\u0da7 \u0db1\u0dd2\u0dad\u0dca\u200d\u0dba \u0dc3\u0dd3\u0dbd\u0dba\u0da7 \u0dc0\u0da9\u0dcf \u0dc0\u0dd0\u0da9\u0dd2 \u0dc0\u0db1 \u0dc3\u0dd2\u0dbd\u0dca\u0db4\u0daf \u0d9c\u0dcf\u0dab \u0d9a\u0dd3\u0dba\u0daf? (\u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0dd9\u0db8 \u0db4\u0dca\u200d\u0dbb\u0dc1\u0dca\u0db1\u0dba \u0db4\u0dd9\u0dc4\u0dd9\u0dc0\u0dad\u0dca (\u0d8b\u0db4\u0dc0\u0dcf\u0dc3) \u0dc3\u0db8\u0dcf\u0daf\u0db1\u0dca \u0dc0\u0dda\u0dbd\u0dcf\u0dc0\u0dda \u0db4\u0dd2\u0dc5\u0dd2\u0db4\u0daf\u0dd2\u0db1 \u0dc3\u0dd2\u0dbd\u0dca\u0db4\u0daf \u0d9c\u0dab\u0db1 \u0d9c\u0dd0\u0db1 \u0d85\u0dc3\u0dba\u0dd2.\n\n\u0db1\u0dd2\u0dad\u0dca\u200d\u0dba \u0dc3\u0dd3\u0dbd\u0dba = \u0db4\u0d82\u0da0 \u0dc3\u0dd3\u0dbd\u0dba (\u0dc3\u0dd2\u0dbd\u0dca 5)\n\n\u0db4\u0dd9\u0dc4\u0dd9\u0dc0\u0dad\u0dca \u0dc3\u0db8\u0dcf\u0daf\u0db1\u0dca \u0dc0\u0dda\u0dbd\u0dcf\u0dc0\u0dda = \u0d85\u0da7 \u0dc3\u0dd2\u0dbd\u0dca (\u0dc3\u0dd2\u0dbd\u0dca 8)\n\n\u0dc0\u0dd0\u0da9\u0dd2 \u0dc0\u0db1 \u0dc3\u0dd2\u0dbd\u0dca\u0db4\u0daf \u0d9c\u0dab\u0db1 = 8 - 5 = 3\n\n**\u0d8b\u0dad\u0dca\u0dad\u0dbb\u0dba: \u0dad\u0dd4\u0db1** (\u0dc4\u0ddd \u0dad\u0dd2\u0db1\u0d9a\u0dca)\n\n(\u0db8\u0dda \u0dc0\u0dd0\u0da9\u0dd2 \u0dc0\u0db1 \u0dc3\u0dd2\u0dbd\u0dca \u0dad\u0dd4\u0db1 \u0dc0\u0db1\u0dca\u0db1\u0dda: \u0dc0\u0dd2\u0d9a\u0dcf\u0dbd\u0db7\u0ddd\u0da2\u0db1\u0dcf\u0daf\u0dd2, \u0db1\u0da0\u0dca\u0da0\u0dcf\u0daf\u0dd2 \u0dc3\u0dc4 \u0d8b\u0da0\u0dca\u0da0\u0dcf\u0dc3\u0dba\u0db1\u0dcf\u0daf\u0dd2 \u0dba\u0db1 \u0dc3\u0dd2\u0dbd\u0dca\u0db4\u0daf \u0dad\u0dd4\u0db1\u0dba\u0dd2)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 84,
+                "outputTokens": 267,
+                "inputTokensCostNanodollars": "252000",
+                "outputTokensCostNanodollars": "4005000",
+                "totalBackendLatencyMs": "10834"
+              },
+              "id": "synhalees_01_buddhist_culture_item-58db4c63-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 84,
+            "outputTokens": 267,
+            "inputTokensCostNanodollars": "252000",
+            "outputTokensCostNanodollars": "4005000",
+            "totalBackendLatencyMs": "10834"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_01_009"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_01_buddhist_culture_item-Run #9"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_01_buddhist_culture_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:26:51.394968Z",
+      "endTime": "2026-09-27T15:26:52.682643Z",
+      "conversations": [
+        {
+          "id": "synhalees_01_buddhist_culture_item-cd581d2f",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9a\u0dd0\u0dc5\u0dab\u0dd2\u0dba \u0db4\u0db1\u0dca\u0dc3\u0dbd\u0dda \u0dad\u0dd2\u0dba\u0dd9\u0db1 \u0da0\u0ddb\u0dad\u0dca\u200d\u0dba\u0dba\u0dda \u0dc4\u0dd0\u0da9\u0dda\u0da7 \u0d9a\u0dd2\u0dba\u0db1 \u0dc0\u0dd2\u0dc1\u0dda\u0dc2 \u0db1\u0db8 \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0d91\u0d9a \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db4\u0daf\u0dca\u0db8\u0dcf\u0dc3\u0db1\u0dba"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 77,
+                "outputTokens": 11,
+                "inputTokensCostNanodollars": "231000",
+                "outputTokensCostNanodollars": "165000",
+                "totalBackendLatencyMs": "1065"
+              },
+              "id": "synhalees_01_buddhist_culture_item-cd581d2f-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 77,
+            "outputTokens": 11,
+            "inputTokensCostNanodollars": "231000",
+            "outputTokensCostNanodollars": "165000",
+            "totalBackendLatencyMs": "1065"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_01_013"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_01_buddhist_culture_item-Run #13"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_01_buddhist_culture_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:26:49.528980Z",
+      "endTime": "2026-09-27T15:26:52.829617Z",
+      "conversations": [
+        {
+          "id": "synhalees_01_buddhist_culture_item-54f419aa",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc4\u0dcf\u0db8\u0dd4\u0daf\u0dd4\u0dbb\u0dd4\u0dc0\u0ddd \u0dc3\u0db8\u0dcf\u0daf\u0db1\u0dca \u0dc0\u0dd9\u0db1 \u0dc3\u0dd3\u0dbd\u0dda \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0daf\u0dc3 \u0dc3\u0dd3\u0dbd\n\n\n(\u0dc4\u0ddd \u0db4\u0db1\u0dca\u0dc3\u0dd2\u0dbd\u0dca \u0dba\u0db1 \u0db4\u0dd2\u0dc5\u0dd2\u0dad\u0dd4\u0dbb\u0daf \u0dc3\u0db8\u0dc4\u0dbb \u0dc3\u0db1\u0dca\u0daf\u0dbb\u0dca\u0db7\u0dc0\u0dbd \u0dc3\u0dbd\u0d9a\u0dcf \u0db6\u0dbd\u0dcf \u0dc4\u0dd0\u0d9a\u0dd2\u0dba)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 60,
+                "outputTokens": 57,
+                "inputTokensCostNanodollars": "180000",
+                "outputTokensCostNanodollars": "855000",
+                "totalBackendLatencyMs": "3073"
+              },
+              "id": "synhalees_01_buddhist_culture_item-54f419aa-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 60,
+            "outputTokens": 57,
+            "inputTokensCostNanodollars": "180000",
+            "outputTokensCostNanodollars": "855000",
+            "totalBackendLatencyMs": "3073"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_01_012"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_01_buddhist_culture_item-Run #12"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_01_buddhist_culture_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:26:52.688519Z",
+      "endTime": "2026-09-27T15:26:54.134738Z",
+      "conversations": [
+        {
+          "id": "synhalees_01_buddhist_culture_item-cf63f026",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db6\u0dd4\u0daf\u0dca\u0db0\u0dcf\u0d9c\u0db8\u0dda \u0d9c\u0dd0\u0db9\u0dd4\u0dbb\u0dd4 \u0db0\u0dbb\u0dca\u0db8\u0dba \u0dad\u0dd2\u0dba\u0dd9\u0db1 \u0db4\u0dd2\u0da7\u0d9a\u0dda \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d85\u0db7\u0dd2\u0db0\u0dbb\u0dca\u0db8 \u0db4\u0dd2\u0da7\u0d9a\u0dba"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 69,
+                "outputTokens": 16,
+                "inputTokensCostNanodollars": "207000",
+                "outputTokensCostNanodollars": "240000",
+                "totalBackendLatencyMs": "1234"
+              },
+              "id": "synhalees_01_buddhist_culture_item-cf63f026-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 69,
+            "outputTokens": 16,
+            "inputTokensCostNanodollars": "207000",
+            "outputTokensCostNanodollars": "240000",
+            "totalBackendLatencyMs": "1234"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_01_014"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_01_buddhist_culture_item-Run #14"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_01_buddhist_culture_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:26:52.834851Z",
+      "endTime": "2026-09-27T15:26:55.283060Z",
+      "conversations": [
+        {
+          "id": "synhalees_01_buddhist_culture_item-e33ad03e",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc4\u0dcf\u0db8\u0dd4\u0daf\u0dd4\u0dbb\u0dd4\u0dc0\u0ddd \u0db1\u0dcf\u0db1 \u0d91\u0d9a\u0da7 \u0db8\u0ddc\u0d9a\u0d9a\u0dca \u0d9a\u0dd2\u0dba\u0dbd\u0daf \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda? (\u0dc0\u0da0\u0db1 \u0dad\u0dd4\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc4\u0dcf\u0db8\u0dd4\u0daf\u0dd4\u0dbb\u0dd4\u0dc0\u0db1\u0dca\u0da7 \u0db1\u0dcf\u0db1 \u0d91\u0d9a\u0da7 **\u0db1\u0dc4\u0db1\u0dca \u0d91\u0d9a\u0daf** \u0d9a\u0dd2\u0dba\u0db1\u0dc0\u0dcf."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 59,
+                "outputTokens": 37,
+                "inputTokensCostNanodollars": "177000",
+                "outputTokensCostNanodollars": "555000",
+                "totalBackendLatencyMs": "2223"
+              },
+              "id": "synhalees_01_buddhist_culture_item-e33ad03e-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 59,
+            "outputTokens": 37,
+            "inputTokensCostNanodollars": "177000",
+            "outputTokensCostNanodollars": "555000",
+            "totalBackendLatencyMs": "2223"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_01_015"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_01_buddhist_culture_item-Run #15"
+    }
+  ],
+  "pyRunId": "synhalees_01_buddhist_culture-Run #1"
+}

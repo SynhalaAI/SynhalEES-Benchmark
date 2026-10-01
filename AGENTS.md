@@ -115,6 +115,13 @@ in `STRUCTURE.md` -- no scratch `.txt` / `.log` / `.csv` dumps, ever.
 | Slim scorecard exports (KB, Colab-downloadable) | `kaggle-results/*.slim.csv` (**tracked**, lightweight records) | `synhalees kaggle slim-export <task>` on Colab; `slim-import <file>` at home (no download) |
 | Colab slim-export notebook | `kaggle/colab_slim_export.ipynb` (tracked helper) | free-Colab pull + slim-export; download only the slim CSV |
 
+- **`slim-export` merges, it never truncates.** It keys rows by
+  `(model, pillar, modality)` and writes them into the *existing* slim CSV, so a
+  filtered pull (Colab `PROVIDER = 'gemini'`) updates the gemini rows and keeps
+  the claude rows an earlier full pull wrote -- a filtered export must never drop
+  another provider's scores. Use `--replace` for a deliberate clean rebuild.
+  Output order is sorted by `(model, pillar, modality)`, so the file is stable
+  across runs.
 - **Home-internet saver (Colab flow).** Pulls are heavy (tens of MB per run: `*.run.json` carries base64 media). On metered internet, do the pull on free Colab with `kaggle/colab_slim_export.ipynb`, `slim-export` the KB-sized `*.slim.csv`, download ONLY that file, and run `synhalees kaggle slim-import <file>` at home (zero Kaggle download). Schema drift rule: `slim-export`/`slim-import` share the `EXT_HEADER` schema (`model,provider,date,pillar,modality,score,cost_usd,tokens,latency_ms`) and the pillar/task mapping in `synhalees/cli.py` with `kaggle import` -- if you change that schema or mapping, you MUST review the notebook cells 3-4 (row order + header) in the same change.
 - **`kaggle b t download` writes into the current directory when `-o` is
   omitted -- always pass `-o kaggle-results`** (`synhalees kaggle pull <task>`
@@ -123,6 +130,27 @@ in `STRUCTURE.md` -- no scratch `.txt` / `.log` / `.csv` dumps, ever.
   explicit `--modality vision|audio|all` - combinations like
   `--modality 'vision|audio'` pull both without the text tasks (the Colab notebook
   exposes the same `MODALITY` selector, e.g. `MODALITY = 'vision | audio'`).
+- **Scorecards are keyed by the canonical, unpinned model slug.** Kaggle pins a
+  model with `@` (`anthropic/claude-opus-5@default`) or dashes the pin into the
+  slug (`claude-haiku-4-5-20251001`); the `-m` flag and `kaggle b t models` use
+  yet another form. `canonical_model_slug()` (`synhalees/registry.py`) drops the
+  host prefix, turns `@` into `-`, then strips the trailing `-default` /
+  `-YYYYMMDD` marker, so every slug lands on one identity --
+  `submissions/anthropic/claude/claude-opus-5.csv`, never
+  `claude-opus-5-default.csv`. It is applied on every import / slim-export, and
+  `Registry.adopt_legacy_scorecards()` renames any pre-fix scorecard (plus its
+  model column, CRLF preserved) onto the canonical name so a re-import updates
+  that file instead of creating a duplicate model. It skips the rename when the
+  canonical twin already exists or the pair sits in different families -- never
+  overwrite a current file. The build keys the leaderboard on the CSV's `model`
+  **column** (`row["model"]`), so a filename/column mismatch shows up as two
+  models -- rename both together. The date pin lives in
+  `models.json` `display_names` only (`claude-opus-5` -> "Claude Opus 5").
+  The same rule applies to the raw run folders Kaggle writes under
+  `kaggle-results/<task>/<version>/<model>/<run-id>/`: they are renamed by
+  `normalize_pulled_runs()`, which every pull path calls on success, so a fresh
+  download never leaves a legacy folder beside the canonical one (colliding
+  canonical names merge their run folders instead of clobbering them).
 - **Never pass a bare flag to a tool whose output path is positional.**
   `kaggle/generate_tasks.py` reads a bare argument as the output directory, so
   a mistyped flag once created a junk `--dry-run/` folder at the repo root

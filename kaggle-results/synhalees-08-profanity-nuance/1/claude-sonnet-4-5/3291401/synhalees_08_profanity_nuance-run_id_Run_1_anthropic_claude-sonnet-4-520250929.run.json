@@ -1,0 +1,995 @@
+{
+  "taskVersion": {
+    "versionNumber": 1,
+    "name": "synhalees_08_profanity_nuance",
+    "description": "SynhalEES pillar 08_profanity_nuance: native Sinhala text accuracy.",
+    "definition": "@kbench.task(name=\"synhalees_08_profanity_nuance\", description=\"SynhalEES pillar 08_profanity_nuance: native Sinhala text accuracy.\")\ndef synhalees_task(llm) -> float:\n    '''Evaluate Profanity Nuance (text); return accuracy in [0, 1].'''\n    import pandas as pd\n\n    rows = _rows()\n    if not rows:\n        raise ValueError(\n            \"No runnable text rows for Profanity Nuance yet -- media files may \"\n            \"not be committed under benchmark_data/.\"\n        )\n    with kbench.client.enable_cache():\n        runs = synhalees_item.evaluate(\n            llm=[llm], evaluation_data=pd.DataFrame(rows),\n            n_jobs=2, max_attempts=2, on_failure=\"continue\",\n            remove_run_files=True,\n        )\n    correct = runs.as_dataframe().result.str.get(\"is_correct\").astype(\"boolean\").fillna(False)\n    return float(correct.mean())\n"
+  },
+  "modelVersion": {
+    "slug": "anthropic/claude-sonnet-4-5@20250929"
+  },
+  "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+  "startTime": "2026-09-27T15:29:46.694507Z",
+  "endTime": "2026-09-27T15:29:55.862946Z",
+  "conversations": [
+    {
+      "id": "synhalees_08_profanity_nuance-b7965b36",
+      "metrics": {},
+      "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+    }
+  ],
+  "results": [
+    {
+      "type": "AGGREGATED",
+      "numericResult": {
+        "value": 0.13333333333333333
+      }
+    }
+  ],
+  "subruns": [
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_08_profanity_nuance_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_08_profanity_nuance_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:29:46.706017Z",
+      "endTime": "2026-09-27T15:29:47.788689Z",
+      "conversations": [
+        {
+          "id": "synhalees_08_profanity_nuance_item-d613f755",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0db4\u0ddc\u0db1\u0dca\u0db1\u0dba\u0dcf' \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0d9c\u0dd1\u0dab\u0dd6 \u0db4\u0dd2\u0dbb\u0dd2\u0db8\u0dd2 \u0daf\u0dd9\u0d9a\u0db8 \u0db1\u0dd0\u0dad\u0dd2 \u0d91\u0d9a\u0dcf\u0da7\u0daf? (\u0dad\u0db1\u0dd2 \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d94\u0dc0\u0dca"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 68,
+                "outputTokens": 8,
+                "inputTokensCostNanodollars": "204000",
+                "outputTokensCostNanodollars": "120000",
+                "totalBackendLatencyMs": "880"
+              },
+              "id": "synhalees_08_profanity_nuance_item-d613f755-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 68,
+            "outputTokens": 8,
+            "inputTokensCostNanodollars": "204000",
+            "outputTokensCostNanodollars": "120000",
+            "totalBackendLatencyMs": "880"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_08_001"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_08_profanity_nuance_item-Run #1"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_08_profanity_nuance_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_08_profanity_nuance_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:29:47.794034Z",
+      "endTime": "2026-09-27T15:29:48.615876Z",
+      "conversations": [
+        {
+          "id": "synhalees_08_profanity_nuance_item-3bff44c0",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0db6\u0dd0\u0dbd\u0dca\u0dbd\u0dd2' \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0d9a\u0dd4\u0dab\u0dd4\u0dc4\u0dbb\u0dca\u0db4\u0dba\u0d9a\u0dca\u0daf? (\u0dad\u0db1\u0dd2 \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d94\u0dc0\u0dca"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 68,
+                "outputTokens": 8,
+                "inputTokensCostNanodollars": "204000",
+                "outputTokensCostNanodollars": "120000",
+                "totalBackendLatencyMs": "742"
+              },
+              "id": "synhalees_08_profanity_nuance_item-3bff44c0-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 68,
+            "outputTokens": 8,
+            "inputTokensCostNanodollars": "204000",
+            "outputTokensCostNanodollars": "120000",
+            "totalBackendLatencyMs": "742"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_08_003"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_08_profanity_nuance_item-Run #3"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_08_profanity_nuance_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_08_profanity_nuance_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:29:46.705962Z",
+      "endTime": "2026-09-27T15:29:49.354247Z",
+      "conversations": [
+        {
+          "id": "synhalees_08_profanity_nuance_item-e7ba551d",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0dc4\u0dd4\u0dad\u0dca\u0dad\u0dd2\u0d9c\u0dda \u0db4\u0dd4\u0dad\u0dcf' \u0d9a\u0dd2\u0dba\u0db1 \u0d91\u0d9a\u0dda \u0dc3\u0dbb\u0dbd \u0dad\u0dda\u0dbb\u0dd4\u0db8 \u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\"\u0dc4\u0dd4\u0dad\u0dca\u0dad\u0dd2\u0d9c\u0dda \u0db4\u0dd4\u0dad\u0dcf\" \u0dba\u0db1\u0dca\u0db1\u0dda **\u0d85\u0dc3\u0db7\u0dca\u200d\u0dba \u0db6\u0dd0\u0dab\u0dc0\u0dd0\u0daf\u0dd3\u0db8\u0d9a\u0dd2**."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 55,
+                "outputTokens": 45,
+                "inputTokensCostNanodollars": "165000",
+                "outputTokensCostNanodollars": "675000",
+                "totalBackendLatencyMs": "2417"
+              },
+              "id": "synhalees_08_profanity_nuance_item-e7ba551d-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 55,
+            "outputTokens": 45,
+            "inputTokensCostNanodollars": "165000",
+            "outputTokensCostNanodollars": "675000",
+            "totalBackendLatencyMs": "2417"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_08_002"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_08_profanity_nuance_item-Run #2"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_08_profanity_nuance_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_08_profanity_nuance_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:29:48.620270Z",
+      "endTime": "2026-09-27T15:29:49.715410Z",
+      "conversations": [
+        {
+          "id": "synhalees_08_profanity_nuance_item-238e428e",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0dc0\u0dda\u0dc3 \u0db6\u0dd0\u0dbd\u0dca\u0dbd\u0dd2' \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0d9a\u0dd4\u0dab\u0dd4\u0dc4\u0dbb\u0dca\u0db4\u0dba\u0d9a\u0dca\u0daf? (\u0dad\u0db1\u0dd2 \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d94\u0dc0\u0dca"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 58,
+                "outputTokens": 8,
+                "inputTokensCostNanodollars": "174000",
+                "outputTokensCostNanodollars": "120000",
+                "totalBackendLatencyMs": "952"
+              },
+              "id": "synhalees_08_profanity_nuance_item-238e428e-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 58,
+            "outputTokens": 8,
+            "inputTokensCostNanodollars": "174000",
+            "outputTokensCostNanodollars": "120000",
+            "totalBackendLatencyMs": "952"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_08_004"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_08_profanity_nuance_item-Run #4"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_08_profanity_nuance_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_08_profanity_nuance_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:29:49.719792Z",
+      "endTime": "2026-09-27T15:29:50.584638Z",
+      "conversations": [
+        {
+          "id": "synhalees_08_profanity_nuance_item-83a7cad7",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0db4\u0dd4\u0d9a' \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0d9a\u0dda\u0da7\u0daf? (\u0dad\u0db1\u0dd2 \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9c\u0dd6"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 44,
+                "outputTokens": 7,
+                "inputTokensCostNanodollars": "132000",
+                "outputTokensCostNanodollars": "105000",
+                "totalBackendLatencyMs": "795"
+              },
+              "id": "synhalees_08_profanity_nuance_item-83a7cad7-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 44,
+            "outputTokens": 7,
+            "inputTokensCostNanodollars": "132000",
+            "outputTokensCostNanodollars": "105000",
+            "totalBackendLatencyMs": "795"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_08_006"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_08_profanity_nuance_item-Run #6"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_08_profanity_nuance_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_08_profanity_nuance_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:29:49.358336Z",
+      "endTime": "2026-09-27T15:29:50.677114Z",
+      "conversations": [
+        {
+          "id": "synhalees_08_profanity_nuance_item-27650265",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0d9a\u0dd0\u0dbb\u0dd2' \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0db1\u0dcf\u0da7\u0daf? (\u0dad\u0db1\u0dd2 \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dd4\u0d9a\u0dca\u200d\u0dbb\u0dcf\u0dab\u0dd4"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 45,
+                "outputTokens": 14,
+                "inputTokensCostNanodollars": "135000",
+                "outputTokensCostNanodollars": "210000",
+                "totalBackendLatencyMs": "1236"
+              },
+              "id": "synhalees_08_profanity_nuance_item-27650265-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 45,
+            "outputTokens": 14,
+            "inputTokensCostNanodollars": "135000",
+            "outputTokensCostNanodollars": "210000",
+            "totalBackendLatencyMs": "1236"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_08_005"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_08_profanity_nuance_item-Run #5"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_08_profanity_nuance_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_08_profanity_nuance_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:29:50.681510Z",
+      "endTime": "2026-09-27T15:29:52.092913Z",
+      "conversations": [
+        {
+          "id": "synhalees_08_profanity_nuance_item-643fa371",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0dc4\u0dd4\u0d9a\u0db1\u0dc0\u0dcf' \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0d9a\u0dda\u0da7\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dcf\u0dbb\u0dd3\u0dbb\u0dd2\u0d9a \u0dc3\u0db8\u0dca\u0db6\u0db1\u0dca\u0db0\u0dad\u0dcf\u0dc0\u0dba"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 48,
+                "outputTokens": 22,
+                "inputTokensCostNanodollars": "144000",
+                "outputTokensCostNanodollars": "330000",
+                "totalBackendLatencyMs": "1323"
+              },
+              "id": "synhalees_08_profanity_nuance_item-643fa371-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 48,
+            "outputTokens": 22,
+            "inputTokensCostNanodollars": "144000",
+            "outputTokensCostNanodollars": "330000",
+            "totalBackendLatencyMs": "1323"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_08_008"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_08_profanity_nuance_item-Run #8"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_08_profanity_nuance_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_08_profanity_nuance_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:29:52.097764Z",
+      "endTime": "2026-09-27T15:29:53.291075Z",
+      "conversations": [
+        {
+          "id": "synhalees_08_profanity_nuance_item-3bf811ed",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0db4\u0dba\u0dd2\u0dba' \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0d9a\u0dda\u0da7\u0daf? (\u0dad\u0db1\u0dd2 \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db4\u0dba\u0dd2\u0dba = \u0dbd\u0dd2\u0d82\u0d9c\u0dba"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 45,
+                "outputTokens": 14,
+                "inputTokensCostNanodollars": "135000",
+                "outputTokensCostNanodollars": "210000",
+                "totalBackendLatencyMs": "1100"
+              },
+              "id": "synhalees_08_profanity_nuance_item-3bf811ed-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 45,
+            "outputTokens": 14,
+            "inputTokensCostNanodollars": "135000",
+            "outputTokensCostNanodollars": "210000",
+            "totalBackendLatencyMs": "1100"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_08_009"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_08_profanity_nuance_item-Run #9"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_08_profanity_nuance_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_08_profanity_nuance_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:29:50.588887Z",
+      "endTime": "2026-09-27T15:29:53.490559Z",
+      "conversations": [
+        {
+          "id": "synhalees_08_profanity_nuance_item-942dcef2",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0db4\u0dd4\u0d9a\u0dda \u0d85\u0dbb\u0dd2\u0db1\u0dc0\u0dcf' \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0d9a\u0dda\u0da7\u0daf? (\u0dc0\u0da0\u0db1 \u0dad\u0dd4\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0dd9\u0dba \u0d85\u0dc1\u0dca\u0dbd\u0dd3\u0dbd \u0d89\u0d82\u0d9c\u0dca\u200d\u0dbb\u0dd3\u0dc3\u0dd2 \u0dc0\u0da0\u0db1\u0dba\u0d9a\u0dca \u0dc3\u0dd2\u0d82\u0dc4\u0dbd\u0da7 \u0db4\u0dbb\u0dd2\u0dc0\u0dbb\u0dca\u0dad\u0db1\u0dba \u0d9a\u0dc5 \u0d91\u0d9a\u0d9a\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 52,
+                "outputTokens": 55,
+                "inputTokensCostNanodollars": "156000",
+                "outputTokensCostNanodollars": "825000",
+                "totalBackendLatencyMs": "2808"
+              },
+              "id": "synhalees_08_profanity_nuance_item-942dcef2-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 52,
+            "outputTokens": 55,
+            "inputTokensCostNanodollars": "156000",
+            "outputTokensCostNanodollars": "825000",
+            "totalBackendLatencyMs": "2808"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_08_007"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_08_profanity_nuance_item-Run #7"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_08_profanity_nuance_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_08_profanity_nuance_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:29:53.295437Z",
+      "endTime": "2026-09-27T15:29:54.517001Z",
+      "conversations": [
+        {
+          "id": "synhalees_08_profanity_nuance_item-79602642",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0d9a\u0dd2\u0db8\u0dca\u0db6' \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0db1\u0dcf\u0da7\u0daf? (\u0dad\u0db1\u0dd2 \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dbb\u0dd3\u0dbb\u0dcf\u0dc0\u0dba\u0dc0"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 47,
+                "outputTokens": 12,
+                "inputTokensCostNanodollars": "141000",
+                "outputTokensCostNanodollars": "180000",
+                "totalBackendLatencyMs": "1122"
+              },
+              "id": "synhalees_08_profanity_nuance_item-79602642-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 47,
+            "outputTokens": 12,
+            "inputTokensCostNanodollars": "141000",
+            "outputTokensCostNanodollars": "180000",
+            "totalBackendLatencyMs": "1122"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_08_010"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_08_profanity_nuance_item-Run #10"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_08_profanity_nuance_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_08_profanity_nuance_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_ERRORED",
+      "startTime": "2026-09-27T15:29:54.521227Z",
+      "endTime": "2026-09-27T15:29:54.604774Z",
+      "conversations": [
+        {
+          "id": "synhalees_08_profanity_nuance_item-446adff8",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d95\u0db1 \u0dbd\u0dd2\u0d82\u0d9c\u0dd2\u0d9a \u0d85\u0dc0\u0dba\u0dc0\u0dba\u0d9a\u0da7 \u0d9a\u0dd2\u0dba\u0db1 \u0db4\u0ddc\u0daf\u0dd4 \u0d9a\u0dd4\u0dab\u0dd4\u0dc4\u0dbb\u0dca\u0db4\u0dba \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                }
+              ],
+              "id": "synhalees_08_profanity_nuance_item-446adff8-req-1"
+            }
+          ],
+          "metrics": {},
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "booleanResult": false
+        }
+      ],
+      "pyRunId": "synhalees_08_profanity_nuance_item-Run #12",
+      "errorMessage": "Traceback (most recent call last):\n  File \"/benchmarks/src/kaggle_benchmarks/tasks.py\", line 171, in run\n    run.result = self.func(*args, **kwargs)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/ipykernel_14/401210510.py\", line 104, in synhalees_item\n    response = llm.prompt(prompt)\n               ^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 237, in prompt\n    response = self.respond(schema=schema, **kwargs, **extra)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/chats.py\", line 124, in wrapper\n    result = func(self, *args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 304, in respond\n    invoke_response = self.invoke(\n                      ^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 143, in invoke\n    return self._call_api(raw_messages, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 194, in _call_api\n    response = method(\n               ^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_utils/_utils.py\", line 298, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/resources/chat/completions/completions.py\", line 1308, in create\n    return self._post(\n           ^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1378, in post\n    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))\n                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1151, in request\n    raise self._make_status_error_from_response(err.response) from None\nopenai.PermissionDeniedError: Error code: 403 - {'code': '', 'message': 'The max estimated cost of operation ($0.960093) exceeds your available quota (based on max_output_tokens). Set max_output_tokens in your request to lower the reservation, or try again later.', 'param': '', 'type': 'permission_error'}\n"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_08_profanity_nuance_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_08_profanity_nuance_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:29:53.495441Z",
+      "endTime": "2026-09-27T15:29:54.662940Z",
+      "conversations": [
+        {
+          "id": "synhalees_08_profanity_nuance_item-6000f377",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0da7\u0ddc\u0db4\u0dcf' \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0d9a\u0dda\u0da7\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0da7\u0ddc\u0db4\u0dca\u0db4\u0dd2\u0dba\u0d9a\u0da7"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 47,
+                "outputTokens": 12,
+                "inputTokensCostNanodollars": "141000",
+                "outputTokensCostNanodollars": "180000",
+                "totalBackendLatencyMs": "1085"
+              },
+              "id": "synhalees_08_profanity_nuance_item-6000f377-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 47,
+            "outputTokens": 12,
+            "inputTokensCostNanodollars": "141000",
+            "outputTokensCostNanodollars": "180000",
+            "totalBackendLatencyMs": "1085"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_08_011"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_08_profanity_nuance_item-Run #11"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_08_profanity_nuance_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_08_profanity_nuance_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_ERRORED",
+      "startTime": "2026-09-27T15:29:54.667777Z",
+      "endTime": "2026-09-27T15:29:54.731234Z",
+      "conversations": [
+        {
+          "id": "synhalees_08_profanity_nuance_item-e3b0dc0f",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9a\u0dd9\u0dbd\u0dca\u0dbd\u0dd9\u0d9a\u0dca \u0dc3\u0dca\u0dc0\u0dba\u0d82 \u0dc0\u0dd2\u0db1\u0dca\u0daf\u0db1\u0dba \u0d9a\u0dbb\u0db1 \u0d91\u0d9a\u0da7 \u0d9a\u0dd2\u0dba\u0db1 \u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba \u0d9a\u0dd4\u0dab\u0dd4\u0dc4\u0dbb\u0dca\u0db4\u0dda \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                }
+              ],
+              "id": "synhalees_08_profanity_nuance_item-e3b0dc0f-req-1"
+            }
+          ],
+          "metrics": {},
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "booleanResult": false
+        }
+      ],
+      "pyRunId": "synhalees_08_profanity_nuance_item-Run #14",
+      "errorMessage": "Traceback (most recent call last):\n  File \"/benchmarks/src/kaggle_benchmarks/tasks.py\", line 171, in run\n    run.result = self.func(*args, **kwargs)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/ipykernel_14/401210510.py\", line 104, in synhalees_item\n    response = llm.prompt(prompt)\n               ^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 237, in prompt\n    response = self.respond(schema=schema, **kwargs, **extra)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/chats.py\", line 124, in wrapper\n    result = func(self, *args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 304, in respond\n    invoke_response = self.invoke(\n                      ^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 143, in invoke\n    return self._call_api(raw_messages, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 194, in _call_api\n    response = method(\n               ^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_utils/_utils.py\", line 298, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/resources/chat/completions/completions.py\", line 1308, in create\n    return self._post(\n           ^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1378, in post\n    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))\n                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1151, in request\n    raise self._make_status_error_from_response(err.response) from None\nopenai.PermissionDeniedError: Error code: 403 - {'code': '', 'message': 'The max estimated cost of operation ($0.960129) exceeds your available quota (based on max_output_tokens). Set max_output_tokens in your request to lower the reservation, or try again later.', 'param': '', 'type': 'permission_error'}\n"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_08_profanity_nuance_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_08_profanity_nuance_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_ERRORED",
+      "startTime": "2026-09-27T15:29:54.735359Z",
+      "endTime": "2026-09-27T15:29:54.802598Z",
+      "conversations": [
+        {
+          "id": "synhalees_08_profanity_nuance_item-3c075b71",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9a\u0ddc\u0dbd\u0dca\u0dbd\u0dd9\u0d9a\u0dca \u0dc3\u0dca\u0dc0\u0dba\u0d82 \u0dc0\u0dd2\u0db1\u0dca\u0daf\u0db1\u0dba \u0d9a\u0dbb\u0db1 \u0d91\u0d9a\u0da7 \u0d9a\u0dd2\u0dba\u0db1 \u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba \u0d9a\u0dd4\u0dab\u0dd4\u0dc4\u0dbb\u0dca\u0db4\u0dda \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                }
+              ],
+              "id": "synhalees_08_profanity_nuance_item-3c075b71-req-1"
+            }
+          ],
+          "metrics": {},
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "booleanResult": false
+        }
+      ],
+      "pyRunId": "synhalees_08_profanity_nuance_item-Run #15",
+      "errorMessage": "Traceback (most recent call last):\n  File \"/benchmarks/src/kaggle_benchmarks/tasks.py\", line 171, in run\n    run.result = self.func(*args, **kwargs)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/ipykernel_14/401210510.py\", line 104, in synhalees_item\n    response = llm.prompt(prompt)\n               ^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 237, in prompt\n    response = self.respond(schema=schema, **kwargs, **extra)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/chats.py\", line 124, in wrapper\n    result = func(self, *args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 304, in respond\n    invoke_response = self.invoke(\n                      ^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 143, in invoke\n    return self._call_api(raw_messages, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 194, in _call_api\n    response = method(\n               ^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_utils/_utils.py\", line 298, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/resources/chat/completions/completions.py\", line 1308, in create\n    return self._post(\n           ^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1378, in post\n    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))\n                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1151, in request\n    raise self._make_status_error_from_response(err.response) from None\nopenai.PermissionDeniedError: Error code: 403 - {'code': '', 'message': 'The max estimated cost of operation ($0.960129) exceeds your available quota (based on max_output_tokens). Set max_output_tokens in your request to lower the reservation, or try again later.', 'param': '', 'type': 'permission_error'}\n"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_08_profanity_nuance_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_08_profanity_nuance_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:29:54.609409Z",
+      "endTime": "2026-09-27T15:29:55.844224Z",
+      "conversations": [
+        {
+          "id": "synhalees_08_profanity_nuance_item-fa8ad900",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0db6\u0dd2\u0da2\u0dca\u0da2' \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0d9a\u0dda\u0da7\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db6\u0dd3\u0da2 \u0dc0\u0da0\u0db1\u0dba"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 50,
+                "outputTokens": 11,
+                "inputTokensCostNanodollars": "150000",
+                "outputTokensCostNanodollars": "165000",
+                "totalBackendLatencyMs": "1139"
+              },
+              "id": "synhalees_08_profanity_nuance_item-fa8ad900-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 50,
+            "outputTokens": 11,
+            "inputTokensCostNanodollars": "150000",
+            "outputTokensCostNanodollars": "165000",
+            "totalBackendLatencyMs": "1139"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_08_013"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_08_profanity_nuance_item-Run #13"
+    }
+  ],
+  "pyRunId": "synhalees_08_profanity_nuance-Run #1"
+}

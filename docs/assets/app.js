@@ -905,15 +905,33 @@
       ctx.textAlign = "center";
       ctx.fillText(typeText, cxx + 10 + typeBadgeW / 2, typeBadgeY + 12.5);
       cxx += cols[3].w;
-      // score (best gets the red accent, like .score-pill.top) + usage telemetry
+      // score pill (mirrors the table's .score-pill; the leader gets the red .top
+      // fill) + usage telemetry, which stay plain like their <td class="num">
       var uu = usageOf(m);
       var vals = [fmt(sv), fmtCost(uu), fmtTokens(uu), fmtLatency(uu)];
       vals.forEach(function (v, vi) {
+        var colW = cols[4 + vi].w;
+        if (vi === 0) {
+          var na = v === "\u2014";
+          var isTop = !na && sv === best;
+          ctx.font = "800 13px " + FONT;
+          var pw = Math.max(58, ctx.measureText(v).width + 20), ph = 20;
+          var px = cxx + colW - 12 - pw, py = cy - 4.5 - ph / 2;
+          rrect(px, py, pw, ph, ph / 2);
+          ctx.fillStyle = isTop ? C.red : C.navy;
+          ctx.fill();
+          if (!isTop) { ctx.strokeStyle = C.border; ctx.lineWidth = 1; ctx.stroke(); }
+          ctx.fillStyle = isTop ? "#ffffff" : (na ? C.muted : C.text);
+          ctx.textAlign = "center";
+          ctx.fillText(v, px + pw / 2, cy);
+          cxx += colW;
+          return;
+        }
         ctx.textAlign = "right";
-        ctx.font = (vi === 0 ? "800" : "600") + " 13px " + FONT;
-        ctx.fillStyle = v === "\u2014" ? C.muted : (vi === 0 && sv === best ? C.red : C.text);
-        ctx.fillText(v, cxx + cols[4 + vi].w - 12, cy);
-        cxx += cols[4 + vi].w;
+        ctx.font = "600 13px " + FONT;
+        ctx.fillStyle = v === "\u2014" ? C.muted : C.text;
+        ctx.fillText(v, cxx + colW - 12, cy);
+        cxx += colW;
       });
       // date
       ctx.textAlign = "right";

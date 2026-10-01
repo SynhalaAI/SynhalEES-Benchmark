@@ -1,0 +1,6 @@
+{
+  "versionNumber": 1,
+  "name": "synhalees_01_buddhist_culture",
+  "description": "SynhalEES pillar 01_buddhist_culture: native Sinhala text accuracy.",
+  "definition": "@kbench.task(name=\"synhalees_01_buddhist_culture\", description=\"SynhalEES pillar 01_buddhist_culture: native Sinhala text accuracy.\")\ndef synhalees_task(llm) -> float:\n    '''Evaluate Buddhist Culture (text); return accuracy in [0, 1].'''\n    import pandas as pd\n\n    rows = _rows()\n    if not rows:\n        raise ValueError(\n            \"No runnable text rows for Buddhist Culture yet -- media files may \"\n            \"not be committed under benchmark_data/.\"\n        )\n    with kbench.client.enable_cache():\n        runs = synhalees_item.evaluate(\n            llm=[llm], evaluation_data=pd.DataFrame(rows),\n            n_jobs=2, max_attempts=2, on_failure=\"continue\",\n            remove_run_files=True,\n        )\n    correct = runs.as_dataframe().result.str.get(\"is_correct\").astype(\"boolean\").fillna(False)\n    return float(correct.mean())\n"
+}

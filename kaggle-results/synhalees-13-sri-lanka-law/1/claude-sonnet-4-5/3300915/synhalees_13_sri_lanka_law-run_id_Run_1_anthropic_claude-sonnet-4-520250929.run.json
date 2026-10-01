@@ -1,0 +1,995 @@
+{
+  "taskVersion": {
+    "versionNumber": 1,
+    "name": "synhalees_13_sri_lanka_law",
+    "description": "SynhalEES pillar 13_sri_lanka_law: native Sinhala text accuracy.",
+    "definition": "@kbench.task(name=\"synhalees_13_sri_lanka_law\", description=\"SynhalEES pillar 13_sri_lanka_law: native Sinhala text accuracy.\")\ndef synhalees_task(llm) -> float:\n    '''Evaluate Sri Lanka Law (text); return accuracy in [0, 1].'''\n    import pandas as pd\n\n    rows = _rows()\n    if not rows:\n        raise ValueError(\n            \"No runnable text rows for Sri Lanka Law yet -- media files may \"\n            \"not be committed under benchmark_data/.\"\n        )\n    with kbench.client.enable_cache():\n        runs = synhalees_item.evaluate(\n            llm=[llm], evaluation_data=pd.DataFrame(rows),\n            n_jobs=2, max_attempts=2, on_failure=\"continue\",\n            remove_run_files=True,\n        )\n    correct = runs.as_dataframe().result.str.get(\"is_correct\").astype(\"boolean\").fillna(False)\n    return float(correct.mean())\n"
+  },
+  "modelVersion": {
+    "slug": "anthropic/claude-sonnet-4-5@20250929"
+  },
+  "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+  "startTime": "2026-09-27T16:48:35.688830Z",
+  "endTime": "2026-09-27T16:49:51.053584Z",
+  "conversations": [
+    {
+      "id": "synhalees_13_sri_lanka_law-dec68e4d",
+      "metrics": {},
+      "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+    }
+  ],
+  "results": [
+    {
+      "type": "AGGREGATED",
+      "numericResult": {
+        "value": 0.2
+      }
+    }
+  ],
+  "subruns": [
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_13_sri_lanka_law_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_13_sri_lanka_law_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_ERRORED",
+      "startTime": "2026-09-27T16:48:35.701143Z",
+      "endTime": "2026-09-27T16:48:35.941028Z",
+      "conversations": [
+        {
+          "id": "synhalees_13_sri_lanka_law_item-7d15361f",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0db1\u0da9\u0dd4 \u0dc0\u0dd2\u0db7\u0dcf\u0d9c \u0db4\u0dc0\u0dad\u0dca\u0dc0\u0db1 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                }
+              ],
+              "id": "synhalees_13_sri_lanka_law_item-7d15361f-req-1"
+            }
+          ],
+          "metrics": {},
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "booleanResult": false
+        }
+      ],
+      "pyRunId": "synhalees_13_sri_lanka_law_item-Run #2",
+      "errorMessage": "Traceback (most recent call last):\n  File \"/benchmarks/src/kaggle_benchmarks/tasks.py\", line 171, in run\n    run.result = self.func(*args, **kwargs)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/ipykernel_14/306957954.py\", line 104, in synhalees_item\n    response = llm.prompt(prompt)\n               ^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 237, in prompt\n    response = self.respond(schema=schema, **kwargs, **extra)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/chats.py\", line 124, in wrapper\n    result = func(self, *args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 304, in respond\n    invoke_response = self.invoke(\n                      ^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 143, in invoke\n    return self._call_api(raw_messages, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 194, in _call_api\n    response = method(\n               ^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_utils/_utils.py\", line 298, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/resources/chat/completions/completions.py\", line 1308, in create\n    return self._post(\n           ^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1378, in post\n    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))\n                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1151, in request\n    raise self._make_status_error_from_response(err.response) from None\nopenai.PermissionDeniedError: Error code: 403 - {'code': '', 'message': 'The max estimated cost of operation ($0.960111) exceeds your available quota (based on max_output_tokens). Set max_output_tokens in your request to lower the reservation, or try again later.', 'param': '', 'type': 'permission_error'}\n"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_13_sri_lanka_law_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_13_sri_lanka_law_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_ERRORED",
+      "startTime": "2026-09-27T16:48:35.946223Z",
+      "endTime": "2026-09-27T16:48:36.122694Z",
+      "conversations": [
+        {
+          "id": "synhalees_13_sri_lanka_law_item-b115736d",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0dc3\u0dd2\u0dc0\u0dd2\u0dbd\u0dca \u0db1\u0dd3\u0dad\u0dd2\u0dba\u0dda \u0db8\u0dd6\u0dbd\u0dd2\u0d9a \u0db8\u0dd6\u0dbd\u0dcf\u0dc1\u0dca\u200d\u0dbb\u0dba \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                }
+              ],
+              "id": "synhalees_13_sri_lanka_law_item-b115736d-req-1"
+            }
+          ],
+          "metrics": {},
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "booleanResult": false
+        }
+      ],
+      "pyRunId": "synhalees_13_sri_lanka_law_item-Run #3",
+      "errorMessage": "Traceback (most recent call last):\n  File \"/benchmarks/src/kaggle_benchmarks/tasks.py\", line 171, in run\n    run.result = self.func(*args, **kwargs)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/ipykernel_14/306957954.py\", line 104, in synhalees_item\n    response = llm.prompt(prompt)\n               ^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 237, in prompt\n    response = self.respond(schema=schema, **kwargs, **extra)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/chats.py\", line 124, in wrapper\n    result = func(self, *args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 304, in respond\n    invoke_response = self.invoke(\n                      ^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 143, in invoke\n    return self._call_api(raw_messages, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 194, in _call_api\n    response = method(\n               ^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_utils/_utils.py\", line 298, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/resources/chat/completions/completions.py\", line 1308, in create\n    return self._post(\n           ^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1378, in post\n    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))\n                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1151, in request\n    raise self._make_status_error_from_response(err.response) from None\nopenai.PermissionDeniedError: Error code: 403 - {'code': '', 'message': 'The max estimated cost of operation ($0.960105) exceeds your available quota (based on max_output_tokens). Set max_output_tokens in your request to lower the reservation, or try again later.', 'param': '', 'type': 'permission_error'}\n"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_13_sri_lanka_law_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_13_sri_lanka_law_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_ERRORED",
+      "startTime": "2026-09-27T16:48:36.127571Z",
+      "endTime": "2026-09-27T16:48:36.266975Z",
+      "conversations": [
+        {
+          "id": "synhalees_13_sri_lanka_law_item-372355d2",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dbb\u0da2\u0dba \u0dc0\u0dd9\u0db1\u0dd4\u0dc0\u0dd9\u0db1\u0dca \u0db1\u0da9\u0dd4 \u0d9a\u0dd2\u0dba\u0db1 \u0daf\u0dd9\u0db4\u0dcf\u0dbb\u0dca\u0dad\u0db8\u0dda\u0db1\u0dca\u0dad\u0dd4\u0dc0 \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                }
+              ],
+              "id": "synhalees_13_sri_lanka_law_item-372355d2-req-1"
+            }
+          ],
+          "metrics": {},
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "booleanResult": false
+        }
+      ],
+      "pyRunId": "synhalees_13_sri_lanka_law_item-Run #4",
+      "errorMessage": "Traceback (most recent call last):\n  File \"/benchmarks/src/kaggle_benchmarks/tasks.py\", line 171, in run\n    run.result = self.func(*args, **kwargs)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/ipykernel_14/306957954.py\", line 104, in synhalees_item\n    response = llm.prompt(prompt)\n               ^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 237, in prompt\n    response = self.respond(schema=schema, **kwargs, **extra)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/chats.py\", line 124, in wrapper\n    result = func(self, *args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/llms.py\", line 304, in respond\n    invoke_response = self.invoke(\n                      ^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 143, in invoke\n    return self._call_api(raw_messages, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/src/kaggle_benchmarks/actors/proxy_openai.py\", line 194, in _call_api\n    response = method(\n               ^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_utils/_utils.py\", line 298, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/resources/chat/completions/completions.py\", line 1308, in create\n    return self._post(\n           ^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1378, in post\n    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))\n                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py\", line 1151, in request\n    raise self._make_status_error_from_response(err.response) from None\nopenai.PermissionDeniedError: Error code: 403 - {'code': '', 'message': 'The max estimated cost of operation ($0.960093) exceeds your available quota (based on max_output_tokens). Set max_output_tokens in your request to lower the reservation, or try again later.', 'param': '', 'type': 'permission_error'}\n"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_13_sri_lanka_law_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_13_sri_lanka_law_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T16:48:35.700704Z",
+      "endTime": "2026-09-27T16:48:49.271870Z",
+      "conversations": [
+        {
+          "id": "synhalees_13_sri_lanka_law_item-26039b4d",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0d8b\u0dc3\u0dc3\u0dca\u0db8 \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0d8b\u0dc3\u0dc3\u0dca\u0db8 \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba **\u0dc1\u0dca\u200d\u0dbb\u0dda\u0dc2\u0dca\u0da8\u0dcf\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba** (Supreme Court) \u0dc0\u0dda.\n\n\u0dc1\u0dca\u200d\u0dbb\u0dda\u0dc2\u0dca\u0da8\u0dcf\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab \u0db4\u0daf\u0dca\u0db0\u0dad\u0dd2\u0dba\u0dda \u0dc1\u0dd3\u0dbb\u0dca\u0dc2\u0dc3\u0dca\u0dae\u0dcf\u0db1\u0dba\u0dda \u0db4\u0dd2\u0dc4\u0dd2\u0da7\u0dcf \u0d87\u0dad\u0dd2 \u0d85\u0dad\u0dbb \u0d91\u0dc4\u0dd2 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0d9a\u0dcf\u0dbb\u0dca\u0dba\u0dba\u0db1\u0dca \u0d85\u0dad\u0dbb:\n\n- \u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc3\u0dca\u0dae\u0dcf\u0db8\u0dba \u0d85\u0dbb\u0dca\u0dae \u0db1\u0dd2\u0dbb\u0dd6\u0db4\u0dab\u0dba\n- \u0db8\u0dd6\u0dbd\u0dd2\u0d9a \u0d85\u0dba\u0dd2\u0dad\u0dd2\u0dc0\u0dcf\u0dc3\u0dd2\u0d9a\u0db8\u0dca \u0dc3\u0db8\u0dca\u0db6\u0db1\u0dca\u0db0 \u0db1\u0da9\u0dd4 \u0dc0\u0dd2\u0db7\u0dcf\u0d9c \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\n- \u0d85\u0db7\u0dd2\u0dba\u0dcf\u0da0\u0db1\u0dcf \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba\u0dd9\u0db1\u0dca \u0d89\u0daf\u0dd2\u0dbb\u0dd2\u0db4\u0dad\u0dca \u0dc0\u0db1 \u0d85\u0db7\u0dd2\u0dba\u0dcf\u0da0\u0db1\u0dcf \u0dc0\u0dd2\u0db7\u0dcf\u0d9c \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\n- \u0db4\u0dcf\u0dbb\u0dca\u0dbd\u0dd2\u0db8\u0dda\u0db1\u0dca\u0dad\u0dd4 \u0db8\u0db1\u0dca\u0dad\u0dca\u200d\u0dbb\u0dd3\u0dc0\u0dbb\u0dd4\u0db1\u0dca\u0d9c\u0dda \u0dc3\u0dd4\u0daf\u0dd4\u0dc3\u0dd4\u0d9a\u0db8\u0dca \u0db4\u0dd2\u0dc5\u0dd2\u0db6\u0db3 \u0dad\u0dd3\u0dbb\u0dab\u0dba \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\n\n\u0dc1\u0dca\u200d\u0dbb\u0dda\u0dc2\u0dca\u0da8\u0dcf\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba\u0dda \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1\u0dd2\u0dba\u0dcf **\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0d85\u0d9c\u0dc0\u0dd2\u0db1\u0dd2\u0dc3\u0dd4\u0dbb\u0dd4** (Chief Justice) \u0dc0\u0dda."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 44,
+                "outputTokens": 421,
+                "inputTokensCostNanodollars": "132000",
+                "outputTokensCostNanodollars": "6315000",
+                "totalBackendLatencyMs": "13328"
+              },
+              "id": "synhalees_13_sri_lanka_law_item-26039b4d-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 44,
+            "outputTokens": 421,
+            "inputTokensCostNanodollars": "132000",
+            "outputTokensCostNanodollars": "6315000",
+            "totalBackendLatencyMs": "13328"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_13_001"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_13_sri_lanka_law_item-Run #1"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_13_sri_lanka_law_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_13_sri_lanka_law_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T16:48:36.271551Z",
+      "endTime": "2026-09-27T16:48:53.795445Z",
+      "conversations": [
+        {
+          "id": "synhalees_13_sri_lanka_law_item-fb9e7d0b",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0dc1\u0dca\u200d\u0dbb\u0dda\u0dc2\u0dca\u0da8\u0dad\u0db8 \u0dc3\u0dc4 \u0d8b\u0da0\u0dca\u0da0\u0dad\u0db8 \u0db1\u0dd3\u0dad\u0dd2\u0dba \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0db4\u0dd2\u0dc5\u0dd2\u0d9c\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0dc1\u0dca\u200d\u0dbb\u0dda\u0dc2\u0dca\u0da8\u0dad\u0db8 \u0dc3\u0dc4 \u0d8b\u0da0\u0dca\u0da0\u0dad\u0db8 \u0db1\u0dd3\u0dad\u0dd2\u0dba \u0dbd\u0dd9\u0dc3 \u0db4\u0dd2\u0dc5\u0dd2\u0d9c\u0db1\u0dca\u0db1\u0dda **\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0d86\u0dab\u0dca\u0da9\u0dd4\u0d9a\u0dca\u200d\u0dbb\u0db8 \u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc3\u0dca\u0dae\u0dcf\u0dc0** (Constitution of Sri Lanka) \u0dba.\n\n## \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dbd\u0d9a\u0dca\u0dc2\u0dab:\n\n1. **\u0dc1\u0dca\u200d\u0dbb\u0dda\u0dc2\u0dca\u0da8\u0dad\u0dca\u0dc0\u0dba** - \u0d86\u0dab\u0dca\u0da9\u0dd4\u0d9a\u0dca\u200d\u0dbb\u0db8 \u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc3\u0dca\u0dae\u0dcf\u0dc0 \u0dbb\u0da7\u0dda \u0d85\u0db1\u0dd9\u0d9a\u0dd4\u0dad\u0dca \u0dc3\u0dd2\u0dba\u0dbd\u0dd4\u0db8 \u0db1\u0dd3\u0dad\u0dd2 \u0dc0\u0dbd\u0da7 \u0dc0\u0da9\u0dcf \u0d8b\u0dc3\u0dc3\u0dca \u0dc0\u0dda\n\n2. **\u0db4\u0dca\u200d\u0dbb\u0db8\u0dd4\u0d9b\u0dad\u0dca\u0dc0\u0dba** - \u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc3\u0dca\u0dae\u0dcf\u0dc0\u0da7 \u0db4\u0da7\u0dc4\u0dd0\u0db1\u0dd2 \u0d9a\u0dd2\u0dc3\u0dd2\u0daf\u0dd4 \u0db1\u0dd3\u0dad\u0dd2\u0dba\u0d9a\u0dca \u0dc0\u0dbd\u0d82\u0d9c\u0dd4 \u0db1\u0ddc\u0dc0\u0dda\n\n3. **\u0db8\u0dd6\u0dbd\u0dd2\u0d9a \u0d85\u0dba\u0dd2\u0dad\u0dd2\u0dc0\u0dcf\u0dc3\u0dd2\u0d9a\u0db8\u0dca** - \u0db4\u0dd4\u0dbb\u0dc0\u0dd0\u0dc3\u0dd2\u0dba\u0db1\u0dca\u0d9c\u0dda \u0db8\u0dd6\u0dbd\u0dd2\u0d9a \u0d85\u0dba\u0dd2\u0dad\u0dd2\u0dc0\u0dcf\u0dc3\u0dd2\u0d9a\u0db8\u0dca \u0d86\u0dbb\u0d9a\u0dca\u0dc2\u0dcf \u0d9a\u0dbb\u0dba\u0dd2\n\n4. **\u0dbb\u0dcf\u0da2\u0dca\u200d\u0dba \u0dc0\u0dca\u200d\u0dba\u0dd4\u0dc4\u0dba** - \u0dc0\u0dd2\u0db0\u0dcf\u0dba\u0d9a, \u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc3\u0dca\u0dae\u0dcf\u0daf\u0dcf\u0dba\u0d9a \u0dc3\u0dc4 \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab \u0d86\u0dba\u0dad\u0db1\u0dc0\u0dbd \u0db6\u0dbd\u0dad\u0dbd \u0db1\u0dd2\u0dbb\u0dca\u0dc0\u0da0\u0db1\u0dba \u0d9a\u0dbb\u0dba\u0dd2\n\n## \u0dc0\u0dad\u0dca\u0db8\u0db1\u0dca \u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc3\u0dca\u0dae\u0dcf\u0dc0:\n\n\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0dc0\u0dad\u0dca\u0db8\u0db1\u0dca \u0d86\u0dab\u0dca\u0da9\u0dd4\u0d9a\u0dca\u200d\u0dbb\u0db8 \u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc3\u0dca\u0dae\u0dcf\u0dc0 **1978 \u0dc0\u0dc3\u0dbb\u0dda** \u0dc3\u0db8\u0dca\u0db8\u0dad \u0d9a\u0dbb\u0db1 \u0dbd\u0daf\u0dca\u0daf\u0d9a\u0dd2, \u0d91\u0dba \u0d9a\u0dcf\u0dbd\u0dba\u0dd9\u0db1\u0dca \u0d9a\u0dcf\u0dbd\u0dba\u0da7 \u0dc3\u0d82\u0dc1\u0ddd\u0db0\u0db1 \u0dc0\u0dd3 \u0d87\u0dad."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 76,
+                "outputTokens": 558,
+                "inputTokensCostNanodollars": "228000",
+                "outputTokensCostNanodollars": "8370000",
+                "totalBackendLatencyMs": "17356"
+              },
+              "id": "synhalees_13_sri_lanka_law_item-fb9e7d0b-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 76,
+            "outputTokens": 558,
+            "inputTokensCostNanodollars": "228000",
+            "outputTokensCostNanodollars": "8370000",
+            "totalBackendLatencyMs": "17356"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_13_005"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_13_sri_lanka_law_item-Run #5"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_13_sri_lanka_law_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_13_sri_lanka_law_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T16:48:49.276642Z",
+      "endTime": "2026-09-27T16:48:54.129099Z",
+      "conversations": [
+        {
+          "id": "synhalees_13_sri_lanka_law_item-33ce9938",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab \u0db4\u0daf\u0dca\u0db0\u0dad\u0dd2\u0dba\u0dda \u0d89\u0dc4\u0dc5\u0db8 \u0dad\u0db1\u0dad\u0dd4\u0dbb \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dad\u0db1\u0dd2 \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d8b\u0dad\u0dca\u0dad\u0dbb \u0daf\u0dd9\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3\u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab \u0db4\u0daf\u0dca\u0db0\u0dad\u0dd2\u0dba\u0dda \u0d89\u0dc4\u0dc5\u0db8 \u0dad\u0db1\u0dad\u0dd4\u0dbb:\n\n**\u0dc1\u0dca\u200d\u0dbb\u0dda\u0dc2\u0dca\u0da8\u0dcf\u0db0\u0dd2\u0d9a\u0dbb\u0dab \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dc0\u0dd2\u0db1\u0dd2\u0dc1\u0dca\u0da0\u0dba\u0d9a\u0dcf\u0dbb\u0dc0\u0dbb\u0dba\u0dcf**\n\n(\u0dad\u0db1\u0dd2 \u0dc0\u0da0\u0db1\u0dba\u0d9a\u0dd2\u0db1\u0dca: \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dc0\u0dd2\u0db1\u0dd2\u0dc1\u0dca\u0da0\u0dba\u0d9a\u0dcf\u0dbb\u0dc0\u0dbb\u0dba\u0dcf)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 81,
+                "outputTokens": 133,
+                "inputTokensCostNanodollars": "243000",
+                "outputTokensCostNanodollars": "1995000",
+                "totalBackendLatencyMs": "4672"
+              },
+              "id": "synhalees_13_sri_lanka_law_item-33ce9938-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 81,
+            "outputTokens": 133,
+            "inputTokensCostNanodollars": "243000",
+            "outputTokensCostNanodollars": "1995000",
+            "totalBackendLatencyMs": "4672"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_13_006"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_13_sri_lanka_law_item-Run #6"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_13_sri_lanka_law_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_13_sri_lanka_law_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T16:48:53.800080Z",
+      "endTime": "2026-09-27T16:48:54.714329Z",
+      "conversations": [
+        {
+          "id": "synhalees_13_sri_lanka_law_item-5e7c963e",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0d86\u0dab\u0dca\u0da9\u0dd4\u0d9a\u0dca\u200d\u0dbb\u0db8 \u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc3\u0dca\u0dae\u0dcf\u0dc0\u0dda \u0db8\u0dd6\u0dbd\u0dd2\u0d9a \u0d85\u0dba\u0dd2\u0dad\u0dd2\u0dc0\u0dcf\u0dc3\u0dd2\u0d9a\u0db8\u0dca \u0d87\u0dad\u0dd4\u0dc5\u0dad\u0dca \u0d9a\u0dbb\u0dbd\u0dcf \u0dad\u0dd2\u0dba\u0dd9\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0db1 \u0db4\u0dbb\u0dd2\u0da0\u0dca\u0da1\u0dda\u0daf\u0dd9\u0daf? (\u0d89\u0dbd\u0d9a\u0dca\u0d9a\u0db8 \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0dc0\u0dd2\u0dad\u0dbb\u0d9a\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dad\u0dd4\u0db1"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 135,
+                "outputTokens": 6,
+                "inputTokensCostNanodollars": "405000",
+                "outputTokensCostNanodollars": "90000",
+                "totalBackendLatencyMs": "752"
+              },
+              "id": "synhalees_13_sri_lanka_law_item-5e7c963e-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 135,
+            "outputTokens": 6,
+            "inputTokensCostNanodollars": "405000",
+            "outputTokensCostNanodollars": "90000",
+            "totalBackendLatencyMs": "752"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_13_007"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_13_sri_lanka_law_item-Run #7"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_13_sri_lanka_law_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_13_sri_lanka_law_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T16:48:54.719120Z",
+      "endTime": "2026-09-27T16:49:11.815291Z",
+      "conversations": [
+        {
+          "id": "synhalees_13_sri_lanka_law_item-90159dad",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf \u0dbb\u0da2\u0dba\u0dda \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0db1\u0dd3\u0dad\u0dd2 \u0d8b\u0db4\u0daf\u0dda\u0dc1\u0d9a\u0dc0\u0dbb\u0dba\u0dcf \u0dc0\u0d9c\u0dda\u0db8 \u0dbb\u0da2\u0dba \u0dc0\u0dd9\u0db1\u0dd4\u0dc0\u0dd9\u0db1\u0dca \u0db4\u0dd9\u0db1\u0dd3 \u0d89\u0db1\u0dca\u0db1 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0db1\u0dd3\u0dad\u0dd2 \u0db1\u0dd2\u0dbd\u0db0\u0dcf\u0dbb\u0dd2\u0dba\u0dcf \u0d9a\u0dc0\u0dd4\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf \u0dbb\u0da2\u0dba\u0dda \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0db1\u0dd3\u0dad\u0dd2 \u0d8b\u0db4\u0daf\u0dda\u0dc1\u0d9a\u0dc0\u0dbb\u0dba\u0dcf \u0dc0\u0d9c\u0dda\u0db8 \u0dbb\u0da2\u0dba \u0dc0\u0dd9\u0db1\u0dd4\u0dc0\u0dd9\u0db1\u0dca \u0db4\u0dd9\u0db1\u0dd3 \u0dc3\u0dd2\u0da7\u0dd2\u0db1 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0db1\u0dd3\u0dad\u0dd2 \u0db1\u0dd2\u0dbd\u0db0\u0dcf\u0dbb\u0dd2\u0dba\u0dcf **Attorney General (\u0d85\u0d9c\u0dca\u200d\u0dbb\u0dcf\u0db8\u0dcf\u0dad\u0dca\u200d\u0dba\u0dc0\u0dbb\u0dba\u0dcf)** \u0dba.\n\n**\u0d85\u0d9c\u0dca\u200d\u0dbb\u0dcf\u0db8\u0dcf\u0dad\u0dca\u200d\u0dba\u0dc0\u0dbb\u0dba\u0dcf\u0d9c\u0dda \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0d9a\u0dcf\u0dbb\u0dca\u0dba\u0dba\u0db1\u0dca:**\n\n1. **\u0dbb\u0da2\u0dba\u0dda \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0db1\u0dd3\u0dad\u0dd2 \u0d8b\u0db4\u0daf\u0dda\u0dc1\u0d9a\u0dc0\u0dbb\u0dba\u0dcf** \u0dbd\u0dd9\u0dc3 \u0d9a\u0da7\u0dba\u0dd4\u0dad\u0dd4 \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\n2. **\u0dbb\u0dcf\u0da2\u0dca\u200d\u0dba \u0d85\u0db7\u0dd2\u0da0\u0ddd\u0daf\u0db1\u0dcf\u0dc0\u0dbd\u0da7 \u0db4\u0dd9\u0db1\u0dd3 \u0dc3\u0dd2\u0da7\u0dd3\u0db8** (criminal prosecutions)\n3. **\u0dbb\u0da2\u0dba\u0da7 \u0d91\u0dbb\u0dd9\u0dc4\u0dd2\u0dc0 \u0d9c\u0ddc\u0db1\u0dd4 \u0d9a\u0dbb\u0db1 \u0db1\u0da9\u0dd4 \u0dc0\u0dbd\u0daf\u0dd3 \u0dbb\u0da2\u0dba \u0dc0\u0dd9\u0db1\u0dd4\u0dc0\u0dd9\u0db1\u0dca \u0db4\u0dd9\u0db1\u0dd3 \u0dc3\u0dd2\u0da7\u0dd3\u0db8**\n4. \u0dbb\u0da2\u0dba\u0da7 \u0db1\u0dd3\u0dad\u0dd2\u0db8\u0dba \u0d8b\u0db4\u0daf\u0dd9\u0dc3\u0dca \u0dbd\u0db6\u0dcf \u0daf\u0dd3\u0db8\n5. \u0db4\u0dcf\u0dbb\u0dca\u0dbd\u0dd2\u0db8\u0dda\u0db1\u0dca\u0dad\u0dd4\u0dc0\u0da7 \u0d89\u0daf\u0dd2\u0dbb\u0dd2\u0db4\u0dad\u0dca \u0d9a\u0dbb\u0db1 \u0db4\u0db1\u0dad\u0dca \u0d9a\u0dd9\u0da7\u0dd4\u0db8\u0dca\u0db4\u0dad\u0dca \u0dc3\u0db8\u0dca\u0db6\u0db1\u0dca\u0db0\u0dba\u0dd9\u0db1\u0dca \u0d8b\u0db4\u0daf\u0dd9\u0dc3\u0dca \u0daf\u0dd3\u0db8\n\n\u0d85\u0d9c\u0dca\u200d\u0dbb\u0dcf\u0db8\u0dcf\u0dad\u0dca\u200d\u0dba\u0dc0\u0dbb\u0dba\u0dcf **\u0da2\u0db1\u0dcf\u0db0\u0dd2\u0db4\u0dad\u0dd2\u0dc0\u0dbb\u0dba\u0dcf \u0dc0\u0dd2\u0dc3\u0dd2\u0db1\u0dca \u0db4\u0dad\u0dca \u0d9a\u0dbb\u0db1\u0dd4 \u0dbd\u0db6\u0db1** \u0d85\u0dad\u0dbb \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf \u0d86\u0dab\u0dca\u0da9\u0dd4\u0d9a\u0dca\u200d\u0dbb\u0db8 \u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc3\u0dca\u0dae\u0dcf\u0dc0 \u0dba\u0da7\u0dad\u0dda \u0db8\u0dd9\u0dba \u0d89\u0dad\u0dcf \u0dc0\u0dd0\u0daf\u0d9c\u0dad\u0dca \u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc3\u0dca\u0dae\u0dcf\u0db4\u0dd2\u0dad \u0dad\u0db1\u0dad\u0dd4\u0dbb\u0d9a\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 100,
+                "outputTokens": 532,
+                "inputTokensCostNanodollars": "300000",
+                "outputTokensCostNanodollars": "7980000",
+                "totalBackendLatencyMs": "16937"
+              },
+              "id": "synhalees_13_sri_lanka_law_item-90159dad-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 100,
+            "outputTokens": 532,
+            "inputTokensCostNanodollars": "300000",
+            "outputTokensCostNanodollars": "7980000",
+            "totalBackendLatencyMs": "16937"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_13_009"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_13_sri_lanka_law_item-Run #9"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_13_sri_lanka_law_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_13_sri_lanka_law_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T16:48:54.133976Z",
+      "endTime": "2026-09-27T16:49:12.454482Z",
+      "conversations": [
+        {
+          "id": "synhalees_13_sri_lanka_law_item-ba04935a",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0db4\u0dd4\u0daf\u0dca\u0d9c\u0dbd \u0db1\u0dd3\u0dad\u0dd2\u0dba\u0da7 \u0d85\u0dba\u0dd2\u0dad\u0dd2 \u0dc0\u0dd9\u0db1, \u0db8\u0dc4\u0db1\u0dd4\u0dc0\u0dbb \u0dbb\u0dcf\u0da2\u0db0\u0dcf\u0db1\u0dd2 \u0d9a\u0dcf\u0dbd\u0dda \u0d89\u0daf\u0db1\u0dca \u0d91\u0db1 \u0daf\u0dda\u0dc1\u0dd3\u0dba \u0db1\u0dd3\u0dad\u0dd2 \u0db4\u0daf\u0dca\u0db0\u0dad\u0dd2\u0dba \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0db4\u0dd4\u0daf\u0dca\u0d9c\u0dbd \u0db1\u0dd3\u0dad\u0dd2\u0dba\u0da7 \u0d85\u0dba\u0dad\u0dca \u0dc0\u0db1, \u0db8\u0dc4\u0db1\u0dd4\u0dc0\u0dbb \u0dbb\u0dcf\u0da2\u0db0\u0dcf\u0db1\u0dd2 \u0d9a\u0dcf\u0dbd\u0dba\u0dda \u0dc3\u0dd2\u0da7 \u0db4\u0dd0\u0dc0\u0dad \u0d91\u0db1 \u0daf\u0dda\u0dc1\u0dd3\u0dba \u0db1\u0dd3\u0dad\u0dd2 \u0db4\u0daf\u0dca\u0db0\u0dad\u0dd2\u0dba **\u0d9a\u0dab\u0dca\u0da9\u0dd2\u0dba\u0db1\u0dca \u0db1\u0dd3\u0dad\u0dd2\u0dba (Kandyan Law)** \u0dbd\u0dd9\u0dc3 \u0dc4\u0dd0\u0db3\u0dd2\u0db1\u0dca\u0dc0\u0dda.\n\n## \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dbd\u0d9a\u0dca\u0dc2\u0dab:\n\n**\u0d85\u0daf\u0dcf\u0dc5 \u0dc0\u0db1 \u0db4\u0dca\u200d\u0dbb\u0daf\u0dda\u0dc1:**\n- \u0db8\u0dc4\u0db1\u0dd4\u0dc0\u0dbb (\u0d9a\u0dd0\u0db1\u0dca\u0da9\u0dd2) \u0dc3\u0dc4 \u0d92 \u0d85\u0dc0\u0da7 \u0db4\u0dca\u200d\u0dbb\u0daf\u0dda\u0dc1\n- \u0db4\u0dd0\u0dbb\u0dab\u0dd2 \u0d8b\u0da9\u0dbb\u0da7 \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0db4\u0dca\u200d\u0dbb\u0daf\u0dda\u0dc1\n\n**\u0d86\u0dc0\u0dbb\u0dab\u0dba \u0dc0\u0db1 \u0db1\u0dd3\u0dad\u0dd2 \u0d9a\u0dca\u0dc2\u0dda\u0dad\u0dca\u200d\u0dbb:**\n- \u0dc0\u0dd2\u0dc0\u0dcf\u0dc4 \u0dc3\u0dc4 \u0daf\u0dd2\u0d9a\u0dca\u0d9a\u0dc3\u0dcf\u0daf\n- \u0d8b\u0dbb\u0dd4\u0db8\u0dba\n- \u0daf\u0dda\u0db4\u0dc5 \u0d85\u0dba\u0dd2\u0dad\u0dd2\u0dc0\u0dcf\u0dc3\u0dd2\u0d9a\u0db8\u0dca\n- \u0db4\u0dc0\u0dd4\u0dbd\u0dca \u0dc3\u0db8\u0dca\u0db6\u0db1\u0dca\u0db0\u0dad\u0dcf\n\n**\u0dc0\u0dd2\u0dc1\u0dda\u0dc2 \u0dbd\u0d9a\u0dca\u0dc2\u0dab:**\n- **\u0db6\u0dd1\u0daf\u0dd4\u0db8\u0dca\u0d9a\u0dbb\u0dab\u0dba** (\u0db6\u0dcf\u0d9c\u0dca) - \u0daf\u0dda\u0db4\u0dc5 \u0db6\u0dd9\u0daf\u0dd3\u0db8\u0dda \u0dc0\u0dd2\u0dc1\u0dda\u0dc2 \u0d9a\u0dca\u200d\u0dbb\u0db8\u0dba\n- **\u0daf\u0db9\u0daf\u0dd2\u0dc0** - \u0db4\u0dc0\u0dd4\u0dbd\u0dca \u0daf\u0dda\u0db4\u0dc5\n- **\u0db4\u0dbb\u0db4\u0dd4\u0dbb \u0d8b\u0dbb\u0dd4\u0db8\u0dba** - \u0dc0\u0dd2\u0dc1\u0dda\u0dc2 \u0d8b\u0dbb\u0dd4\u0db8 \u0dbb\u0da7\u0dcf\n\n\u0db8\u0dd9\u0db8 \u0db1\u0dd3\u0dad\u0dd2 \u0db4\u0daf\u0dca\u0db0\u0dad\u0dd2\u0dba \u0d85\u0daf \u0dc0\u0db1 \u0dc0\u0dd2\u0da7 \u0daf **\u0d9a\u0dd0\u0db1\u0dca\u0da9\u0dd2 \u0daf\u0dd2\u0dc3\u0dca\u0dad\u0dca\u200d\u0dbb\u0dd2\u0d9a\u0dca\u0d9a\u0dba\u0dda** \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0da2\u0db1\u0dad\u0dcf\u0dc0\u0da7 \u0d85\u0daf\u0dcf\u0dc5 \u0dc0\u0dda."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 93,
+                "outputTokens": 499,
+                "inputTokensCostNanodollars": "279000",
+                "outputTokensCostNanodollars": "7485000",
+                "totalBackendLatencyMs": "18155"
+              },
+              "id": "synhalees_13_sri_lanka_law_item-ba04935a-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 93,
+            "outputTokens": 499,
+            "inputTokensCostNanodollars": "279000",
+            "outputTokensCostNanodollars": "7485000",
+            "totalBackendLatencyMs": "18155"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_13_008"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_13_sri_lanka_law_item-Run #8"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_13_sri_lanka_law_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_13_sri_lanka_law_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T16:49:12.459272Z",
+      "endTime": "2026-09-27T16:49:17.215339Z",
+      "conversations": [
+        {
+          "id": "synhalees_13_sri_lanka_law_item-d952c7e7",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc5\u0db8\u0dd4\u0db1\u0dca\u0da7 \u0dc3\u0dc4 \u0d9a\u0dcf\u0db1\u0dca\u0dad\u0dcf\u0dc0\u0db1\u0dca\u0da7 \u0dc3\u0dd2\u0daf\u0dd4\u0dc0\u0db1 \u0dc4\u0dd2\u0d82\u0dc3\u0db1\u0dba\u0db1\u0dca \u0dc4\u0dcf \u0d85\u0db4\u0dbb\u0dcf\u0db0 \u0dc0\u0dd0\u0dc5\u0dd0\u0d9a\u0dca\u0dc0\u0dd3\u0db8\u0da7 \u0db1\u0dd3\u0dad\u0dd2\u0db8\u0dba \u0db4\u0dd2\u0dba\u0dc0\u0dbb \u0d9c\u0db1\u0dca\u0db1\u0dcf \u0dbb\u0dcf\u0da2\u0dca\u200d\u0dba \u0d86\u0dba\u0dad\u0db1\u0dba \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0daf\u0dd2\u0d9c \u0db1\u0db8 \u0dc0\u0dd2\u0dad\u0dbb\u0d9a\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc5\u0db8\u0dd4\u0db1\u0dca\u0da7 \u0dc3\u0dc4 \u0d9a\u0dcf\u0db1\u0dca\u0dad\u0dcf\u0dc0\u0db1\u0dca\u0da7 \u0dc3\u0dd2\u0daf\u0dd4\u0dc0\u0db1 \u0dc4\u0dd2\u0d82\u0dc3\u0db1\u0dba\u0db1\u0dca \u0dc4\u0dcf \u0d85\u0db4\u0dbb\u0dcf\u0db0 \u0dc0\u0dd0\u0dc5\u0dd0\u0d9a\u0dca\u0dc0\u0dd3\u0db8\u0da7 \u0db1\u0dd3\u0dad\u0dd2\u0db8\u0dba \u0db4\u0dd2\u0dba\u0dc0\u0dbb \u0d9c\u0db1\u0dca\u0db1\u0dcf \u0dbb\u0dcf\u0da2\u0dca\u200d\u0dba \u0d86\u0dba\u0dad\u0db1\u0dba **\u0da2\u0dcf\u0dad\u0dd2\u0d9a \u0dc5\u0db8\u0dcf \u0d86\u0dbb\u0d9a\u0dca\u0dc2\u0dab \u0d85\u0db0\u0dd2\u0d9a\u0dcf\u0dbb\u0dd2\u0dba** \u0dc0\u0dda."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 117,
+                "outputTokens": 121,
+                "inputTokensCostNanodollars": "351000",
+                "outputTokensCostNanodollars": "1815000",
+                "totalBackendLatencyMs": "4618"
+              },
+              "id": "synhalees_13_sri_lanka_law_item-d952c7e7-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 117,
+            "outputTokens": 121,
+            "inputTokensCostNanodollars": "351000",
+            "outputTokensCostNanodollars": "1815000",
+            "totalBackendLatencyMs": "4618"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_13_011"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_13_sri_lanka_law_item-Run #11"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_13_sri_lanka_law_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_13_sri_lanka_law_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T16:49:11.820440Z",
+      "endTime": "2026-09-27T16:49:30.165414Z",
+      "conversations": [
+        {
+          "id": "synhalees_13_sri_lanka_law_item-58bf7ef6",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0d85\u0db4\u0dbb\u0dcf\u0db0 \u0db1\u0da9\u0dd4 \u0dc0\u0dd2\u0db0\u0dcf\u0db1\u0dba\u0db1\u0dca \u0db4\u0dcf\u0dbd\u0db1\u0dba \u0dc0\u0db1 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0db4\u0db1\u0dad \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0d85\u0db4\u0dbb\u0dcf\u0db0 \u0db1\u0da9\u0dd4 \u0dc0\u0dd2\u0db0\u0dcf\u0db1\u0dba\u0db1\u0dca \u0db4\u0dcf\u0dbd\u0db1\u0dba \u0dc0\u0db1 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0db4\u0db1\u0dad **\u0d85\u0db4\u0dbb\u0dcf\u0db0 \u0db1\u0da9\u0dd4 \u0dc0\u0dd2\u0db0\u0dcf\u0db1 \u0dc3\u0d82\u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba (Criminal Procedure Code)** \u0dba\u0dd2.\n\n## \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dc0\u0dd2\u0dc1\u0dda\u0dc2\u0dcf\u0d82\u0d9c:\n\n**\u0db1\u0dd2\u0dbd \u0db1\u0dcf\u0db8\u0dba:** \u0d85\u0db4\u0dbb\u0dcf\u0db0 \u0db1\u0da9\u0dd4 \u0dc0\u0dd2\u0db0\u0dcf\u0db1 \u0dc3\u0d82\u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba - \u0db4\u0db1\u0dad\u0dca \u0d85\u0d82\u0d9a 15, 1979\n\n**\u0d86\u0dc0\u0dbb\u0dab\u0dba \u0d9a\u0dbb\u0db1 \u0d9a\u0dbb\u0dd4\u0dab\u0dd4:**\n- \u0d85\u0db4\u0dbb\u0dcf\u0db0 \u0db1\u0da9\u0dd4 \u0dc0\u0dd2\u0db7\u0dcf\u0d9c \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0dda \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0\u0dbd\u0dd2\u0dba\n- \u0d85\u0dad\u0dca\u0d85\u0da9\u0d82\u0d9c\u0dd4\u0dc0\u0da7 \u0d9c\u0dd0\u0db1\u0dd3\u0db8\u0dca \u0dc3\u0dc4 \u0d87\u0db4\n- \u0dc3\u0dcf\u0d9a\u0dca\u0dc2\u0dd2 \u0dbd\u0db6\u0dcf \u0d9c\u0dd0\u0db1\u0dd3\u0db8\n- \u0db1\u0da9\u0dd4 \u0dc0\u0dd2\u0db7\u0dcf\u0d9c\u0dba\u0dda \u0db4\u0dd2\u0dba\u0dc0\u0dbb\n- \u0d85\u0db7\u0dd2\u0dba\u0dcf\u0da0\u0db1\u0dcf \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0\u0dbd\u0dd2\u0dba\n- \u0daf\u0dac\u0dd4\u0dc0\u0db8\u0dca \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dad\u0dca\u0db8\u0d9a \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\n\n**\u0d85\u0daf\u0dcf\u0dc5 \u0d85\u0db1\u0dd9\u0d9a\u0dd4\u0dad\u0dca \u0db4\u0db1\u0dad\u0dca:**\n- \u0daf\u0dab\u0dca\u0da9 \u0db1\u0dd3\u0dad\u0dd2 \u0dc3\u0d82\u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba (Penal Code) - \u0d85\u0db4\u0dbb\u0dcf\u0db0 \u0db1\u0dd2\u0dbb\u0dca\u0dc0\u0da0\u0db1\u0dba \u0d9a\u0dbb\u0dba\u0dd2\n- \u0dc3\u0dcf\u0d9a\u0dca\u0dc2\u0dd2 \u0d86\u0da5\u0dcf \u0db4\u0db1\u0dad - \u0dc3\u0dcf\u0d9a\u0dca\u0dc2\u0dd2 \u0d89\u0daf\u0dd2\u0dbb\u0dd2\u0db4\u0dad\u0dca \u0d9a\u0dd2\u0dbb\u0dd3\u0db8 \u0db4\u0dcf\u0dbd\u0db1\u0dba \u0d9a\u0dbb\u0dba\u0dd2\n\n\u0db8\u0dd9\u0db8 \u0dc3\u0d82\u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba \u0d85\u0db4\u0dbb\u0dcf\u0db0 \u0dba\u0dd4\u0d9a\u0dca\u0dad\u0dd2\u0dba \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dad\u0dca\u0db8\u0d9a \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0dda \"\u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0\u0dbd\u0dd2\u0dba\" \u0db1\u0dd2\u0dba\u0db8 \u0d9a\u0dbb\u0db1 \u0d85\u0dad\u0dbb, \u0daf\u0dab\u0dca\u0da9 \u0db1\u0dd3\u0dad\u0dd2 \u0dc3\u0d82\u0d9c\u0dca\u200d\u0dbb\u0dc4\u0dba \"\u0d9a\u0dd4\u0db8\u0db1 \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf \u0d85\u0db4\u0dbb\u0dcf\u0db0\u0daf\" \u0dba\u0db1\u0dca\u0db1 \u0db1\u0dd2\u0dba\u0db8 \u0d9a\u0dbb\u0dba\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 66,
+                "outputTokens": 558,
+                "inputTokensCostNanodollars": "198000",
+                "outputTokensCostNanodollars": "8370000",
+                "totalBackendLatencyMs": "18137"
+              },
+              "id": "synhalees_13_sri_lanka_law_item-58bf7ef6-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 66,
+            "outputTokens": 558,
+            "inputTokensCostNanodollars": "198000",
+            "outputTokensCostNanodollars": "8370000",
+            "totalBackendLatencyMs": "18137"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_13_010"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_13_sri_lanka_law_item-Run #10"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_13_sri_lanka_law_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_13_sri_lanka_law_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T16:49:17.220124Z",
+      "endTime": "2026-09-27T16:49:31.942370Z",
+      "conversations": [
+        {
+          "id": "synhalees_13_sri_lanka_law_item-84643ede",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0dc3\u0dd4\u0dc5\u0dd4 \u0dc3\u0dcf\u0db4\u0dbb\u0dcf\u0db0\u0dd3 \u0dc3\u0dc4 \u0db8\u0dd4\u0daf\u0dbd\u0dca \u0db4\u0dca\u200d\u0dbb\u0db8\u0dcf\u0dab\u0dba\u0dd9\u0db1\u0dca \u0d85\u0da9\u0dd4 \u0dc3\u0dd2\u0dc0\u0dd2\u0dbd\u0dca \u0db1\u0da9\u0dd4 \u0dc0\u0dd2\u0db7\u0dcf\u0d9c \u0d9a\u0dbb\u0db1\u0dd4 \u0dbd\u0db6\u0db1 \u0db4\u0dc4\u0dc5\u0db8 \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0d91\u0d9a\u0d9a\u0dca \u0daf\u0dd2\u0dc3\u0dcf \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba \u0d85\u0db1\u0dd2\u0d9a \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0dc3\u0dd4\u0dc5\u0dd4 \u0dc3\u0dcf\u0db4\u0dbb\u0dcf\u0db0\u0dd3 \u0dc3\u0dc4 \u0db8\u0dd4\u0daf\u0dbd\u0dca \u0db4\u0dca\u200d\u0dbb\u0db8\u0dcf\u0dab\u0dba\u0dd9\u0db1\u0dca \u0d85\u0da9\u0dd4 \u0dc3\u0dd2\u0dc0\u0dd2\u0dbd\u0dca \u0db1\u0da9\u0dd4 \u0dc0\u0dd2\u0db7\u0dcf\u0d9c \u0d9a\u0dbb\u0db1\u0dd4 \u0dbd\u0db6\u0db1 \u0db4\u0dc4\u0dc5\u0db8 \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab \u0daf\u0dd9\u0d9a \u0dc0\u0db1\u0dca\u0db1\u0dda:\n\n1. **\u0daf\u0dd2\u0dc3\u0dca\u0dad\u0dca\u200d\u0dbb\u0dd2\u0d9a\u0dca \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba (District Court)**\n\n2. **\u0db8\u0dc4\u0dda\u0dc3\u0dca\u0dad\u0dca\u200d\u0dbb\u0dcf\u0dad\u0dca \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba (Magistrate's Court)**\n\n**\u0db8\u0dc4\u0dda\u0dc3\u0dca\u0dad\u0dca\u200d\u0dbb\u0dcf\u0dad\u0dca \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba** \u0dba\u0db1\u0dd4:\n- \u0dc3\u0dd4\u0dc5\u0dd4 \u0d85\u0db4\u0dbb\u0dcf\u0db0 (Minor criminal offences) \u0dc0\u0dd2\u0db7\u0dcf\u0d9c \u0d9a\u0dbb\u0db1 \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba\n- \u0dc3\u0dd3\u0db8\u0dd2\u0dad \u0db8\u0dd4\u0daf\u0dbd\u0dca \u0db4\u0dca\u200d\u0dbb\u0db8\u0dcf\u0dab\u0dba\u0d9a\u0dca \u0daf\u0d9a\u0dca\u0dc0\u0dcf \u0dc0\u0db1 \u0dc3\u0dd2\u0dc0\u0dd2\u0dbd\u0dca \u0db1\u0da9\u0dd4 \u0dc0\u0dd2\u0db7\u0dcf\u0d9c \u0d9a\u0dbb\u0dba\u0dd2\n- \u0db4\u0dca\u200d\u0dbb\u0dcf\u0dae\u0db8\u0dd2\u0d9a \u0dc0\u0dd2\u0db7\u0dcf\u0d9c (Preliminary inquiries) \u0db4\u0dc0\u0dad\u0dca\u0dc0\u0dba\u0dd2\n- \u0db8\u0dc4\u0dda\u0dc3\u0dca\u0dad\u0dca\u200d\u0dbb\u0dcf\u0dad\u0dca\u0dc0\u0dbb\u0dba\u0d9a\u0dd4 \u0dc0\u0dd2\u0dc3\u0dd2\u0db1\u0dca \u0db8\u0dd9\u0dc4\u0dd9\u0dba\u0dc0\u0db1\u0dd4 \u0dbd\u0dd0\u0db6\u0dda\n\n\u0db8\u0dda \u0daf\u0dd9\u0d9a\u0db8 \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0db4\u0dc4\u0dc5 \u0db8\u0da7\u0dca\u0da7\u0db8\u0dda \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab \u0dc0\u0db1 \u0d85\u0dad\u0dbb, \u0d8a\u0da7 \u0d89\u0dc4\u0dc5\u0dd2\u0db1\u0dca \u0d85\u0db7\u0dd2\u0dba\u0dcf\u0da0\u0db1\u0dcf\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba \u0dc3\u0dc4 \u0dc1\u0dca\u200d\u0dbb\u0dda\u0dc2\u0dca\u0da8\u0dcf\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba \u0db4\u0dd2\u0dc4\u0dd2\u0da7\u0dcf \u0d87\u0dad."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 126,
+                "outputTokens": 448,
+                "inputTokensCostNanodollars": "378000",
+                "outputTokensCostNanodollars": "6720000",
+                "totalBackendLatencyMs": "14559"
+              },
+              "id": "synhalees_13_sri_lanka_law_item-84643ede-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 126,
+            "outputTokens": 448,
+            "inputTokensCostNanodollars": "378000",
+            "outputTokensCostNanodollars": "6720000",
+            "totalBackendLatencyMs": "14559"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_13_012"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_13_sri_lanka_law_item-Run #12"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_13_sri_lanka_law_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_13_sri_lanka_law_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T16:49:31.947643Z",
+      "endTime": "2026-09-27T16:49:33.549723Z",
+      "conversations": [
+        {
+          "id": "synhalees_13_sri_lanka_law_item-6151fbe9",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db1\u0dd3\u0dad\u0dd2\u0da5\u0dc0\u0dbb\u0dba\u0dd9\u0d9a\u0dca \u0dc0\u0dd2\u0daf\u0dd2\u0dba\u0da7 \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0dc0\u0dd8\u0dad\u0dca\u0dad\u0dd3\u0dba \u0db8\u0da7\u0dca\u0da7\u0db8\u0dd2\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0dcf\u0db4\u0daf\u0dd2\u0d82\u0da0\u0dd2 \u0dc0\u0dd3\u0db8\u0da7 \u0dc3\u0db8\u0dad\u0dca \u0dc0\u0dd9\u0db1\u0dca\u0db1 \u0d95\u0db1\u0dda \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dc0\u0dd2\u0db7\u0dcf\u0d9c\u0dba \u0dad\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0db1 \u0d86\u0dba\u0dad\u0db1\u0dba \u0dc0\u0dd2\u0dc3\u0dd2\u0db1\u0dca\u0daf? (\u0dc3\u0dd2\u0d82\u0dc4\u0dbd\u0dd9\u0db1\u0dca \u0dc0\u0da0\u0db1 \u0dc4\u0dad\u0dbb\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf \u0db1\u0dd3\u0dad\u0dd2 \u0dc0\u0dd2\u0daf\u0dca\u200d\u0dba\u0dcf\u0dbd"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 149,
+                "outputTokens": 27,
+                "inputTokensCostNanodollars": "447000",
+                "outputTokensCostNanodollars": "405000",
+                "totalBackendLatencyMs": "1435"
+              },
+              "id": "synhalees_13_sri_lanka_law_item-6151fbe9-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 149,
+            "outputTokens": 27,
+            "inputTokensCostNanodollars": "447000",
+            "outputTokensCostNanodollars": "405000",
+            "totalBackendLatencyMs": "1435"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_13_014"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_13_sri_lanka_law_item-Run #14"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_13_sri_lanka_law_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_13_sri_lanka_law_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T16:49:30.170018Z",
+      "endTime": "2026-09-27T16:49:35.977330Z",
+      "conversations": [
+        {
+          "id": "synhalees_13_sri_lanka_law_item-ae28b66f",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d86\u0dab\u0dca\u0da9\u0dd4\u0d9a\u0dca\u200d\u0dbb\u0db8 \u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc3\u0dca\u0dae\u0dcf \u0dc3\u0d82\u0dc1\u0ddd\u0db0\u0db1\u0dba\u0d9a\u0dca \u0db4\u0dcf\u0dbb\u0dca\u0dbd\u0dd2\u0db8\u0dda\u0db1\u0dca\u0dad\u0dd4\u0dc0\u0dd9\u0db1\u0dca \u0dc3\u0db8\u0dca\u0db8\u0dad \u0d9a\u0dbb \u0d9c\u0db1\u0dca\u0db1 \u0d95\u0db1\u0dda \u0dc0\u0dd9\u0db1 \u0d85\u0dc0\u0db8 \u0da1\u0db1\u0dca\u0daf \u0db6\u0dbd\u0dba \u0d9a\u0dd3\u0dba\u0daf? (\u0d95\u0db1 \u0d9a\u0dbb\u0db1 \u0d85\u0d9c\u0dba \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1 \u0dc0\u0da0\u0db1 \u0db4\u0dc4\u0dd9\u0db1\u0dca)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d86\u0dab\u0dca\u0da9\u0dd4\u0d9a\u0dca\u200d\u0dbb\u0db8 \u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc3\u0dca\u0dae\u0dcf \u0dc3\u0d82\u0dc1\u0ddd\u0db0\u0db1\u0dba\u0d9a\u0dca \u0db4\u0dcf\u0dbb\u0dca\u0dbd\u0dd2\u0db8\u0dda\u0db1\u0dca\u0dad\u0dd4\u0dc0\u0dd9\u0db1\u0dca \u0dc3\u0db8\u0dca\u0db8\u0dad \u0d9a\u0dbb \u0d9c\u0dd0\u0db1\u0dd3\u0db8\u0da7 \u0d85\u0dc0\u0dc1\u0dca\u200d\u0dba \u0d85\u0dc0\u0db8 \u0da1\u0db1\u0dca\u0daf \u0db6\u0dbd\u0dba:\n\n**\u0dad\u0dd4\u0db1\u0dd9\u0db1\u0dca \u0daf\u0dd9\u0d9a\u0d9a \u0db6\u0dc4\u0dd4\u0dad\u0dbb\u0dba\u0d9a\u0dca**\n\n(\u0dc0\u0da0\u0db1 \u0db4\u0dc4\u0dd9\u0db1\u0dca: \u0db4\u0dcf\u0dbb\u0dca\u0dbd\u0dd2\u0db8\u0dda\u0db1\u0dca\u0dad\u0dd4 \u0db8\u0db1\u0dca\u0dad\u0dca\u200d\u0dbb\u0dd3\u0dc0\u0dbb\u0dba\u0dcf\u0d9c\u0dda \u0db8\u0dd4\u0dc5\u0dd4 \u0dc3\u0d82\u0d9b\u0dca\u200d\u0dba\u0dcf\u0dc0\u0dd9\u0db1\u0dca \u0dad\u0dd4\u0db1\u0dd9\u0db1\u0dca \u0daf\u0dd9\u0d9a\u0dba\u0dd2)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 136,
+                "outputTokens": 192,
+                "inputTokensCostNanodollars": "408000",
+                "outputTokensCostNanodollars": "2880000",
+                "totalBackendLatencyMs": "5643"
+              },
+              "id": "synhalees_13_sri_lanka_law_item-ae28b66f-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 136,
+            "outputTokens": 192,
+            "inputTokensCostNanodollars": "408000",
+            "outputTokensCostNanodollars": "2880000",
+            "totalBackendLatencyMs": "5643"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_13_013"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_13_sri_lanka_law_item-Run #13"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_13_sri_lanka_law_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_13_sri_lanka_law_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T16:49:33.554480Z",
+      "endTime": "2026-09-27T16:49:51.036416Z",
+      "conversations": [
+        {
+          "id": "synhalees_13_sri_lanka_law_item-98b7b9b5",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf \u0d86\u0dab\u0dca\u0da9\u0dd4\u0d9a\u0dca\u200d\u0dbb\u0db8 \u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc3\u0dca\u0dae\u0dcf\u0dc0\u0da7 \u0d85\u0db1\u0dd4\u0dc0, \u0db8\u0dc4\u0dcf\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba \u0dc4\u0ddd \u0daf\u0dd2\u0dc3\u0dcf \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba \u0dc0\u0dd0\u0db1\u0dd2 \u0db8\u0dc4\u0dcf\u0db0\u0dd2\u0d9a\u0dbb\u0dab/\u0db4\u0dc5\u0db8\u0dd4 \u0db4\u0dd2\u0dba\u0dc0\u0dbb\u0dda \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba\u0db1\u0dca\u0dc4\u0dd2 \u0dad\u0dd3\u0db1\u0dca\u0daf\u0dd4 \u0db1\u0dd0\u0dc0\u0dad \u0dc3\u0db8\u0dcf\u0dbd\u0ddd\u0da0\u0db1\u0dba \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0dda \u0dc3\u0dc4 \"\u0dbb\u0dd2\u0da7\u0dca \u0d86\u0da5\u0dcf\" \u0db1\u0dd2\u0d9a\u0dd4\u0dad\u0dca \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0dda \u0db6\u0dbd\u0dba \u0dc4\u0dd2\u0db8\u0dd2\u0dc0\u0db1 \u0daf\u0dd9\u0dc0\u0db1 \u0d89\u0dc4\u0dc5\u0db8 \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf \u0d86\u0dab\u0dca\u0da9\u0dd4\u0d9a\u0dca\u200d\u0dbb\u0db8 \u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc3\u0dca\u0dae\u0dcf\u0dc0\u0da7 \u0d85\u0db1\u0dd4\u0dc0, \u0db8\u0dc4\u0dcf\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba \u0dc4\u0ddd \u0daf\u0dd2\u0dc3\u0dcf \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba \u0dc0\u0dd0\u0db1\u0dd2 \u0db4\u0dc5\u0db8\u0dd4 \u0db4\u0dd2\u0dba\u0dc0\u0dbb\u0dda \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba\u0db1\u0dca\u0dc4\u0dd2 \u0dad\u0dd3\u0db1\u0dca\u0daf\u0dd4 \u0db1\u0dd0\u0dc0\u0dad \u0dc3\u0db8\u0dcf\u0dbd\u0ddd\u0da0\u0db1\u0dba \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0dda \u0dc3\u0dc4 \u0dbb\u0dd2\u0da7\u0dca \u0d86\u0da5\u0dcf (Writ) \u0db1\u0dd2\u0d9a\u0dd4\u0dad\u0dca \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0dda \u0db6\u0dbd\u0dba \u0dc4\u0dd2\u0db8\u0dd2 \u0daf\u0dd9\u0dc0\u0db1 \u0d89\u0dc4\u0dc5\u0db8 \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba **\u0d85\u0db7\u0dd2\u0dba\u0dcf\u0da0\u0db1\u0dcf\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba (Court of Appeal)** \u0dc0\u0dda.\n\n## \u0d85\u0db7\u0dd2\u0dba\u0dcf\u0da0\u0db1\u0dcf\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba\u0dda \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0db6\u0dbd\u0dad\u0dbd:\n\n1. **\u0d85\u0db7\u0dd2\u0dba\u0dcf\u0da0\u0db1\u0dcf \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab \u0db6\u0dbd\u0dba** - \u0db4\u0dc4\u0dc5 \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dc0\u0dbd \u0dad\u0dd3\u0db1\u0dca\u0daf\u0dd4 \u0dc3\u0db8\u0dcf\u0dbd\u0ddd\u0da0\u0db1\u0dba \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\n\n2. **\u0dbb\u0dd2\u0da7\u0dca \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab \u0db6\u0dbd\u0dba** - \u0db4\u0dc4\u0dad \u0dbb\u0dd2\u0da7\u0dca \u0d86\u0da5\u0dcf \u0db1\u0dd2\u0d9a\u0dd4\u0dad\u0dca \u0d9a\u0dd2\u0dbb\u0dd3\u0db8:\n   - Habeas Corpus (\u0db4\u0dd4\u0daf\u0dca\u0d9c\u0dbd \u0db1\u0dd2\u0daf\u0dc4\u0dc3)\n   - Certiorari (\u0dad\u0dd3\u0db1\u0dca\u0daf\u0dd4 \u0d85\u0dc0\u0dbd\u0d82\u0d9c\u0dd4 \u0d9a\u0dd2\u0dbb\u0dd3\u0db8)\n   - Prohibition (\u0dad\u0dc4\u0db1\u0db8\u0dca \u0db1\u0dd2\u0dba\u0ddd\u0d9c)\n   - Mandamus (\u0d85\u0db1\u0dd2\u0dc0\u0dcf\u0dbb\u0dca\u0dba \u0db1\u0dd2\u0dba\u0ddd\u0d9c)\n   - Quo Warranto (\u0db6\u0dbd\u0dba \u0db4\u0dca\u200d\u0dbb\u0dc1\u0dca\u0db1 \u0d9a\u0dd2\u0dbb\u0dd3\u0db8)\n\n**\u0dc3\u0da7\u0dc4\u0db1:** \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0dad\u0dca\u200d\u0dbb\u0dd2\u0db4\u0dd4\u0daf\u0dca\u0d9c\u0dbd \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab \u0d9a\u0dca\u200d\u0dbb\u0db8\u0dba:\n- **\u0dc1\u0dca\u200d\u0dbb\u0dda\u0dc2\u0dca\u0da8\u0dcf\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba** (Supreme Court) - \u0d89\u0dc4\u0dc5\u0db8\n- **\u0d85\u0db7\u0dd2\u0dba\u0dcf\u0da0\u0db1\u0dcf\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba** (Court of Appeal) - \u0daf\u0dd9\u0dc0\u0db1 \u0d89\u0dc4\u0dc5\u0db8\n- **\u0db8\u0dc4\u0dcf\u0db0\u0dd2\u0d9a\u0dbb\u0dab\u0dba/\u0daf\u0dd2\u0dc3\u0dcf \u0d85\u0db0\u0dd2\u0d9a\u0dbb\u0dab** - \u0db4\u0dc5\u0db8\u0dd4 \u0db4\u0dd2\u0dba\u0dc0\u0dbb"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 201,
+                "outputTokens": 607,
+                "inputTokensCostNanodollars": "603000",
+                "outputTokensCostNanodollars": "9105000",
+                "totalBackendLatencyMs": "17257"
+              },
+              "id": "synhalees_13_sri_lanka_law_item-98b7b9b5-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 201,
+            "outputTokens": 607,
+            "inputTokensCostNanodollars": "603000",
+            "outputTokensCostNanodollars": "9105000",
+            "totalBackendLatencyMs": "17257"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_13_015"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_13_sri_lanka_law_item-Run #15"
+    }
+  ],
+  "pyRunId": "synhalees_13_sri_lanka_law-Run #1"
+}
