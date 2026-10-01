@@ -21,10 +21,15 @@
     provider: "",            // "" = all organizations, else a provider name
     typeFilter: "",
     hidden: {},             // model names unchecked in the Models filter dropdown
+    lbStars: {},            // starred models in the Models filter (multi-select): row highlight + export pin
     bootAnim: true          // first-load entrance animations
   };
 
   function $(sel) { return document.querySelector(sel); }
+
+  // star glyph shared by the Models-filter rows (and echoed in the PNG export)
+  var LB_STAR_SVG = "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'>" +
+    "<polygon points='12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2'/></svg>";
 
   /* ---------- inline SVG icons (Lucide-style, no emoji) ---------- */
 
@@ -219,7 +224,9 @@
 
     rows.forEach(function (m, i) {
       var s = scoreOf(m);
+      var starred = !!state.lbStars[m.name];
       var tr = document.createElement("tr");
+      if (starred) tr.className = "lb-starred";
       tr.innerHTML =
         "<td class=\"num medal\">" + medal(i + 1) + "</td>" +
         "<td><span class=\"model-name\" title=\"" + esc(m.name) + "\">" + esc(m.name) + "</span>" +
@@ -770,6 +777,14 @@
     // the PNG is a shareable snapshot, so it shows only the top 10 rows of the
     // current view (filters/sort already applied) instead of the full table
     var rows = allRows.slice(0, 10);
+    // starred models below rank 10 are pinned right after row 10 (in rank
+    // order), so the shareable image always shows every highlighted pick at
+    // its REAL rank - the leaderboard may hold more than one star
+    allRows.forEach(function (m, i) {
+      if (i >= 10 && state.lbStars[m.name]) rows.push(m);
+    });
+    var realRank = {};
+    allRows.forEach(function (m, i) { realRank[m.name] = i + 1; });
     var scoreLbl = scoreLabel();
 
     var cs = getComputedStyle(document.documentElement);
@@ -778,7 +793,8 @@
       bg: cv("--navy-deep", "#1d2230"), card: cv("--navy-card", "#262b3c"),
       navy: cv("--navy", "#20253a"), alt: cv("--row-alt", "#232838"),
       text: cv("--text", "#eef0f6"), muted: cv("--muted", "#9aa1b5"),
-      border: cv("--border", "#3a4157"), red: cv("--red-bright", "#e53935")
+      border: cv("--border", "#3a4157"), red: cv("--red-bright", "#e53935"),
+      gold: cv("--gold-text", "#f5b301")
     };
     var FONT = "'Inter', 'Noto Sans Sinhala', system-ui, sans-serif";
     var PAD = 36, SCALE = 2; // 2x for high-DPI / social-media quality
@@ -892,10 +908,19 @@
     rows.forEach(function (m, ri) {
       var ry = y + HEAD_H + ri * ROW_H;
       if (ri % 2 === 1) { ctx.fillStyle = C.alt; ctx.fillRect(x0, ry, tableW, ROW_H); }
+      var isStar = !!state.lbStars[m.name];
+      if (isStar) {
+        // gold highlight so the starred row reads instantly in the share image
+        // (theme-aware: the light theme's tint is a darker, denser amber)
+        ctx.fillStyle = cv("--star-row-bg", "rgba(245, 179, 1, .10)");
+        ctx.fillRect(x0, ry, tableW, ROW_H);
+        ctx.fillStyle = C.gold;
+        ctx.fillRect(x0, ry, 3, ROW_H);
+      }
       var cy = ry + ROW_H / 2 + 4.5;
       var cxx = x0;
-      // rank (gold/silver/bronze disc for the top 3, like .rank-badge)
-      var rank = ri + 1;
+      // rank: the pinned starred row keeps its REAL rank, not its position
+      var rank = realRank[m.name] || (ri + 1);
       if (MEDAL[rank]) {
         ctx.fillStyle = MEDAL[rank];
         ctx.beginPath();
@@ -1116,13 +1141,37 @@
     updateComparePickerState();
     filterCompareList(); // keep an active search across featured/model rebuilds
   }
+  // Single-star invariant, same as the chart / compare pickers: starring a new
+  // model moves the highlight, starring the active one clears it.
+  function syncLbStars() {
+    Array.prototype.forEach.call(document.querySelectorAll("#model-filter-list .pk-star"), function (s) {
+      var on = !!state.lbStars[s.getAttribute("data-name")];
+      s.setAttribute("aria-pressed", on ? "true" : "false");
+      s.setAttribute("aria-label", on ? "Remove highlight" : "Highlight " + s.getAttribute("data-name"));
+      s.title = on ? "Remove highlight" : "Highlight this model";
+    });
+  }
+
+  function setLbStar(name) {
+    // unlike the chart / compare pickers (one star each), the leaderboard lets
+    // you star ANY number of models - each toggles independently
+    if (state.lbStars[name]) delete state.lbStars[name];
+    else state.lbStars[name] = true;
+    syncLbStars();
+    renderTable();
+  }
+
   function buildModelFilter() {
     var list = $("#model-filter-list");
     if (!list) return;
     list.innerHTML = "";
     state.models.forEach(function (m) {
-      var item = document.createElement("label");
-      item.className = "pk-item";
+      // checkbox + logo + name live in the label; the star is a SIBLING button
+      // so clicking it can never toggle the checkbox through label forwarding
+      var row = document.createElement("span");
+      row.className = "pk-item";
+      var lab = document.createElement("label");
+      lab.className = "pk-item-main";
       var cb = document.createElement("input");
       cb.type = "checkbox";
       cb.checked = !state.hidden[m.name];
@@ -1132,17 +1181,31 @@
         updateModelFilterCount();
         renderTable();
       });
-      item.appendChild(cb);
+      lab.appendChild(cb);
       // providerLogo() returns ready-made HTML (<img> or fallback chip), not a URL
       var logoWrap = document.createElement("span");
       logoWrap.innerHTML = providerLogo(m.provider);
-      item.appendChild(logoWrap);
+      lab.appendChild(logoWrap);
       var span = document.createElement("span");
       span.textContent = m.name;
-      item.appendChild(span);
-      list.appendChild(item);
+      lab.appendChild(span);
+      row.appendChild(lab);
+      var star = document.createElement("button");
+      star.type = "button";
+      star.className = "pk-star";
+      star.setAttribute("data-name", m.name);
+      star.setAttribute("aria-pressed", state.lbStars[m.name] ? "true" : "false");
+      star.innerHTML = LB_STAR_SVG;
+      star.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        setLbStar(m.name);
+      });
+      row.appendChild(star);
+      list.appendChild(row);
     });
     updateModelFilterCount();
+    syncLbStars();
   }
 
   function updateModelFilterCount() {
