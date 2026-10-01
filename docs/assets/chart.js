@@ -1389,10 +1389,21 @@
     btn.addEventListener("click", function (e) {
       e.stopPropagation();
       panel.hidden = !panel.hidden;
+      // on a phone the panel is anchored under this button (see #chart-picker),
+      // so flip it above when the list will not fit below the trigger
+      panel.classList.remove("open-up");
+      if (!panel.hidden) {
+        var need = Math.min(320, panel.scrollHeight);
+        var below = window.innerHeight - panel.getBoundingClientRect().top;
+        if (below < need + 16) panel.classList.add("open-up");
+      }
     });
     document.addEventListener("click", function (e) {
-      if (!panel.hidden && !panel.contains(e.target) && e.target !== btn) panel.hidden = true;
-    });
+        if (!panel.hidden && !panel.contains(e.target) && e.target !== btn) {
+          panel.hidden = true;
+          panel.classList.remove("open-up");
+        }
+      });
   }
 
   /* ---------- boot ---------- */
