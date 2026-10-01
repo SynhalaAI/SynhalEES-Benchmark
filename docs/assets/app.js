@@ -295,7 +295,7 @@
           : "<span class=\"pc-champ\"><span class=\"who na\">No data yet</span></span>");
       card.addEventListener("click", function () {
         state.pillar = p.slug;
-        $("#pillar-select").value = p.slug;
+        setPillar(p.slug);
         renderTable();
         window.scrollTo({ top: 0, behavior: "smooth" });
       });
@@ -2042,15 +2042,108 @@
         btn.classList.add("active");
         state.mode = btn.getAttribute("data-mode");
         state.pillar = "";
-        $("#pillar-select").value = "";
+        setPillar("");
         renderTable();
       });
     });
 
-    $("#pillar-select").addEventListener("change", function (e) {
-      state.pillar = e.target.value;
+    // Pillar listbox: a real popover instead of a native <select>. Chrome draws
+    // a native dropdown in OS chrome, so it cannot be themed and - with 15 long
+    // options low in the viewport - it flips upward and runs off the top of the
+    // screen. This keeps the dark theme and lets us flip deliberately.
+    // Every path that changes the pillar (menu, pillar cards, modality tabs) goes
+    // through setPillar(), so the trigger label and the selected row never drift.
+    function setPillar(slug) {
+      state.pillar = slug || "";
+      var label = $("#pillar-btn-label");
+      if (label) label.textContent = state.pillar ? pillarTitle(state.pillar) : "All 15 Pillars (text)";
+      var menu = $("#pillar-menu");
+      if (menu) {
+        Array.prototype.forEach.call(menu.children, function (b) {
+          b.setAttribute("aria-selected", b.getAttribute("data-slug") === state.pillar ? "true" : "false");
+        });
+      }
       renderTable();
-    });
+    }
+
+    function pillarMenuIsOpen() {
+      var menu = $("#pillar-menu");
+      return !!menu && !menu.hidden;
+    }
+
+    function setPillarMenu(open) {
+      var btn = $("#pillar-btn"), menu = $("#pillar-menu");
+      if (!btn || !menu) return;
+      if (open) {
+        menu.hidden = false;
+        btn.setAttribute("aria-expanded", "true");
+        // flip up when the viewport cannot fit the capped list below
+        menu.classList.remove("open-up");
+        var need = Math.min(320, menu.scrollHeight);
+        var below = window.innerHeight - menu.getBoundingClientRect().top;
+        if (below < need + 16) menu.classList.add("open-up");
+      } else {
+        menu.hidden = true;
+        menu.classList.remove("open-up");
+        btn.setAttribute("aria-expanded", "false");
+      }
+    }
+
+    var pillarBtn = $("#pillar-btn");
+    if (pillarBtn) {
+      pillarBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        setPillarMenu(!pillarMenuIsOpen());
+      });
+
+      var pillarMenu = $("#pillar-menu");
+      if (pillarMenu) {
+        pillarMenu.addEventListener("click", function (e) {
+          var opt = e.target.closest("[data-slug]");
+          if (!opt) return;
+          setPillar(opt.getAttribute("data-slug"));
+          setPillarMenu(false);
+          pillarBtn.focus();
+        });
+
+        // Arrow/Home/End navigation and Escape to dismiss - the keyboard
+        // contract a native select gives for free, which the popover must supply
+        pillarMenu.addEventListener("keydown", function (e) {
+          var opts = Array.prototype.slice.call(pillarMenu.querySelectorAll("[data-slug]"));
+          if (!opts.length) return;
+          var cur = opts.indexOf(document.activeElement);
+          if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            e.preventDefault();
+            var next = e.key === "ArrowDown"
+              ? (cur + 1) % opts.length
+              : (cur <= 0 ? opts.length - 1 : cur - 1);
+            opts[next].focus();
+          } else if (e.key === "Home") {
+            e.preventDefault();
+            opts[0].focus();
+          } else if (e.key === "End") {
+            e.preventDefault();
+            opts[opts.length - 1].focus();
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            setPillarMenu(false);
+            pillarBtn.focus();
+          } else if (e.key === "Tab") {
+            setPillarMenu(false);
+          }
+        });
+      }
+
+      // a click anywhere else closes it, like every other popover on the page
+      document.addEventListener("click", function (e) {
+        if (!pillarMenuIsOpen()) return;
+        var dd = $("#pillar-dd");
+        if (dd && !dd.contains(e.target)) setPillarMenu(false);
+      });
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && pillarMenuIsOpen()) setPillarMenu(false);
+      });
+    }
 
     var provSel = $("#provider-select");
     if (provSel) {
@@ -2373,13 +2466,31 @@
       ? "Last updated: " + state.updated + " · " + state.models.length + " models ranked"
       : "";
 
-    var sel = $("#pillar-select");
-    state.pillars.forEach(function (p) {
-      var opt = document.createElement("option");
-      opt.value = p.slug;
-      opt.textContent = p.slug.slice(0, 2) + " — " + p.title_en;
-      sel.appendChild(opt);
-    });
+    // Build the pillar listbox: an "All 15 Pillars" row plus one per pillar,
+    // each showing its 01-15 number like the pillar cards below the table.
+    var pmenu = $("#pillar-menu");
+    if (pmenu) {
+      function pillarOpt(slug, num, title) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "pillar-dd-opt";
+        b.setAttribute("data-slug", slug);
+        b.setAttribute("role", "option");
+        b.setAttribute("aria-selected", slug ? "false" : "true");
+        var n = document.createElement("span");
+        n.className = "pillar-dd-num";
+        n.textContent = num;
+        var t = document.createElement("span");
+        t.textContent = title;
+        b.appendChild(n);
+        b.appendChild(t);
+        return b;
+      }
+      pmenu.appendChild(pillarOpt("", "*", "All 15 Pillars (text)"));
+      state.pillars.forEach(function (p) {
+        pmenu.appendChild(pillarOpt(p.slug, p.slug.slice(0, 2), p.title_en));
+      });
+    }
 
     restoreTheme();
     bindEvents();

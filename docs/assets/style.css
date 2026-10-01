@@ -433,12 +433,129 @@ a {
   outline-offset: 1px;
 }
 
-/* Leaderboard filter row: the pillar select shares whatever room is left over
-   instead of claiming a hard 320px, so the row reflows rather than overflowing. */
-.controls>.pillar-select {
+/* The pillar filter is a custom listbox, not a native <select>. Chrome renders
+   a native dropdown in OS chrome - it cannot be themed, and with 15 long options
+   it flips upward when the control sits low in the viewport and runs off the top
+   of the screen. A real popover lets us keep the dark theme and cap its height.
+
+   The trigger keeps the .pillar-select look so the filter row looks unchanged. */
+.pillar-dd {
+  position: relative;
   flex: 1 1 220px;
   min-width: 0;
 }
+
+.pillar-dd-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+  background: var(--navy-card);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* the label is the long part; truncate it rather than widening the row */
+.pillar-dd-btn > span:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pillar-dd-chevron {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  color: var(--muted);
+}
+
+.pillar-dd-btn:hover {
+  border-color: var(--red-bright);
+}
+
+.pillar-dd-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 1px var(--navy), 0 0 0 3px rgba(229, 57, 53, .28);
+}
+
+/* Opens downward and is capped + scrollable so it can never run past the bottom
+   of the page. Flipped open with .open-up when there is not enough room below
+   (decided in the JS). */
+.pillar-dd-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 30;
+  max-height: 320px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--navy-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 6px;
+}
+
+.pillar-dd-menu.open-up {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+
+.pillar-dd-menu[hidden] {
+  display: none;
+}
+
+.pillar-dd-opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  color: var(--text);
+  font: inherit;
+  font-size: .85rem;
+  padding: 7px 9px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.pillar-dd-opt:hover,
+.pillar-dd-opt:focus-visible {
+  background: var(--row-alt);
+  outline: none;
+}
+
+.pillar-dd-opt[aria-selected="true"] {
+  background: var(--row-alt);
+  color: var(--red-bright);
+  font-weight: 700;
+}
+
+.pillar-dd-num {
+  flex: none;
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 800;
+  min-width: 18px;
+}
+
+.pillar-dd-opt[aria-selected="true"] .pillar-dd-num {
+  color: var(--red-bright);
+}
+/* Leaderboard filter row: the two remaining native selects size to their content,
+   while .pillar-dd above takes whatever room is left over so the row reflows
+   rather than overflowing. */
 
 .controls>.type-select,
 .controls>.provider-select {
@@ -2447,8 +2564,9 @@ thead th.cmp-featured {
     flex: 1 1 auto;
   }
 
-  /* the three selects share one row; each gives up the gaps between them */
-  .controls>.pillar-select,
+  /* the pillar listbox and the two selects share one row; each gives up the gaps
+     between them. .pillar-dd is the flex child now (it replaced the <select>). */
+  .controls>.pillar-dd,
   .controls>.type-select,
   .controls>.provider-select {
     flex: 1 1 calc(33.33% - 8px);
