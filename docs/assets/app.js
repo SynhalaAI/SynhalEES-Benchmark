@@ -882,8 +882,7 @@
       cxx += cols[1].w;
       // provider (real logo painted later over this white chip)
       var provTxt = fitText(m.provider, cols[2].w - 62);
-      var provW2 = ctx.measureText(provTxt).width;
-      var provX = cxx + (cols[2].w - (22 + 8 + provW2)) / 2;  // centred block
+      var provX = cxx + PAD_X;  // left-aligned like the live table so logo chips line up
       m._lx = provX; m._ly = ry + (ROW_H - 22) / 2;
       ctx.fillStyle = "#ffffff";
       rrect(m._lx, m._ly, 22, 22, 6);
