@@ -54,6 +54,8 @@
       // correct whatever order things ran in.
       if (dd.__sel) refresh(dd.__sel);
       menu.hidden = false;
+      // lift the WRAPPER, not just the menu - see .pillar-dd in style.css
+      dd.classList.add("is-open");
       btn.setAttribute("aria-expanded", "true");
       // flip up only when the capped list genuinely will not fit below
       menu.classList.remove("open-up");
@@ -63,6 +65,7 @@
     } else {
       menu.hidden = true;
       menu.classList.remove("open-up");
+      dd.classList.remove("is-open");
       btn.setAttribute("aria-expanded", "false");
     }
   }
