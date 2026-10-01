@@ -5,6 +5,8 @@
   var state = {
     radarModel: null,   // model shown in the modal (for radar hover)
     radarHover: -1,     // hovered radar vertex index (-1 = none)
+    radarOther: null,    // second model overlaid on the modal radar (name, or null)
+    compareOpen: false,  // modal "Compare with" panel revealed by the toolbar button
     pillars: [],
     models: [],
     demo: false,
@@ -296,7 +298,7 @@
   function animateRadar(canvas, pillars, model) {
     var reduce = window.matchMedia &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce || !window.requestAnimationFrame) { drawRadar(canvas, pillars, model, null); return; }
+    if (reduce || !window.requestAnimationFrame) { drawRadar(canvas, pillars, model, null, -1, null, otherModel()); return; }
 
     // start order: ascending score
     var order = [];
@@ -318,7 +320,7 @@
       var e = ts - t0;
       if (e >= total) {
         // fully grown: keep looping so top-pillar dots keep beating
-        drawRadar(canvas, pillars, model, null, state.radarHover, ts);
+        drawRadar(canvas, pillars, model, null, state.radarHover, ts, otherModel());
       } else {
         var vp = [];
         for (var k = 0; k < pillars.length; k++) {
@@ -326,7 +328,7 @@
           var p = pe <= 0 ? 0 : Math.min(1, pe / GROW);
           vp.push(1 - Math.pow(1 - p, 3)); // easeOutCubic
         }
-        drawRadar(canvas, pillars, model, vp, -1, null);
+        drawRadar(canvas, pillars, model, vp, -1, null, otherModel());
       }
       requestAnimationFrame(step);
     }
@@ -1064,6 +1066,352 @@
 
   /* ---------- modal + radar chart ---------- */
 
+  // The model currently overlaid on the modal radar, or null for single view.
+  function otherModel() {
+    if (!state.radarOther) return null;
+    for (var i = 0; i < state.models.length; i++) {
+      if (state.models[i].name === state.radarOther) return state.models[i];
+    }
+    return null;
+  }
+
+  // Render the "Compare with" picker: every other model, strongest rival of the
+  // active modality first, then alphabetical. `query` narrows it on model name
+  // or provider - once the leaderboard carries a few dozen models, scrolling to
+  // a name is impractical, so the search box above the list filters it.
+  //
+  // This is a visible list rather than a native <select> on purpose: a select
+  // keeps its options hidden until it is opened, so filtering it from a search
+  // box above read as "nothing happened" - the one thing a search must never
+  // do. Showing the matches is the entire point of having the search.
+  function renderCompareList(query) {
+    var list = $("#modal-compare-list"), cnt = $("#modal-compare-count");
+    if (!list) return;
+    var mode = (state.mode === "vision" || state.mode === "audio") ? state.mode : "text";
+    var here = state.radarModel ? state.radarModel.name : "";
+    var q = (query || "").trim().toLowerCase();
+    var all = state.models.filter(function (m) { return m.name !== here; });
+    all.sort(function (a, b) {
+      var av = a.modalities[mode] == null ? -1 : a.modalities[mode];
+      var bv = b.modalities[mode] == null ? -1 : b.modalities[mode];
+      if (bv !== av) return bv - av;
+      return a.name.localeCompare(b.name);
+    });
+    var hits = q ? all.filter(function (m) {
+      return m.name.toLowerCase().indexOf(q) !== -1 ||
+        String(m.provider).toLowerCase().indexOf(q) !== -1;
+    }) : all;
+
+    list.innerHTML = "";
+
+    // None is a row like any other, so clearing the overlay is one click
+    // rather than a hunt through a dropdown
+    var clearRow = document.createElement("button");
+    clearRow.type = "button";
+    clearRow.className = "cmp-row cmp-row-none" + (state.radarOther ? "" : " on");
+    clearRow.setAttribute("aria-pressed", state.radarOther ? "false" : "true");
+    var clearLabel = document.createElement("span");
+    clearLabel.textContent = "None \u2014 single model";
+    clearRow.appendChild(clearLabel);
+    clearRow.addEventListener("click", function () { pickCompare(null); });
+    list.appendChild(clearRow);
+
+    hits.forEach(function (m) {
+      var on = state.radarOther === m.name;
+      var row = document.createElement("button");
+      row.type = "button";
+      row.className = "cmp-row" + (on ? " on" : "");
+      row.setAttribute("aria-pressed", on ? "true" : "false");
+      row.setAttribute("data-name", m.name);
+      // providerLogo() returns ready-made HTML (<img> or fallback chip), not a URL
+      var logoWrap = document.createElement("span");
+      logoWrap.className = "cmp-row-logo";
+      logoWrap.innerHTML = providerLogo(m.provider);
+      row.appendChild(logoWrap);
+      var name = document.createElement("span");
+      name.className = "cmp-row-name";
+      name.textContent = m.name;
+      row.appendChild(name);
+      var score = document.createElement("span");
+      score.className = "cmp-row-score";
+      score.textContent = fmt(m.modalities[mode]);
+      row.appendChild(score);
+      row.addEventListener("click", function () { pickCompare(m.name); });
+      list.appendChild(row);
+    });
+
+    if (!hits.length) {
+      var empty = document.createElement("div");
+      empty.className = "cmp-empty";
+      empty.textContent = q
+        ? "No model matches \u201c" + q + "\u201d"
+        : "No other models to compare with.";
+      list.appendChild(empty);
+    }
+
+    if (cnt) {
+      cnt.textContent = !all.length ? "no other models"
+        : q ? hits.length + " of " + all.length + " match" + (hits.length === 1 ? "" : "es")
+        : all.length + (all.length === 1 ? " model" : " models");
+    }
+  }
+
+  // The results float over the radar as a popover. Keeping open/close in one
+  // place means the hidden flag and aria-expanded can never disagree.
+  function setCompareListOpen(on) {
+    var list = $("#modal-compare-list"), input = $("#modal-compare-search");
+    if (list) list.hidden = !on;
+    if (input) input.setAttribute("aria-expanded", on ? "true" : "false");
+  }
+
+  // The chevron and the clear glyph share one corner of the field, so the class
+  // on the wrapper is what decides which of the two is on screen. Deriving it
+  // from the input value in one place keeps it correct on type, on clear and on
+  // panel reset, instead of letting three handlers each guess.
+  function syncCompareField() {
+    var input = $("#modal-compare-search"), field = $("#modal-compare-field");
+    var clear = $("#modal-compare-clear");
+    if (!input || !field) return;
+    var has = input.value.length > 0;
+    field.classList.toggle("has-value", has);
+    if (clear) clear.hidden = !has;
+  }
+
+  // Is `name` still visible under `query`? Used to drop a rival the search has
+  // filtered away, so the overlay and the list never disagree.
+  function compareListHas(query, name) {
+    var q = (query || "").trim().toLowerCase();
+    if (!q) return true;
+    return state.models.some(function (m) {
+      if (m.name !== name) return false;
+      return m.name.toLowerCase().indexOf(q) !== -1 ||
+        String(m.provider).toLowerCase().indexOf(q) !== -1;
+    });
+  }
+
+  // Select a rival (or leave compare mode with null) and redraw what depends
+  // on it. The pick is re-validated against the current query, so a rival that
+  // the search has filtered out is dropped rather than left overlaid
+  // invisibly.
+  //
+  // None is a request to stop comparing, not just to blank one row, so it
+  // collapses the panel and returns the toolbar button to its inactive state
+  // instead of leaving an open picker floating over a single-model radar.
+  function pickCompare(name) {
+    if (!name) {
+      setCompareOpen(false);
+      return;
+    }
+    var search = $("#modal-compare-search");
+    var raw = search ? search.value : "";
+    state.radarOther = compareListHas(raw, name) ? name : null;
+    renderCompareList(raw);
+    // a pick is a completed action, so the menu gets out of the way
+    setCompareListOpen(false);
+    refreshCompare();
+  }
+
+  // Redraw the radar + head-to-head table after the pick changed. The search
+  // box routes through here too: filtering the selected option out of the
+  // <select> drops the pick, so the overlay has to drop it in the same tick.
+  function refreshCompare() {
+    renderCompareUI();
+    redrawModalRadar();
+  }
+
+  // The compare panel is collapsed by default so a single-model card stays
+  // clean; the toolbar button reveals it. Opening clears the previous query
+  // and focuses the search box, which is what people reach for first once the
+  // model count grows.
+  function setCompareOpen(on) {
+    var panel = $("#modal-compare"), btn = $("#modal-compare-btn");
+    var search = $("#modal-compare-search");
+    state.compareOpen = !!on;
+    if (panel) panel.hidden = !on;
+    if (btn) {
+      btn.classList.toggle("on", !!on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    }
+    if (search) search.value = "";
+    syncCompareField();
+    if (on) {
+      renderCompareList("");
+      setCompareListOpen(true);
+      if (search) search.focus();
+      return;
+    }
+    // closing the panel always closes the menu with it, picked or not
+    setCompareListOpen(false);
+    if (state.radarOther) {
+      // leaving compare mode means leaving compare mode: drop the overlay and
+      // the pick together, so a collapsed panel is never hiding a live rival
+      state.radarOther = null;
+      refreshCompare();
+    }
+  }
+
+  // One place to dismiss the modal so the compare panel always resets with it
+  // instead of the next card opening mid-compare.
+  function closeModal() {
+    var modal = $("#modal");
+    if (modal) modal.hidden = true;
+    if (barObserver) { barObserver.disconnect(); barObserver = null; }
+    setCompareOpen(false);
+  }
+
+  // The bars sweep in from both edges as each row scrolls into view. Firing the
+  // whole list at once looked broken in a scrolling card: the table is taller
+  // than the viewport, so the rows below the fold finished animating while they
+  // were still off-screen and the reader scrolled down to a column of bars that
+  // had already stopped moving. Observing each row instead means the motion
+  // happens where the eye is.
+  //
+  // The scroller is the modal card, not the window, because that is the element
+  // that actually scrolls here.
+  var barObserver = null;
+
+  function barScrollRoot() {
+    var card = $(".modal-card") || $("#modal");
+    if (!card) return null;
+    // only usable as an observer root if it is genuinely the scroll container
+    var st = window.getComputedStyle(card);
+    if (/(auto|scroll|overlay)/.test(st.overflowY)) return card;
+    return null;
+  }
+
+  function playBarSweep(diff) {
+    if (!diff) return;
+    var rows = diff.querySelectorAll(".diff-row");
+    if (!rows.length) return;
+
+    if (typeof IntersectionObserver === "undefined") {
+      // no observer support: fall back to the old all-at-once reveal
+      diff.classList.add("sweep");
+      setTimeout(function () { diff.classList.remove("sweep"); }, 1400);
+      return;
+    }
+
+    if (barObserver) barObserver.disconnect();
+    barObserver = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        var row = e.target;
+        // unobserve immediately: a row is revealed exactly once per render
+        barObserver.unobserve(row);
+        row.classList.add("sweep");
+        // the class is only needed to trigger the animation; removing it after
+        // the longest run finishes returns the row to plain static styling and
+        // keeps the fill free of a lingering transform.
+        var rest = function () {
+          row.classList.remove("sweep");
+          row.removeEventListener("animationend", rest);
+        };
+        row.addEventListener("animationend", rest);
+        // safety net: reduced-motion rows never fire animationend
+        setTimeout(rest, 1600);
+      });
+    }, {
+      // a little lead-in so a row is already growing by the time it is properly
+      // on screen, and only a sliver has to be visible to trigger
+      root: barScrollRoot(),
+      rootMargin: "0px 0px -8% 0px",
+      threshold: 0.05
+    });
+
+    for (var i = 0; i < rows.length; i++) barObserver.observe(rows[i]);
+  }
+
+  // Per-pillar head-to-head rows, shared by the modal table and the PNG export so
+  // the two can never disagree about what a "win" is. Sorted by the size of the
+  // gap, so the pillars that actually separate the two models come first instead
+  // of in pillar order.
+  function compareRows(m, other) {
+    var rows = state.pillars.map(function (p) {
+      var a = m.pillars[p.slug], b = other.pillars[p.slug];
+      return { p: p, a: a, b: b, d: (a == null || b == null) ? null : a - b };
+    }).filter(function (r) { return r.a != null || r.b != null; });
+    rows.sort(function (x, y) {
+      if (x.d == null) return 1;
+      if (y.d == null) return -1;
+      return Math.abs(y.d) - Math.abs(x.d);
+    });
+    return rows;
+  }
+
+  // Each model owns one half of the track and fills inward toward the centre by
+  // its share of the leader, so the longer fill simply IS the pillar winner and
+  // the two colours meet head-on in the middle.
+  function compareWidths(r) {
+    var hi = Math.max(r.a || 0, r.b || 0) || 1;
+    return {
+      wa: r.a == null ? 0 : (r.a / hi) * 50,
+      wb: r.b == null ? 0 : (r.b / hi) * 50
+    };
+  }
+
+  // Legend + per-pillar head-to-head table under the radar. Rows are sorted by
+  // the size of the gap, so the pillars that actually separate the two models
+  // come first instead of in pillar order.
+  function renderCompareUI() {
+    var legend = $("#radar-legend"), diff = $("#modal-diff");
+    if (!legend || !diff) return;
+    var m = state.radarModel, other = otherModel();
+    if (!other) {
+      // rows are about to be discarded, so stop observing them first
+      if (barObserver) { barObserver.disconnect(); barObserver = null; }
+      legend.hidden = true;
+      legend.innerHTML = "";
+      diff.hidden = true;
+      diff.innerHTML = "";
+      return;
+    }
+    legend.hidden = false;
+    legend.innerHTML =
+      '<span><i></i>' + esc(m.name) + '</span>' +
+      '<span class="c2"><i class="c2"></i>' + esc(other.name) + '</span>';
+
+    var dash = '—';
+    var rows = compareRows(m, other);
+
+    var wins = 0, losses = 0, ties = 0;
+    rows.forEach(function (r) {
+      if (r.d == null || r.d === 0) ties++;
+      else if (r.d > 0) wins++; else losses++;
+    });
+
+    var html = '<div class="diff-head"><span>Per-pillar head-to-head</span><em>' +
+      wins + ' win · ' + losses + ' loss · ' + ties + ' tie</em></div>';
+    html += rows.map(function (r, i) {
+      var cls = r.d == null || r.d === 0 ? "" : (r.d > 0 ? " win" : " lose");
+      var dd = r.d == null ? dash : (r.d === 0 ? "0.0" : (r.d > 0 ? "+" : "−") + Math.abs(r.d).toFixed(1));
+      var av = r.a == null ? dash : r.a.toFixed(1);
+      var bv = r.b == null ? dash : r.b.toFixed(1);
+      var cw = compareWidths(r);
+      var wa = cw.wa.toFixed(1);
+      var wb = cw.wb.toFixed(1);
+      var fight = esc(m.name + " " + av + " vs " + other.name + " " + bv);
+      // --i staggers only the handful of rows revealed at once; capping it keeps
+      // a late row from sitting invisible waiting on a long delay
+      return '<div class="diff-row' + cls + '" style="--i:' + (i % 4) + '">' +
+        '<div class="dtop"><span class="dn">' + icon(r.p.slug) + " " + esc(r.p.title_en) + '</span>' +
+        '<span class="dd">' + dd + '</span></div>' +
+        '<div class="dbot"><span class="d1">' + av + '</span>' +
+        '<span class="dbar" role="img" aria-label="' + fight + '">' +
+        '<i class="a" style="width:' + wa + '%"></i>' +
+        '<i class="b" style="width:' + wb + '%"></i></span>' +
+        '<span class="d2">' + bv + '</span></div></div>';
+    }).join("");
+    diff.innerHTML = html;
+    diff.hidden = false;
+    playBarSweep(diff);
+  }
+
+  // Redraw the modal radar from state (used by compare / hover changes).
+  function redrawModalRadar() {
+    var canvas = $("#radar");
+    drawRadar(canvas, state.pillars, state.radarModel, null, state.radarHover, null, otherModel());
+  }
+
   function openModal(m) {
     $("#modal-title").textContent = m.name;
     var typeBadgeHtml = " <span class=\"type-badge " + (m.open_source ? "open" : "proprietary") + "\">" + (m.open_source ? "Open Source" : "Proprietary") + "</span>";
@@ -1084,6 +1432,12 @@
 
     state.radarModel = m;
     state.radarHover = -1;
+    setCompareOpen(false);
+    renderCompareList("");
+    renderCompareUI();
+    // a single-model leaderboard has nothing to overlay
+    var cmpBtn = $("#modal-compare-btn");
+    if (cmpBtn) cmpBtn.disabled = state.models.length < 2;
     $("#modal").hidden = false;
     animateRadar($("#radar"), state.pillars, m);
   }
@@ -1099,13 +1453,39 @@
     var C = {
       bg: cv("--navy-deep", "#1d2230"), card: cv("--navy-card", "#262b3c"),
       text: cv("--text", "#eef0f6"), muted: cv("--muted", "#9aa1b5"),
-      border: cv("--border", "#3a4157"), red: cv("--red-bright", "#e53935")
+      border: cv("--border", "#3a4157"), red: cv("--red-bright", "#e53935"),
+      // the rival's own token pair, so the PNG uses exactly the sky-blue the
+      // radar overlay and the on-screen bars already use
+      cmp2: cv("--cmp-2", "#38bdf8"), cmp2text: cv("--cmp-2-text", "#7dd3fc"),
+      good: cv("--good", "#2e9e5b")
     };
     var FONT = "'Inter', 'Noto Sans Sinhala', system-ui, sans-serif";
     var PAD = 36, SCALE = 2; // 2x for high-DPI / social-media quality
     var CONTENT_W = 560;
-    var TITLE_H = 70, HEAD_H = 64, SCORE_H = 40, RADAR_W = 520, RADAR_H = 420;
+    var rival = otherModel();
+    // compare mode grows the card: a taller header for the rival identity row,
+    // a two-row score strip and a head-to-head block the single-model template
+    // does not have. The heights below are all derived from that so the canvas
+    // and the drawn elements cannot drift apart.
+    var CMP_HEAD_H = 50, CMP_ROW_H = 26, CMP_HEADROW_H = 26;
+    var SCORE_ROW_H = 44; // one row of the two-row modality strip
+    // breathing room under the strip divider so the first row is not flush
+    // against it; SCORE_H includes it so the radar below stays clear.
+    var STRIP_TOP_PAD = 16;
+    var TITLE_H = 70, HEAD_H = rival ? 72 : 64;
+    var SCORE_H = rival ? STRIP_TOP_PAD + SCORE_ROW_H + 42 : 40;
+    var RADAR_W = 520, RADAR_H = 420;
     var BEST_LINE_H = 22, FOOT_H = 42;
+    var cmpRows = rival ? compareRows(m, rival) : [];
+    var wins = 0, losses = 0, ties = 0;
+    cmpRows.forEach(function (r) {
+      if (r.d == null || r.d === 0) ties++;
+      else if (r.d > 0) wins++; else losses++;
+    });
+    var cmpH = rival && cmpRows.length
+      ? CMP_HEADROW_H + cmpRows.length * CMP_ROW_H + 14
+      : 0;
+    var extraHead = rival ? CMP_HEAD_H : 0;
 
     var canvas = document.createElement("canvas");
     var ctx = canvas.getContext("2d");
@@ -1133,7 +1513,10 @@
     var top3 = entries.slice(0, 3);
 
     var bestH = top3.length ? 20 + (top3.length + 1) * BEST_LINE_H : 0;
-    var cardH = HEAD_H + SCORE_H + RADAR_H + 12 + bestH;
+    // In compare mode "strongest pillars" for one model alone is misleading, so
+    // it is replaced by the head-to-head block rather than kept alongside it.
+    var bestBlockH = rival ? 0 : (top3.length ? 20 + (top3.length + 1) * BEST_LINE_H : 0);
+    var cardH = HEAD_H + extraHead + SCORE_H + RADAR_H + 12 + bestBlockH + cmpH;
     var W = PAD * 2 + CONTENT_W;
     var H = PAD + TITLE_H + cardH + FOOT_H + 14;
 
@@ -1155,7 +1538,10 @@
     ctx.fillText(" Benchmark", x0 + tw, y + 24);
     ctx.font = "600 12px " + FONT;
     ctx.fillStyle = C.muted;
-    ctx.fillText("Model Report \u00b7 Sinhala LLM evaluation across 15 pillars", x0, y + 46);
+    var exportSub = rival
+      ? "Comparison Report \u00b7 " + m.name + " vs " + rival.name
+      : "Model Report \u00b7 Sinhala LLM evaluation across 15 pillars";
+    ctx.fillText(exportSub, x0, y + 46);
     var stamp = state.updated || "";
     if (state.demo) stamp = (stamp ? stamp + " \u00b7 " : "") + "DEMO DATA";
     if (stamp) {
@@ -1187,40 +1573,99 @@
     ctx.font = "400 12px " + FONT;
     ctx.fillText(fitText(m.provider, CONTENT_W - 100), chipX + 42, chipY + 32);
 
-    // modality score strip: Text | Vision | Audio
-    var sy = y + HEAD_H;
+    // compare mode: the rival gets its own identity row, so a shared PNG is not
+    // ambiguous about which model is which once it is out of the app
+    if (rival) {
+      var ry2 = y + HEAD_H - 6;
+      ctx.fillStyle = C.border;
+      ctx.fillRect(x0 + 18, ry2 - 6, CONTENT_W - 36, 1);
+      var rchipX = x0 + 18, rchipY = ry2 + 4;
+      ctx.fillStyle = C.cmp2;
+      rrect(rchipX, rchipY, 4, 26, 2);
+      ctx.fill();
+      ctx.textAlign = "left";
+      ctx.fillStyle = C.text;
+      ctx.font = "800 14px " + FONT;
+      ctx.fillText(fitText(rival.name, CONTENT_W - 190), rchipX + 12, rchipY + 12);
+      ctx.fillStyle = C.muted;
+      ctx.font = "400 11px " + FONT;
+      ctx.fillText(fitText(rival.provider, CONTENT_W - 190), rchipX + 12, rchipY + 26);
+      ctx.textAlign = "right";
+      ctx.fillStyle = C.cmp2text;
+      ctx.font = "700 10px " + FONT;
+      ctx.fillText("COMPARED MODEL", x0 + CONTENT_W - 18, rchipY + 12);
+      ctx.textAlign = "left";
+    }
+
+    // modality score strip. In compare mode each model gets its own row, since a
+    // single shared row would make the two sets of modality numbers ambiguous.
+    var sy = y + HEAD_H + extraHead;
     ctx.fillStyle = C.border;
     ctx.fillRect(x0, sy - 8, CONTENT_W, 1);
-    var stats = [
-      ["Text", m.modalities.text],
-      ["Vision", m.modalities.vision], ["Audio", m.modalities.audio]
-    ];
-    var segW = CONTENT_W / stats.length;
-    stats.forEach(function (st, i) {
-      var midX = x0 + segW * i + segW / 2;
-      ctx.textAlign = "center";
-      ctx.fillStyle = C.text;
-      ctx.font = "800 15px " + FONT;
-      ctx.fillText(st[1] == null ? "\u2014" : st[1].toFixed(1), midX, sy + 16);
-      ctx.fillStyle = C.muted;
-      ctx.font = "700 9.5px " + FONT;
-      ctx.fillText(st[0].toUpperCase(), midX, sy + 31);
-    });
+    // both models have to carry the same three labels or the columns would not
+    // line up between the two score rows
+    var stats = ["Text", "Vision", "Audio"];
+    // in compare mode a label gutter sits on the left of the strip, so the three
+    // modality segments share only what is left of the card -- otherwise the
+    // first segment's centre lands underneath the model name
+    // the colour keys line up with the model identity text in the header
+    // (x0 + 30) and own the full gutter, so the columns below stay clear.
+    var STRIP_LABEL_X = x0 + 30;
+    var LABEL_GUTTER = rival ? 170 : 0;
+    var segW = (CONTENT_W - LABEL_GUTTER) / stats.length;
+    function scoreRow(model, rowY, label, labelColor) {
+      var vals = [model.modalities.text, model.modalities.vision, model.modalities.audio];
+      // a small colour key on the left ties the numbers back to the model, so a
+      // two-row strip still reads without counting columns
+      ctx.textAlign = "left";
+      if (label) {
+        var lx = STRIP_LABEL_X - x0, lw = LABEL_GUTTER - lx - 10;
+        ctx.save();
+        ctx.beginPath();
+        // the window only has to stop HORIZONTAL bleed, so it is given plenty
+        // of vertical room: a tight box here decapitates the label glyphs.
+        ctx.rect(STRIP_LABEL_X, rowY - 16, lw, 38);
+        ctx.clip(); // hard stop: the key can never paint under the numbers
+        ctx.fillStyle = labelColor;
+        ctx.font = "800 10px " + FONT;
+        // same baseline as the number, so the colour key reads as one line
+        ctx.fillText(fitText(label, lw), STRIP_LABEL_X, rowY + 16);
+        ctx.restore();
+      }
+      stats.forEach(function (st, i) {
+        var midX = x0 + LABEL_GUTTER + segW * i + segW / 2;
+        ctx.textAlign = "center";
+        ctx.fillStyle = C.text;
+        ctx.font = "800 15px " + FONT;
+        ctx.fillText(vals[i] == null ? "\u2014" : vals[i].toFixed(1), midX, rowY + 16);
+        ctx.fillStyle = C.muted;
+        ctx.font = "700 9.5px " + FONT;
+        ctx.fillText(st.toUpperCase(), midX, rowY + 31);
+      });
+    }
+    // single-model strip has no divider above its only row to pad away
+    var stripY = sy + (rival ? STRIP_TOP_PAD : 0);
+    scoreRow(m, stripY, rival ? m.name : "", C.red);
+    // the rival row is a fixed offset from the first (SCORE_ROW_H), not
+    // SCORE_H - 8: that old single-row offset pushed row 2 over row 1.
+    if (rival) scoreRow(rival, stripY + SCORE_ROW_H, rival.name, C.cmp2text);
 
     // radar chart: re-render offscreen at export scale, then blit 1:1 (crisp)
     var radarCv = document.createElement("canvas");
     radarCv.width = RADAR_W * SCALE;
     radarCv.height = RADAR_H * SCALE;
     radarCv._radarScale = SCALE;
-    drawRadar(radarCv, state.pillars, m);
+    drawRadar(radarCv, state.pillars, m, null, -1, null, rival);
     var rx = x0 + (CONTENT_W - RADAR_W) / 2, ry = sy + SCORE_H;
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.drawImage(radarCv, rx * SCALE, ry * SCALE);
     ctx.restore();
 
-    // strongest pillars list
-    if (top3.length) {
+    // Strongest pillars for a single model. In compare mode this is suppressed
+    // and the head-to-head block below takes its place: listing one model's best
+    // pillars inside a two-model report reads as a verdict on that model.
+    if (!rival && top3.length) {
       var by = ry + RADAR_H + 12;
       ctx.textAlign = "left";
       ctx.fillStyle = C.muted;
@@ -1233,6 +1678,86 @@
         ctx.fillText(fitText(e.p.title_en, CONTENT_W - 120), x0 + 18, ly);
         ctx.textAlign = "right";
         ctx.fillText(e.v.toFixed(1), x0 + CONTENT_W - 18, ly);
+        ctx.textAlign = "left";
+      });
+    }
+
+    // Per-pillar head-to-head: the detail the single-model report has no room
+    // for. Every pillar either model has a score for, the gap, and a two-colour
+    // bar drawn with the same inward-from-the-edge geometry as the on-screen one,
+    // so the PNG and the modal read identically.
+    if (rival && cmpRows.length) {
+      var hy = ry + RADAR_H + 14;
+      ctx.textAlign = "left";
+      ctx.fillStyle = C.muted;
+      ctx.font = "600 12px " + FONT;
+      ctx.fillText("Per-pillar head-to-head", x0 + 18, hy + 12);
+      ctx.textAlign = "right";
+      ctx.font = "700 11px " + FONT;
+      ctx.fillText(wins + " win \u00b7 " + losses + " loss \u00b7 " + ties + " tie",
+        x0 + CONTENT_W - 18, hy + 12);
+      ctx.textAlign = "left";
+
+      // columns: name | red score | track | blue score | gap chip. The 116px
+      // reserved on the right is the widest a score plus a 46px chip can need,
+      // so the blue number can never run under the chip. The name column is
+      // capped at NAME_W and the red score is right-aligned against the track,
+      // so the two only ever meet at a gap and never overlap.
+      var NAME_X = x0 + 18, NAME_W = 96;
+      var TRACK_X = x0 + 168, TRACK_W = CONTENT_W - 168 - 116;
+      var HALF = TRACK_W / 2, BAR_H = 7, CHIP_W = 46;
+      cmpRows.forEach(function (r, i) {
+        var ly = hy + CMP_HEADROW_H + i * CMP_ROW_H + 10;
+        var cls = r.d == null || r.d === 0 ? null : (r.d > 0 ? "win" : "lose");
+        var av = r.a == null ? "\u2014" : r.a.toFixed(1);
+        var bv = r.b == null ? "\u2014" : r.b.toFixed(1);
+
+        ctx.fillStyle = cls === "win" ? C.text : C.muted;
+        ctx.font = "700 11.5px " + FONT;
+        ctx.fillText(fitText(r.p.title_en, NAME_W), NAME_X, ly + 6);
+
+        ctx.fillStyle = "rgba(154,161,181,0.16)";
+        rrect(TRACK_X, ly, TRACK_W, BAR_H, BAR_H / 2);
+        ctx.fill();
+
+        var cw = compareWidths(r);
+        var aw = Math.min(cw.wa / 50, 1) * HALF;
+        var bw = Math.min(cw.wb / 50, 1) * HALF;
+        if (aw > 0) {
+          ctx.fillStyle = C.red;
+          rrect(TRACK_X, ly, aw, BAR_H, BAR_H / 2);
+          ctx.fill();
+        }
+        if (bw > 0) {
+          ctx.fillStyle = C.cmp2;
+          rrect(TRACK_X + TRACK_W - bw, ly, bw, BAR_H, BAR_H / 2);
+          ctx.fill();
+        }
+        ctx.fillStyle = C.card;
+        ctx.fillRect(TRACK_X + HALF - 0.5, ly, 1, BAR_H);
+
+        ctx.textAlign = "right";
+        ctx.fillStyle = C.red;
+        ctx.font = "800 11px " + FONT;
+        ctx.fillText(av, TRACK_X - 8, ly + 7);
+        // right-aligned against the track so the value sits in a fixed column
+        // no matter how many digits it has
+        ctx.textAlign = "right";
+        ctx.fillStyle = C.cmp2text;
+        ctx.fillText(bv, TRACK_X + TRACK_W + 46, ly + 7);
+        ctx.textAlign = "left";
+
+        var gd = r.d == null ? "\u2014"
+          : (r.d === 0 ? "0.0" : (r.d > 0 ? "+" : "\u2212") + Math.abs(r.d).toFixed(1));
+        ctx.textAlign = "center";
+        if (cls === "win") ctx.fillStyle = "rgba(46,158,91,0.18)";
+        else if (cls === "lose") ctx.fillStyle = "rgba(198,40,40,0.14)";
+        else ctx.fillStyle = "rgba(154,161,181,0.14)";
+        rrect(x0 + CONTENT_W - 18 - CHIP_W, ly - 3, CHIP_W, 14, 7);
+        ctx.fill();
+        ctx.fillStyle = cls === "win" ? C.good : (cls === "lose" ? C.red : C.muted);
+        ctx.font = "800 10px " + FONT;
+        ctx.fillText(gd, x0 + CONTENT_W - 18 - CHIP_W / 2, ly + 7.5);
         ctx.textAlign = "left";
       });
     }
@@ -1262,9 +1787,15 @@
               "assets/logos/" + logoFile + ".svg";
 
     function finish() {
-      var slug = m.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "model";
+      function slugify(t) {
+        return String(t).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+      }
+      // a comparison names both models, so the file on disk says what it is
+      var slug = slugify(m.name) || "model";
       var a = document.createElement("a");
-      a.download = "synhalees-" + slug + "-model.png";
+      a.download = rival
+        ? "synhalees-" + slug + "-vs-" + (slugify(rival.name) || "rival") + ".png"
+        : "synhalees-" + slug + "-model.png";
       try { a.href = canvas.toDataURL("image/png"); }
       catch (e) { alert("Export failed. If you opened this page via file://, try a local server instead."); return; }
       document.body.appendChild(a); // some browsers ignore .click() on detached anchors
@@ -1274,10 +1805,14 @@
   }
   // vertProg: per-vertex growth 0..1 (null = fully drawn). Vertices animate
   // one at a time -- lowest score first, so high scores travel furthest.
-  function drawRadar(canvas, pillars, model, vertProg, hoverIdx, pulseT) {
+  // other: optional second model drawn as a dashed sky-blue overlay polygon so
+  // two models can be read head-to-head on one chart. It shares the primary
+  // model's per-vertex progress (vp), so both shapes grow in sync.
+  function drawRadar(canvas, pillars, model, vertProg, hoverIdx, pulseT, other) {
     if (vertProg === undefined) vertProg = null;
     if (hoverIdx === undefined) hoverIdx = -1;
     if (pulseT === undefined) pulseT = null;
+    if (other === undefined) other = null;
     var ctx = canvas.getContext("2d");
     var scl = canvas._radarScale || 1; // PNG export renders at 2x; on-screen stays 1x
     if (scl !== 1) ctx.setTransform(scl, 0, 0, scl, 0, 0);
@@ -1298,6 +1833,9 @@
     // NOT a token: the dark ring is #10131c, darker than --navy-card (#262b3c),
     // so reading --navy-card here would have lightened every dark-theme edge.
     var dotRing = dark ? "#10131c" : rcv("--navy-card", "#ffffff");
+    // head-to-head overlay: its own token pair so the light theme stays legible
+    var cmp2 = rcv("--cmp-2", "#38bdf8");
+    var cmp2Fill = dark ? "rgba(56,189,248,0.12)" : "rgba(11,111,196,0.10)";
 
     // per-vertex progress (null input = all fully grown)
     var vp = [], progSum = 0;
@@ -1353,6 +1891,39 @@
     ctx.strokeStyle = dotRed;
     ctx.lineWidth = 2;
     ctx.stroke();
+
+    // head-to-head overlay polygon (dashed, no vertex dots of its own — the
+    // primary model's dots stay the only ones that pulse)
+    var verts2 = null;
+    if (other) {
+      ctx.beginPath();
+      for (var q = 0; q <= n; q++) {
+        var qi = q % n;
+        var qv = other.pillars[pillars[qi].slug];
+        var qf = (qv == null ? 0 : qv / 100) * vp[qi];
+        var qa = (Math.PI * 2 * q) / n - Math.PI / 2;
+        var qx = cx + Math.cos(qa) * R * qf, qy = cy + Math.sin(qa) * R * qf;
+        q === 0 ? ctx.moveTo(qx, qy) : ctx.lineTo(qx, qy);
+      }
+      ctx.closePath();
+      ctx.fillStyle = cmp2Fill;
+      ctx.fill();
+      ctx.save();
+      ctx.setLineDash([6, 4]);
+      ctx.strokeStyle = cmp2;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+
+      verts2 = [];
+      for (var z = 0; z < n; z++) {
+        var zv = other.pillars[pillars[z].slug];
+        var zf = (zv == null ? 0 : zv / 100) * vp[z];
+        var za = (Math.PI * 2 * z) / n - Math.PI / 2;
+        verts2.push({ x: cx + Math.cos(za) * R * zf, y: cy + Math.sin(za) * R * zf, v: zv });
+      }
+    }
+    canvas._radarVerts2 = verts2;
 
     // top-3 strongest pillar indices (get a gold pulse)
     var topSet = {};
@@ -1470,8 +2041,11 @@
       var tip = $("#radar-tip");
       if (hit >= 0) {
         var vt = verts[hit];
+        var oth = otherModel();
+        var v2 = oth && radarCanvas._radarVerts2 ? radarCanvas._radarVerts2[hit] : null;
         tip.innerHTML = "<strong>" + esc(vt.p.title_en) + "</strong><span>" +
-          (vt.v == null ? "No data" : vt.v.toFixed(1) + " / 100") + "</span>" +
+          (vt.v == null ? "No data" : vt.v.toFixed(1) + " / 100") +
+          (v2 ? " vs " + (v2.v == null ? "—" : v2.v.toFixed(1)) : "") + "</span>" +
           (vt.top ? "<em>Strongest pillar</em>" : "");
         tip.classList.toggle("gold", !!vt.top);
         tip.hidden = false;
@@ -1481,7 +2055,7 @@
         radarCanvas.style.cursor = "pointer";
         if (state.radarHover !== hit) {
           state.radarHover = hit;
-          drawRadar(radarCanvas, state.pillars, state.radarModel, null, hit);
+          redrawModalRadar();
         }
       } else {
         tip.hidden = true;
@@ -1489,7 +2063,7 @@
         radarCanvas.style.cursor = "";
         if (state.radarHover !== -1) {
           state.radarHover = -1;
-          drawRadar(radarCanvas, state.pillars, state.radarModel, null);
+          redrawModalRadar();
         }
       }
     });
@@ -1500,18 +2074,95 @@
       radarCanvas.style.cursor = "";
       if (state.radarHover !== -1 && state.radarModel) {
         state.radarHover = -1;
-        drawRadar(radarCanvas, state.pillars, state.radarModel, null);
+        redrawModalRadar();
       }
     });
 
-    $("#modal-close").addEventListener("click", function () { $("#modal").hidden = true; });
+    var cmpSearch = $("#modal-compare-search");
+    var cmpField = $("#modal-compare-field");
+    var cmpToggle = $("#modal-compare-btn");
+    if (cmpSearch) {
+      // opening the menu on focus keeps the field usable as a plain trigger:
+      // click it to browse, click away to dismiss, no hunting for a caret
+      cmpSearch.addEventListener("focus", function () {
+        setCompareListOpen(true);
+      });
+      cmpSearch.addEventListener("click", function () {
+        setCompareListOpen(true);
+      });
+      cmpSearch.addEventListener("input", function () {
+        // re-validates the pick, so a search that filters the current rival
+        // away also removes the overlay instead of stranding it
+        renderCompareList(cmpSearch.value);
+        if (state.radarOther && !compareListHas(cmpSearch.value, state.radarOther)) {
+          state.radarOther = null;
+        }
+        setCompareListOpen(true);
+        refreshCompare();
+      });
+      cmpSearch.addEventListener("input", syncCompareField);
+      // typing a name and pressing Enter should take the one remaining match
+      // rather than leaving the pick sitting on "None"
+      cmpSearch.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && cmpSearch.value) {
+          // a non-empty query belongs to the field, so Escape clears the field
+          // rather than throwing away the whole open card
+          e.stopPropagation();
+          cmpSearch.value = "";
+          syncCompareField();
+          renderCompareList("");
+          setCompareListOpen(true);
+          return;
+        }
+        if (e.key !== "Enter") return;
+        e.preventDefault();
+        var first = $("#modal-compare-list .cmp-row[data-name]");
+        if (first) pickCompare(first.getAttribute("data-name"));
+      });
+    }
+    // Outside click dismisses the menu. contains() rather than stopPropagation
+    // so clicks that land on the input or inside the list are ignored.
+    if (cmpField) {
+      document.addEventListener("click", function (e) {
+        var list = $("#modal-compare-list");
+        if (list && !list.hidden && !cmpField.contains(e.target) && !cmpToggle.contains(e.target)) {
+          setCompareListOpen(false);
+        }
+      });
+    }
+    if (cmpToggle) {
+      cmpToggle.addEventListener("click", function () {
+        setCompareOpen(!state.compareOpen);
+      });
+    }
+    // Clearing the text is a search reset, not a pick change: the rival stays
+    // selected and the list reopens showing every model again. Dropping the
+    // rival would be wrong, because emptying the box says nothing about
+    // wanting to stop comparing.
+    var cmpClear = $("#modal-compare-clear");
+    if (cmpClear) {
+      cmpClear.addEventListener("click", function (e) {
+        e.stopPropagation();
+        if (!cmpSearch) return;
+        cmpSearch.value = "";
+        syncCompareField();
+        renderCompareList("");
+        setCompareListOpen(true);
+        cmpSearch.focus();
+      });
+    }
+
+    $("#modal-close").addEventListener("click", closeModal);
     $("#modal-export").addEventListener("click", function () { exportModalPNG(state.radarModel); });
     $("#modal").addEventListener("click", function (e) {
-      if (e.target === $("#modal")) $("#modal").hidden = true;
+      if (e.target === $("#modal")) closeModal();
     });
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape") {
-        $("#modal").hidden = true;
+        // the menu is the innermost layer: close it before the modal
+        var cl = $("#modal-compare-list");
+        if (cl && !cl.hidden) { setCompareListOpen(false); return; }
+        closeModal();
         var cp = $("#compare-picker");
         if (cp) cp.hidden = true;
         var mf2 = $("#model-filter");

@@ -214,7 +214,7 @@
     return Math.round(v).toLocaleString("en-US");
   }
 
-  var state = { models: [] };
+  var state = { models: [], updated: "", demo: false };
   var barRects = [];   // hit-test rects for the current frame
 
   function visibleModels() {
@@ -382,7 +382,8 @@
     // .chart-wrap scrolls, anything drawn here travels with the bars and the
     // attribution would slide out of view, so the pinned .chart-wm DOM element
     // takes over instead (CSS shows it only for .is-scrollable).
-    if (W <= availW) {
+    var wmOn = W <= availW && !(opts && opts.noWm);
+    if (wmOn) {
       var wmX = W - padR, wmY = 13;
       ctx.font = "600 12px Inter, sans-serif";
       ctx.textAlign = "right";
@@ -402,7 +403,7 @@
         ctx.arc(wmX - benchW - synW - 9, wmY, 3.5, 0, Math.PI * 2);
         ctx.fill();
       }
-    } else {
+    } else if (W > availW) {
       brandImg();                          // warm the cache for the DOM <img>
       var wmImg = document.querySelector(".chart-wm-mark");
       if (wmImg && !wmImg.getAttribute("src")) {
@@ -740,7 +741,8 @@
     // anything drawn here travels with the points, so the pinned .chart-wm DOM
     // element (a sibling of the scroller) takes over instead. The two are
     // mutually exclusive, so the brand can never appear twice.
-    if (W <= availW) {
+    var wmOn = W <= availW && !(opts && opts.noWm);
+    if (wmOn) {
       var wmX = W - padR, wmY = 14;
       ctx.font = "600 12px Inter, sans-serif";
       ctx.textAlign = "right";
@@ -762,7 +764,7 @@
       }
       // reserve the watermark band so no model name is printed over the brand
       labelBoxes.push({ x0: wmX - benchW - synW - 24, x1: wmX + 2, y0: 1, y1: 23 });
-    } else {
+    } else if (W > availW) {
       brandImg();                          // warm the cache for the DOM <img>
       var wmImg = document.querySelector(".chart-wm-mark");
       if (wmImg && !wmImg.getAttribute("src")) {
@@ -1005,8 +1007,12 @@
   }
   /* ---------- PNG export ---------- */
 
-  // Renders the current chart view (same filters + highlight as on screen)
-  // onto an offscreen canvas with the section background and a title line.
+  // Renders the current chart view (same filters + highlight as on screen) onto
+  // the shared report template: the same page background, brand block, rounded
+  // card and footer the model report and head-to-head exports already use, so
+  // every PNG the site produces looks like one family.
+  // The chart canvas itself is transparent (both views clearRect), so it is
+  // blitted onto the filled card and picks up the card colour for free.
   // file:// pages taint any canvas that drew a local SVG/PNG image, so on a
   // SecurityError we retry with placeholder dots instead of brand images.
   function exportChartPNG() {
@@ -1014,45 +1020,111 @@
     if (!src || !state.models.length) return;
     var dpr = window.devicePixelRatio || 1;
     var W = src.parentElement.clientWidth, H = 460;
-    var padX = 24 * dpr, padT = 18 * dpr, titleH = 30 * dpr, padB = 16 * dpr;
+
+    var FONT = "'Inter', 'Noto Sans Sinhala', system-ui, sans-serif";
+    var PAD = 36, TITLE_H = 70, CARD_PAD = 14, FOOT_H = 42, RADIUS = 12;
+    var C = {
+      bg: cssVar("--navy-deep") || "#1d2230",
+      card: cssVar("--navy-card") || "#262b3c",
+      text: cssVar("--text") || "#eef0f6",
+      muted: cssVar("--muted") || "#9aa1b5",
+      red: cssVar("--red-bright") || "#e53935"
+    };
+
+    // same ellipsis rule as app.js: a long scope line is trimmed by real text
+    // width so it can never run under the date stamp on the right
+    function clipText(c, t, maxW) {
+      if (c.measureText(t).width <= maxW) return t;
+      while (t.length > 1 && c.measureText(t + "\u2026").width > maxW) t = t.slice(0, -1);
+      return t + "\u2026";
+    }
+    function rrect(c, x, y, w, h, r) {
+      c.beginPath();
+      c.moveTo(x + r, y);
+      c.arcTo(x + w, y, x + w, y + h, r);
+      c.arcTo(x + w, y + h, x, y + h, r);
+      c.arcTo(x, y + h, x, y, r);
+      c.arcTo(x, y, x + w, y, r);
+      c.closePath();
+    }
 
     function buildPng(skipImgs) {
+      // noWm drops the chart's in-canvas top-right watermark: the frame draws
+      // the brand block itself, so keeping both would print it twice
       var chartC = document.createElement("canvas");
       draw({
         canvas: chartC, width: W, height: H, dpr: dpr, noImgs: skipImgs,
-        bg: cssVar("--navy") || "#2b3044", hover: null
+        noWm: true, bg: C.card, hover: null
       });
-      var c = document.createElement("canvas");
-      c.width = chartC.width + padX * 2;
-      c.height = chartC.height + padT + titleH + padB;
-      var ctx = c.getContext("2d");
-      ctx.fillStyle = cssVar("--navy") || "#2b3044";
-      ctx.fillRect(0, 0, c.width, c.height);
-      var shown = visibleModels();
-      if (st.view === "bar" && st.barM !== "score") {
-        shown = shown.filter(function (m) { return barVal(m) != null; });
-      }
-      var title;
+
+      // scope line + honest model counts, same wording the old header used
+      var shown = visibleModels(), scope;
       if (st.view === "pareto") {
         shown = paretoRows();
-        title = "SynhalEES \u2014 Pareto Frontier \u00b7 " + METRIC_LABEL[st.metric] +
-          " score vs " + PX_LABEL[st.px] + " \u00b7 " +
-          shown.length + " of " + poolSize() + " models";
+        scope = "Pareto Frontier \u00b7 " + METRIC_LABEL[st.metric] +
+          " score vs " + PX_LABEL[st.px];
       } else {
-        title = "SynhalEES \u2014 " + METRIC_LABEL[st.metric] + " Comparison" +
-          (st.barM === "score" ? "" : " \u00b7 " + PX_LABEL[st.barM]) +
-          " \u00b7 " + shown.length + " of " + poolSize() + " models";
+        if (st.barM !== "score") shown = shown.filter(function (m) { return barVal(m) != null; });
+        scope = METRIC_LABEL[st.metric] + " Comparison" +
+          (st.barM === "score" ? "" : " \u00b7 " + PX_LABEL[st.barM]);
       }
+      var sub = "Model Comparison \u00b7 " + scope + " \u00b7 " +
+        shown.length + " of " + poolSize() + " models";
       var feat = featuredName();
       if (feat && shown.some(function (m) { return m.name === feat; })) {
-        title += " \u00b7 Featured: " + feat;
+        sub += " \u00b7 Featured: " + feat;
       }
-      ctx.fillStyle = cssVar("--text") || "#eef0f6";
-      ctx.font = "700 " + Math.round(15 * dpr) + "px Inter, sans-serif";
+      var stamp = state.updated || "";
+      if (state.demo) stamp = (stamp ? stamp + " \u00b7 " : "") + "DEMO DATA";
+
+      var cardW = W + CARD_PAD * 2;
+      var cardH = H + CARD_PAD * 2;
+      var frameW = PAD * 2 + cardW;
+      var frameH = PAD + TITLE_H + cardH + FOOT_H + 14;
+
+      var c = document.createElement("canvas");
+      c.width = frameW * dpr;
+      c.height = frameH * dpr;
+      var ctx = c.getContext("2d");
+      ctx.scale(dpr, dpr);   // frame geometry below is written in CSS pixels
+      ctx.textBaseline = "alphabetic";
+
+      // page background + brand block (identical to the other two exports)
+      ctx.fillStyle = C.bg;
+      ctx.fillRect(0, 0, frameW, frameH);
+      var x0 = PAD, y = PAD;
       ctx.textAlign = "left";
-      ctx.textBaseline = "middle";
-      ctx.fillText(title, padX, padT + titleH / 2);
-      ctx.drawImage(chartC, padX, padT + titleH);
+      ctx.font = "800 22px " + FONT;
+      ctx.fillStyle = C.red;
+      ctx.fillText("SynhalEES", x0, y + 24);
+      var tw = ctx.measureText("SynhalEES").width;
+      ctx.fillStyle = C.text;
+      ctx.fillText(" Benchmark", x0 + tw, y + 24);
+      ctx.font = "600 12px " + FONT;
+      ctx.fillStyle = C.muted;
+      var stampW = stamp ? ctx.measureText(stamp).width + 28 : 0;
+      ctx.fillText(clipText(ctx, sub, frameW - PAD * 2 - stampW), x0, y + 46);
+      if (stamp) {
+        ctx.textAlign = "right";
+        ctx.fillText(stamp, x0 + cardW, y + 46);
+        ctx.textAlign = "left";
+      }
+      y += TITLE_H;
+
+      // rounded card, then the chart inset by CARD_PAD so the card corners show
+      ctx.fillStyle = C.card;
+      rrect(ctx, x0, y, cardW, cardH, RADIUS);
+      ctx.fill();
+      ctx.drawImage(chartC, x0 + CARD_PAD, y + CARD_PAD, W, H);
+
+      // footer
+      ctx.fillStyle = C.muted;
+      ctx.font = "600 11px " + FONT;
+      ctx.textAlign = "left";
+      ctx.fillText("SynhalEES Benchmark" + (state.demo ? " \u00b7 demo data" : ""),
+        x0, y + cardH + 28);
+      ctx.textAlign = "right";
+      ctx.fillText("github.com/SynhalaAI/SynhalEES-Benchmark", x0 + cardW, y + cardH + 28);
       return c.toDataURL("image/png");
     }
 
@@ -1327,6 +1399,9 @@
 
   function start(lb) {
     state.models = (lb && lb.models) || [];
+    // the report frame stamps the data date + demo marker, exactly like app.js
+    state.updated = (lb && lb.updated) || "";
+    state.demo = !!(lb && lb.demo);
     if (!state.models.length) { $("#chart-section").hidden = true; return; }
     buildControls();
     bindTooltip();

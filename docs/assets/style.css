@@ -922,19 +922,51 @@ a {
   background: var(--navy-card);
   border: 1px solid var(--border);
   border-radius: 16px;
-  padding: 24px;
+  /* Top padding moved onto the title below: the toolbar has to sit flush in
+     the scroll content so it can stick, and sticky cannot reach into padding. */
+  padding: 0 24px 24px;
   max-width: 600px;
   width: 100%;
   position: relative;
   box-shadow: var(--shadow);
+  /* Compare mode adds a searchable list plus a 15-row head-to-head table, so
+     the card outgrows a short viewport. Cap it and scroll the card itself:
+     without this the centred flex clips BOTH ends and the title and the
+     strongest-pillars block become unreachable. */
+  max-height: calc(100vh - 40px);
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
-/* close + export reuse the .btn outline/hover (same look as the All /
-   compare buttons); here we only square them off and position them */
+/* Sticky header: the model name on the left, close / compare / export on the
+   right. Sticking keeps the controls reachable while the card body scrolls -
+   the close button is the primary way out, so losing it to a scroll would be
+   a regression - and it also keeps the card labelled at every scroll depth.
+
+   This is a real row rather than the zero-height strip it used to be, with the
+   buttons floating above the content. The card body scrolls, so a transparent
+   header lets rows slide *under* the buttons and collide with the scores and
+   delta chips printed beside them; an opaque header is what stops that. */
+.modal-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 10px 0;
+  background: var(--navy-card);
+  border-bottom: 1px solid var(--border);
+}
+
+/* close + compare + export reuse the .btn outline/hover (same look as the
+   All / compare buttons); here we only square them off and line them up along
+   the card's right edge. */
 .modal-close,
+.modal-compare-btn,
 .modal-export {
-  position: absolute;
-  top: 10px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -944,26 +976,49 @@ a {
   color: var(--muted);
 }
 
-.modal-close {
-  right: 14px;
+/* same red accent the Models filter button wears while a filter is live */
+.modal-compare-btn.on {
+  color: var(--red-bright);
+  border-color: var(--red-bright);
 }
 
-.modal-export {
-  top: 46px;
-  /* stacked under the close button */
-  right: 14px;
+/* nothing to compare against (a single-model leaderboard) */
+.modal-compare-btn:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+.modal-compare-btn:disabled:hover {
+  color: var(--muted);
+  border-color: var(--border);
 }
 
 .modal-close .icon,
+.modal-compare-btn .icon,
 .modal-export .icon {
   width: 18px;
   height: 18px;
   vertical-align: 0;
 }
 
+/* The model name sits in the sticky header, left of the buttons, so the card
+   you are reading is always labelled - even halfway down a scrolled list of
+   pillars. flex:1 pushes the three buttons to the right edge; min-width:0 is
+   what lets the ellipsis actually engage on a long name. */
+.modal-toolbar > #modal-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
 .modal-sub {
   color: var(--muted);
-  margin-top: -6px;
+  margin-top: 10px;
 }
 
 #radar {
@@ -1236,7 +1291,14 @@ a {
 }
 
 /* respect reduced-motion settings */
-@media (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: reduce)
+  /* the sweep is decoration, so it is dropped outright rather than shortened */
+  .modal-diff .diff-row.sweep .dbar i.a,
+  .modal-diff .diff-row.sweep .dbar i.b,
+  .modal-diff .diff-row.sweep .dbar::after {
+    animation: none !important;
+    transform: none !important;
+  } {
 
   *,
   *::before,
@@ -2384,13 +2446,10 @@ thead th.cmp-featured {
   }
 
   .modal-card {
-    padding: 18px 16px;
-    /* never taller than the viewport: the card scrolls internally instead of
-       clipping the radar chart on a short screen */
+    /* matches the base rule; .modal is padded 12px here, hence -24px */
+    padding: 0 16px 18px;
     max-height: calc(100vh - 24px);
     max-height: calc(100dvh - 24px);
-    overflow-y: auto;
-    overscroll-behavior: contain;
   }
 }
 
@@ -2428,17 +2487,14 @@ thead th.cmp-featured {
 
   /* 30px square is a mouse target, not a finger one */
   .modal-close,
+  .modal-compare-btn,
   .modal-export {
     width: 44px;
     height: 44px;
-    right: 8px;
-  }
-
-  .modal-export {
-    top: 54px;
   }
 
   .modal-close .icon,
+  .modal-compare-btn .icon,
   .modal-export .icon {
     width: 20px;
     height: 20px;
@@ -2512,4 +2568,502 @@ thead th.cmp-featured {
   .site-footer {
     padding-bottom: max(18px, env(safe-area-inset-bottom));
   }
+}
+
+/* ---------- model comparison (modal) ----------
+   The second model's radar overlay uses its own token pair so the light theme
+   gets a legible blue instead of inheriting the dark-theme step. */
+:root {
+  --cmp-2: #38bdf8;
+  --cmp-2-text: #7dd3fc;
+  --cmp-2-hi: #bae6fd;
+}
+
+[data-theme="light"] {
+  --cmp-2: #0b6fc4;
+  --cmp-2-text: #0a5fa8;
+  --cmp-2-hi: #38bdf8;
+}
+
+/* Collapsed until the toolbar button opens it, and laid out as a column: a
+   search box above the select, because a long leaderboard makes scrolling a
+   native dropdown a poor way to find one rival. The label and the match count
+   share a head row, the same shape as .pk-head in the picker sheets. */
+.modal-compare {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0 6px;
+}
+
+.modal-compare[hidden] {
+  display: none;
+}
+
+.modal-compare-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.modal-compare-head label {
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.modal-compare-count {
+  font-size: .75rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.modal-compare-search {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.modal-compare-search:focus {
+  outline: none;
+  border-color: var(--red-bright);
+}
+
+/* An input is always :focus-visible once focused, so the border change above
+   already carries the state. A second 2px outline stacked into a thick red halo,
+   so focus is signalled with a soft ring hugging the same border instead. */
+.modal-compare-search:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 1px var(--navy), 0 0 0 3px rgba(229, 57, 53, .28);
+}
+
+/* The results sit in a visible, scrollable list. .pk-list supplies the
+   overflow and padding so the control matches the picker sheets elsewhere in
+   the page; the cap keeps a long leaderboard from pushing the radar out of
+   the card. */
+.modal-compare-field {
+  position: relative;
+}
+
+/* The results are a popover anchored to the field, not an in-flow block: they
+   overlay the radar instead of pushing it down, and they dismiss on the first
+   click anywhere outside, the way every other dropdown here already behaves. */
+.modal-compare-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 210px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--navy-card);
+  box-shadow: var(--shadow);
+}
+
+.modal-compare-list[hidden] {
+  display: none;
+}
+
+/* Chrome paints its own blue "x" for type=search, and blue appears nowhere in
+   this theme. Hide it and use the themed clear button below instead. */
+.modal-compare-search::-webkit-search-cancel-button,
+.modal-compare-search::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+
+.modal-compare-clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.modal-compare-clear[hidden] {
+  display: none;
+}
+
+.modal-compare-clear .icon {
+  width: 13px;
+  height: 13px;
+}
+
+.modal-compare-clear:hover {
+  background: var(--row-alt);
+  color: var(--red-bright);
+}
+
+.modal-compare-clear:focus-visible {
+  outline: 2px solid var(--red-bright);
+  outline-offset: 1px;
+}
+
+/* The chevron and the clear glyph occupy the same corner, so exactly one of
+   them is shown at a time. */
+.modal-compare-field.has-value .modal-compare-chevron {
+  display: none;
+}
+
+.modal-compare-chevron {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  color: var(--muted);
+  /* decorative only: a click on it must still reach the input beneath */
+  pointer-events: none;
+}
+
+.modal-compare-chevron .icon {
+  width: 15px;
+  height: 15px;
+}
+
+.modal-compare-search {
+  padding-right: 34px;
+}
+
+.cmp-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 9px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: .85rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cmp-row:hover {
+  background: var(--row-alt);
+}
+
+.cmp-row:focus-visible {
+  outline: 2px solid var(--red-bright);
+  outline-offset: -2px;
+}
+
+/* the active rival, matching the red overlay drawn on the radar */
+.cmp-row.on {
+  background: rgba(229, 57, 53, .14);
+  color: var(--red-bright);
+  font-weight: 700;
+}
+
+/* "None" is the resting state, not a pick. It gets its own neutral selected
+   look, because the red accent must mean one thing only: this model is the
+   one overlaid on the radar. A red "None" reads as an error/warning state. */
+.cmp-row-none {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.cmp-row-none.on {
+  background: var(--row-alt);
+  color: var(--text);
+  font-style: normal;
+  font-weight: 600;
+}
+
+.cmp-row-logo {
+  display: inline-flex;
+  flex: none;
+}
+
+.cmp-row-logo img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+[data-theme="dark"] .cmp-row-logo img,
+[data-theme]:not([data-theme="light"]) .cmp-row-logo img {
+  background: #ffffff;
+  border-radius: 4px;
+  padding: 1px;
+}
+
+.cmp-row-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmp-row-score {
+  flex: none;
+  font-size: .78rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.cmp-row.on .cmp-row-score {
+  color: var(--red-bright);
+}
+
+.cmp-empty {
+  padding: 14px 10px;
+  font-size: .85rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.radar-legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: .78rem;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.radar-legend[hidden] {
+  display: none;
+}
+
+.radar-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 48%;
+}
+
+.radar-legend i {
+  width: 12px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--red-bright);
+  flex: none;
+}
+
+.radar-legend i.c2 {
+  background: var(--cmp-2);
+}
+
+.radar-legend span.c2 {
+  color: var(--cmp-2-text);
+}
+
+.modal-diff {
+  margin-top: 12px;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  font-size: .85rem;
+}
+
+.modal-diff[hidden] {
+  display: none;
+}
+
+.modal-diff .diff-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.modal-diff .diff-head em {
+  font-style: normal;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: .78rem;
+}
+
+.modal-diff .diff-row {
+  /* stagger index for the one-shot bar sweep, set inline by renderCompareUI */
+  --i: 0;
+  padding: 5px 0;
+  color: var(--muted);
+}
+
+/* title + delta on the top line, the tug-of-war bar on the one below */
+.modal-diff .diff-row .dtop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.modal-diff .diff-row .dn {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.modal-diff .diff-row .dbot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.modal-diff .diff-row .d1,
+.modal-diff .diff-row .d2 {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  min-width: 40px;
+  font-size: .8rem;
+}
+
+.modal-diff .diff-row .d1 {
+  color: var(--red-bright);
+  text-align: right;
+}
+
+.modal-diff .diff-row .d2 {
+  color: var(--cmp-2-text);
+  text-align: left;
+}
+
+/* The bar: each side fills inward from its own edge toward the centre, so the
+   two colours meet head-on and the longer fill wins the pillar. The tick is the
+   line they are fighting over. */
+.modal-diff .dbar {
+  position: relative;
+  flex: 1;
+  height: 8px;
+  min-width: 60px;
+  border-radius: 999px;
+  background: rgba(154, 161, 181, .16);
+  overflow: hidden;
+}
+
+.modal-diff .dbar::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--navy-card);
+  opacity: .85;
+}
+
+.modal-diff .dbar i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: block;
+}
+
+.modal-diff .dbar i.a {
+  left: 0;
+  border-radius: 999px 0 0 999px;
+  background: var(--red-bright);
+}
+
+.modal-diff .dbar i.b {
+  right: 0;
+  border-radius: 0 999px 999px 0;
+  background: var(--cmp-2);
+}
+
+/* One-shot reveal: both fills grow out of their own edge and meet at the
+   centre tick, so the row reads as a tug-of-war being decided rather than two
+   numbers appearing. scaleX is used instead of animating width, which would
+   relayout every row on every frame; each side grows from its own origin, and
+   the winner simply arrives first because its final length is longer. */
+@keyframes cmp-sweep-a {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes cmp-sweep-b {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/* Each row animates on its own when it scrolls into view (see playBarSweep), so
+   the class is on the row rather than the list. Rows revealed in the same
+   moment still cascade a little, via --i, so a batch arriving together reads
+   as one gesture instead of a flat snap. The stagger is capped in JS, because
+   with a per-row trigger an uncapped index would leave a late row waiting on a
+   delay it can never see. */
+.modal-diff .diff-row.sweep .dbar i.a,
+.modal-diff .diff-row.sweep .dbar i.b {
+  transform: scaleX(0);
+  animation-duration: 520ms;
+  animation-timing-function: cubic-bezier(.22, .68, .32, 1);
+  animation-fill-mode: both;
+  animation-delay: calc(var(--i, 0) * 35ms);
+}
+
+.modal-diff .diff-row.sweep .dbar i.a {
+  transform-origin: left center;
+  animation-name: cmp-sweep-a;
+}
+
+.modal-diff .diff-row.sweep .dbar i.b {
+  transform-origin: right center;
+  animation-name: cmp-sweep-b;
+}
+
+/* The centre tick draws in just ahead of the fills, which is what makes the two
+   colours look like they are meeting on it rather than crossing it. */
+@keyframes cmp-tick-in {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+.modal-diff .diff-row.sweep .dbar::after {
+  transform-origin: center;
+  animation: cmp-tick-in 220ms ease-out both;
+  animation-delay: calc(var(--i, 0) * 35ms);
+}
+
+/* the side that took the pillar glows a little, so a scan down the list picks
+   out the wins without reading a single number */
+.modal-diff .diff-row.win .dbar i.a,
+.modal-diff .diff-row.lose .dbar i.b {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .25) inset;
+}
+
+.modal-diff .diff-row .dd {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  min-width: 52px;
+  text-align: right;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: .78rem;
+  background: rgba(154, 161, 181, .14);
+  color: var(--muted);
+}
+
+.modal-diff .diff-row.win .dd {
+  background: rgba(46, 158, 91, .18);
+  color: var(--good);
+}
+
+.modal-diff .diff-row.lose .dd {
+  background: rgba(198, 40, 40, .14);
+  color: var(--red-bright);
 }
