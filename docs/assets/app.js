@@ -18,6 +18,7 @@
     sortKey: "score",
     sortDir: -1,
     search: "",
+    provider: "",            // "" = all organizations, else a provider name
     typeFilter: "",
     hidden: {},             // model names unchecked in the Models filter dropdown
     bootAnim: true          // first-load entrance animations
@@ -149,6 +150,7 @@
       if (scoreOf(m) == null) return false;
       if (state.typeFilter === "open" && !m.open_source) return false;
       if (state.typeFilter === "proprietary" && m.open_source) return false;
+      if (state.provider && m.provider !== state.provider) return false;
       return true;
     });
     rows.sort(function (a, b) {
@@ -175,6 +177,22 @@
       return (va - vb) * state.sortDir;
     });
     return rows;
+  }
+
+  // Populate the organization <select> from the loaded models, exactly like the
+  // chart section does for #chart-provider (chart.js). Sorted alphabetically, and
+  // each option carries the model count, so you can see how big each org is
+  function buildProviderFilter() {
+    var sel = $("#provider-select");
+    if (!sel) return;
+    var provs = {};
+    state.models.forEach(function (m) { provs[m.provider] = (provs[m.provider] || 0) + 1; });
+    Object.keys(provs).sort().forEach(function (p) {
+      var opt = document.createElement("option");
+      opt.value = p;
+      opt.textContent = p + " (" + provs[p] + ")";
+      sel.appendChild(opt);
+    });
   }
 
   function scoreLabel() {
@@ -734,8 +752,11 @@
   // exactly what the on-screen table shows (tab + pillar + search + Models
   // filter + sort order all respected via tableRows()).
   function exportTablePNG() {
-    var rows = tableRows();
-    if (!rows.length) return;
+    var allRows = tableRows();
+    if (!allRows.length) return;
+    // the PNG is a shareable snapshot, so it shows only the top 10 rows of the
+    // current view (filters/sort already applied) instead of the full table
+    var rows = allRows.slice(0, 10);
     var scoreLbl = scoreLabel();
 
     var cs = getComputedStyle(document.documentElement);
@@ -749,6 +770,9 @@
     var FONT = "'Inter', 'Noto Sans Sinhala', system-ui, sans-serif";
     var PAD = 36, SCALE = 2; // 2x for high-DPI / social-media quality
     var TITLE_H = 70, HEAD_H = 42, ROW_H = 46, FOOT_H = 42;
+    // left inset inside a cell, mirroring the live .lb-table th/td padding so
+    // the left-aligned Model/Provider headers and cells share one edge
+    var PAD_X = 14;
 
     var canvas = document.createElement("canvas");
     var ctx = canvas.getContext("2d");
@@ -811,7 +835,12 @@
     ctx.fillText(" Benchmark", x0 + tw, y + 24);
     ctx.font = "600 12px " + FONT;
     ctx.fillStyle = C.muted;
-    ctx.fillText("LLM Leaderboard \u00b7 " + scoreLbl + " \u00b7 " + rows.length + " of " + state.models.length + " models", x0, y + 46);
+    // "Top N of M" whenever the cap actually hides rows, so the snapshot is never
+    // mistaken for the full leaderboard
+    var countLbl = (allRows.length > rows.length)
+      ? "Top " + rows.length + " of " + allRows.length + " models"
+      : rows.length + " of " + state.models.length + " models";
+    ctx.fillText("LLM Leaderboard \u00b7 " + scoreLbl + " \u00b7 " + countLbl, x0, y + 46);
     var stamp = state.updated || "";
     if (state.demo) stamp = (stamp ? stamp + " \u00b7 " : "") + "DEMO DATA";
     if (stamp) {
@@ -2023,6 +2052,14 @@
       renderTable();
     });
 
+    var provSel = $("#provider-select");
+    if (provSel) {
+      provSel.addEventListener("change", function (e) {
+        state.provider = e.target.value;
+        renderTable();
+      });
+    }
+
     var typeSel = $("#type-select");
     if (typeSel) {
       typeSel.addEventListener("change", function (e) {
@@ -2311,6 +2348,7 @@
     renderPillarGrid();
     state.featured = state.models.length ? state.models[0].name : "";
     state.compare = state.models.slice(1, CMP_MIN).map(function (m) { return m.name; });
+    buildProviderFilter();
     buildModelFilter();
     buildComparePicker();
     renderCompare();
