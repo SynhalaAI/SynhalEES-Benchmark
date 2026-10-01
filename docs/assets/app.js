@@ -339,8 +339,12 @@
 
   var CMP_MIN = 3, CMP_MAX = 6;
 
-  function compareRows() {
-    var rows = [
+  // Rows for the on-screen Head-to-Head section table (modalities + 15 pillars).
+  // Deliberately NOT named compareRows: that name belongs to the two-model
+  // head-to-head builder below, and two same-named top-level functions in one
+  // scope hoist over each other -- renderCompare() was silently calling the
+  // two-arg version with no rival and throwing, which left the table empty.
+  function compareTableRows() {    var rows = [
       { group: "Modalities" },
       { label: "Text", sub: "All 15 pillars, text-only",
         get: function (m) { return m.modalities.text; } },
@@ -374,7 +378,7 @@
       state.models.forEach(function (m) { if (m.name === n) models.push(m); });
     });
     tbl.classList.toggle("has-featured", !!featModel);
-    var rows = compareRows();
+    var rows = compareTableRows();
     var wins = {}; // honest row-win counts — never altered
 
     models.forEach(function (m) { wins[m.name] = 0; });
@@ -478,7 +482,7 @@
       state.models.forEach(function (m) { if (m.name === n) models.push(m); });
     });
     if (models.length < 2) return;
-    var rows = compareRows();
+    var rows = compareTableRows();
 
     // honest row-win counts (identical logic to renderCompare)
     var wins = {};
