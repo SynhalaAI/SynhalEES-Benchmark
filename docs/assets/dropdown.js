@@ -48,6 +48,11 @@
     var menu = dd.querySelector(".pillar-dd-menu");
     if (!btn || !menu) return;
     if (open) {
+      // Self-heal: the <select> is the source of truth, and its options can be
+      // rewritten after this menu was built (chart.js populates the chart selects
+      // in JS). Rebuilding here is a handful of DOM nodes and makes the popover
+      // correct whatever order things ran in.
+      if (dd.__sel) refresh(dd.__sel);
       menu.hidden = false;
       btn.setAttribute("aria-expanded", "true");
       // flip up only when the capped list genuinely will not fit below
