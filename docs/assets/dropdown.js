@@ -206,14 +206,33 @@
     });
   }
 
+  // chart.js appends its options to the chart selects in JS, and it loads after
+  // this file, so the first build of those menus happens against an empty
+  // <select> and the popover opens with no rows. Watching the option list means
+  // the menu is rebuilt the moment an option appears, whatever the load order.
+
+  function watchOptions(sel) {
+    if (!window.MutationObserver || !sel) return;
+    var mo = new MutationObserver(function () {
+      if (!sel.__dd) return;
+      var wasOpen = isOpen(sel.__dd);
+      refresh(sel);
+      // keep an open menu open (and repositioned) when its rows appear
+      if (wasOpen) setOpen(sel.__dd, true);
+    });
+    mo.observe(sel, { childList: true, subtree: true });
+    sel.__mo = mo;
+  }
+
   function init() {
     var nodes = document.querySelectorAll(SELECTOR);
     Array.prototype.forEach.call(nodes, function (sel) {
       all.push(enhance(sel));
+      watchOptions(sel);
     });
 
-    // chart.js populates several of these in JS after load, so keep every label
-    // and selection marker in step with whatever the <select> currently holds
+    // keep every trigger label and selection marker in step with whatever the
+    // <select> holds, including value writes made by app.js and chart.js
     document.addEventListener("change", function () { syncLabels(); }, true);
 
     document.addEventListener("click", function (e) {
