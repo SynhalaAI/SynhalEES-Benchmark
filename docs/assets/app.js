@@ -869,9 +869,24 @@
     var countLbl = (allRows.length > rows.length)
       ? "Top " + rows.length + " of " + allRows.length + " models"
       : rows.length + " of " + state.models.length + " models";
-    ctx.fillText("LLM Leaderboard \u00b7 " + scoreLbl + " \u00b7 " + countLbl, x0, y + 46);
+    // name the filters that shaped this snapshot, so a shared PNG can never be
+    // mistaken for the unfiltered leaderboard (mirrors the chart export notes)
+    var notes = [];
+    if (state.provider) notes.push(state.provider + " only");
+    if (state.typeFilter === "open") notes.push("Open Source only");
+    if (state.typeFilter === "proprietary") notes.push("Proprietary only");
+    if (state.search) notes.push("search \u201c" + state.search + "\u201d");
+    var hiddenN = 0;
+    for (var hk in state.hidden) { if (state.hidden[hk]) hiddenN++; }
+    if (hiddenN) notes.push(hiddenN + " model" + (hiddenN === 1 ? "" : "s") + " hidden");
+    var sub = "LLM Leaderboard \u00b7 " + scoreLbl + " \u00b7 " + countLbl;
+    if (notes.length) sub += " \u00b7 " + notes.join(" \u00b7 ");
     var stamp = state.updated || "";
     if (state.demo) stamp = (stamp ? stamp + " \u00b7 " : "") + "DEMO DATA";
+    // a long filter note is trimmed by real text width so it can never run under
+    // the date stamp on the right (same rule as the chart export)
+    var stampW = stamp ? ctx.measureText(stamp).width + 28 : 0;
+    ctx.fillText(fitText(sub, tableW - PAD * 2 - stampW), x0, y + 46);
     if (stamp) {
       ctx.textAlign = "right";
       ctx.fillText(stamp, x0 + tableW, y + 46);

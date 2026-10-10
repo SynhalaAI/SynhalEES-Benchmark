@@ -1070,6 +1070,14 @@
       }
       var sub = "Model Comparison \u00b7 " + scope + " \u00b7 " +
         shown.length + " of " + poolSize() + " models";
+      // name the filters that shaped this snapshot so a shared image cannot be
+      // mistaken for the unfiltered chart (the count alone hides WHICH filter)
+      var fn = [];
+      if (st.provider) fn.push(st.provider + " only");
+      if (st.type === "open") fn.push("Open Source only");
+      if (st.type === "proprietary") fn.push("Proprietary only");
+      if (st.selected) fn.push(Math.min(Object.keys(st.selected).length, MAX_BARS) + " picked");
+      if (fn.length) sub += " \u00b7 " + fn.join(" \u00b7 ");
       var feat = featuredName();
       if (feat && shown.some(function (m) { return m.name === feat; })) {
         sub += " \u00b7 Featured: " + feat;
