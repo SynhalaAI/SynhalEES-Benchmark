@@ -338,9 +338,10 @@ def cmd_kaggle_pull(a):
         for i, f in enumerate(picked, 1):
             name = task_name_for(f)
             if not force and _task_is_cached(name):
-                n = len(list((KG_RESULTS / name).rglob("*.result.json")))
+                t_dir = KG_RESULTS / name
+                n = len(list(t_dir.rglob("*.result.json")) + list(t_dir.rglob("*.run.json")))
                 print(f"[{i}/{len(picked)}] skipping {name} "
-                      f"(cached: {n} result(s); --force to re-download)")
+                      f"(cached: {n} artifact(s); --force to re-download)")
                 skipped += 1
                 continue
             print(f"[{i}/{len(picked)}] pulling {name} -> {KG_RESULTS.relative_to(ROOT)}/")
@@ -367,8 +368,9 @@ def cmd_kaggle_pull(a):
         return 1 if failed else 0
     name = resolve_task_name(task)
     if not force and _task_is_cached(name):
-        n = len(list((KG_RESULTS / name).rglob("*.result.json")))
-        print(f"skipping {name} (cached: {n} result(s); --force to re-download)")
+        t_dir = KG_RESULTS / name
+        n = len(list(t_dir.rglob("*.result.json")) + list(t_dir.rglob("*.run.json")))
+        print(f"skipping {name} (cached: {n} artifact(s); --force to re-download)")
         return 0
     rc = sh([kaggle_bin(), "b", "t", "download", name, "-o", str(KG_RESULTS), *args])
     if not rc:
