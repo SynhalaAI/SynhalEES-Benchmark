@@ -98,8 +98,8 @@ hand-edit `docs/assets/data/*` - it is generated. See
 
 Kaggle Benchmarks runs store their artifacts server-side; pull them into the
 dedicated outputs folder with
-`kaggle b t download <task-slug> -o kaggle-results`. Download output never
-lands in the repo root (`runs/` is ignored; `kaggle-results/` is the committed
+`kaggle b t download <task-slug> -o kaggle/results`. Download output never
+lands in the repo root (`runs/` is ignored; `kaggle/results/` is the committed
 Kaggle run archive).
 
 ### 3. Issues, ideas & questions

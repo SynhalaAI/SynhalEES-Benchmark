@@ -103,7 +103,7 @@ pages. **This file is generated - never edit it by hand.**
 ## 🧹 Output Hygiene (nothing lands in the repo root)
 
 Every command that produces files must target a dedicated outputs folder
-(`runs/` is gitignored; `kaggle-results/` is committed as the Kaggle run archive). The repo root keeps only the tracked top-level files listed
+(`runs/` is gitignored; `kaggle/results/` is committed as the Kaggle run archive). The repo root keeps only the tracked top-level files listed
 in `STRUCTURE.md` -- no scratch `.txt` / `.log` / `.csv` dumps, ever.
 
 | output | folder | produced by |
@@ -111,21 +111,21 @@ in `STRUCTURE.md` -- no scratch `.txt` / `.log` / `.csv` dumps, ever.
 | local benchmark runs | `runs/<model-slug>/` | `synhalees run ...` (defaults) |
 | cross-run scorecard + matrix | `runs/all_submissions.csv` | `synhalees compare` |
 | Kaggle task files | `kaggle/tasks/` (tracked) | `synhalees kaggle gen` |
-| Kaggle Benchmarks artifacts (raw runs, tracked) | `kaggle-results/<task>/` | `synhalees kaggle pull <task>` (the `-o` is forced) |
-| Slim scorecard exports (KB, Colab-downloadable) | `kaggle-results/*.slim.csv` (**tracked**, lightweight records) | `synhalees kaggle slim-export <task>` on Colab; `slim-import <file>` at home (no download) |
-| Colab slim-export notebook | `kaggle/colab_slim_export.ipynb` (tracked helper) | free-Colab pull + slim-export; download only the slim CSV |
+| Kaggle Benchmarks artifacts (temp download, auto-cleaned) | `kaggle/results/.temp/` | `synhalees kaggle download <task>` (downloads to .temp, merges into slim CSV, deletes temp) |
+| Scorecard exports (KB, Colab-downloadable) | `kaggle/results/*.slim.csv` (**tracked**, lightweight records) | `synhalees kaggle download <task>` on Colab; `submit <file>` at home (no download) |
+| Colab export notebook | `kaggle/colab_slim_export.ipynb` (tracked helper) | free-Colab download; download only the slim CSV |
 
-- **`slim-export` merges, it never truncates.** It keys rows by
+- **`download` merges, it never truncates.** It keys rows by
   `(model, pillar, modality)` and writes them into the *existing* slim CSV, so a
-  filtered pull (Colab `PROVIDER = 'gemini'`) updates the gemini rows and keeps
-  the claude rows an earlier full pull wrote -- a filtered export must never drop
-  another provider's scores. Use `--replace` for a deliberate clean rebuild.
+  filtered download (Colab `PROVIDER = 'gemini'`) updates the gemini rows and keeps
+  the claude rows an earlier full download wrote -- a filtered download must never drop
+  another provider's scores. Use `--force` to re-download.
   Output order is sorted by `(model, pillar, modality)`, so the file is stable
   across runs.
-- **Home-internet saver (Colab flow).** Pulls are heavy (tens of MB per run: `*.run.json` carries base64 media). On metered internet, do the pull on free Colab with `kaggle/colab_slim_export.ipynb`, `slim-export` the KB-sized `*.slim.csv`, download ONLY that file, and run `synhalees kaggle slim-import <file>` at home (zero Kaggle download). Schema drift rule: `slim-export`/`slim-import` share the `EXT_HEADER` schema (`model,provider,date,pillar,modality,score,cost_usd,tokens,latency_ms`) and the pillar/task mapping in `synhalees/cli.py` with `kaggle import` -- if you change that schema or mapping, you MUST review the notebook cells 3-4 (row order + header) in the same change.
+- **Home-internet saver (Colab flow).** Downloads are heavy (tens of MB per run: `*.run.json` carries base64 media). On metered internet, do the download on free Colab with `kaggle/colab_slim_export.ipynb` (which produces the KB-sized `*.slim.csv`), download ONLY that file, and run `synhalees kaggle submit <file>` at home (zero Kaggle download). Schema drift rule: `download`/`submit` share the `EXT_HEADER` schema (`model,provider,date,pillar,modality,score,cost_usd,tokens,latency_ms`) and the pillar/task mapping in `synhalees/cli.py` -- if you change that schema or mapping, you MUST review the notebook cells 3-4 (row order + header) in the same change.
 - **`kaggle b t download` writes into the current directory when `-o` is
-  omitted -- always pass `-o kaggle-results`** (`synhalees kaggle pull <task>`
-  forces it for you). `synhalees kaggle pull all` downloads only the **15 text
+  omitted -- always pass `-o kaggle/results`** (`synhalees kaggle download <task>`
+  forces it for you). `synhalees kaggle download all` downloads only the **15 text
   tasks** by default (~145MB); the heavy vision/audio artifacts (~730MB) need an
   explicit `--modality vision|audio|all` - combinations like
   `--modality 'vision|audio'` pull both without the text tasks (the Colab notebook
@@ -137,9 +137,9 @@ in `STRUCTURE.md` -- no scratch `.txt` / `.log` / `.csv` dumps, ever.
   host prefix, turns `@` into `-`, then strips the trailing `-default` /
   `-YYYYMMDD` marker, so every slug lands on one identity --
   `submissions/anthropic/claude/claude-opus-5.csv`, never
-  `claude-opus-5-default.csv`. It is applied on every import / slim-export, and
+  `claude-opus-5-default.csv`. It is applied on every submit, and
   `Registry.adopt_legacy_scorecards()` renames any pre-fix scorecard (plus its
-  model column, CRLF preserved) onto the canonical name so a re-import updates
+  model column, CRLF preserved) onto the canonical name so a re-submit updates
   that file instead of creating a duplicate model. It skips the rename when the
   canonical twin already exists or the pair sits in different families -- never
   overwrite a current file. The build keys the leaderboard on the CSV's `model`
@@ -147,7 +147,7 @@ in `STRUCTURE.md` -- no scratch `.txt` / `.log` / `.csv` dumps, ever.
   models -- rename both together. The date pin lives in
   `models.json` `display_names` only (`claude-opus-5` -> "Claude Opus 5").
   The same rule applies to the raw run folders Kaggle writes under
-  `kaggle-results/<task>/<version>/<model>/<run-id>/`: they are renamed by
+  `kaggle/results/<task>/<version>/<model>/<run-id>/`: they are renamed by
   `normalize_pulled_runs()`, which every pull path calls on success, so a fresh
   download never leaves a legacy folder beside the canonical one (colliding
   canonical names merge their run folders instead of clobbering them).
@@ -192,4 +192,4 @@ in `STRUCTURE.md` -- no scratch `.txt` / `.log` / `.csv` dumps, ever.
 - [ ] New models/providers registered in `synhalees/models.json` (taxonomy, display names, colors)
 - [ ] `submissions/**/*.csv` changes regenerate `docs/assets/data/*` (`python tools/build_leaderboard.py --check` passes)
 - [ ] Sinhala text is valid UTF-8 with diacritics preserved
-- [ ] No new files at the repo root (run outputs -> `runs/`, Kaggle pulls -> `kaggle-results/`)
+- [ ] No new files at the repo root (run outputs -> `runs/`, Kaggle pulls -> `kaggle/results/`)

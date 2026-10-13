@@ -152,10 +152,10 @@ synhalees kaggle run synhalees-audio -m gemini-2.5-flash
 synhalees kaggle status synhalees-audio
 synhalees kaggle logs synhalees-audio -m gemini-2.5-flash
 
-# 5. Download results & import into local leaderboard
-synhalees kaggle pull all                    # default: the 15 text tasks only (~145MB)
-synhalees kaggle pull all --modality all     # + vision & audio (~730MB more; or vision | audio alone)
-synhalees kaggle import synhalees-audio
+# 5. Download results & submit into local leaderboard
+synhalees kaggle download all                    # default: the 15 text tasks only (~145MB)
+synhalees kaggle download all --modality all     # + vision & audio (~730MB more; or vision | audio alone)
+synhalees kaggle submit synhalees-audio
 ```
 
 ### Per-model run folders

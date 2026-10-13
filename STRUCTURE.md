@@ -52,12 +52,12 @@ SynhalEES/
 │   ├── env.py                                 # Kaggle/Local environment detector
 │   └── runner.py                              # Checkpointed runner + SynhalEESBenchmark (resume-safe)
 │
-├── kaggle/                                      # Kaggle Benchmarks tasks (optional leaderboard path)
+├── kaggle/                                      # Kaggle Benchmarks tasks & results
+│   ├── colab_slim_export.ipynb                  # Colab export notebook (tracked helper)
 │   ├── generate_tasks.py                        # regenerates the 17 task files
 │   ├── synhalees_task.py                        # all-in-one master task (15 pillars, text)
-│   └── tasks/                                   # 17 generated (see drift rule below): 15 pillars (text) + vision + audio
-│
-├── kaggle-results/                              # Kaggle pulls: raw run artifacts + *.slim.csv slim records (committed archive)
+│   ├── tasks/                                   # 17 generated: 15 pillars (text) + vision + audio
+│   └── results/                                 # Kaggle pulls: *.slim.csv slim records (committed archive)
 │
 ├── logo/                                        # Brand assets (logo & cover art)
 │   ├── logo.png                                 # Primary logo
@@ -110,7 +110,6 @@ SynhalEES/
 │       └── leaderboard.yml                     # Fails when docs/assets/data/* drifts from submissions/ (--check)
 │
 ├── runs/                                      # Gitignored: one folder per model (checkpoint.jsonl, submission.csv, meta.json)
-├── kaggle-results/                            # COMMITTED: Kaggle Benchmarks pulls (kaggle b t download -o kaggle-results/<task>/<ver>/<model>/<run-id>/)
 ├── submissions/                                 # COMMITTED: published site data source (<vendor>/<family>/<model>.csv)
 │   ├── README.md                                  # scorecard schema + publication rules
 │   └── google/gemini/*.csv                        # per-model published scorecard CSVs
@@ -252,7 +251,7 @@ Its only data source is a committed folder of per-model scorecards.
 
 ```text
 runs/<model-slug>/submission.csv              # local run scorecard -- gitignored
-kaggle-results/<task>/<ver>/<model>/<run>/    # Kaggle Benchmarks pull -- committed
+kaggle/results/<task>.slim.csv                # Kaggle Benchmarks slim records -- committed
         |
         |  copy the scorecard, renamed after the model slug
         v
@@ -290,11 +289,12 @@ Rules:
 6. **Only publishable runs.** No numbers produced with a personal or paid API
    key that the project cannot re-verify or publish.
 
-7. **Kaggle pulls.** Kaggle Benchmarks artifacts are downloaded into the
-   `kaggle-results/` folder (`kaggle b t download <task-slug> -o
-   kaggle-results`) -- never the repo root. Each run exposes only an overall
-   score, so a task scoped to one pillar maps to one scorecard row;
+7. **Kaggle pulls.** Kaggle Benchmarks artifacts are downloaded into a temporary
+   `kaggle/results/.temp/` folder, scores are extracted and merged into
+   `kaggle/results/<task>.slim.csv`, then the temp folder is auto-deleted.
+   Each run exposes only an overall score, so a task scoped to one pillar maps
+   to one scorecard row;
 
-8. **Colab slim-export flow (metered internet).** `kaggle/colab_slim_export.ipynb` (tracked) runs the heavy pull on free Colab, then `synhalees kaggle slim-export <task>` writes a KB-sized `kaggle-results/<task>.slim.csv`; download ONLY that file home and run `synhalees kaggle slim-import <file>` (no Kaggle download, then `synhalees build`). Drift rule: the notebook mirrors the `EXT_HEADER` schema and pillar/task mapping in `synhalees/cli.py` -- any change to that schema or mapping MUST review notebook cells 3-4 in the same change (see AGENTS.md).
+8. **Colab export flow (metered internet).** `kaggle/colab_slim_export.ipynb` (tracked) runs the heavy download on free Colab, where `synhalees kaggle download <task>` writes a KB-sized `kaggle/results/<task>.slim.csv`; download ONLY that file home and run `synhalees kaggle submit <file>` (no Kaggle download, then `synhalees build`). Drift rule: the notebook mirrors the `EXT_HEADER` schema and pillar/task mapping in `synhalees/cli.py` -- any change to that schema or mapping MUST review notebook cells 3-4 in the same change (see AGENTS.md).
    multi-pillar (vision/audio) tasks cannot be split per pillar yet (see
    `submissions/README.md`).

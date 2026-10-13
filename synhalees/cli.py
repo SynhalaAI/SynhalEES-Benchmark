@@ -5,11 +5,11 @@ One entry point for the whole workflow (stdlib only):
     synhalees run --model ollama:llama3.1:8b --pillars 01_buddhist_culture
     synhalees compare | build [--check|--demo] | logos [--check] | check
     synhalees publish <model-slug>
-    synhalees kaggle gen|push|run|status|logs|publish|pull|import|slim-export|slim-import
+    synhalees kaggle gen|push|run|status|logs|publish|download|submit
 
 Install with `pip install -e .` (console script `synhalees`); also runs as
 `python -m synhalees` from a checkout. Output hygiene: local runs land in
-`runs/<model-slug>/`, Kaggle artifacts in `kaggle-results/` -- never the repo
+`runs/<model-slug>/`, Kaggle artifacts in `kaggle/results/` -- never the repo
 root (AGENTS.md "Output Hygiene").
 """
 
@@ -30,7 +30,7 @@ RUNS = ROOT / "runs"
 from synhalees.registry import canonical_model_slug, default_registry
 
 SUBMISSIONS = ROOT / "submissions"
-KG_RESULTS = ROOT / "kaggle-results"
+KG_RESULTS = ROOT / "kaggle" / "results"
 TASKS_DIR = ROOT / "kaggle" / "tasks"
 HEADER = ["model", "provider", "date", "pillar", "modality", "score"]
 # Kaggle imports add usage telemetry (optional; local runs may omit it).
@@ -308,10 +308,10 @@ def cmd_kaggle_status(a):
                     if mod in model_tasks[m]:
                         model_tasks[m][mod] += 1
         if not model_tasks:
-            print("no benchmark results found in kaggle-results/*.slim.csv")
+            print("no benchmark results found in kaggle/results/*.slim.csv")
             return 0
         hdr = "%-30s %-16s %-10s %-10s" % ("Model", "Text (of 15)", "Vision", "Audio")
-        print(f"Benchmark Coverage ({len(model_tasks)} model(s) in kaggle-results/):")
+        print(f"Benchmark Coverage ({len(model_tasks)} model(s) in kaggle/results/):")
         print(hdr)
         print("-" * len(hdr))
         for m, stat in sorted(model_tasks.items()):
@@ -340,7 +340,7 @@ def _pull_single_to_slim(name, extra_args=(), slug_override=None):
     """Download one task into .temp/, extract scores into slim CSV, clean up.
 
     Flow: kaggle download → .temp/<task>/ → normalize → collect results
-          → merge into kaggle-results/<task>.slim.csv → verify → rm .temp/<task>/
+          → merge into kaggle/results/<task>.slim.csv → verify → rm .temp/<task>/
     Returns 0 on success, 1 on failure.
     """
     temp_dir = KG_RESULTS / ".temp"
@@ -428,7 +428,7 @@ def cmd_kaggle_pull(a):
         cli_mod = getattr(a, "modality", None)
         modality = parse_modality(cli_mod) if cli_mod else ("text",)
     if "-o" in args or "--output" in args:
-        raise SystemExit("drop -o: artifacts always go to kaggle-results/ (repo hygiene)")
+        raise SystemExit("drop -o: artifacts always go to kaggle/results/ (repo hygiene)")
     if task in (None, "all"):
         files = sorted(TASKS_DIR.glob("*.py"))
         if not files:
@@ -448,25 +448,25 @@ def cmd_kaggle_pull(a):
                       f"(cached: {n_models} model(s) in {slim_f.name}; --force to re-download)")
                 skipped += 1
                 continue
-            print(f"[{i}/{len(picked)}] pulling {name} -> slim CSV")
+            print(f"[{i}/{len(picked)}] downloading {name} -> slim CSV")
             rc = _pull_single_to_slim(name, extra_args=args)
             if rc:
                 failed.append(name)
         pulled = len(picked) - skipped - len(failed)
         parts = []
         if pulled:
-            parts.append(f"pulled {pulled}")
+            parts.append(f"downloaded {pulled}")
         if skipped:
             parts.append(f"skipped {skipped} (cached)")
         if failed:
             parts.append(f"failed {len(failed)}")
-            print(f"pull failed for {len(failed)} task(s): {', '.join(failed)}")
+            print(f"download failed for {len(failed)} task(s): {', '.join(failed)}")
         print(f"{', '.join(parts)} [{'|'.join(modality)}] task(s) -> {KG_RESULTS.relative_to(ROOT)}/*.slim.csv")
         if skipped and not force:
             print("hint: --force to re-download cached tasks")
         if sel == {"text"}:
             print("note: vision+audio skipped by default (~730MB more) - "
-                  "add --modality 'vision|audio' (or vision / audio / all) to pull them")
+                  "add --modality 'vision|audio' (or vision / audio / all) to download them")
         return 1 if failed else 0
     name = resolve_task_name(task)
     if not force and _task_is_cached(name):
@@ -474,7 +474,7 @@ def cmd_kaggle_pull(a):
         n_models = len(load_slim_rows(slim_f))
         print(f"skipping {name} (cached: {n_models} model(s) in {slim_f.name}; --force to re-download)")
         return 0
-    print(f"pulling {name} -> slim CSV")
+    print(f"downloading {name} -> slim CSV")
     return _pull_single_to_slim(name, extra_args=args)
 
 
@@ -657,14 +657,34 @@ def expand_import_tasks(arg):
 
 
 def cmd_kaggle_import(a):
-    """Import one task (auto-pulls when missing), or 'all' tasks (local only).
+    """Import slim CSVs, raw task folders, or a .csv file -> submissions/*.csv.
 
+    Accepts: task slug, all/text/vision/audio, or a .csv file path.
     Checks slim CSVs first (modern path), then raw folders (legacy).
     'all' never downloads: tasks without local data are skipped.
     """
-    key = str(a.task).lower()
+    key = str(a.task)
+    # Direct .csv file path -> slim-import path
+    if key.endswith(".csv") or Path(key).suffix == ".csv":
+        src = Path(key)
+        if not src.is_file() and not src.is_absolute():
+            candidate = KG_RESULTS / key
+            if candidate.is_file():
+                src = candidate
+            elif (KG_RESULTS / f"{key}").is_file():
+                src = KG_RESULTS / key
+        count = import_single_slim(src)
+        print(f"imported {count} row(s) from {src.name}")
+        if getattr(a, "build", False):
+            code = rebuild_and_check()
+            if not code:
+                print("import done: commit submissions/*.csv with docs/assets/data/*")
+            return code
+        print("hint: run 'synhalees build' to regenerate docs/assets/data/*")
+        return 0
+    key = key.lower()
     if key in ("all", "text", "vision", "audio"):
-        if a.slug:
+        if getattr(a, "slug", None):
             raise SystemExit("--slug cannot be used with import all/text/vision/audio")
         names = expand_import_tasks(key)
         failed, skipped, done = [], [], 0
@@ -675,19 +695,20 @@ def cmd_kaggle_import(a):
             has_raw = t_dir.is_dir() and (any(t_dir.rglob("*.result.json")) or any(t_dir.rglob("*.run.json")))
             if not has_slim and not has_raw:
                 print(f"[{i}/{len(names)}] skipping {slug} (no local data; "
-                      f"pull first: synhalees kaggle pull {slug})")
+                      f"download first: synhalees kaggle download {slug})")
                 skipped.append(slug)
                 continue
             if has_slim and not has_raw:
-                # Slim-only: use slim-import path directly
-                print(f"[{i}/{len(names)}] importing {slug} (from slim CSV)")
+                # Slim-only: import directly from CSV
+                print(f"[{i}/{len(names)}] importing {slug} (from CSV)")
                 rc = import_single_slim(slim_f)
                 if rc:
                     done += 1
                 continue
             print(f"[{i}/{len(names)}] importing {slug}")
             rc = cmd_kaggle_import(argparse.Namespace(
-                task=slug, slug=None, dry_run=a.dry_run, no_pull=True, build=False, _in_batch=True))
+                task=slug, slug=None, dry_run=getattr(a, "dry_run", False),
+                no_pull=True, build=False, _in_batch=True))
             if rc:
                 failed.append(slug)
             else:
@@ -695,7 +716,7 @@ def cmd_kaggle_import(a):
         if failed:
             print(f"import failed for {len(failed)} task(s): {', '.join(failed)}")
             return 1
-        if not a.dry_run:
+        if not getattr(a, "dry_run", False):
             print(f"imported {done} Kaggle task(s)" +
                   (f"; skipped {len(skipped)} with no local data: " +
                    ", ".join(skipped) if skipped else ""))
@@ -720,7 +741,7 @@ def cmd_kaggle_import(a):
         _note_normalized(slug, normalize_pulled_runs(slug))
         newest = collect_task_results(task_dir)
     if not newest:
-        raise SystemExit(f"no artifacts (*.result.json / *.run.json) under {task_dir} (synhalees kaggle pull {slug})")
+        raise SystemExit(f"no artifacts under {task_dir} (synhalees kaggle download {slug})")
     if a.slug and len(newest) > 1:
         raise SystemExit(f"--slug needs exactly one model; found {', '.join(sorted(newest))}")
     planned = []
@@ -805,7 +826,7 @@ def cmd_kaggle_slim_export(a):
 def load_slim_rows(path):
     """Existing slim-CSV rows keyed by (model, pillar, modality); {} when absent.
 
-    slim-export merges into this so a filtered pull (PROVIDER = 'gemini') never
+    export merges into this so a filtered pull (PROVIDER = 'gemini') never
     drops the rows an earlier full pull wrote for the other providers.
     """
     if not Path(path).is_file():
@@ -824,7 +845,7 @@ def load_slim_rows(path):
 
 
 def import_single_slim(src: Path) -> int:
-    """Import rows from a single slim CSV file into submissions/."""
+    """Import rows from a single CSV file into submissions/."""
     if not src.is_file():
         raise SystemExit(f"slim file not found: {src}")
     with open(src, newline="", encoding="utf-8-sig") as fh:
@@ -877,7 +898,7 @@ def cmd_kaggle_slim_import(a):
     if getattr(a, "build", False):
         code = rebuild_and_check()
         if not code:
-            print("slim-import done: commit submissions/*.csv with docs/assets/data/*")
+            print("import done: commit submissions/*.csv with docs/assets/data/*")
         return code
     print("\nhint: run 'synhalees build' to regenerate docs/assets/data/*")
     return 0
@@ -934,18 +955,8 @@ def build_parser():
     p.add_argument("task")
     p.add_argument("args", nargs=argparse.REMAINDER, help="extra flags for kaggle b t publish")
     p.set_defaults(func=cmd_kaggle_publish)
-    p = ks.add_parser("slim-export", help="newest result per model -> tiny CSV (Colab: download only this)")
-    p.add_argument("task", help="task slug (e.g. synhalees-05-sinhala-grammar)")
-    p.add_argument("--slug", default=None, help="force the model slug (single model only)")
-    p.add_argument("-o", "--output", default=None, help="output CSV path (default: kaggle-results/<task>.slim.csv)")
-    p.add_argument("--replace", action="store_true",
-                   help="rebuild from scratch instead of merging into an existing slim CSV")
-    p.set_defaults(func=cmd_kaggle_slim_export)
-    p = ks.add_parser("slim-import", help="slim CSV -> submissions/*.csv (home PC, no download)")
-    p.add_argument("file", nargs="?", default="all", help="slim CSV path or 'all' (default: all *.slim.csv in kaggle-results/)")
-    p.add_argument("--build", action="store_true", help="auto-rebuild leaderboard data after importing (default: off; run 'synhalees build' when ready)")
-    p.set_defaults(func=cmd_kaggle_slim_import)
-    p = ks.add_parser("pull", help="download Kaggle artifacts -> .temp/ -> merge into slim CSVs (auto-cleanup)")
+    p = ks.add_parser("download", aliases=["pull"],
+                      help="download Kaggle artifacts -> .temp/ -> merge into slim CSVs (auto-cleanup)")
     p.add_argument("task", nargs="?", default="all", help="task slug or 'all' (default: all)")
     p.add_argument("--modality", default=None,
                    help="modality filter for 'all': text (default, 15 tasks ~145MB) | "
@@ -955,12 +966,14 @@ def build_parser():
                    help="re-download even if artifacts are already cached locally")
     p.add_argument("args", nargs=argparse.REMAINDER, help="extra flags, e.g. -m <model>")
     p.set_defaults(func=cmd_kaggle_pull)
-    p = ks.add_parser("import", help="import tasks -> submissions/*.csv (single pulls when missing; all/text/vision/audio use local artifacts only, skip the rest)")
-    p.add_argument("task", nargs="?", default="all", help="task slug, or all/text/vision/audio (default: all)")
+    p = ks.add_parser("submit", aliases=["import"],
+                      help="submit slim CSVs or raw tasks -> submissions/*.csv for leaderboard")
+    p.add_argument("task", nargs="?", default="all",
+                   help="task slug, all/text/vision/audio, or a .csv file path (default: all)")
     p.add_argument("--slug", default=None, help="force the model slug (single model only)")
     p.add_argument("--dry-run", action="store_true", help="print the rows, write nothing")
-    p.add_argument("--no-pull", action="store_true", help="use local artifacts only")
-    p.add_argument("--build", action="store_true", help="auto-rebuild leaderboard data after importing (default: off; run 'synhalees build' when ready)")
+    p.add_argument("--no-pull", dest="no_pull", action="store_true", help="use local artifacts only")
+    p.add_argument("--build", action="store_true", help="auto-rebuild leaderboard data after submitting (default: off; run 'synhalees build' when ready)")
     p.set_defaults(func=cmd_kaggle_import)
     return top
 
@@ -968,7 +981,7 @@ def build_parser():
 # Subcommands whose flags belong to the underlying tool: their argv is
 # forwarded raw (argparse REMAINDER cannot swallow tokens that start with '-').
 _FWD = {"run": cmd_run, "compare": cmd_compare, "build": cmd_build, "logos": cmd_logos}
-_KFWD = {"run": cmd_kaggle_run, "logs": cmd_kaggle_logs, "pull": cmd_kaggle_pull}
+_KFWD = {"run": cmd_kaggle_run, "logs": cmd_kaggle_logs, "download": cmd_kaggle_pull, "pull": cmd_kaggle_pull}
 
 
 def main(argv=None):

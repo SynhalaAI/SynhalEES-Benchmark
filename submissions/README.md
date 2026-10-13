@@ -1,4 +1,4 @@
-﻿# `submissions/` — published leaderboard sources
+# `submissions/` — published leaderboard sources
 
 One CSV per model. This folder is the **committed source of truth** for the
 public leaderboard in `docs/`, and `tools/build_leaderboard.py` reads it by
@@ -29,7 +29,7 @@ gemini-3.5-flash,gemini,2026-09-24,05_sinhala_grammar,text,86.7
 Those results live on Kaggle, not in this repo. Pull the artifacts first:
 
 ```bash
-kaggle b t download <task-slug> -o kaggle-results     # raw runs + *.slim.csv both tracked in kaggle-results/
+kaggle b t download <task-slug> -o kaggle/results     # raw runs + *.slim.csv both tracked in kaggle/results/
 ```
 
 Each run yields `result.json` (overall 0-1 score), `run.json` (aggregated score
@@ -41,7 +41,7 @@ per-pillar breakdown**. Because a row here needs a pillar, map accordingly:
 - multi-pillar tasks (vision/audio) only report one overall number, so their
   score cannot be split per pillar on the site yet.
 
-On metered internet use the Colab flow instead of a home pull: open `kaggle/colab_slim_export.ipynb` on Colab (free internet), pull + `slim-export` there, download ONLY the KB-sized `*.slim.csv`, then at home run `synhalees kaggle slim-import <file>` (no Kaggle download; writes the same rows; run `synhalees build` when ready).
+On metered internet use the Colab flow instead of a home download: open `kaggle/colab_slim_export.ipynb` on Colab (free internet), download there to generate the KB-sized `*.slim.csv`, download ONLY that file, then at home run `synhalees kaggle submit <file>` (no Kaggle download; writes the same rows; run `synhalees build` when ready).
 
 Use `provider=kaggle` and the Kaggle model slug as `model` (e.g.
 `gemini-3.7-flash`); `tools/build_leaderboard.py` infers the brand (Google)
