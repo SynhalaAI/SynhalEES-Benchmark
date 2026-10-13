@@ -1428,14 +1428,37 @@
 
     // same filter box as the leaderboard model filter: narrows the list live
     var search = $("#chart-picker-search");
+    var searchClear = $("#chart-picker-clear");
+    function syncChartClear() {
+      if (searchClear) searchClear.hidden = !search || search.value.length === 0;
+    }
     if (search) {
       search.addEventListener("input", function () {
         var q = search.value.trim().toLowerCase();
         Array.prototype.forEach.call(list.querySelectorAll(".pk-item"), function (it) {
           it.hidden = !!q && it.textContent.toLowerCase().indexOf(q) === -1;
         });
+        syncChartClear();
+      });
+      search.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && search.value) {
+          e.preventDefault();
+          search.value = "";
+          search.dispatchEvent(new Event("input"));
+        }
       });
     }
+    if (searchClear) {
+      searchClear.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!search) return;
+        search.value = "";
+        search.dispatchEvent(new Event("input"));
+        search.focus();
+      });
+    }
+    syncChartClear();
 
     updatePickerCount();
 

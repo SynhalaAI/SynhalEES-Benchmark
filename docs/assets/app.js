@@ -507,6 +507,8 @@
     Array.prototype.forEach.call(items, function (it) {
       it.hidden = !!q && it.textContent.toLowerCase().indexOf(q) === -1;
     });
+    var clear = $("#compare-picker-clear");
+    if (clear) clear.hidden = !s || s.value.length === 0;
   }
 
   /* ---------- PNG export (canvas-rendered, dependency-free, safe on file://) ---------- */
@@ -1221,6 +1223,9 @@
     });
     updateModelFilterCount();
     syncLbStars();
+    // keep an active search across All/None rebuilds (same as compare picker)
+    var mfS = $("#model-filter-search");
+    if (mfS && mfS.value) mfS.dispatchEvent(new Event("input"));
   }
 
   function updateModelFilterCount() {
@@ -2424,7 +2429,27 @@
         renderCompare();
       });
       var cpSearch = $("#compare-picker-search");
-      if (cpSearch) cpSearch.addEventListener("input", filterCompareList);
+      if (cpSearch) {
+        cpSearch.addEventListener("input", filterCompareList);
+        cpSearch.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && cpSearch.value) {
+            e.preventDefault();
+            cpSearch.value = "";
+            filterCompareList();
+          }
+        });
+      }
+      var cpClear = $("#compare-picker-clear");
+      if (cpClear) {
+        cpClear.addEventListener("click", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (!cpSearch) return;
+          cpSearch.value = "";
+          filterCompareList();
+          cpSearch.focus();
+        });
+      }
 
       var expBtn = $("#compare-export");
       if (expBtn) expBtn.addEventListener("click", exportComparePNG);
@@ -2464,6 +2489,10 @@
         renderTable();
       });
       var mfSearch = $("#model-filter-search");
+      var mfClear = $("#model-filter-clear");
+      function syncMfClear() {
+        if (mfClear) mfClear.hidden = !mfSearch || mfSearch.value.length === 0;
+      }
       if (mfSearch) {
         mfSearch.addEventListener("input", function () {
           var q = mfSearch.value.trim().toLowerCase();
@@ -2471,8 +2500,27 @@
           Array.prototype.forEach.call(items, function (it) {
             it.hidden = !!q && it.textContent.toLowerCase().indexOf(q) === -1;
           });
+          syncMfClear();
+        });
+        mfSearch.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && mfSearch.value) {
+            e.preventDefault();
+            mfSearch.value = "";
+            mfSearch.dispatchEvent(new Event("input"));
+          }
         });
       }
+      if (mfClear) {
+        mfClear.addEventListener("click", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (!mfSearch) return;
+          mfSearch.value = "";
+          mfSearch.dispatchEvent(new Event("input"));
+          mfSearch.focus();
+        });
+      }
+      syncMfClear();
     }
 
     $("#theme-toggle").addEventListener("click", function () {
