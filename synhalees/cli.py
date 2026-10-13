@@ -483,12 +483,16 @@ def cmd_kaggle_pull(a):
                       f"(all {n_models} model(s) already in {slim_f.name}; --force to re-download)")
                 skipped += 1
                 continue
-            if missing and not force:
+            task_args = list(args)
+            if missing and not force and not requested_models:
+                # Target ONLY the missing models to avoid re-downloading existing ones
                 print(f"[{i}/{len(picked)}] downloading {name} "
                       f"({len(missing)} missing model(s): {', '.join(missing[:3])}{'...' if len(missing) > 3 else ''}) -> slim CSV")
+                for m in missing:
+                    task_args.extend(["-m", m])
             else:
                 print(f"[{i}/{len(picked)}] downloading {name} -> slim CSV")
-            rc = _pull_single_to_slim(name, extra_args=args)
+            rc = _pull_single_to_slim(name, extra_args=task_args)
             if rc:
                 failed.append(name)
         pulled = len(picked) - skipped - len(failed)
@@ -513,11 +517,14 @@ def cmd_kaggle_pull(a):
         slim_f = KG_RESULTS / f"{name}.slim.csv"
         print(f"skipping {name} (all {n_models} model(s) already in {slim_f.name}; --force to re-download)")
         return 0
-    if missing and not force:
+    task_args = list(args)
+    if missing and not force and not requested_models:
         print(f"downloading {name} ({len(missing)} missing model(s): {', '.join(missing)}) -> slim CSV")
+        for m in missing:
+            task_args.extend(["-m", m])
     else:
         print(f"downloading {name} -> slim CSV")
-    return _pull_single_to_slim(name, extra_args=args)
+    return _pull_single_to_slim(name, extra_args=task_args)
 
 
 def _note_normalized(task_slug, count):
