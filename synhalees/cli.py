@@ -330,10 +330,35 @@ def cmd_kaggle_publish(a):
     return sh([kaggle_bin(), "b", "t", "publish", resolve_task_name(a.task), *a.args])
 
 
-def _task_is_cached(task_slug):
-    """True when task already has a slim CSV with data."""
+def _task_is_cached(task_slug, requested_models=None):
+    """Check if the requested models (or all known models) already exist in task's slim CSV.
+
+    Returns: (is_cached: bool, existing_count: int, missing_models: list)
+    """
     slim_path = KG_RESULTS / f"{task_slug}.slim.csv"
-    return slim_path.is_file() and slim_path.stat().st_size > 50
+    if not slim_path.is_file() or slim_path.stat().st_size <= 50:
+        return False, 0, []
+    rows = load_slim_rows(slim_path)
+    existing_models = {k[0] for k in rows}
+    if not existing_models:
+        return False, 0, []
+
+    if requested_models:
+        # Check if every explicitly requested model exists in this task
+        missing = [m for m in requested_models if m not in existing_models]
+        return len(missing) == 0, len(existing_models), missing
+
+    # When downloading all models: check if this task is missing models that exist in other tasks
+    all_known_models = set()
+    for f in KG_RESULTS.glob("*.slim.csv"):
+        for k in load_slim_rows(f):
+            all_known_models.add(k[0])
+
+    missing = sorted(all_known_models - existing_models)
+    if missing:
+        return False, len(existing_models), missing
+
+    return True, len(existing_models), []
 
 
 def _pull_single_to_slim(name, extra_args=(), slug_override=None):
@@ -429,6 +454,16 @@ def cmd_kaggle_pull(a):
         modality = parse_modality(cli_mod) if cli_mod else ("text",)
     if "-o" in args or "--output" in args:
         raise SystemExit("drop -o: artifacts always go to kaggle/results/ (repo hygiene)")
+    # Extract any models requested via -m / --model flags
+    requested_models = set()
+    i = 0
+    while i < len(args):
+        if str(args[i]) in ("-m", "--model") and i + 1 < len(args):
+            requested_models.add(canonical_model_slug(args[i + 1]))
+            i += 2
+        else:
+            i += 1
+
     if task in (None, "all"):
         files = sorted(TASKS_DIR.glob("*.py"))
         if not files:
@@ -441,14 +476,18 @@ def cmd_kaggle_pull(a):
         failed, skipped = [], 0
         for i, f in enumerate(picked, 1):
             name = task_name_for(f)
-            if not force and _task_is_cached(name):
+            cached, n_models, missing = _task_is_cached(name, requested_models=requested_models)
+            if not force and cached:
                 slim_f = KG_RESULTS / f"{name}.slim.csv"
-                n_models = len(load_slim_rows(slim_f))
                 print(f"[{i}/{len(picked)}] skipping {name} "
-                      f"(cached: {n_models} model(s) in {slim_f.name}; --force to re-download)")
+                      f"(all {n_models} model(s) already in {slim_f.name}; --force to re-download)")
                 skipped += 1
                 continue
-            print(f"[{i}/{len(picked)}] downloading {name} -> slim CSV")
+            if missing and not force:
+                print(f"[{i}/{len(picked)}] downloading {name} "
+                      f"({len(missing)} missing model(s): {', '.join(missing[:3])}{'...' if len(missing) > 3 else ''}) -> slim CSV")
+            else:
+                print(f"[{i}/{len(picked)}] downloading {name} -> slim CSV")
             rc = _pull_single_to_slim(name, extra_args=args)
             if rc:
                 failed.append(name)
@@ -469,12 +508,15 @@ def cmd_kaggle_pull(a):
                   "add --modality 'vision|audio' (or vision / audio / all) to download them")
         return 1 if failed else 0
     name = resolve_task_name(task)
-    if not force and _task_is_cached(name):
+    cached, n_models, missing = _task_is_cached(name, requested_models=requested_models)
+    if not force and cached:
         slim_f = KG_RESULTS / f"{name}.slim.csv"
-        n_models = len(load_slim_rows(slim_f))
-        print(f"skipping {name} (cached: {n_models} model(s) in {slim_f.name}; --force to re-download)")
+        print(f"skipping {name} (all {n_models} model(s) already in {slim_f.name}; --force to re-download)")
         return 0
-    print(f"downloading {name} -> slim CSV")
+    if missing and not force:
+        print(f"downloading {name} ({len(missing)} missing model(s): {', '.join(missing)}) -> slim CSV")
+    else:
+        print(f"downloading {name} -> slim CSV")
     return _pull_single_to_slim(name, extra_args=args)
 
 
