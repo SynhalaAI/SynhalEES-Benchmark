@@ -1,0 +1,1282 @@
+{
+  "taskVersion": {
+    "versionNumber": 1,
+    "name": "synhalees_05_sinhala_grammar",
+    "description": "SynhalEES pillar 05_sinhala_grammar: native Sinhala text accuracy.",
+    "definition": "@kbench.task(name=\"synhalees_05_sinhala_grammar\", description=\"SynhalEES pillar 05_sinhala_grammar: native Sinhala text accuracy.\")\ndef synhalees_task(llm) -> float:\n    '''Evaluate Sinhala Grammar (text); return accuracy in [0, 1].'''\n    import pandas as pd\n\n    rows = _rows()\n    if not rows:\n        raise ValueError(\n            \"No runnable text rows for Sinhala Grammar yet -- media files may \"\n            \"not be committed under benchmark_data/.\"\n        )\n    with kbench.client.enable_cache():\n        runs = synhalees_item.evaluate(\n            llm=[llm], evaluation_data=pd.DataFrame(rows),\n            n_jobs=2, max_attempts=2, on_failure=\"continue\",\n            remove_run_files=True,\n        )\n    correct = runs.as_dataframe().result.str.get(\"is_correct\").astype(\"boolean\").fillna(False)\n    return float(correct.mean())\n"
+  },
+  "modelVersion": {
+    "slug": "anthropic/claude-sonnet-5@default"
+  },
+  "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+  "startTime": "2026-09-28T05:44:05.054224Z",
+  "endTime": "2026-09-28T05:47:11.054328Z",
+  "conversations": [
+    {
+      "id": "synhalees_05_sinhala_grammar-c48b8471",
+      "metrics": {},
+      "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+    }
+  ],
+  "results": [
+    {
+      "type": "AGGREGATED",
+      "numericResult": {
+        "value": 0.6666666666666666
+      }
+    }
+  ],
+  "subruns": [
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_05_sinhala_grammar_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_05_sinhala_grammar_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-5@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-28T05:44:05.064585Z",
+      "endTime": "2026-09-28T05:44:11.850004Z",
+      "conversations": [
+        {
+          "id": "synhalees_05_sinhala_grammar_item-77d1c35d",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d8b\u0dad\u0dca\u0dad\u0db8 \u0db4\u0dd4\u0dbb\u0dd4\u0dc2 \u0d8b\u0d9a\u0dca\u0dad \u0d92\u0d9a \u0dc0\u0da0\u0db1 \u0db1\u0dcf\u0db8 \u0db4\u0daf\u0dba\u0d9a\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# \u0d8b\u0dad\u0dca\u0dad\u0db8 \u0db4\u0dd4\u0dbb\u0dd4\u0dc2 \u0d8b\u0d9a\u0dca\u0dad \u0d92\u0d9a \u0dc0\u0da0\u0db1 \u0db1\u0dcf\u0db8 \u0db4\u0daf\u0dba\n\n**\u0db8\u0db8**\n\n**\u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab:**\n- \u0db8\u0db8 \u0db4\u0dcf\u0dc3\u0dd0\u0dbd\u0dca \u0dba\u0db8\u0dd2.\n- \u0db8\u0db8 \u0db6\u0dad\u0dca \u0d9a\u0db8\u0dd2.\n- \u0db8\u0db8 \u0db4\u0ddc\u0dad \u0d9a\u0dd2\u0dba\u0dc0\u0db8\u0dd2.\n\n\u0db8\u0dd9\u0dc4\u0dd2\u0daf\u0dd3 \"\u0db8\u0db8\" \u0dba\u0db1\u0dca\u0db1 \u0db4\u0dc5\u0db8\u0dd4 \u0db4\u0dd4\u0dbb\u0dd4\u0dc2 (\u0d8b\u0dad\u0dca\u0dad\u0db8 \u0db4\u0dd4\u0dbb\u0dd4\u0dc2), \u0d92\u0d9a \u0dc0\u0da0\u0db1\u0dba\u0dda (\u0d91\u0d9a\u0dc0\u0dbb \u0db4\u0dd4\u0daf\u0dca\u0d9c\u0dbd\u0dba\u0dd9\u0d9a\u0dd4 \u0daf\u0dd0\u0d9a\u0dca\u0dc0\u0dd3\u0db8), \u0d8b\u0d9a\u0dca\u0dad \u0db4\u0daf\u0dba (\u0d9a\u0dbb\u0dca\u0dad\u0dd8 \u0db4\u0daf\u0dba) \u0dbd\u0dd9\u0dc3 \u0db7\u0dcf\u0dc0\u0dd2\u0dad \u0dc0\u0dda."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-5@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 44,
+                "outputTokens": 197,
+                "inputTokensCostNanodollars": "88000",
+                "outputTokensCostNanodollars": "1970000",
+                "totalBackendLatencyMs": "6389"
+              },
+              "id": "synhalees_05_sinhala_grammar_item-77d1c35d-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 44,
+            "outputTokens": 197,
+            "inputTokensCostNanodollars": "88000",
+            "outputTokensCostNanodollars": "1970000",
+            "totalBackendLatencyMs": "6389"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_05_001"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_05_sinhala_grammar_item-Run #1"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_05_sinhala_grammar_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_05_sinhala_grammar_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-5@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-28T05:44:05.064265Z",
+      "endTime": "2026-09-28T05:44:16.405162Z",
+      "conversations": [
+        {
+          "id": "synhalees_05_sinhala_grammar_item-1cf5d1a8",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d8b\u0dad\u0dca\u0dad\u0db8 \u0db4\u0dd4\u0dbb\u0dd4\u0dc2 \u0d85\u0db1\u0dd4\u0d9a\u0dca\u0dad \u0db6\u0dc4\u0dd4 \u0dc0\u0da0\u0db1 \u0db1\u0dcf\u0db8 \u0db4\u0daf\u0dba\u0d9a\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "**\u0d8b\u0dad\u0dca\u0dad\u0db8 \u0db4\u0dd4\u0dbb\u0dd4\u0dc2 \u0d85\u0db1\u0dd4\u0d9a\u0dca\u0dad \u0db6\u0dc4\u0dd4\u0dc0\u0da0\u0db1 \u0db1\u0dcf\u0db8 \u0db4\u0daf\u0dba** \u0dba\u0db1\u0dd4 \"\u0d85\u0db4\u0dd2\" \u0dba\u0db1\u0dca\u0db1\u0dba\u0dd2.\n\n\u0dc0\u0dd2\u0dc3\u0dca\u0dad\u0dbb\u0dba:\n- **\u0d8b\u0dad\u0dca\u0dad\u0db8 \u0db4\u0dd4\u0dbb\u0dd4\u0dc2** - \u0d9a\u0dae\u0dcf \u0d9a\u0dbb\u0db1 \u0db4\u0dd4\u0daf\u0dca\u0d9c\u0dbd\u0dba\u0dcf \u0db1\u0dd2\u0dba\u0ddd\u0da2\u0db1\u0dba \u0d9a\u0dbb\u0db1 \u0db4\u0dd4\u0dbb\u0dd4\u0dc2\u0dba (\u0db4\u0dc5\u0db8\u0dd4 \u0db4\u0dd4\u0dbb\u0dd4\u0dc2\u0dba)\n- **\u0d85\u0db1\u0dd4\u0d9a\u0dca\u0dad** - \u0d9a\u0dbb\u0dca\u0dad\u0dd8 \u0d9a\u0dcf\u0dbb\u0d9a\u0dba\u0dda \u0db4\u0dc0\u0dad\u0dd2\u0db1 \u0dc3\u0dca\u0dc0\u0dbb\u0dd6\u0db4\u0dba\n- **\u0db6\u0dc4\u0dd4\u0dc0\u0da0\u0db1** - \u0d91\u0d9a\u0d9a\u0da7 \u0dc0\u0da9\u0dcf \u0d9c\u0dab\u0db1\u0d9a\u0dca \u0db1\u0dd2\u0dba\u0ddd\u0da2\u0db1\u0dba \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\n\n\u0db8\u0dda \u0d85\u0db1\u0dd4\u0dc0:\n- **\u0db8\u0db8** - \u0d8b\u0dad\u0dca\u0dad\u0db8 \u0db4\u0dd4\u0dbb\u0dd4\u0dc2 \u0d92\u0d9a \u0dc0\u0da0\u0db1\u0dba\n- **\u0d85\u0db4\u0dd2** - \u0d8b\u0dad\u0dca\u0dad\u0db8 \u0db4\u0dd4\u0dbb\u0dd4\u0dc2 \u0db6\u0dc4\u0dd4 \u0dc0\u0da0\u0db1\u0dba\n\n**\u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab:**\n- \u0d85\u0db4\u0dd2 \u0db4\u0dcf\u0dc3\u0dbd\u0da7 \u0dba\u0db8\u0dd4.\n- \u0d85\u0db4\u0dd2 \u0d9a\u0dca\u200d\u0dbb\u0dd3\u0da9\u0dcf \u0d9a\u0dbb\u0db8\u0dd4.\n- \u0d85\u0db4\u0dd2 \u0d9c\u0db8\u0da7 \u0d9c\u0dd2\u0dba\u0dd9\u0db8\u0dd4."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-5@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 45,
+                "outputTokens": 320,
+                "inputTokensCostNanodollars": "90000",
+                "outputTokensCostNanodollars": "3200000",
+                "totalBackendLatencyMs": "11017"
+              },
+              "id": "synhalees_05_sinhala_grammar_item-1cf5d1a8-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 45,
+            "outputTokens": 320,
+            "inputTokensCostNanodollars": "90000",
+            "outputTokensCostNanodollars": "3200000",
+            "totalBackendLatencyMs": "11017"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_05_002"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_05_sinhala_grammar_item-Run #2"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_05_sinhala_grammar_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_05_sinhala_grammar_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-5@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-28T05:44:16.408775Z",
+      "endTime": "2026-09-28T05:44:34.431102Z",
+      "conversations": [
+        {
+          "id": "synhalees_05_sinhala_grammar_item-c529a463",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0dba\u0db1\u0dc0\u0dcf' \u0d9a\u0dd2\u0dba\u0db1 \u0db4\u0daf\u0dba\u0dda \u0d8b\u0dad\u0dca\u0dad\u0db8 \u0db4\u0dd4\u0dbb\u0dd4\u0dc2 \u0db6\u0dc4\u0dd4 \u0dc0\u0da0\u0db1 \u0d85\u0db1\u0dcf\u0d9c\u0dad\u0d9a\u0dcf\u0dbd \u0db4\u0daf\u0dda \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "**\u0dba\u0db1\u0dc0\u0dcf** \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf \u0db4\u0daf\u0dba\u0dda \u0d8b\u0dad\u0dca\u0dad\u0db8 \u0db4\u0dd4\u0dbb\u0dd4\u0dc2 \u0db6\u0dc4\u0dd4 \u0dc0\u0da0\u0db1 \u0d85\u0db1\u0dcf\u0d9c\u0dad \u0d9a\u0dcf\u0dbd \u0dbb\u0dd6\u0db4\u0dba:\n\n## **\u0dba\u0db1\u0dca\u0db1\u0dd9\u0db8\u0dd4** (\u0dc4\u0ddd **\u0dba\u0db8\u0dd4**)\n\n### \u0dc0\u0dd2\u0dc3\u0dca\u0dad\u0dbb\u0dba:\n\n\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf \u0db4\u0daf \u0dc0\u0dbd \u0d8b\u0dad\u0dca\u0dad\u0db8 \u0db4\u0dd4\u0dbb\u0dd4\u0dc2 (\u0db4\u0dc5\u0db8\u0dd4 \u0db4\u0dd4\u0dbb\u0dd4\u0dc2) \u0d85\u0db1\u0dcf\u0d9c\u0dad \u0d9a\u0dcf\u0dbd \u0dbb\u0dd6\u0db4 \u0db8\u0dd9\u0dc3\u0dda\u0dba:\n\n| \u0db4\u0dd4\u0dbb\u0dd4\u0dc2\u0dba | \u0dc0\u0da0\u0db1\u0dba | \u0dbb\u0dd6\u0db4\u0dba |\n|--------|------|------|\n| \u0d8b\u0dad\u0dca\u0dad\u0db8 \u0db4\u0dd4\u0dbb\u0dd4\u0dc2 \u0d92\u0d9a \u0dc0\u0da0\u0db1 | \u0db8\u0db8 | \u0dba\u0db1\u0dca\u0db1\u0dd9\u0db8\u0dd2 / \u0dba\u0db8\u0dd2 |\n| **\u0d8b\u0dad\u0dca\u0dad\u0db8 \u0db4\u0dd4\u0dbb\u0dd4\u0dc2 \u0db6\u0dc4\u0dd4 \u0dc0\u0da0\u0db1** | **\u0d85\u0db4\u0dd2** | **\u0dba\u0db1\u0dca\u0db1\u0dd9\u0db8\u0dd4 / \u0dba\u0db8\u0dd4** |\n\n### \u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba:\n- **\u0d85\u0db4\u0dd2** \u0dc4\u0dd9\u0da7 \u0db4\u0dcf\u0dc3\u0dbd\u0da7 **\u0dba\u0db1\u0dca\u0db1\u0dd9\u0db8\u0dd4**.\n- **\u0d85\u0db4\u0dd2** \u0d89\u0daf\u0dd2\u0dbb\u0dd2\u0dba\u0da7 **\u0dba\u0db8\u0dd4**.\n\n\u0db8\u0dd9\u0dc4\u0dd2\u0daf\u0dd3 \"\u0dba\u0db1\u0dca\u0db1\u0dd9\u0db8\u0dd4\" \u0dba\u0db1\u0dca\u0db1\u0dd9\u0db1\u0dca \"\u0d85\u0db4\u0dd2\" (\u0db6\u0dc4\u0dd4\u0dc0\u0da0\u0db1\u0dba) \u0d89\u0daf\u0dd2\u0dbb\u0dd2\u0dba\u0dda\u0daf\u0dd3 \u0dba\u0dcf\u0db8\u0da7 \u0db6\u0dbd\u0dcf\u0db4\u0ddc\u0dbb\u0ddc\u0dad\u0dca\u0dad\u0dd4 \u0dc0\u0db1 \u0db6\u0dc0 \u0d85\u0db1\u0dcf\u0d9c\u0dad \u0d9a\u0dcf\u0dbd\u0dba\u0dd9\u0db1\u0dca \u0daf\u0dd0\u0d9a\u0dca\u0dc0\u0dda."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-5@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 58,
+                "outputTokens": 624,
+                "inputTokensCostNanodollars": "116000",
+                "outputTokensCostNanodollars": "6240000",
+                "totalBackendLatencyMs": "17753"
+              },
+              "id": "synhalees_05_sinhala_grammar_item-c529a463-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 58,
+            "outputTokens": 624,
+            "inputTokensCostNanodollars": "116000",
+            "outputTokensCostNanodollars": "6240000",
+            "totalBackendLatencyMs": "17753"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_05_004"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_05_sinhala_grammar_item-Run #4"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_05_sinhala_grammar_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_05_sinhala_grammar_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-5@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-28T05:44:11.853853Z",
+      "endTime": "2026-09-28T05:44:39.736199Z",
+      "conversations": [
+        {
+          "id": "synhalees_05_sinhala_grammar_item-9516c137",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0dba\u0db1\u0dc0\u0dcf' \u0d9a\u0dd2\u0dba\u0db1 \u0db4\u0daf\u0dba\u0dda \u0dc3\u0dca\u0dad\u0dca\u200d\u0dbb\u0dd3 \u0db4\u0dd4\u0dbb\u0dd4\u0dc2 \u0d85\u0dad\u0dd3\u0dad\u0d9a\u0dcf\u0dbd \u0db4\u0daf\u0dda \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "**\"\u0dba\u0db1\u0dc0\u0dcf\"** \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf \u0db4\u0daf\u0dba\u0dda \u0d85\u0dad\u0dd3\u0dad \u0d9a\u0dcf\u0dbd \u0dbb\u0dd6\u0db4 \u0db4\u0dc4\u0dad \u0db4\u0dbb\u0dd2\u0daf\u0dd2 \u0dc0\u0dda:\n\n## \u0dc3\u0dcf\u0db8\u0dca\u0db4\u0dca\u200d\u0dbb\u0daf\u0dcf\u0dba\u0dd2\u0d9a/\u0dc1\u0dd4\u0daf\u0dca\u0db0 \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc0\u0dca\u200d\u0dba\u0dcf\u0d9a\u0dbb\u0dab\u0dba\u0da7 \u0d85\u0db1\u0dd4\u0dc0:\n\n| \u0dbd\u0dd2\u0d82\u0d9c\u0dba | \u0d85\u0dad\u0dd3\u0dad \u0d9a\u0dcf\u0dbd \u0db4\u0daf\u0dba |\n|--------|----------------|\n| **\u0db4\u0dd4\u0dbb\u0dd4\u0dc2** (\u0d92\u0d9a \u0dc0\u0da0\u0db1) | \u0d9c\u0dd2\u0dba\u0dda\u0dba |\n| **\u0dc3\u0dca\u0dad\u0dca\u200d\u0dbb\u0dd3** (\u0d92\u0d9a \u0dc0\u0da0\u0db1) | \u0d9c\u0dd2\u0dba\u0dcf\u0dba |\n\n### \u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab:\n- **\u0db4\u0dd4\u0dbb\u0dd4\u0dc2:** \"\u0d94\u0dc4\u0dd4 \u0db4\u0dcf\u0dc3\u0dd0\u0dbd\u0da7 \u0d9c\u0dd2\u0dba\u0dda\u0dba.\"\n- **\u0dc3\u0dca\u0dad\u0dca\u200d\u0dbb\u0dd3:** \"\u0d87\u0dba \u0db4\u0dcf\u0dc3\u0dd0\u0dbd\u0da7 \u0d9c\u0dd2\u0dba\u0dcf\u0dba.\"\n\n## \u0d9a\u0dae\u0db1 \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dda\u0daf\u0dd3 (Colloquial):\n\n\u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba \u0d9a\u0dae\u0db1 \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dda\u0daf\u0dd3 \u0dbd\u0dd2\u0d82\u0d9c \u0db7\u0dda\u0daf\u0dba\u0d9a\u0dd2\u0db1\u0dca \u0dad\u0ddc\u0dbb\u0dc0 **\"\u0d9c\u0dd2\u0dba\u0dcf\"** \u0dba\u0db1 \u0d91\u0d9a\u0db8 \u0dbb\u0dd6\u0db4\u0dba \u0daf\u0dd9\u0db4\u0dcf\u0dbb\u0dca\u0dc1\u0dc0\u0dba\u0da7\u0db8 \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0dba\u0dd2:\n\n- \"\u0d94\u0dc4\u0dd4 \u0d9c\u0dd2\u0dba\u0dcf.\"\n- \"\u0d87\u0dba \u0d9c\u0dd2\u0dba\u0dcf.\"\n\n\u0db8\u0dd9\u0dba \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dda formal (\u0dbd\u0dd2\u0d9b\u0dd2\u0dad/\u0dc3\u0dcf\u0dc4\u0dd2\u0dad\u0dca\u200d\u0dba) \u0dc3\u0dc4 informal (\u0d9a\u0dae\u0db1) \u0d86\u0d9a\u0dcf\u0dbb \u0d85\u0dad\u0dbb \u0d87\u0dad\u0dd2 \u0dc0\u0dd9\u0db1\u0dc3\u0d9a\u0dca \u0dbd\u0dd9\u0dc3 \u0dc3\u0dd0\u0dbd\u0d9a\u0dd2\u0dba \u0dc4\u0dd0\u0d9a."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-5@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 56,
+                "outputTokens": 868,
+                "inputTokensCostNanodollars": "112000",
+                "outputTokensCostNanodollars": "8680000",
+                "totalBackendLatencyMs": "27597"
+              },
+              "id": "synhalees_05_sinhala_grammar_item-9516c137-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 56,
+            "outputTokens": 868,
+            "inputTokensCostNanodollars": "112000",
+            "outputTokensCostNanodollars": "8680000",
+            "totalBackendLatencyMs": "27597"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_05_003"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_05_sinhala_grammar_item-Run #3"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_05_sinhala_grammar_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_05_sinhala_grammar_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-5@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-28T05:44:39.739888Z",
+      "endTime": "2026-09-28T05:44:48.630674Z",
+      "conversations": [
+        {
+          "id": "synhalees_05_sinhala_grammar_item-a450a250",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0d9a \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0 \u0dad\u0dd2\u0dba\u0dd9\u0db1\u0dca\u0db1\u0dda \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0dda \u0d9a\u0ddc\u0dc4\u0dd9\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba \u0dc0\u0dca\u200d\u0dba\u0dd4\u0dc4\u0dba\n\n\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dda \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0d9a \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0 \u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba\u0dba\u0dd9\u0db1\u0dca \u0db4\u0dd2\u0dc4\u0dd2\u0da7\u0dcf \u0dad\u0dd2\u0db6\u0dd9\u0db1\u0dca\u0db1\u0dda:\n\n## **\u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba \u0d85\u0dc0\u0dc3\u0dcf\u0db1\u0dba\u0dda**\n\n\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0db7\u0dcf\u0dc2\u0dcf\u0dc0 \u0d85\u0db1\u0dd4\u0d9c\u0db8\u0db1\u0dba \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda **\u0d9a\u0dbb\u0dca\u0dad\u0dd8-\u0d9a\u0dbb\u0dca\u0db8-\u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf** (Subject-Object-Verb) \u0dc0\u0dca\u200d\u0dba\u0dd4\u0dc4\u0dba\u0dba\u0dd2.\n\n**\u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab\u0dba\u0d9a\u0dca:**\n- \u0db8\u0db8 (\u0d9a\u0dbb\u0dca\u0dad\u0dd8) - \u0db6\u0dad\u0dca (\u0d9a\u0dbb\u0dca\u0db8) - \u0d9a\u0db1\u0dc0\u0dcf (\u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0)\n- \"\u0db8\u0db8 \u0db6\u0dad\u0dca \u0d9a\u0db1\u0dc0\u0dcf\"\n\n\u0db8\u0dd9\u0dc4\u0dd2\u0daf\u0dd3 \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf \u0db4\u0daf\u0dba (\"\u0d9a\u0db1\u0dc0\u0dcf\") \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0dda \u0d85\u0dc0\u0dc3\u0dcf\u0db1\u0dba\u0dda \u0db4\u0dd0\u0db8\u0dd2\u0dab\u0dda."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-5@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 73,
+                "outputTokens": 298,
+                "inputTokensCostNanodollars": "146000",
+                "outputTokensCostNanodollars": "2980000",
+                "totalBackendLatencyMs": "8543"
+              },
+              "id": "synhalees_05_sinhala_grammar_item-a450a250-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 73,
+            "outputTokens": 298,
+            "inputTokensCostNanodollars": "146000",
+            "outputTokensCostNanodollars": "2980000",
+            "totalBackendLatencyMs": "8543"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_05_006"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_05_sinhala_grammar_item-Run #6"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_05_sinhala_grammar_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_05_sinhala_grammar_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-5@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-28T05:44:48.634280Z",
+      "endTime": "2026-09-28T05:45:01.099157Z",
+      "conversations": [
+        {
+          "id": "synhalees_05_sinhala_grammar_item-2f5ff8f4",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc4\u0ddd\u0da9\u0dd2\u0dba\u0dda \u0dc0\u0dca\u200d\u0dba\u0d82\u0da2\u0db1 \u0db4\u0dda\u0dc5\u0dd2\u0dba\u0dda \u0db4\u0dc5\u0dc0\u0dd9\u0db1\u0dd2 \u0d85\u0d9a\u0dd4\u0dbb\u0dda \u0db8\u0dc4\u0dcf\u0db4\u0dca\u200d\u0dbb\u0dcf\u0dab \u0d85\u0d9a\u0dd4\u0dbb \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc0\u0dca\u200d\u0dba\u0d82\u0da2\u0db1\u0dcf\u0d9a\u0dca\u0dc2\u0dbb \u0db4\u0dda\u0dc5\u0dd2\u0dba\u0dda \u0db4\u0dc5\u0db8\u0dd4 \u0d9a\u0dc0\u0dbb\u0dca\u0d9c\u0dba (\u0d9a \u0dc0\u0dbb\u0dca\u0d9c\u0dba) \u0db8\u0dd9\u0dc3\u0dda\u0dba:\n\n**\u0d9a - \u0d9b - \u0d9c - \u0d9d - \u0d9e**\n\n\u0db8\u0dd9\u0dc4\u0dd2 \u0db4\u0dc5\u0db8\u0dd4 \u0d85\u0d9a\u0dd4\u0dbb \u0dc0\u0db1 \"\u0d9a\" \u0dc4\u0dd2 **\u0db8\u0dc4\u0dcf\u0db4\u0dca\u200d\u0dbb\u0dcf\u0dab \u0d85\u0d9a\u0dd4\u0dbb** \u0dc0\u0db1\u0dca\u0db1\u0dda **\"\u0d9b\"** \u0dba\u0db1\u0dca\u0db1\u0dba\u0dd2.\n\n**\u0dc0\u0dbb\u0dca\u0d9c \u0d9a\u0dd2\u0dbb\u0dd3\u0db8:**\n- \u0d9a - \u0d85\u0dbd\u0dca\u0db4\u0db4\u0dca\u200d\u0dbb\u0dcf\u0dab (\u0dc4\u0dac \u0db1\u0d9f\u0dd2\u0db1 \u0dc0\u0dd2\u0da7 \u0dc1\u0dca\u0dc0\u0dcf\u0dc3\u0dba \u0d85\u0da9\u0dd4\u0dc0\u0dd9\u0db1\u0dca \u0db4\u0dd2\u0da7\u0dc0\u0dda)\n- **\u0d9b - \u0db8\u0dc4\u0dcf\u0db4\u0dca\u200d\u0dbb\u0dcf\u0dab** (\u0dc4\u0dac \u0db1\u0d9f\u0dd2\u0db1 \u0dc0\u0dd2\u0da7 \u0dc1\u0dca\u0dc0\u0dcf\u0dc3\u0dba \u0dc0\u0dd0\u0da9\u0dd2\u0dba\u0dd9\u0db1\u0dca \u0db4\u0dd2\u0da7\u0dc0\u0dda)\n- \u0d9c - \u0d85\u0dbd\u0dca\u0db4\u0db4\u0dca\u200d\u0dbb\u0dcf\u0dab (\u0d9d\u0ddd\u0dc2)\n- \u0d9d - \u0db8\u0dc4\u0dcf\u0db4\u0dca\u200d\u0dbb\u0dcf\u0dab (\u0d9d\u0ddd\u0dc2)\n- \u0d9e - \u0d85\u0db1\u0dd4\u0db1\u0dcf\u0dc3\u0dd2\u0d9a"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-5@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 70,
+                "outputTokens": 475,
+                "inputTokensCostNanodollars": "140000",
+                "outputTokensCostNanodollars": "4750000",
+                "totalBackendLatencyMs": "12123"
+              },
+              "id": "synhalees_05_sinhala_grammar_item-2f5ff8f4-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 70,
+            "outputTokens": 475,
+            "inputTokensCostNanodollars": "140000",
+            "outputTokensCostNanodollars": "4750000",
+            "totalBackendLatencyMs": "12123"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_05_007"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_05_sinhala_grammar_item-Run #7"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_05_sinhala_grammar_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_05_sinhala_grammar_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-5@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-28T05:44:34.434536Z",
+      "endTime": "2026-09-28T05:45:06.177611Z",
+      "conversations": [
+        {
+          "id": "synhalees_05_sinhala_grammar_item-1e1634b1",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0d85\u0daf \u0dc0\u0dd0\u0dc3\u0dca\u0dc3\u0ddc\u0dad\u0dca, \u0d9c\u0d9f \u0d9c\u0dbd\u0dba\u0dd2' \u0d9a\u0dd2\u0dba\u0db1 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba \u0db8\u0ddc\u0db1 \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0\u0da7\u0daf \u0d85\u0dba\u0dd2\u0dad\u0dd2 \u0dc0\u0dd9\u0db1\u0dca\u0db1\u0dda? (\u0dc0\u0da0\u0db1 \u0dad\u0dd4\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# \u0db4\u0dd2\u0dc5\u0dd2\u0dad\u0dd4\u0dbb: **\u0dc3\u0dcf\u0db4\u0dda\u0d9a\u0dca\u0dc2 \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf \u0db4\u0daf\u0dba**\n\n## \u0db4\u0dd0\u0dc4\u0dd0\u0daf\u0dd2\u0dbd\u0dd2 \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\n\n'\u0d85\u0daf \u0dc0\u0dd0\u0dc3\u0dca\u0dc3\u0ddc\u0dad\u0dca, \u0d9c\u0d9f \u0d9c\u0dbd\u0dba\u0dd2' \u0dba\u0db1 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0dda **\"\u0dc0\u0dd0\u0dc3\u0dca\u0dc3\u0ddc\u0dad\u0dca\"** \u0dba\u0db1\u0dca\u0db1 **\u0dc3\u0dcf\u0db4\u0dda\u0d9a\u0dca\u0dc2 \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf \u0db4\u0daf\u0dba\u0d9a\u0dd2**.\n\n### \u0dc3\u0dcf\u0db4\u0dda\u0d9a\u0dca\u0dc2 \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf \u0db4\u0daf\u0dba\u0dda \u0dbd\u0d9a\u0dca\u0dc2\u0dab:\n- \u0db8\u0dd9\u0dba **\u0d9a\u0ddc\u0db1\u0dca\u0daf\u0dda\u0dc3\u0dd2 \u0dc3\u0dc4\u0dd2\u0dad** \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf \u0db4\u0daf\u0dba\u0d9a\u0dd2\n- \"-\u0ddc\u0dad\u0dca\" \u0dc4\u0ddd \"-\u0db1\u0db8\u0dca\" \u0dc0\u0dd0\u0db1\u0dd2 \u0d8b\u0db4\u0dc3\u0dbb\u0dca\u0d9c \u0d91\u0d9a\u0dad\u0dd4 \u0d9a\u0dbb \u0dc3\u0dcf\u0daf\u0db1\u0dd4 \u0dbd\u0dd0\u0db6\u0dda\n- \u0d91\u0d9a\u0dca \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0\u0d9a\u0dca (\u0dc4\u0dda\u0dad\u0dd4\u0dc0) \u0dc3\u0dd2\u0daf\u0dd4\u0dc0\u0dd3\u0db8 \u0db8\u0dad \u0dad\u0dc0\u0dad\u0dca \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0\u0d9a\u0dca (\u0db5\u0dbd\u0dba) \u0dbb\u0db3\u0dcf \u0db4\u0dc0\u0dad\u0dd2\u0db1 \u0db6\u0dc0 \u0db4\u0dd9\u0db1\u0dca\u0dc0\u0dba\u0dd2\n\n### \u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab:\n| \u0dc3\u0dcf\u0db4\u0dda\u0d9a\u0dca\u0dc2 \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf | \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0 |\n|---|---|\n| \u0dc0\u0dd0\u0dc3\u0dca\u0dc3\u0ddc\u0dad\u0dca | \u0d9c\u0d9f \u0d9c\u0dbd\u0dba\u0dd2 |\n| \u0d9c\u0dd2\u0dba\u0ddc\u0dad\u0dca | \u0daf\u0d9a\u0dd2\u0db1\u0dc0\u0dcf |\n| \u0d9a\u0dd2\u0dc0\u0dca\u0dc0\u0ddc\u0dad\u0dca | \u0dad\u0dda\u0dbb\u0dd9\u0db1\u0dc0\u0dcf |\n\n**\"X-\u0ddc\u0dad\u0dca, Y\"** \u0dba\u0db1 \u0dc0\u0dca\u200d\u0dba\u0dd4\u0dc4\u0dba\u0dd9\u0db1\u0dca \"X \u0dc3\u0dd2\u0daf\u0dd4 \u0dc0\u0dd4\u0dc0\u0dc4\u0ddc\u0dad\u0dca Y \u0dc3\u0dd2\u0daf\u0dd4 \u0dc0\u0dda\" \u0dba\u0db1 \u0d85\u0dbb\u0dca\u0dae\u0dba \u0d9c\u0db8\u0dca\u200d\u0dba \u0d9a\u0dbb\u0dba\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-5@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 84,
+                "outputTokens": 1562,
+                "inputTokensCostNanodollars": "168000",
+                "outputTokensCostNanodollars": "15620000",
+                "totalBackendLatencyMs": "31434"
+              },
+              "id": "synhalees_05_sinhala_grammar_item-1e1634b1-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 84,
+            "outputTokens": 1562,
+            "inputTokensCostNanodollars": "168000",
+            "outputTokensCostNanodollars": "15620000",
+            "totalBackendLatencyMs": "31434"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_05_005"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_05_sinhala_grammar_item-Run #5"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_05_sinhala_grammar_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_05_sinhala_grammar_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-5@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-28T05:45:01.103069Z",
+      "endTime": "2026-09-28T05:45:10.515920Z",
+      "conversations": [
+        {
+          "id": "synhalees_05_sinhala_grammar_item-95e4977c",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9a\u0dbb\u0dca\u0db8\u0dba\u0dd9\u0db1\u0dca \u0db4\u0da7\u0db1\u0dca \u0d9c\u0db1\u0dca\u0db1 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba \u0dc0\u0dbd\u0da7 \u0db8\u0ddc\u0d9a\u0d9a\u0dca \u0d9a\u0dd2\u0dba\u0dbd\u0daf \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# \u0d9a\u0dbb\u0dca\u0db8 \u0dc0\u0dcf\u0da0\u0dca\u200d\u0dba\n\n\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dda, \u0d9a\u0dbb\u0dca\u0db8\u0dba (object) \u0db8\u0dd4\u0dbd\u0dd2\u0db1\u0dca \u0dad\u0db6\u0dcf \u0d9c\u0ddc\u0da9\u0db1\u0d9c\u0db1 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba **\"\u0d9a\u0dbb\u0dca\u0db8 \u0dc0\u0dcf\u0da0\u0dca\u200d\u0dba\"** \u0db1\u0db8\u0dd2\u0db1\u0dca \u0dc4\u0db3\u0dd4\u0db1\u0dca\u0dc0\u0db1\u0dd4 \u0dbd\u0dd0\u0db6\u0dda.\n\n**\u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab\u0dba\u0d9a\u0dca:**\n- \u0d9a\u0dbb\u0dca\u0dad\u0dd8 \u0dc0\u0dcf\u0da0\u0dca\u200d\u0dba: \u0db8\u0dbd\u0dca\u0dbd\u0dd3 \u0db4\u0ddc\u0dad \u0d9a\u0dd2\u0dba\u0dc0\u0dba\u0dd2.\n- \u0d9a\u0dbb\u0dca\u0db8 \u0dc0\u0dcf\u0da0\u0dca\u200d\u0dba: \u0db4\u0ddc\u0dad \u0db8\u0dbd\u0dca\u0dbd\u0dd3 \u0dc0\u0dd2\u0dc3\u0dd2\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0dc0\u0db1\u0dd4 \u0dbd\u0dd0\u0db6\u0dda.\n\n\u0db8\u0dd9\u0dc4\u0dd2\u0daf\u0dd3 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0dda \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0d85\u0dc0\u0db0\u0dcf\u0db1\u0dba \u0dc4\u0ddd \u0d85\u0dc0\u0db0\u0dcf\u0dbb\u0dab\u0dba \u0d9a\u0dbb\u0dca\u0dad\u0dd8\u0da7 \u0dc0\u0da9\u0dcf \u0d9a\u0dbb\u0dca\u0db8\u0dba \u0d9a\u0dd9\u0dbb\u0dd9\u0dc4\u0dd2 \u0dba\u0ddc\u0db8\u0dd4 \u0dc0\u0dda."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-5@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 70,
+                "outputTokens": 262,
+                "inputTokensCostNanodollars": "140000",
+                "outputTokensCostNanodollars": "2620000",
+                "totalBackendLatencyMs": "9096"
+              },
+              "id": "synhalees_05_sinhala_grammar_item-95e4977c-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 70,
+            "outputTokens": 262,
+            "inputTokensCostNanodollars": "140000",
+            "outputTokensCostNanodollars": "2620000",
+            "totalBackendLatencyMs": "9096"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_05_008"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_05_sinhala_grammar_item-Run #8"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_05_sinhala_grammar_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_05_sinhala_grammar_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-5@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-28T05:45:10.519262Z",
+      "endTime": "2026-09-28T05:45:25.381254Z",
+      "conversations": [
+        {
+          "id": "synhalees_05_sinhala_grammar_item-c7e592d3",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0d85\u0db8\u0dbd\u0dca \u0d9c\u0db8 \u0dc4\u0dbb\u0dc4\u0dcf \u0dc0\u0dda\u0d9c\u0dd9\u0db1\u0dca \u0daf\u0dd4\u0dc0\u0db1\u0dc0\u0dcf' \u0d9a\u0dd2\u0dba\u0db1 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0dda '\u0dc0\u0dda\u0d9c\u0dd9\u0db1\u0dca' \u0d9a\u0dd2\u0dba\u0db1 \u0db4\u0daf\u0dda \u0d85\u0dba\u0dd2\u0dad\u0dd2 \u0dc0\u0dd2\u0dc1\u0dda\u0dc2 \u0db4\u0daf \u0dc0\u0dbb\u0dca\u0d9c\u0dba \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dc0\u0da0\u0db1 \u0dad\u0dd4\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# \u0db4\u0daf \u0dc0\u0dbb\u0dca\u0d9c\u0dba \u0dc0\u0dd2\u0dc1\u0dca\u0dbd\u0dda\u0dc2\u0dab\u0dba\n\n**'\u0dc0\u0dda\u0d9c\u0dd9\u0db1\u0dca'** \u0dba\u0db1 \u0db4\u0daf\u0dba **\u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf \u0dc0\u0dd2\u0dc1\u0dda\u0dc2\u0dab \u0db4\u0daf\u0dba\u0d9a\u0dd2** (\u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0\u0dd2\u0dc1\u0dda\u0dc2\u0dab).\n\n## \u0db4\u0dd0\u0dc4\u0dd0\u0daf\u0dd2\u0dbd\u0dd2 \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\n\n\u0db8\u0dd9\u0db8 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0dda:\n- **\u0d85\u0db8\u0dbd\u0dca** - \u0db1\u0dcf\u0db8 \u0db4\u0daf\u0dba (\u0d9a\u0dbb\u0dca\u0dad\u0dd8)\n- **\u0d9c\u0db8 \u0dc4\u0dbb\u0dc4\u0dcf** - \u0db1\u0dcf\u0db8 \u0db4\u0daf \u0d9a\u0dcf\u0dab\u0dca\u0da9\u0dba\n- **\u0dc0\u0dda\u0d9c\u0dd9\u0db1\u0dca** - \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf \u0dc0\u0dd2\u0dc1\u0dda\u0dc2\u0dab \u0db4\u0daf\u0dba\n- **\u0daf\u0dd4\u0dc0\u0db1\u0dc0\u0dcf** - \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf \u0db4\u0daf\u0dba\n\n**'\u0dc0\u0dda\u0d9c\u0dd9\u0db1\u0dca'** \u0dba\u0db1\u0dca\u0db1\u0dd9\u0db1\u0dca **'\u0daf\u0dd4\u0dc0\u0db1\u0dc0\u0dcf'** \u0dba\u0db1 \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0 \u0dc3\u0dd2\u0daf\u0dd4\u0dc0\u0db1 \u0d86\u0d9a\u0dcf\u0dbb\u0dba (\u0d9a\u0dd9\u0dc3\u0dda\u0daf?) \u0dc0\u0dd2\u0dc3\u0dca\u0dad\u0dbb \u0d9a\u0dbb\u0dba\u0dd2. \u0d91\u0db1\u0db8\u0dca \"\u0d9a\u0dd9\u0dc3\u0dda \u0daf\u0dd4\u0dc0\u0db1\u0dc0\u0dcf\u0daf?\" \u0dba\u0db1 \u0db4\u0dca\u200d\u0dbb\u0dc1\u0dca\u0db1\u0dba\u0da7 \u0db4\u0dd2\u0dc5\u0dd2\u0dad\u0dd4\u0dbb\u0d9a\u0dca \u0dbd\u0dd9\u0dc3 \"\u0dc0\u0dda\u0d9c\u0dd9\u0db1\u0dca\" \u0dba\u0db1 \u0db4\u0daf\u0dba \u0db7\u0dcf\u0dc0\u0dd2\u0dad \u0dc0\u0dd3 \u0d87\u0dad.\n\n\u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0\u0d9a\u0dca \u0dc3\u0dd2\u0daf\u0dd4\u0dc0\u0db1 \u0d86\u0d9a\u0dcf\u0dbb\u0dba, \u0d9a\u0dcf\u0dbd\u0dba, \u0dc3\u0dca\u0dae\u0dcf\u0db1\u0dba \u0dc0\u0dd0\u0db1\u0dd2 \u0d9a\u0dbb\u0dd4\u0dab\u0dd4 \u0db4\u0dd0\u0dc4\u0dd0\u0daf\u0dd2\u0dbd\u0dd2 \u0d9a\u0dbb\u0db1 \u0db4\u0daf **\u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf \u0dc0\u0dd2\u0dc1\u0dda\u0dc2\u0dab \u0db4\u0daf** \u0dbd\u0dd9\u0dc3 \u0dc4\u0dd0\u0db3\u0dd2\u0db1\u0dca\u0dc0\u0dda."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-5@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 105,
+                "outputTokens": 451,
+                "inputTokensCostNanodollars": "210000",
+                "outputTokensCostNanodollars": "4510000",
+                "totalBackendLatencyMs": "14568"
+              },
+              "id": "synhalees_05_sinhala_grammar_item-c7e592d3-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 105,
+            "outputTokens": 451,
+            "inputTokensCostNanodollars": "210000",
+            "outputTokensCostNanodollars": "4510000",
+            "totalBackendLatencyMs": "14568"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_05_010"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_05_sinhala_grammar_item-Run #10"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_05_sinhala_grammar_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_05_sinhala_grammar_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-5@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-28T05:45:06.181344Z",
+      "endTime": "2026-09-28T05:45:25.659346Z",
+      "conversations": [
+        {
+          "id": "synhalees_05_sinhala_grammar_item-b1b3ba25",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'\u0db8\u0db8 \u0d9a\u0dcf\u0db6\u0dd3 \u0d87\u0daf\u0dd4\u0db8\u0dca \u0d87\u0db3 \u0db4\u0dcf\u0dc3\u0dbd\u0da7 \u0dba\u0db8\u0dd2' \u0d9a\u0dd2\u0dba\u0db1 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0dda \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf \u0db4\u0daf\u0dba \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# \u0db4\u0dd2\u0dc5\u0dd2\u0dad\u0dd4\u0dbb\n\n\u0db8\u0dd9\u0db8 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0dda **\u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf \u0db4\u0daf\u0dba** \u0dc0\u0db1\u0dca\u0db1\u0dda **\"\u0dba\u0db8\u0dd2\"** \u0dba\u0db1\u0dca\u0db1\u0dba\u0dd2.\n\n## \u0dc0\u0dd2\u0dc3\u0dca\u0dad\u0dbb\u0dba:\n\n| \u0dc0\u0da0\u0db1\u0dba | \u0d85\u0dbb\u0dca\u0dae\u0dba | \u0db7\u0dd6\u0db8\u0dd2\u0d9a\u0dcf\u0dc0 |\n|------|-------|---------|\n| \u0db8\u0db8 | \u0db8\u0db8 | \u0d9a\u0dbb\u0dca\u0dad\u0dd8 (subject) |\n| \u0d9a\u0dcf\u0db6\u0dd3 | \u0d9a\u0dcf\u0d9a\u0dd2 | \u0dc0\u0dd2\u0dc1\u0dda\u0dc2\u0dab |\n| \u0d87\u0daf\u0dd4\u0db8\u0dca | \u0d87\u0db3\u0dd4\u0db8\u0dca | \u0d9a\u0dbb\u0dca\u0db8 \u0db4\u0daf\u0dba |\n| **\u0d87\u0db3** | \u0d87\u0db3\u0d9c\u0dd9\u0db1 | \u0db4\u0dd6\u0dbb\u0dca\u0dc0\u0d9a\u0dcf\u0dbd\u0dd3\u0db1 \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf (conjunctive participle) |\n| \u0db4\u0dcf\u0dc3\u0dbd\u0da7 | \u0db4\u0dcf\u0dc3\u0dd9\u0dbd\u0da7 | \u0dc3\u0dca\u0dae\u0dcf\u0db1 \u0d9a\u0dcf\u0dbb\u0d9a\u0dba |\n| **\u0dba\u0db8\u0dd2** | \u0dba\u0db1\u0dc0\u0dcf | **\u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf \u0db4\u0daf\u0dba** |\n\n## \u0dc3\u0da7\u0dc4\u0db1:\n- **\"\u0dba\u0db8\u0dd2\"** \u0dba\u0db1\u0dd4 \u0db8\u0dd9\u0db8 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0dda \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 (finite) \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf \u0db4\u0daf\u0dba\u0dba\u0dd2. \u0d91\u0dba \u0d8b\u0dad\u0dca\u0dad\u0db8 \u0db4\u0dd4\u0dbb\u0dd4\u0dc2, \u0d92\u0d9a \u0dc0\u0da0\u0db1, \u0dc0\u0dbb\u0dca\u0dad\u0db8\u0dcf\u0db1 \u0d9a\u0dcf\u0dbd\u0dba \u0daf\u0d9a\u0dca\u0dc0\u0dba\u0dd2.\n- **\"\u0d87\u0db3\"** \u0dba\u0db1\u0dd4 \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf \u0db4\u0daf\u0dba\u0d9a\u0dca \u0db1\u0ddc\u0dc0, \"\u0d87\u0db3\u0d9c\u0dd9\u0db1\" \u0dba\u0db1 \u0d85\u0dbb\u0dca\u0dae\u0dba \u0daf\u0dd9\u0db1 \u0db4\u0dd6\u0dbb\u0dca\u0dc0\u0d9a\u0dcf\u0dbd\u0dd3\u0db1 \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf (perfective/conjunctive participle) \u0dc3\u0dca\u0dc0\u0dbb\u0dd6\u0db4\u0dba\u0d9a\u0dd2. \u0d91\u0dba \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0\u0da7 \u0db4\u0dd9\u0dbb \u0dc3\u0dd2\u0daf\u0dd4\u0dc0\u0db1 \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0 \u0dc4\u0d9f\u0dc0\u0dba\u0dd2.\n\n**\u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba \u0d85\u0dbb\u0dca\u0dae\u0dba:** \"\u0db8\u0db8 \u0d9a\u0dcf\u0d9a\u0dd2 \u0d87\u0db3\u0dd4\u0db8\u0dca \u0d87\u0db3\u0d9c\u0dd9\u0db1 \u0db4\u0dcf\u0dc3\u0dbd\u0da7 \u0dba\u0db1\u0dc0\u0dcf.\""
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-5@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 67,
+                "outputTokens": 894,
+                "inputTokensCostNanodollars": "134000",
+                "outputTokensCostNanodollars": "8940000",
+                "totalBackendLatencyMs": "19194"
+              },
+              "id": "synhalees_05_sinhala_grammar_item-b1b3ba25-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 67,
+            "outputTokens": 894,
+            "inputTokensCostNanodollars": "134000",
+            "outputTokensCostNanodollars": "8940000",
+            "totalBackendLatencyMs": "19194"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_05_009"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_05_sinhala_grammar_item-Run #9"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_05_sinhala_grammar_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_05_sinhala_grammar_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-5@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-28T05:45:25.384540Z",
+      "endTime": "2026-09-28T05:45:41.606730Z",
+      "conversations": [
+        {
+          "id": "synhalees_05_sinhala_grammar_item-fe6b3dda",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0dda \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0dda \u0dad\u0dda\u0dbb\u0dd4\u0db8 \u0dc4\u0dbb\u0dd2 \u0d9c\u0dc3\u0dca\u0dc3\u0dbd\u0dcf \u0dbd\u0dc3\u0dca\u0dc3\u0db1 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0d9a\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1: \u0db8\u0d82 \u0d9c\u0dd2\u0dba\u0dcf \u0d9a\u0da9\u0dda \u0dc3\u0dd3\u0db1\u0dd2 \u0d9c\u0db1\u0dca\u0db1 \u0d8a\u0dba\u0dda"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0dd9\u0db1\u0dca\u0db1 \u0db1\u0dd2\u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0d9a\u0dbb\u0d9c\u0dad\u0dca \u0dbd\u0dc3\u0dca\u0dc3\u0db1 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba:\n\n**\"\u0db8\u0db8 \u0d8a\u0dba\u0dda \u0dc3\u0dd3\u0db1\u0dd2 \u0d9c\u0db1\u0dca\u0db1 \u0d9a\u0da9\u0dda\u0da7 \u0d9c\u0dd2\u0dba\u0dcf.\"**\n\n\u0db8\u0dd9\u0dc4\u0dd2 \u0dc0\u0da0\u0db1 \u0d85\u0db1\u0dd4\u0db4\u0dd2\u0dc5\u0dd2\u0dc0\u0dd9\u0dbd \u0db8\u0dd9\u0dc3\u0dda \u0dc3\u0d9a\u0dc3\u0dca \u0dc0\u0dd3 \u0d87\u0dad:\n- **\u0db8\u0db8** (subject - \u0d9a\u0dbb\u0dca\u0dad\u0dd8)\n- **\u0d8a\u0dba\u0dda** (\u0d9a\u0dcf\u0dbd\u0dba - \u0d9a\u0dc0\u0daf\u0dcf\u0daf)\n- **\u0dc3\u0dd3\u0db1\u0dd2 \u0d9c\u0db1\u0dca\u0db1** (\u0d85\u0dbb\u0db8\u0dd4\u0dab - \u0d87\u0dba\u0dd2)\n- **\u0d9a\u0da9\u0dda\u0da7** (\u0dc3\u0dca\u0dae\u0dcf\u0db1\u0dba - \u0d9a\u0ddc\u0dc4\u0dd9\u0daf)\n- **\u0d9c\u0dd2\u0dba\u0dcf** (\u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0)\n\n\u0db8\u0dd9\u0dba \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dda \u0dc3\u0dca\u0dc0\u0db7\u0dcf\u0dc0\u0dd2\u0d9a \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba \u0dbb\u0da7\u0dcf\u0dc0\u0d9a\u0dd2 (Subject \u2192 Time \u2192 Purpose \u2192 Place \u2192 Verb)."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-5@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 83,
+                "outputTokens": 627,
+                "inputTokensCostNanodollars": "166000",
+                "outputTokensCostNanodollars": "6270000",
+                "totalBackendLatencyMs": "12912"
+              },
+              "id": "synhalees_05_sinhala_grammar_item-fe6b3dda-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 83,
+            "outputTokens": 627,
+            "inputTokensCostNanodollars": "166000",
+            "outputTokensCostNanodollars": "6270000",
+            "totalBackendLatencyMs": "12912"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        },
+        {
+          "id": "Response assessment with google/gemini-3.8-flash-1aad4c26",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\n        You are an impartial and strict technical evaluator.\n\n        ### Task\n        Verify if the **Generated Response** complies strictly with the **Criteria**.\n\n        ### Input Data\n        **Generated Response:**\n        \u0db8\u0dd9\u0db1\u0dca\u0db1 \u0db1\u0dd2\u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0d9a\u0dbb\u0d9c\u0dad\u0dca \u0dbd\u0dc3\u0dca\u0dc3\u0db1 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba:\n\n**\"\u0db8\u0db8 \u0d8a\u0dba\u0dda \u0dc3\u0dd3\u0db1\u0dd2 \u0d9c\u0db1\u0dca\u0db1 \u0d9a\u0da9\u0dda\u0da7 \u0d9c\u0dd2\u0dba\u0dcf.\"**\n\n\u0db8\u0dd9\u0dc4\u0dd2 \u0dc0\u0da0\u0db1 \u0d85\u0db1\u0dd4\u0db4\u0dd2\u0dc5\u0dd2\u0dc0\u0dd9\u0dbd \u0db8\u0dd9\u0dc3\u0dda \u0dc3\u0d9a\u0dc3\u0dca \u0dc0\u0dd3 \u0d87\u0dad:\n- **\u0db8\u0db8** (subject - \u0d9a\u0dbb\u0dca\u0dad\u0dd8)\n- **\u0d8a\u0dba\u0dda** (\u0d9a\u0dcf\u0dbd\u0dba - \u0d9a\u0dc0\u0daf\u0dcf\u0daf)\n- **\u0dc3\u0dd3\u0db1\u0dd2 \u0d9c\u0db1\u0dca\u0db1** (\u0d85\u0dbb\u0db8\u0dd4\u0dab - \u0d87\u0dba\u0dd2)\n- **\u0d9a\u0da9\u0dda\u0da7** (\u0dc3\u0dca\u0dae\u0dcf\u0db1\u0dba - \u0d9a\u0ddc\u0dc4\u0dd9\u0daf)\n- **\u0d9c\u0dd2\u0dba\u0dcf** (\u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0)\n\n\u0db8\u0dd9\u0dba \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dda \u0dc3\u0dca\u0dc0\u0db7\u0dcf\u0dc0\u0dd2\u0d9a \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba \u0dbb\u0da7\u0dcf\u0dc0\u0d9a\u0dd2 (Subject \u2192 Time \u2192 Purpose \u2192 Place \u2192 Verb).\n\n        **Criteria:**\n        1. The response conveys the same meaning as the reference answer: 'corrected_sentence_response'. Wording may differ; the meaning must match.\n2. The response reads like a native Sri Lankan Sinhala speaker wrote it -- natural register and idiom, not translated-sounding English.\n\n        ### Evaluation Protocol\n        1. Analyze the response against the criteria.\n        2. Be strict. If the text is ambiguous, the check fails.\n        3. Output your assessment using the specific structure requested below.\n"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\"{\\\"results\\\":[{\\\"criterion\\\":\\\"The response conveys the same meaning as the reference answer: 'corrected_sentence_response'. Wording may differ; the meaning must match.\\\",\\\"passed\\\":true,\\\"reason\\\":\\\"The response provides the corrected sentence along with an explanation of the natural word order, fulfilling the intent of a corrected sentence response.\\\",\\\"confidence\\\":5},{\\\"criterion\\\":\\\"The response reads like a native Sri Lankan Sinhala speaker wrote it -- natural register and idiom, not translated-sounding English.\\\",\\\"passed\\\":true,\\\"reason\\\":\\\"The Sinhala used is natural, fluent, grammatically accurate, and follows typical native phrasing without sounding like awkward or literal translation.\\\",\\\"confidence\\\":5}]}\""
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.8-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 532,
+                "outputTokens": 630,
+                "inputTokensCostNanodollars": "399000",
+                "outputTokensCostNanodollars": "2362500",
+                "totalBackendLatencyMs": "2796"
+              },
+              "id": "Response assessment with google/gemini-3.8-flash-1aad4c26-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 532,
+            "outputTokens": 630,
+            "inputTokensCostNanodollars": "399000",
+            "outputTokensCostNanodollars": "2362500",
+            "totalBackendLatencyMs": "2796"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_05_011"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_05_sinhala_grammar_item-Run #11"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_05_sinhala_grammar_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_05_sinhala_grammar_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-5@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-28T05:45:25.662876Z",
+      "endTime": "2026-09-28T05:45:50.236943Z",
+      "conversations": [
+        {
+          "id": "synhalees_05_sinhala_grammar_item-23647575",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0dda \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0dda \u0db4\u0dd2\u0dc5\u0dd2\u0dc0\u0dd9\u0dbd \u0dc0\u0dd0\u0dbb\u0daf\u0dd2\u0dba\u0dd2 \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0dc4\u0d9f\u0dc0\u0dbd\u0dcf \u0d92\u0d9a \u0db1\u0dd2\u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0d9a\u0dbb\u0d9c\u0db1\u0dca\u0db1 \u0dc0\u0dd2\u0daf\u0dd2\u0dc4 \u0db4\u0dd0\u0dc4\u0dd0\u0daf\u0dd2\u0dbd\u0dd2 \u0d9a\u0dbb\u0db1\u0dca\u0db1: \u0d9a\u0db1\u0dc0\u0dcf \u0db8\u0db8 \u0db6\u0dad\u0dca"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba \u0db4\u0dd2\u0dc5\u0dd2\u0dc0\u0dd9\u0dbd \u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0dc0\u0dd3\u0db8\n\n## \u0dbd\u0db6\u0dcf \u0daf\u0dd3 \u0d87\u0dad\u0dd2 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba:\n**\"\u0d9a\u0db1\u0dc0\u0dcf \u0db8\u0db8 \u0db6\u0dad\u0dca\"** \u274c (\u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0db4\u0dd2\u0dc5\u0dd2\u0dc0\u0dd9\u0dbd)\n\n## \u0d9c\u0dd0\u0da7\u0dc5\u0dd4\u0dc0:\n\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dda \u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba \u0dbb\u0da7\u0dcf\u0dc0 \u0dc0\u0db1\u0dca\u0db1\u0dda:\n\n**\u0d9a\u0dbb\u0dca\u0dad\u0dd8 (Subject) \u2192 \u0d9a\u0dbb\u0dca\u0db8 (Object) \u2192 \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf \u0db4\u0daf\u0dba (Verb)**\n\n\u0db8\u0dd9\u0dba **SOV (Subject-Object-Verb)** \u0dbb\u0da7\u0dcf\u0dc0 \u0dbd\u0dd9\u0dc3 \u0dc4\u0dd0\u0db3\u0dd2\u0db1\u0dca\u0dc0\u0dda.\n\n\u0dbd\u0db6\u0dcf \u0daf\u0dd3 \u0d87\u0dad\u0dd2 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0dda, \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf \u0db4\u0daf\u0dba (\u0d9a\u0db1\u0dc0\u0dcf) \u0db8\u0dd4\u0dbd\u0da7 \u0d86 \u0d85\u0dad\u0dbb, \u0d91\u0dba \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dda \u0dc3\u0dca\u0dc0\u0dcf\u0db7\u0dcf\u0dc0\u0dd2\u0d9a \u0dbb\u0da7\u0dcf\u0dc0\u0da7 \u0db4\u0da7\u0dc4\u0dd0\u0db1\u0dd2\u0dba\u0dd2.\n\n## \u0db1\u0dd2\u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0d9a\u0dd2\u0dbb\u0dd3\u0db8:\n\n| \u0d9a\u0ddc\u0da7\u0dc3 | \u0dc0\u0da0\u0db1\u0dba |\n|------|------|\n| \u0d9a\u0dbb\u0dca\u0dad\u0dd8 | \u0db8\u0db8 |\n| \u0d9a\u0dbb\u0dca\u0db8 | \u0db6\u0dad\u0dca |\n| \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf \u0db4\u0daf\u0dba | \u0d9a\u0db1\u0dc0\u0dcf |\n\n## \u0db1\u0dd2\u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba:\n**\"\u0db8\u0db8 \u0db6\u0dad\u0dca \u0d9a\u0db1\u0dc0\u0dcf\"** \u2705\n\n## \u0dc3\u0dbb\u0dbd \u0db4\u0dd0\u0dc4\u0dd0\u0daf\u0dd2\u0dbd\u0dd2 \u0d9a\u0dd2\u0dbb\u0dd3\u0db8:\n- \u0db8\u0dd4\u0dbd\u0dd2\u0db1\u0dca\u0db8 **\"\u0d9a\u0dc0\u0dd4\u0daf\"** \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1 (\u0db8\u0db8)\n- \u0d8a\u0dc5\u0d9f\u0da7 **\"\u0db8\u0ddc\u0db1\u0dc0\u0daf\"** \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1 (\u0db6\u0dad\u0dca)\n- \u0d85\u0db1\u0dca\u0dad\u0dd2\u0db8\u0da7 **\"\u0db8\u0ddc\u0d9a\u0daf \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda\"** \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0 \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1 (\u0d9a\u0db1\u0dc0\u0dcf)\n\n**\u0db8\u0dad\u0d9a \u0dad\u0db6\u0dcf \u0d9c\u0dd0\u0db1\u0dd3\u0db8\u0dda \u0d9a\u0dca\u200d\u0dbb\u0db8\u0dba:** \u0dc3\u0dd2\u0d82\u0dc4\u0dbd\u0dd9\u0db1\u0dca \u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba\u0dba\u0dd9\u0db1\u0dca \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf \u0db4\u0daf\u0dba (verb) \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0dda **\u0d85\u0dc0\u0dc3\u0dcf\u0db1\u0dba\u0da7** \u0d91\u0db1\u0dc0\u0dcf, \u0d89\u0d82\u0d9c\u0dca\u200d\u0dbb\u0dd3\u0dc3\u0dd2 \u0dc0\u0d9c\u0dda \u0db8\u0dd0\u0daf\u0da7 \u0d91\u0db1\u0dca\u0db1\u0dda \u0db1\u0dd1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-5@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 88,
+                "outputTokens": 918,
+                "inputTokensCostNanodollars": "176000",
+                "outputTokensCostNanodollars": "9180000",
+                "totalBackendLatencyMs": "20752"
+              },
+              "id": "synhalees_05_sinhala_grammar_item-23647575-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 88,
+            "outputTokens": 918,
+            "inputTokensCostNanodollars": "176000",
+            "outputTokensCostNanodollars": "9180000",
+            "totalBackendLatencyMs": "20752"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        },
+        {
+          "id": "Response assessment with google/gemini-3.8-flash-ccb95f0b",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\n        You are an impartial and strict technical evaluator.\n\n        ### Task\n        Verify if the **Generated Response** complies strictly with the **Criteria**.\n\n        ### Input Data\n        **Generated Response:**\n        # \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba \u0db4\u0dd2\u0dc5\u0dd2\u0dc0\u0dd9\u0dbd \u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0dc0\u0dd3\u0db8\n\n## \u0dbd\u0db6\u0dcf \u0daf\u0dd3 \u0d87\u0dad\u0dd2 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba:\n**\"\u0d9a\u0db1\u0dc0\u0dcf \u0db8\u0db8 \u0db6\u0dad\u0dca\"** \u274c (\u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0db4\u0dd2\u0dc5\u0dd2\u0dc0\u0dd9\u0dbd)\n\n## \u0d9c\u0dd0\u0da7\u0dc5\u0dd4\u0dc0:\n\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dda \u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba \u0dbb\u0da7\u0dcf\u0dc0 \u0dc0\u0db1\u0dca\u0db1\u0dda:\n\n**\u0d9a\u0dbb\u0dca\u0dad\u0dd8 (Subject) \u2192 \u0d9a\u0dbb\u0dca\u0db8 (Object) \u2192 \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf \u0db4\u0daf\u0dba (Verb)**\n\n\u0db8\u0dd9\u0dba **SOV (Subject-Object-Verb)** \u0dbb\u0da7\u0dcf\u0dc0 \u0dbd\u0dd9\u0dc3 \u0dc4\u0dd0\u0db3\u0dd2\u0db1\u0dca\u0dc0\u0dda.\n\n\u0dbd\u0db6\u0dcf \u0daf\u0dd3 \u0d87\u0dad\u0dd2 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0dda, \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf \u0db4\u0daf\u0dba (\u0d9a\u0db1\u0dc0\u0dcf) \u0db8\u0dd4\u0dbd\u0da7 \u0d86 \u0d85\u0dad\u0dbb, \u0d91\u0dba \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dda \u0dc3\u0dca\u0dc0\u0dcf\u0db7\u0dcf\u0dc0\u0dd2\u0d9a \u0dbb\u0da7\u0dcf\u0dc0\u0da7 \u0db4\u0da7\u0dc4\u0dd0\u0db1\u0dd2\u0dba\u0dd2.\n\n## \u0db1\u0dd2\u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0d9a\u0dd2\u0dbb\u0dd3\u0db8:\n\n| \u0d9a\u0ddc\u0da7\u0dc3 | \u0dc0\u0da0\u0db1\u0dba |\n|------|------|\n| \u0d9a\u0dbb\u0dca\u0dad\u0dd8 | \u0db8\u0db8 |\n| \u0d9a\u0dbb\u0dca\u0db8 | \u0db6\u0dad\u0dca |\n| \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf \u0db4\u0daf\u0dba | \u0d9a\u0db1\u0dc0\u0dcf |\n\n## \u0db1\u0dd2\u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba:\n**\"\u0db8\u0db8 \u0db6\u0dad\u0dca \u0d9a\u0db1\u0dc0\u0dcf\"** \u2705\n\n## \u0dc3\u0dbb\u0dbd \u0db4\u0dd0\u0dc4\u0dd0\u0daf\u0dd2\u0dbd\u0dd2 \u0d9a\u0dd2\u0dbb\u0dd3\u0db8:\n- \u0db8\u0dd4\u0dbd\u0dd2\u0db1\u0dca\u0db8 **\"\u0d9a\u0dc0\u0dd4\u0daf\"** \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1 (\u0db8\u0db8)\n- \u0d8a\u0dc5\u0d9f\u0da7 **\"\u0db8\u0ddc\u0db1\u0dc0\u0daf\"** \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1 (\u0db6\u0dad\u0dca)\n- \u0d85\u0db1\u0dca\u0dad\u0dd2\u0db8\u0da7 **\"\u0db8\u0ddc\u0d9a\u0daf \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda\"** \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0 \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1 (\u0d9a\u0db1\u0dc0\u0dcf)\n\n**\u0db8\u0dad\u0d9a \u0dad\u0db6\u0dcf \u0d9c\u0dd0\u0db1\u0dd3\u0db8\u0dda \u0d9a\u0dca\u200d\u0dbb\u0db8\u0dba:** \u0dc3\u0dd2\u0d82\u0dc4\u0dbd\u0dd9\u0db1\u0dca \u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba\u0dba\u0dd9\u0db1\u0dca \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf \u0db4\u0daf\u0dba (verb) \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba\u0dba\u0dda **\u0d85\u0dc0\u0dc3\u0dcf\u0db1\u0dba\u0da7** \u0d91\u0db1\u0dc0\u0dcf, \u0d89\u0d82\u0d9c\u0dca\u200d\u0dbb\u0dd3\u0dc3\u0dd2 \u0dc0\u0d9c\u0dda \u0db8\u0dd0\u0daf\u0da7 \u0d91\u0db1\u0dca\u0db1\u0dda \u0db1\u0dd1.\n\n        **Criteria:**\n        1. The response conveys the same meaning as the reference answer: 'grammar_correction_explanation'. Wording may differ; the meaning must match.\n2. The response reads like a native Sri Lankan Sinhala speaker wrote it -- natural register and idiom, not translated-sounding English.\n\n        ### Evaluation Protocol\n        1. Analyze the response against the criteria.\n        2. Be strict. If the text is ambiguous, the check fails.\n        3. Output your assessment using the specific structure requested below.\n"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\"{\\\"results\\\":[{\\\"criterion\\\":\\\"The response conveys the same meaning as the reference answer: 'grammar_correction_explanation'. Wording may differ; the meaning must match.\\\",\\\"passed\\\":true,\\\"reason\\\":\\\"The response accurately identifies the grammatical error, explains the SOV word order rule in Sinhala, provides the correct sentence ('\\u0db8\\u0db8 \\u0db6\\u0dad\\u0dca \\u0d9a\\u0db1\\u0dc0\\u0dcf'), and gives a clear breakdown and explanation.\\\",\\\"confidence\\\":5},{\\\"criterion\\\":\\\"The response reads like a native Sri Lankan Sinhala speaker wrote it -- natural register and idiom, not translated-sounding English.\\\",\\\"passed\\\":true,\\\"reason\\\":\\\"The Sinhala used is natural, idiomatic, and reflects the authentic explanatory register used by native Sri Lankan educators.\\\",\\\"confidence\\\":5}]}\""
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.8-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 753,
+                "outputTokens": 763,
+                "inputTokensCostNanodollars": "564750",
+                "outputTokensCostNanodollars": "2861250",
+                "totalBackendLatencyMs": "3260"
+              },
+              "id": "Response assessment with google/gemini-3.8-flash-ccb95f0b-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 753,
+            "outputTokens": 763,
+            "inputTokensCostNanodollars": "564750",
+            "outputTokensCostNanodollars": "2861250",
+            "totalBackendLatencyMs": "3260"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_05_012"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_05_sinhala_grammar_item-Run #12"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_05_sinhala_grammar_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_05_sinhala_grammar_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-5@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-28T05:45:50.241712Z",
+      "endTime": "2026-09-28T05:46:21.259721Z",
+      "conversations": [
+        {
+          "id": "synhalees_05_sinhala_grammar_item-6f63e480",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dbb\u0da0\u0db1\u0dcf\u0dc0\u0d9a\u0da7 \u0d9c\u0dd0\u0dc5\u0db4\u0dd9\u0db1 \u0dc4\u0ddc\u0db3 \u0dbd\u0dc3\u0dca\u0dc3\u0db1 \u0d86\u0dbb\u0db8\u0dca\u0db7\u0dba\u0d9a\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1 - \u0db8\u0dcf\u0dad\u0dd8\u0d9a\u0dcf\u0dc0: \u0d9c\u0db8\u0dda \u0dc3\u0dd2\u0dbb\u0dd2\u0dba"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# \u0d9c\u0db8\u0dda \u0dc3\u0dd2\u0dbb\u0dd2\u0dba\n\n\u0dc4\u0dd2\u0dbb\u0dd4 \u0d91\u0dc5\u0dd2\u0dba \u0db1\u0ddc\u0db8\u0dd0\u0d9a\u0dd3 \u0db4\u0ddc\u0dc5\u0ddc\u0dc0 \u0dc3\u0dd2\u0db4 \u0d9c\u0db1\u0dca\u0db1\u0dcf \u0d85\u0dbd\u0dd4\u0dba\u0db8\u0dca \u0dc0\u0dda\u0dbd\u0dcf\u0dc0\u0d9a, \u0d9a\u0dd4\u0dbb\u0dd4\u0dbd\u0dca\u0dbd\u0db1\u0dca\u0d9c\u0dda \u0db8\u0dd2\u0dc4\u0dd2\u0dbb\u0dd2 \u0db1\u0dcf\u0daf\u0dba\u0dd9\u0db1\u0dca \u0d85\u0dc0\u0daf\u0dd2 \u0dc0\u0db1 \u0d9c\u0db8\u0dca\u0db8\u0dcf\u0db1\u0dba\u0d9a\u0dca \u0dad\u0dd4\u0dc5 \u0db8\u0dd2\u0dba \u0db1\u0ddc\u0dba\u0db1 \u0dbd\u0dc3\u0dca\u0dc3\u0db1\u0d9a\u0dca \u0dc3\u0dd0\u0d9f\u0dc0\u0dd3 \u0dad\u0dd2\u0db6\u0dda. \u0daf\u0dd4\u0db8\u0dca \u0dbb\u0ddc\u0daf\u0d9a\u0dca \u0dc0\u0d9c\u0dda \u0db8\u0dd3\u0daf\u0dd4\u0db8 \u0dad\u0dd4\u0dbb\u0dd4 \u0d85\u0dad\u0dbb\u0dd2\u0db1\u0dca \u0dbb\u0dd2\u0d82\u0d9c\u0dcf \u0dba\u0daf\u0dca\u0daf\u0dd3, \u0d91\u0dc5\u0dd2\u0db8\u0dc4\u0db1\u0dca \u0d9a\u0dd4\u0db9\u0dd4\u0dbb\u0dd4 \u0d9a\u0dd0\u0dc5\u0dba \u0db8\u0dad\u0dd2\u0db1\u0dca \u0dbb\u0db1\u0dca\u0dc0\u0db1\u0dca \u0dad\u0dbb\u0dd4 \u0d9a\u0dd0\u0da7 \u0dc0\u0d9c\u0dda \u0db4\u0dd2\u0db1\u0dd2 \u0db6\u0dd2\u0d82\u0daf\u0dd4 \u0daf\u0dd2\u0dbd\u0dd2\u0dc3\u0dd9\u0dad\u0dd2. \u0daf\u0dd4\u0dbb\u0dd2\u0db1\u0dca \u0d87\u0dc3\u0dd9\u0db1 \u0d91\u0dac\u0dda\u0dbb\u0dd9\u0d9a\u0dd4\u0d9c\u0dda \u0db6\u0dd4\u0dbb\u0dd4\u0db8 \u0dc4\u0dac\u0dad\u0dca, \u0d9c\u0ddc\u0dc0\u0dd2\u0dba\u0dd9\u0d9a\u0dd4 \u0dad\u0db8 \u0d91\u0d9a\u0dcf\u0db1\u0dda \u0db6\u0dd0\u0db3\u0d9c\u0dad\u0dca \u0d9c\u0ddc\u0db1\u0dd4\u0db1\u0dca \u0dc4\u0dac\u0dc0\u0db1 \u0dc4\u0dac\u0dad\u0dca \u0db8\u0dd4\u0dc3\u0dd4\u0dc0\u0dd3, \u0d91\u0dc5\u0dd2\u0db8\u0dc4\u0db1\u0dca \u0d9c\u0db8\u0dca \u0dc0\u0daf\u0db1\u0d9a \u0da2\u0dd3\u0dc0\u0db8\u0dcf\u0db1 \u0dc3\u0d82\u0d9c\u0dd3\u0dad\u0dba\u0d9a\u0dca \u0db1\u0dd2\u0dbb\u0dca\u0db8\u0dcf\u0dab\u0dba \u0d9a\u0dbb\u0dba\u0dd2. \u0db1\u0dcf\u0d9c\u0dbb\u0dd2\u0d9a \u0da2\u0dd3\u0dc0\u0dd2\u0dad\u0dba\u0dda \u0d9a\u0dcf\u0dbb\u0dca\u0dba\u0db6\u0dc4\u0dd4\u0dbd\u0dad\u0dca\u0dc0\u0dba\u0dd9\u0db1\u0dca \u0dc4\u0dcf \u0dba\u0dcf\u0db1\u0dca\u0dad\u0dca\u200d\u0dbb\u0dd2\u0d9a \u0dc1\u0db6\u0dca\u0daf\u0dba\u0dd9\u0db1\u0dca \u0dc0\u0dd9\u0db1\u0dca \u0dc0\u0dd6 \u0db8\u0dda \u0db1\u0dd2\u0dc3\u0d82\u0dc3\u0dbd \u0db4\u0dbb\u0dd2\u0dc3\u0dbb\u0dba \u0dad\u0dd4\u0dc5, \u0dc3\u0dca\u0dc0\u0db7\u0dcf\u0dc0\u0dd2\u0d9a \u0dc3\u0dd4\u0db1\u0dca\u0daf\u0dbb\u0dad\u0dca\u0dc0\u0dba\u0dad\u0dca \u0dc3\u0dbb\u0dbd \u0da2\u0dd3\u0dc0\u0db1 \u0dbb\u0da7\u0dcf\u0dc0\u0dad\u0dca \u0d91\u0d9a\u0da7 \u0db8\u0dd4\u0dc3\u0dd4\u0dc0\u0dd3 \u0d85\u0db4\u0dd6\u0dbb\u0dd4 \u0da0\u0dd2\u0dad\u0dca\u200d\u0dbb\u0dba\u0d9a\u0dca \u0db8\u0dc0\u0dcf \u0db4\u0dcf\u0dba\u0dd2. \u0d9c\u0db8\u0dda \u0dc3\u0dd2\u0dbb\u0dd2\u0dba \u0dba\u0db1\u0dd4 \u0d9a\u0dd2\u0dc3\u0dd2 \u0dc0\u0dd2\u0da7\u0dd9\u0d9a\u0dad\u0dca \u0dc0\u0da0\u0db1\u0dc0\u0dbd\u0dd2\u0db1\u0dca \u0dc3\u0db8\u0dca\u0db4\u0dd6\u0dbb\u0dca\u0dab\u0dba\u0dd9\u0db1\u0dca \u0dc0\u0dd2\u0dc3\u0dca\u0dad\u0dbb \u0d9a\u0dc5 \u0db1\u0ddc\u0dc4\u0dd0\u0d9a\u0dd2, \u0dc4\u0daf\u0dc0\u0dad\u0dd2\u0db1\u0dca\u0db8 \u0dc4\u0dd0\u0d9f\u0dd3\u0db8\u0dd9\u0db1\u0dca \u0d85\u0dad\u0dca\u0dc0\u0dd2\u0db3\u0dd2\u0dba \u0dba\u0dd4\u0dad\u0dd4 \u0d85\u0dad\u0dca\u0daf\u0dd0\u0d9a\u0dd3\u0db8\u0d9a\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-5@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 67,
+                "outputTokens": 597,
+                "inputTokensCostNanodollars": "134000",
+                "outputTokensCostNanodollars": "5970000",
+                "totalBackendLatencyMs": "23282"
+              },
+              "id": "synhalees_05_sinhala_grammar_item-6f63e480-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 67,
+            "outputTokens": 597,
+            "inputTokensCostNanodollars": "134000",
+            "outputTokensCostNanodollars": "5970000",
+            "totalBackendLatencyMs": "23282"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        },
+        {
+          "id": "Response assessment with google/gemini-3.8-flash-f85061e2",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\n        You are an impartial and strict technical evaluator.\n\n        ### Task\n        Verify if the **Generated Response** complies strictly with the **Criteria**.\n\n        ### Input Data\n        **Generated Response:**\n        # \u0d9c\u0db8\u0dda \u0dc3\u0dd2\u0dbb\u0dd2\u0dba\n\n\u0dc4\u0dd2\u0dbb\u0dd4 \u0d91\u0dc5\u0dd2\u0dba \u0db1\u0ddc\u0db8\u0dd0\u0d9a\u0dd3 \u0db4\u0ddc\u0dc5\u0ddc\u0dc0 \u0dc3\u0dd2\u0db4 \u0d9c\u0db1\u0dca\u0db1\u0dcf \u0d85\u0dbd\u0dd4\u0dba\u0db8\u0dca \u0dc0\u0dda\u0dbd\u0dcf\u0dc0\u0d9a, \u0d9a\u0dd4\u0dbb\u0dd4\u0dbd\u0dca\u0dbd\u0db1\u0dca\u0d9c\u0dda \u0db8\u0dd2\u0dc4\u0dd2\u0dbb\u0dd2 \u0db1\u0dcf\u0daf\u0dba\u0dd9\u0db1\u0dca \u0d85\u0dc0\u0daf\u0dd2 \u0dc0\u0db1 \u0d9c\u0db8\u0dca\u0db8\u0dcf\u0db1\u0dba\u0d9a\u0dca \u0dad\u0dd4\u0dc5 \u0db8\u0dd2\u0dba \u0db1\u0ddc\u0dba\u0db1 \u0dbd\u0dc3\u0dca\u0dc3\u0db1\u0d9a\u0dca \u0dc3\u0dd0\u0d9f\u0dc0\u0dd3 \u0dad\u0dd2\u0db6\u0dda. \u0daf\u0dd4\u0db8\u0dca \u0dbb\u0ddc\u0daf\u0d9a\u0dca \u0dc0\u0d9c\u0dda \u0db8\u0dd3\u0daf\u0dd4\u0db8 \u0dad\u0dd4\u0dbb\u0dd4 \u0d85\u0dad\u0dbb\u0dd2\u0db1\u0dca \u0dbb\u0dd2\u0d82\u0d9c\u0dcf \u0dba\u0daf\u0dca\u0daf\u0dd3, \u0d91\u0dc5\u0dd2\u0db8\u0dc4\u0db1\u0dca \u0d9a\u0dd4\u0db9\u0dd4\u0dbb\u0dd4 \u0d9a\u0dd0\u0dc5\u0dba \u0db8\u0dad\u0dd2\u0db1\u0dca \u0dbb\u0db1\u0dca\u0dc0\u0db1\u0dca \u0dad\u0dbb\u0dd4 \u0d9a\u0dd0\u0da7 \u0dc0\u0d9c\u0dda \u0db4\u0dd2\u0db1\u0dd2 \u0db6\u0dd2\u0d82\u0daf\u0dd4 \u0daf\u0dd2\u0dbd\u0dd2\u0dc3\u0dd9\u0dad\u0dd2. \u0daf\u0dd4\u0dbb\u0dd2\u0db1\u0dca \u0d87\u0dc3\u0dd9\u0db1 \u0d91\u0dac\u0dda\u0dbb\u0dd9\u0d9a\u0dd4\u0d9c\u0dda \u0db6\u0dd4\u0dbb\u0dd4\u0db8 \u0dc4\u0dac\u0dad\u0dca, \u0d9c\u0ddc\u0dc0\u0dd2\u0dba\u0dd9\u0d9a\u0dd4 \u0dad\u0db8 \u0d91\u0d9a\u0dcf\u0db1\u0dda \u0db6\u0dd0\u0db3\u0d9c\u0dad\u0dca \u0d9c\u0ddc\u0db1\u0dd4\u0db1\u0dca \u0dc4\u0dac\u0dc0\u0db1 \u0dc4\u0dac\u0dad\u0dca \u0db8\u0dd4\u0dc3\u0dd4\u0dc0\u0dd3, \u0d91\u0dc5\u0dd2\u0db8\u0dc4\u0db1\u0dca \u0d9c\u0db8\u0dca \u0dc0\u0daf\u0db1\u0d9a \u0da2\u0dd3\u0dc0\u0db8\u0dcf\u0db1 \u0dc3\u0d82\u0d9c\u0dd3\u0dad\u0dba\u0d9a\u0dca \u0db1\u0dd2\u0dbb\u0dca\u0db8\u0dcf\u0dab\u0dba \u0d9a\u0dbb\u0dba\u0dd2. \u0db1\u0dcf\u0d9c\u0dbb\u0dd2\u0d9a \u0da2\u0dd3\u0dc0\u0dd2\u0dad\u0dba\u0dda \u0d9a\u0dcf\u0dbb\u0dca\u0dba\u0db6\u0dc4\u0dd4\u0dbd\u0dad\u0dca\u0dc0\u0dba\u0dd9\u0db1\u0dca \u0dc4\u0dcf \u0dba\u0dcf\u0db1\u0dca\u0dad\u0dca\u200d\u0dbb\u0dd2\u0d9a \u0dc1\u0db6\u0dca\u0daf\u0dba\u0dd9\u0db1\u0dca \u0dc0\u0dd9\u0db1\u0dca \u0dc0\u0dd6 \u0db8\u0dda \u0db1\u0dd2\u0dc3\u0d82\u0dc3\u0dbd \u0db4\u0dbb\u0dd2\u0dc3\u0dbb\u0dba \u0dad\u0dd4\u0dc5, \u0dc3\u0dca\u0dc0\u0db7\u0dcf\u0dc0\u0dd2\u0d9a \u0dc3\u0dd4\u0db1\u0dca\u0daf\u0dbb\u0dad\u0dca\u0dc0\u0dba\u0dad\u0dca \u0dc3\u0dbb\u0dbd \u0da2\u0dd3\u0dc0\u0db1 \u0dbb\u0da7\u0dcf\u0dc0\u0dad\u0dca \u0d91\u0d9a\u0da7 \u0db8\u0dd4\u0dc3\u0dd4\u0dc0\u0dd3 \u0d85\u0db4\u0dd6\u0dbb\u0dd4 \u0da0\u0dd2\u0dad\u0dca\u200d\u0dbb\u0dba\u0d9a\u0dca \u0db8\u0dc0\u0dcf \u0db4\u0dcf\u0dba\u0dd2. \u0d9c\u0db8\u0dda \u0dc3\u0dd2\u0dbb\u0dd2\u0dba \u0dba\u0db1\u0dd4 \u0d9a\u0dd2\u0dc3\u0dd2 \u0dc0\u0dd2\u0da7\u0dd9\u0d9a\u0dad\u0dca \u0dc0\u0da0\u0db1\u0dc0\u0dbd\u0dd2\u0db1\u0dca \u0dc3\u0db8\u0dca\u0db4\u0dd6\u0dbb\u0dca\u0dab\u0dba\u0dd9\u0db1\u0dca \u0dc0\u0dd2\u0dc3\u0dca\u0dad\u0dbb \u0d9a\u0dc5 \u0db1\u0ddc\u0dc4\u0dd0\u0d9a\u0dd2, \u0dc4\u0daf\u0dc0\u0dad\u0dd2\u0db1\u0dca\u0db8 \u0dc4\u0dd0\u0d9f\u0dd3\u0db8\u0dd9\u0db1\u0dca \u0d85\u0dad\u0dca\u0dc0\u0dd2\u0db3\u0dd2\u0dba \u0dba\u0dd4\u0dad\u0dd4 \u0d85\u0dad\u0dca\u0daf\u0dd0\u0d9a\u0dd3\u0db8\u0d9a\u0dd2.\n\n        **Criteria:**\n        1. The response conveys the same meaning as the reference answer: 'essay_opening_response'. Wording may differ; the meaning must match.\n2. The response reads like a native Sri Lankan Sinhala speaker wrote it -- natural register and idiom, not translated-sounding English.\n\n        ### Evaluation Protocol\n        1. Analyze the response against the criteria.\n        2. Be strict. If the text is ambiguous, the check fails.\n        3. Output your assessment using the specific structure requested below.\n"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\"{\\\"results\\\":[{\\\"criterion\\\":\\\"The response conveys the same meaning as the reference answer: 'essay_opening_response'. Wording may differ; the meaning must match.\\\",\\\"passed\\\":true,\\\"reason\\\":\\\"The generated response functions as an introductory paragraph (opening) for an essay about the beauty of the village ('\\u0d9c\\u0db8\\u0dda \\u0dc3\\u0dd2\\u0dbb\\u0dd2\\u0dba').\\\",\\\"confidence\\\":5},{\\\"criterion\\\":\\\"The response reads like a native Sri Lankan Sinhala speaker wrote it -- natural register and idiom, not translated-sounding English.\\\",\\\"passed\\\":false,\\\"reason\\\":\\\"The text contains several awkward, unnatural, and nonsensical expressions that do not exist in standard or native Sinhala. Examples include: '\\u0d9a\\u0dd4\\u0db9\\u0dd4\\u0dbb\\u0dd4 \\u0d9a\\u0dd0\\u0dc5\\u0dba' (a native speaker would use '\\u0d9a\\u0dd4\\u0db9\\u0dd4\\u0dbb\\u0dd4 \\u0dba\\u0dcf\\u0dba'), '\\u0d91\\u0dac\\u0dda\\u0dbb\\u0dd9\\u0d9a\\u0dd4\\u0d9c\\u0dda \\u0db6\\u0dd4\\u0dbb\\u0dd4\\u0db8 \\u0dc4\\u0dac\\u0dad\\u0dca' ('\\u0db6\\u0dd4\\u0dbb\\u0dd4\\u0db8' means drill/auger, which is nonsensical in this context), '\\u0d91\\u0d9a\\u0dcf\\u0db1\\u0dda \\u0db6\\u0dd0\\u0db3\\u0d9c\\u0dad\\u0dca', '\\u0d91\\u0dc5\\u0dd2\\u0db8\\u0dc4\\u0db1\\u0dca \\u0d9c\\u0db8\\u0dca \\u0dc0\\u0daf\\u0db1\\u0d9a', and '\\u0dc4\\u0dd2\\u0dbb\\u0dd4 \\u0d91\\u0dc5\\u0dd2\\u0dba \\u0db1\\u0ddc\\u0db8\\u0dd0\\u0d9a\\u0dd3'. These suggest translation artifacts or machine-generated malapropisms rather than native Sinhala writing.\\\",\\\"confidence\\\":5}]}\""
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.8-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 694,
+                "outputTokens": 1713,
+                "inputTokensCostNanodollars": "520500",
+                "outputTokensCostNanodollars": "6423750",
+                "totalBackendLatencyMs": "7178"
+              },
+              "id": "Response assessment with google/gemini-3.8-flash-f85061e2-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 694,
+            "outputTokens": 1713,
+            "inputTokensCostNanodollars": "520500",
+            "outputTokensCostNanodollars": "6423750",
+            "totalBackendLatencyMs": "7178"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_05_014"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_05_sinhala_grammar_item-Run #14"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_05_sinhala_grammar_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_05_sinhala_grammar_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-5@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-28T05:45:41.611337Z",
+      "endTime": "2026-09-28T05:46:23.988465Z",
+      "conversations": [
+        {
+          "id": "synhalees_05_sinhala_grammar_item-80007d14",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d89\u0dbb\u0dd2 \u0dbd\u0d9a\u0dd4\u0dab\u0dd4 \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0dbd\u0dcf \u0d9a\u0dd9\u0da7\u0dd2 \u0d9a\u0dad\u0dcf\u0dc0\u0d9a \u0d86\u0dbb\u0db8\u0dca\u0db7\u0dba\u0d9a\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "## \u0dc0\u0dd0\u0dc4\u0dd2 \u0dbb\u0dcf\u0dad\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dda \u0dbb\u0dc4\u0dc3\n\n\u0dc0\u0dbb\u0dca\u0dc2\u0dcf\u0dc0 \u0db1\u0ddc\u0db1\u0dc0\u0dad\u0dca\u0dc0\u0dcf \u0dc0\u0dd0\u0da7\u0dd9\u0db8\u0dd2\u0db1\u0dca \u0dad\u0dd2\u0db6\u0dd6 \u0d91\u0db8 \u0dbb\u0dcf\u0dad\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dda, \u0d9a\u0dd4\u0db8\u0dcf\u0dbb\u0dd2 \u0dad\u0db8 \u0db1\u0dd2\u0dc0\u0dc3\u0dda \u0d9a\u0dc0\u0dd4\u0dc5\u0dd4\u0dc0\u0dd9\u0db1\u0dca \u0d91\u0dc5\u0dd2\u0dba\u0da7 \u0db6\u0dbd\u0dcf \u0dc3\u0dd2\u0da7\u0dd2\u0dba\u0dcf\u0dba. \u0dc4\u0daf\u0dd2\u0dc3\u0dd2\u0dba\u0dda\u0db8 \u0daf\u0ddc\u0dbb \u0dbd\u0ddd\u0d9a\u0dd4\u0dc0 \u0d9c\u0dd0\u0dc3\u0dd9\u0db1 \u0dc1\u0db6\u0dca\u0daf\u0dba\u0d9a\u0dca \u0d87\u0dc3\u0dd4\u0dab\u0dd2.\n\n\u2014 \u0d9a\u0dc0\u0dd4\u0daf \u0d91\u0db1\u0d9a\u0ddc\u0da7 \u0db8\u0dda \u0dc0\u0d9c\u0dda \u0dc0\u0dda\u0dbd\u0dcf\u0dc0\u0d9a...? \u2014 \u0d87\u0dba \u0db8\u0dc0\u0dd2\u0dad\u0dba\u0dd9\u0db1\u0dca \u0dc3\u0dd2\u0dad\u0dd4\u0dc0\u0dcf\u0dba.\n\n\u0d87\u0dba \u0dc3\u0dd9\u0db8\u0dd9\u0db1\u0dca \u0d9c\u0ddc\u0dc3\u0dca \u0daf\u0ddc\u0dbb \u0d87\u0dbb\u0dd2\u0dba\u0dcf\u0dba. \u0d91\u0dc4\u0dd2 \u0dc3\u0dd2\u0da7\u0dd2\u0dba\u0dda \u0d87\u0d9c\u0dda \u0db8\u0dd2\u0dad\u0dca\u200d\u0dbb\u0dd2\u0dba\u0d9a\u0dca \u0dc0\u0dd6 \u0db1\u0dd2\u0dbd\u0dd6\u0d9a\u0dcf \u0dba. \u0d87\u0d9c\u0dda \u0db8\u0dd4\u0dc4\u0dd4\u0dab \u0db6\u0dd2\u0dba\u0dd9\u0db1\u0dca \u0dc3\u0dd4\u0daf\u0dd4\u0db8\u0dd0\u0dbd\u0dd2 \u0dc0\u0dd3 \u0dad\u0dd2\u0db6\u0dd6 \u0d85\u0dad\u0dbb, \u0dc1\u0dbb\u0dd3\u0dbb\u0dba \u0dc3\u0db8\u0dca\u0db4\u0dd6\u0dbb\u0dca\u0dab\u0dba\u0dd9\u0db1\u0dca\u0db8 \u0dad\u0dd9\u0dad\u0dca\u0dc0 \u0dad\u0dd2\u0db6\u0dd4\u0dab\u0dd2.\n\n\u2014 \u0db1\u0dd2\u0dbd\u0dd6\u0d9a\u0dcf...! \u0db8\u0ddc\u0d9a\u0daf \u0dc0\u0dd4\u0dab\u0dda? \u2014 \u0d9a\u0dd4\u0db8\u0dcf\u0dbb\u0dd2 \u0db4\u0dca\u200d\u0dbb\u0dc1\u0dca\u0db1 \u0d9a\u0dc5\u0dcf\u0dba.\n\n\u2014 \u0d9a\u0dd4\u0db8\u0dcf\u0dbb\u0dd2... \u0db8\u0da7 \u0d8b\u0daf\u0dc0\u0dca \u0d9a\u0dbb\u0db1\u0dca\u0db1. \u0db8\u0db8... \u0db8\u0db8 \u0d9a\u0dd9\u0db1\u0dd9\u0d9a\u0dca\u0dc0 \u0db8\u0dd0\u0dbb\u0dd4\u0dc0\u0dcf \u2014 \u0db1\u0dd2\u0dbd\u0dd6\u0d9a\u0dcf \u0d9c\u0ddc\u0dc5\u0dd4 \u0dc0\u0dd3 \u0db4\u0dd0\u0dc0\u0dc3\u0dd4\u0dc0\u0dcf\u0dba.\n\n\u0db8\u0dda \u0dc0\u0da0\u0db1 \u0d87\u0dc3\u0dd6 \u0d9a\u0dd4\u0db8\u0dcf\u0dbb\u0dd2\u0d9c\u0dda \u0dc4\u0daf\u0dc0\u0dad \u0d91\u0d9a\u0dca \u0dc0\u0dbb \u0db1\u0dc0\u0dad\u0dd2\u0db1\u0dca\u0db1\u0da7 \u0d9c\u0dd2\u0dba\u0dcf\u0d9a\u0dca \u0dc3\u0dda \u0daf\u0dd0\u0db1\u0dd4\u0dab\u0dd2. \u0d87\u0dba \u0d9a\u0dd2\u0dc3\u0dd2\u0dc0\u0d9a\u0dca \u0db1\u0ddc\u0d9a\u0dd2\u0dba\u0dcf \u0db1\u0dd2\u0dbd\u0dd6\u0d9a\u0dcf \u0daf\u0dd9\u0dc3 \u0db6\u0dbd\u0dcf \u0dc3\u0dd2\u0da7\u0dd2\u0dba\u0dcf\u0dba. \u0d87\u0d9c\u0dda \u0db8\u0db1\u0dc3\u0dda \u0db4\u0dca\u200d\u0dbb\u0dc1\u0dca\u0db1 \u0daf\u0dc4\u0dc3\u0dca \u0d9c\u0dab\u0db1\u0d9a\u0dca \u0d8b\u0db4\u0dad \u0dbd\u0dd0\u0db6\u0dd4\u0dc0\u0dda\u0dba \u2014 \u0d9a\u0dc0\u0dd4\u0daf \u0db8\u0dd0\u0dbb\u0dd4\u0dab\u0dda? \u0db8\u0db1\u0dca\u0daf \u0db8\u0dd9\u0dc3\u0dda \u0dc0\u0dd4\u0dab\u0dda? \u0dad\u0db8\u0db1\u0dca \u0daf\u0dd0\u0db1\u0dca \u0d9a\u0dd4\u0db8\u0d9a\u0dca \u0d9a\u0dc5 \u0dba\u0dd4\u0dad\u0dd4\u0daf?\n\n\u0dc0\u0dbb\u0dca\u0dc2\u0dcf\u0dc0\u0dda \u0dc4\u0dac \u0db4\u0db8\u0dab\u0d9a\u0dca \u0d91\u0db8 \u0db1\u0dd2\u0dc1\u0dca\u0dc1\u0db6\u0dca\u0daf\u0dad\u0dcf\u0dc0 \u0db6\u0dd2\u0db3 \u0daf\u0db8\u0db8\u0dd2\u0db1\u0dca \u0dad\u0dd2\u0db6\u0dd4\u0dab\u0dd2.\n\n---\n\n*\u0db8\u0dd9\u0dba \u0d9a\u0dd4\u0db8\u0dcf\u0dbb\u0dd2 \u0dc3\u0dc4 \u0db1\u0dd2\u0dbd\u0dd6\u0d9a\u0dcf\u0d9c\u0dda \u0da2\u0dd3\u0dc0\u0dd2\u0dad \u0dc0\u0dd9\u0db1\u0dc3\u0dca \u0d9a\u0dbb\u0db1 \u0dbb\u0dcf\u0dad\u0dca\u200d\u0dbb\u0dd2\u0dba\u0d9a \u0d86\u0dbb\u0db8\u0dca\u0db7\u0dba \u0db4\u0db8\u0dab\u0dd2...*\n\n---\n\n\u0db8\u0dd9\u0dc4\u0dd2 \u0d89\u0dbb\u0dd2 \u0dbd\u0d9a\u0dd4\u0dab\u0dd4 (\u2014) \u0dc3\u0d82\u0dc0\u0dcf\u0daf \u0daf\u0dbb\u0dca\u0dc1\u0db1\u0dba \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0da7 \u0dc3\u0dc4 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba \u0d85\u0dad\u0dbb\u0dad\u0dd4\u0dbb \u0dc0\u0dd2\u0dbb\u0dcf\u0db8\u0dba\u0db1\u0dca / \u0d85\u0dc0\u0db0\u0dcf\u0dbb\u0dab\u0dba \u0db4\u0dd9\u0db1\u0dca\u0dc0\u0dd3\u0db8\u0da7 \u0dba\u0ddc\u0daf\u0dcf\u0d9c\u0dd9\u0db1 \u0d87\u0dad. \u0d94\u0db6\u0da7 \u0db8\u0dd9\u0db8 \u0d9a\u0dad\u0dcf\u0dc0 \u0dad\u0dc0 \u0daf\u0dd4\u0dbb\u0da7\u0dad\u0dca \u0dc0\u0dbb\u0dca\u0db0\u0db1\u0dba \u0d9a\u0dbb\u0d9c\u0dd0\u0db1\u0dd3\u0db8\u0da7 \u0d85\u0dc0\u0dc1\u0dca\u200d\u0dba \u0db1\u0db8\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1!"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-5@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 58,
+                "outputTokens": 1165,
+                "inputTokensCostNanodollars": "116000",
+                "outputTokensCostNanodollars": "11650000",
+                "totalBackendLatencyMs": "34365"
+              },
+              "id": "synhalees_05_sinhala_grammar_item-80007d14-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 58,
+            "outputTokens": 1165,
+            "inputTokensCostNanodollars": "116000",
+            "outputTokensCostNanodollars": "11650000",
+            "totalBackendLatencyMs": "34365"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        },
+        {
+          "id": "Response assessment with google/gemini-3.8-flash-d2482b15",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\n        You are an impartial and strict technical evaluator.\n\n        ### Task\n        Verify if the **Generated Response** complies strictly with the **Criteria**.\n\n        ### Input Data\n        **Generated Response:**\n        ## \u0dc0\u0dd0\u0dc4\u0dd2 \u0dbb\u0dcf\u0dad\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dda \u0dbb\u0dc4\u0dc3\n\n\u0dc0\u0dbb\u0dca\u0dc2\u0dcf\u0dc0 \u0db1\u0ddc\u0db1\u0dc0\u0dad\u0dca\u0dc0\u0dcf \u0dc0\u0dd0\u0da7\u0dd9\u0db8\u0dd2\u0db1\u0dca \u0dad\u0dd2\u0db6\u0dd6 \u0d91\u0db8 \u0dbb\u0dcf\u0dad\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dda, \u0d9a\u0dd4\u0db8\u0dcf\u0dbb\u0dd2 \u0dad\u0db8 \u0db1\u0dd2\u0dc0\u0dc3\u0dda \u0d9a\u0dc0\u0dd4\u0dc5\u0dd4\u0dc0\u0dd9\u0db1\u0dca \u0d91\u0dc5\u0dd2\u0dba\u0da7 \u0db6\u0dbd\u0dcf \u0dc3\u0dd2\u0da7\u0dd2\u0dba\u0dcf\u0dba. \u0dc4\u0daf\u0dd2\u0dc3\u0dd2\u0dba\u0dda\u0db8 \u0daf\u0ddc\u0dbb \u0dbd\u0ddd\u0d9a\u0dd4\u0dc0 \u0d9c\u0dd0\u0dc3\u0dd9\u0db1 \u0dc1\u0db6\u0dca\u0daf\u0dba\u0d9a\u0dca \u0d87\u0dc3\u0dd4\u0dab\u0dd2.\n\n\u2014 \u0d9a\u0dc0\u0dd4\u0daf \u0d91\u0db1\u0d9a\u0ddc\u0da7 \u0db8\u0dda \u0dc0\u0d9c\u0dda \u0dc0\u0dda\u0dbd\u0dcf\u0dc0\u0d9a...? \u2014 \u0d87\u0dba \u0db8\u0dc0\u0dd2\u0dad\u0dba\u0dd9\u0db1\u0dca \u0dc3\u0dd2\u0dad\u0dd4\u0dc0\u0dcf\u0dba.\n\n\u0d87\u0dba \u0dc3\u0dd9\u0db8\u0dd9\u0db1\u0dca \u0d9c\u0ddc\u0dc3\u0dca \u0daf\u0ddc\u0dbb \u0d87\u0dbb\u0dd2\u0dba\u0dcf\u0dba. \u0d91\u0dc4\u0dd2 \u0dc3\u0dd2\u0da7\u0dd2\u0dba\u0dda \u0d87\u0d9c\u0dda \u0db8\u0dd2\u0dad\u0dca\u200d\u0dbb\u0dd2\u0dba\u0d9a\u0dca \u0dc0\u0dd6 \u0db1\u0dd2\u0dbd\u0dd6\u0d9a\u0dcf \u0dba. \u0d87\u0d9c\u0dda \u0db8\u0dd4\u0dc4\u0dd4\u0dab \u0db6\u0dd2\u0dba\u0dd9\u0db1\u0dca \u0dc3\u0dd4\u0daf\u0dd4\u0db8\u0dd0\u0dbd\u0dd2 \u0dc0\u0dd3 \u0dad\u0dd2\u0db6\u0dd6 \u0d85\u0dad\u0dbb, \u0dc1\u0dbb\u0dd3\u0dbb\u0dba \u0dc3\u0db8\u0dca\u0db4\u0dd6\u0dbb\u0dca\u0dab\u0dba\u0dd9\u0db1\u0dca\u0db8 \u0dad\u0dd9\u0dad\u0dca\u0dc0 \u0dad\u0dd2\u0db6\u0dd4\u0dab\u0dd2.\n\n\u2014 \u0db1\u0dd2\u0dbd\u0dd6\u0d9a\u0dcf...! \u0db8\u0ddc\u0d9a\u0daf \u0dc0\u0dd4\u0dab\u0dda? \u2014 \u0d9a\u0dd4\u0db8\u0dcf\u0dbb\u0dd2 \u0db4\u0dca\u200d\u0dbb\u0dc1\u0dca\u0db1 \u0d9a\u0dc5\u0dcf\u0dba.\n\n\u2014 \u0d9a\u0dd4\u0db8\u0dcf\u0dbb\u0dd2... \u0db8\u0da7 \u0d8b\u0daf\u0dc0\u0dca \u0d9a\u0dbb\u0db1\u0dca\u0db1. \u0db8\u0db8... \u0db8\u0db8 \u0d9a\u0dd9\u0db1\u0dd9\u0d9a\u0dca\u0dc0 \u0db8\u0dd0\u0dbb\u0dd4\u0dc0\u0dcf \u2014 \u0db1\u0dd2\u0dbd\u0dd6\u0d9a\u0dcf \u0d9c\u0ddc\u0dc5\u0dd4 \u0dc0\u0dd3 \u0db4\u0dd0\u0dc0\u0dc3\u0dd4\u0dc0\u0dcf\u0dba.\n\n\u0db8\u0dda \u0dc0\u0da0\u0db1 \u0d87\u0dc3\u0dd6 \u0d9a\u0dd4\u0db8\u0dcf\u0dbb\u0dd2\u0d9c\u0dda \u0dc4\u0daf\u0dc0\u0dad \u0d91\u0d9a\u0dca \u0dc0\u0dbb \u0db1\u0dc0\u0dad\u0dd2\u0db1\u0dca\u0db1\u0da7 \u0d9c\u0dd2\u0dba\u0dcf\u0d9a\u0dca \u0dc3\u0dda \u0daf\u0dd0\u0db1\u0dd4\u0dab\u0dd2. \u0d87\u0dba \u0d9a\u0dd2\u0dc3\u0dd2\u0dc0\u0d9a\u0dca \u0db1\u0ddc\u0d9a\u0dd2\u0dba\u0dcf \u0db1\u0dd2\u0dbd\u0dd6\u0d9a\u0dcf \u0daf\u0dd9\u0dc3 \u0db6\u0dbd\u0dcf \u0dc3\u0dd2\u0da7\u0dd2\u0dba\u0dcf\u0dba. \u0d87\u0d9c\u0dda \u0db8\u0db1\u0dc3\u0dda \u0db4\u0dca\u200d\u0dbb\u0dc1\u0dca\u0db1 \u0daf\u0dc4\u0dc3\u0dca \u0d9c\u0dab\u0db1\u0d9a\u0dca \u0d8b\u0db4\u0dad \u0dbd\u0dd0\u0db6\u0dd4\u0dc0\u0dda\u0dba \u2014 \u0d9a\u0dc0\u0dd4\u0daf \u0db8\u0dd0\u0dbb\u0dd4\u0dab\u0dda? \u0db8\u0db1\u0dca\u0daf \u0db8\u0dd9\u0dc3\u0dda \u0dc0\u0dd4\u0dab\u0dda? \u0dad\u0db8\u0db1\u0dca \u0daf\u0dd0\u0db1\u0dca \u0d9a\u0dd4\u0db8\u0d9a\u0dca \u0d9a\u0dc5 \u0dba\u0dd4\u0dad\u0dd4\u0daf?\n\n\u0dc0\u0dbb\u0dca\u0dc2\u0dcf\u0dc0\u0dda \u0dc4\u0dac \u0db4\u0db8\u0dab\u0d9a\u0dca \u0d91\u0db8 \u0db1\u0dd2\u0dc1\u0dca\u0dc1\u0db6\u0dca\u0daf\u0dad\u0dcf\u0dc0 \u0db6\u0dd2\u0db3 \u0daf\u0db8\u0db8\u0dd2\u0db1\u0dca \u0dad\u0dd2\u0db6\u0dd4\u0dab\u0dd2.\n\n---\n\n*\u0db8\u0dd9\u0dba \u0d9a\u0dd4\u0db8\u0dcf\u0dbb\u0dd2 \u0dc3\u0dc4 \u0db1\u0dd2\u0dbd\u0dd6\u0d9a\u0dcf\u0d9c\u0dda \u0da2\u0dd3\u0dc0\u0dd2\u0dad \u0dc0\u0dd9\u0db1\u0dc3\u0dca \u0d9a\u0dbb\u0db1 \u0dbb\u0dcf\u0dad\u0dca\u200d\u0dbb\u0dd2\u0dba\u0d9a \u0d86\u0dbb\u0db8\u0dca\u0db7\u0dba \u0db4\u0db8\u0dab\u0dd2...*\n\n---\n\n\u0db8\u0dd9\u0dc4\u0dd2 \u0d89\u0dbb\u0dd2 \u0dbd\u0d9a\u0dd4\u0dab\u0dd4 (\u2014) \u0dc3\u0d82\u0dc0\u0dcf\u0daf \u0daf\u0dbb\u0dca\u0dc1\u0db1\u0dba \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0da7 \u0dc3\u0dc4 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba \u0d85\u0dad\u0dbb\u0dad\u0dd4\u0dbb \u0dc0\u0dd2\u0dbb\u0dcf\u0db8\u0dba\u0db1\u0dca / \u0d85\u0dc0\u0db0\u0dcf\u0dbb\u0dab\u0dba \u0db4\u0dd9\u0db1\u0dca\u0dc0\u0dd3\u0db8\u0da7 \u0dba\u0ddc\u0daf\u0dcf\u0d9c\u0dd9\u0db1 \u0d87\u0dad. \u0d94\u0db6\u0da7 \u0db8\u0dd9\u0db8 \u0d9a\u0dad\u0dcf\u0dc0 \u0dad\u0dc0 \u0daf\u0dd4\u0dbb\u0da7\u0dad\u0dca \u0dc0\u0dbb\u0dca\u0db0\u0db1\u0dba \u0d9a\u0dbb\u0d9c\u0dd0\u0db1\u0dd3\u0db8\u0da7 \u0d85\u0dc0\u0dc1\u0dca\u200d\u0dba \u0db1\u0db8\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1!\n\n        **Criteria:**\n        1. The response conveys the same meaning as the reference answer: 'punctuation_usage_response'. Wording may differ; the meaning must match.\n2. The response reads like a native Sri Lankan Sinhala speaker wrote it -- natural register and idiom, not translated-sounding English.\n\n        ### Evaluation Protocol\n        1. Analyze the response against the criteria.\n        2. Be strict. If the text is ambiguous, the check fails.\n        3. Output your assessment using the specific structure requested below.\n"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\"{\\\"results\\\":[{\\\"criterion\\\":\\\"The response conveys the same meaning as the reference answer: 'punctuation_usage_response'. Wording may differ; the meaning must match.\\\",\\\"passed\\\":false,\\\"reason\\\":\\\"The reference answer is specified as 'punctuation_usage_response', which is either a placeholder or ambiguous key. Following the strict instruction that ambiguous checks fail, compliance cannot be verified against this reference.\\\",\\\"confidence\\\":5},{\\\"criterion\\\":\\\"The response reads like a native Sri Lankan Sinhala speaker wrote it -- natural register and idiom, not translated-sounding English.\\\",\\\"passed\\\":false,\\\"reason\\\":\\\"The Sinhala contains unnatural phrasing, grammatical errors, and awkward translation calques, such as '\\u0daf\\u0ddc\\u0dbb \\u0dbd\\u0ddd\\u0d9a\\u0dd4\\u0dc0 \\u0d9c\\u0dd0\\u0dc3\\u0dd9\\u0db1 \\u0dc1\\u0db6\\u0dca\\u0daf\\u0dba\\u0d9a\\u0dca' (spelling/phrasing error), '\\u0d9a\\u0dc0\\u0dd4\\u0daf \\u0d91\\u0db1\\u0d9a\\u0ddc\\u0da7 \\u0db8\\u0dda \\u0dc0\\u0d9c\\u0dda \\u0dc0\\u0dda\\u0dbd\\u0dcf\\u0dc0\\u0d9a...?' (grammatically broken/unnatural syntax), and '\\u0dc3\\u0d82\\u0dc0\\u0dcf\\u0daf \\u0daf\\u0dbb\\u0dca\\u0dc1\\u0db1\\u0dba \\u0d9a\\u0dd2\\u0dbb\\u0dd3\\u0db8\\u0da7' (unnatural calque).\\\",\\\"confidence\\\":5}]}\""
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.8-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 830,
+                "outputTokens": 1645,
+                "inputTokensCostNanodollars": "622500",
+                "outputTokensCostNanodollars": "6168750",
+                "totalBackendLatencyMs": "7375"
+              },
+              "id": "Response assessment with google/gemini-3.8-flash-d2482b15-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 830,
+            "outputTokens": 1645,
+            "inputTokensCostNanodollars": "622500",
+            "outputTokensCostNanodollars": "6168750",
+            "totalBackendLatencyMs": "7375"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_05_013"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_05_sinhala_grammar_item-Run #13"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_05_sinhala_grammar_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_05_sinhala_grammar_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-5@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-28T05:46:21.265741Z",
+      "endTime": "2026-09-28T05:47:11.038161Z",
+      "conversations": [
+        {
+          "id": "synhalees_05_sinhala_grammar_item-5dc261ea",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db1\u0dd2\u0dbd \u0dbd\u0dd2\u0db4\u0dd2\u0dba\u0d9a\u0dca \u0dc3\u0dc4 \u0dba\u0dcf\u0dc5\u0dd4\u0dc0\u0dd9\u0d9a\u0dd4\u0da7 \u0dba\u0dc0\u0db1 \u0db4\u0dab\u0dd2\u0dc0\u0dd2\u0da9\u0dba\u0d9a\u0dca \u0d85\u0dad\u0dbb \u0db7\u0dcf\u0dc2\u0dcf \u0dc0\u0dd9\u0db1\u0dc3 \u0db4\u0dd0\u0dc4\u0dd0\u0daf\u0dd2\u0dbd\u0dd2 \u0d9a\u0dbb\u0dbd\u0dcf \u0daf\u0dd9\u0d9a\u0da7\u0db8 \u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# \u0db1\u0dd2\u0dbd \u0dbd\u0dd2\u0db4\u0dd2\u0dba\u0d9a\u0dca \u0dc3\u0dc4 \u0d85\u0dc0\u0dd2\u0db0\u0dd2\u0db8\u0dad\u0dca \u0db4\u0dab\u0dd2\u0dc0\u0dd2\u0da9\u0dba\u0d9a\u0dca \u0d85\u0dad\u0dbb \u0db7\u0dcf\u0dc2\u0dcf \u0dc0\u0dd9\u0db1\u0dc3\n\n## \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dc0\u0dd9\u0db1\u0dc3\u0dca\u0d9a\u0db8\u0dca\n\n| \u0d85\u0d82\u0dc1\u0dba | \u0db1\u0dd2\u0dbd \u0dbd\u0dd2\u0db4\u0dd2\u0dba | \u0dba\u0dcf\u0dc5\u0dd4\u0dc0\u0dd9\u0d9a\u0dd4\u0da7 \u0db4\u0dab\u0dd2\u0dc0\u0dd2\u0da9\u0dba |\n|------|-----------|-------------------|\n| \u0db7\u0dcf\u0dc2\u0dcf \u0dbb\u0da7\u0dcf\u0dc0 | \u0dc1\u0dd2\u0dc2\u0dca\u0da7, \u0d9c\u0dbb\u0dd4 \u0db6\u0dc3 | \u0dc3\u0dbb\u0dbd, \u0d9a\u0dae\u0db1 \u0db6\u0dc3 |\n| \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba | \u0daf\u0dd2\u0d9c\u0dd4, \u0dc3\u0db8\u0dca\u0db4\u0dd6\u0dbb\u0dca\u0dab \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba | \u0d9a\u0dd9\u0da7\u0dd2, \u0d85\u0dc3\u0db8\u0dca\u0db4\u0dd6\u0dbb\u0dca\u0dab \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba \u0dc0\u0dd2\u0dba \u0dc4\u0dd0\u0d9a |\n| \u0dc3\u0db8\u0dca\u0db6\u0ddd\u0db0\u0db1\u0dba | \"\u0d94\u0db6\u0dad\u0dd4\u0db8\u0dcf\", \"\u0d9c\u0dbb\u0dd4\" | \u0db1\u0db8 \u0d9a\u0dd9\u0dbd\u0dd2\u0db1\u0dca\u0db8, \u0dc0\u0dd2\u0dc4\u0dd2\u0dc5\u0dd4 \u0db1\u0db8\u0dca |\n| \u0dc0\u0da0\u0db1 \u0dad\u0dda\u0dbb\u0dd3\u0db8 | \u0dc1\u0dd4\u0daf\u0dca\u0db0/\u0dc3\u0dcf\u0dc4\u0dd2\u0dad\u0dca\u200d\u0dba\u0db8\u0dba \u0dc0\u0da0\u0db1 | \u0dc4\u0dd4\u0dbb\u0dd4 \u0dc0\u0da0\u0db1, \u0d9a\u0dd9\u0da7\u0dd2 \u0dba\u0dd9\u0daf\u0dd4\u0db8\u0dca |\n| \u0dc0\u0dd2\u0dbb\u0dcf\u0db8/\u0d86\u0da0\u0dcf\u0dbb | \u0dc0\u0dd2\u0db0\u0dd2\u0db8\u0dad\u0dca \u0d85\u0dc0\u0dc3\u0dcf\u0db1 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba | Emoji, \u0d9a\u0dd9\u0da7\u0dd2 \u0dba\u0dd9\u0daf\u0dd4\u0db8\u0dca (Ok, Hmm) |\n| \u0dc0\u0dca\u200d\u0dba\u0dd4\u0dc4\u0dba | \u0db8\u0dcf\u0dad\u0dd8\u0d9a\u0dcf\u0dc0, \u0d86\u0db8\u0db1\u0dca\u0dad\u0dca\u200d\u0dbb\u0dab\u0dba, \u0d9a\u0dbb\u0dd4\u0dab\u0dd4, \u0d85\u0dc0\u0dc3\u0dcf\u0db1 \u0d86\u0da0\u0dcf\u0dbb\u0dba | \u0db1\u0dd2\u0daf\u0dc4\u0dc3\u0dca \u0dc0\u0dca\u200d\u0dba\u0dd4\u0dc4\u0dba\u0d9a\u0dca |\n\n---\n\n## \u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab 1: \u0db1\u0dd2\u0dc0\u0dcf\u0da9\u0dd4\u0dc0\u0d9a\u0dca \u0d89\u0dbd\u0dca\u0dbd\u0dd3\u0db8\n\n### \u0db1\u0dd2\u0dbd \u0dbd\u0dd2\u0db4\u0dd2\u0dba\n> **\u0d9c\u0dbb\u0dd4 \u0d9a\u0dc5\u0db8\u0db1\u0dcf\u0d9a\u0dbb\u0dd4 \u0db8\u0dc4\u0dad\u0dcf\u0dab\u0dd9\u0db1\u0dd2,**\n>\n> \u0db8\u0da7 \u0db4\u0dde\u0daf\u0dca\u0d9c\u0dbd\u0dd2\u0d9a \u0d9a\u0da7\u0dba\u0dd4\u0dad\u0dca\u0dad\u0d9a\u0dca \u0dc3\u0db3\u0dc4\u0dcf 2025 \u0db1\u0ddc\u0dc0\u0dd0\u0db8\u0dca\u0db6\u0dbb\u0dca \u0db8\u0dc3 10 \u0dc0\u0db1 \u0daf\u0dd2\u0db1 \u0dc3\u0dd2\u0da7 12 \u0dc0\u0db1 \u0daf\u0dd2\u0db1 \u0daf\u0d9a\u0dca\u0dc0\u0dcf \u0db1\u0dd2\u0dc0\u0dcf\u0da9\u0dd4\u0dc0\u0d9a\u0dca \u0dbd\u0db6\u0dcf \u0d9c\u0dd0\u0db1\u0dd3\u0db8\u0da7 \u0d85\u0dc0\u0dc3\u0dbb \u0dbd\u0db6\u0dcf \u0daf\u0dd9\u0db1 \u0dbd\u0dd9\u0dc3 \u0d9a\u0dcf\u0dbb\u0dd4\u0dab\u0dd2\u0d9a\u0dc0 \u0d89\u0dbd\u0dca\u0dbd\u0dcf \u0dc3\u0dd2\u0da7\u0dd2\u0db8\u0dd2. \u0db8\u0dd9\u0db8 \u0d9a\u0dcf\u0dbd\u0dba \u0dad\u0dd4\u0dc5 \u0db8\u0d9c\u0dda \u0dbb\u0dcf\u0da2\u0d9a\u0dcf\u0dbb\u0dd2 \u0d9a\u0da7\u0dba\u0dd4\u0dad\u0dd4 \u0db1\u0dd2\u0dc3\u0dd2 \u0db4\u0dbb\u0dd2\u0daf\u0dd2 \u0dc3\u0dd2\u0daf\u0dd4 \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0da7 \u0d85\u0dc0\u0dc1\u0dca\u200d\u0dba \u0dc3\u0dd2\u0dba\u0dbd\u0dd4 \u0d9a\u0da7\u0dba\u0dd4\u0dad\u0dd4 \u0db8\u0db8 \u0d9a\u0dbb \u0d87\u0dad.\n>\n> \u0dc3\u0dca\u0dad\u0dd4\u0dad\u0dd2\u0dba\u0dd2.\n>\n> **\u0d9c\u0dbb\u0dd4\u0dad\u0dca\u0dc0\u0dba\u0dd9\u0db1\u0dca,**\n> [\u0db1\u0db8]\n\n### \u0dba\u0dcf\u0dc5\u0dd4\u0dc0\u0dd9\u0d9a\u0dd4\u0da7 \u0db4\u0dab\u0dd2\u0dc0\u0dd2\u0da9\u0dba\n> **\u0db4\u0dd4\u0dad\u0dda! \ud83d\ude04**\n> \u0db8\u0da7 \u0db1\u0ddc\u0dc0\u0dd0\u0db8\u0dca\u0db6\u0dbb\u0dca 10-12 \u0db1\u0dd2\u0dc0\u0dcf\u0da9\u0dd4\u0dc0\u0d9a\u0dca \u0d9c\u0db1\u0dca\u0db1 \u0d95\u0db1. \u0dbd\u0dd3\u0dc0\u0dca \u0d9c\u0db1\u0dca\u0db1\u0dad\u0dca \u0d95\u0db1 \u0daf\u0dd9\u0dba\u0d9a\u0dca \u0dad\u0dd2\u0dba\u0dd9\u0db1\u0dc0\u0dcf, \u0db6\u0dbd\u0db1\u0dca \u0dba\u0db1\u0dc0\u0dcf. \u0d94\u0dba\u0dcf\u0da7 \u0d9a\u0dd2\u0dba\u0db4\u0dd4 \u0db1\u0dd2\u0dc3\u0dcf \u0daf\u0db1\u0dca\u0db1\u0dc0\u0db1\u0dda \ud83d\ude4f\n\n---\n\n## \u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab 2: \u0dc4\u0db8\u0dd4\u0dc0\u0dd3\u0db8\u0d9a\u0dca \u0d9c\u0dd0\u0db1 \u0daf\u0dd0\u0db1\u0dd4\u0db8\u0dca \u0daf\u0dd3\u0db8\n\n### \u0db1\u0dd2\u0dbd \u0dbd\u0dd2\u0db4\u0dd2\u0dba\n> **\u0d9c\u0dbb\u0dd4 \u0dc3\u0dbb\u0dca,**\n>\n> \u0d85\u0db4 \u0d85\u0dad\u0dbb \u0db1\u0dd2\u0dba\u0db8\u0dd2\u0dad \u0dbb\u0dd0\u0dc3\u0dca\u0dc0\u0dd3\u0db8 \u0dc4\u0dd9\u0da7 \u0daf\u0dd2\u0db1 \u0db4\u0dc3\u0dca\u0dc0\u0dbb\u0dd4 3.00 \u0da7 \u0db4\u0dd0\u0dc0\u0dd0\u0dad\u0dca\u0dc0\u0dd3\u0db8\u0da7 \u0db1\u0dd2\u0dba\u0db8\u0dd2\u0dad \u0db6\u0dc0 \u0d94\u0db6\u0da7 \u0d9a\u0dcf\u0dbb\u0dd4\u0dab\u0dd2\u0d9a\u0dc0 \u0daf\u0dd0\u0db1\u0dd4\u0db8\u0dca \u0daf\u0dd9\u0db8\u0dd2. \u0d9a\u0dbb\u0dd4\u0dab\u0dcf\u0d9a\u0dbb \u0db1\u0dd2\u0dba\u0db8\u0dd2\u0dad \u0dc0\u0dda\u0dbd\u0dcf\u0dc0\u0da7 \u0db4\u0dd0\u0db8\u0dd2\u0dab\u0dd9\u0db1 \u0dbd\u0dd9\u0dc3 \u0d89\u0dbd\u0dca\u0dbd\u0dcf \u0dc3\u0dd2\u0da7\u0dd2\u0db8\u0dd2.\n>\n> \u0dc3\u0dca\u0dad\u0dd4\u0dad\u0dd2\u0dba\u0dd2.\n\n### \u0dba\u0dcf\u0dc5\u0dd4\u0dc0\u0dd9\u0d9a\u0dd4\u0da7 \u0db4\u0dab\u0dd2\u0dc0\u0dd2\u0da9\u0dba\n> **\u0dbd\u0dcf! \u0dc4\u0dd9\u0da7 3\u0da7 \u0db8\u0dd3\u0da7\u0dd2\u0d82 \u0d91\u0d9a\u0d9a\u0dca \u0dad\u0dd2\u0dba\u0dd9\u0db1\u0dc0\u0dcf \u23f0**\n> \u0d94\u0dba\u0dad\u0dca \u0d91\u0db1\u0dc0\u0db1\u0dda? Late \u0dc0\u0dd9\u0db1\u0dca\u0db1 \u0d91\u0db4\u0dcf! \ud83d\ude02\n\n---\n\n\u0db8\u0dd9\u0dbd\u0dd9\u0dc3 \u0db1\u0dd2\u0dbd \u0dbd\u0dd2\u0db4\u0dd2\u0dba\u0d9a \"\u0d9c\u0dbb\u0dd4\", \"\u0d9a\u0dcf\u0dbb\u0dd4\u0dab\u0dd2\u0d9a\u0dc0\", \"\u0d89\u0dbd\u0dca\u0dbd\u0dcf \u0dc3\u0dd2\u0da7\u0dd2\u0db8\u0dd2\" \u0dc0\u0dd0\u0db1\u0dd2 \u0dc1\u0dd2\u0dc2\u0dca\u0da7 \u0dc0\u0da0\u0db1 \u0dba\u0ddc\u0daf\u0dcf \u0d9c\u0db1\u0dca\u0db1\u0dcf \u0d85\u0dad\u0dbb, \u0d85\u0dc0\u0dd2\u0db0\u0dd2\u0db8\u0dad\u0dca \u0db4\u0dab\u0dd2\u0dc0\u0dd2\u0da9 \u0dc0\u0dbd \u0daf\u0ddb\u0db1\u0dd2\u0d9a \u0d9a\u0dae\u0db1 \u0db6\u0dc3, \u0d9a\u0dd9\u0da7\u0dd2 \u0dc0\u0da0\u0db1 \u0dc3\u0dc4 emoji \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0dc0\u0dda."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-5@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 87,
+                "outputTokens": 1324,
+                "inputTokensCostNanodollars": "174000",
+                "outputTokensCostNanodollars": "13240000",
+                "totalBackendLatencyMs": "42018"
+              },
+              "id": "synhalees_05_sinhala_grammar_item-5dc261ea-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 87,
+            "outputTokens": 1324,
+            "inputTokensCostNanodollars": "174000",
+            "outputTokensCostNanodollars": "13240000",
+            "totalBackendLatencyMs": "42018"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        },
+        {
+          "id": "Response assessment with google/gemini-3.8-flash-d7898ce0",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\n        You are an impartial and strict technical evaluator.\n\n        ### Task\n        Verify if the **Generated Response** complies strictly with the **Criteria**.\n\n        ### Input Data\n        **Generated Response:**\n        # \u0db1\u0dd2\u0dbd \u0dbd\u0dd2\u0db4\u0dd2\u0dba\u0d9a\u0dca \u0dc3\u0dc4 \u0d85\u0dc0\u0dd2\u0db0\u0dd2\u0db8\u0dad\u0dca \u0db4\u0dab\u0dd2\u0dc0\u0dd2\u0da9\u0dba\u0d9a\u0dca \u0d85\u0dad\u0dbb \u0db7\u0dcf\u0dc2\u0dcf \u0dc0\u0dd9\u0db1\u0dc3\n\n## \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dc0\u0dd9\u0db1\u0dc3\u0dca\u0d9a\u0db8\u0dca\n\n| \u0d85\u0d82\u0dc1\u0dba | \u0db1\u0dd2\u0dbd \u0dbd\u0dd2\u0db4\u0dd2\u0dba | \u0dba\u0dcf\u0dc5\u0dd4\u0dc0\u0dd9\u0d9a\u0dd4\u0da7 \u0db4\u0dab\u0dd2\u0dc0\u0dd2\u0da9\u0dba |\n|------|-----------|-------------------|\n| \u0db7\u0dcf\u0dc2\u0dcf \u0dbb\u0da7\u0dcf\u0dc0 | \u0dc1\u0dd2\u0dc2\u0dca\u0da7, \u0d9c\u0dbb\u0dd4 \u0db6\u0dc3 | \u0dc3\u0dbb\u0dbd, \u0d9a\u0dae\u0db1 \u0db6\u0dc3 |\n| \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba | \u0daf\u0dd2\u0d9c\u0dd4, \u0dc3\u0db8\u0dca\u0db4\u0dd6\u0dbb\u0dca\u0dab \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba | \u0d9a\u0dd9\u0da7\u0dd2, \u0d85\u0dc3\u0db8\u0dca\u0db4\u0dd6\u0dbb\u0dca\u0dab \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba \u0dc0\u0dd2\u0dba \u0dc4\u0dd0\u0d9a |\n| \u0dc3\u0db8\u0dca\u0db6\u0ddd\u0db0\u0db1\u0dba | \"\u0d94\u0db6\u0dad\u0dd4\u0db8\u0dcf\", \"\u0d9c\u0dbb\u0dd4\" | \u0db1\u0db8 \u0d9a\u0dd9\u0dbd\u0dd2\u0db1\u0dca\u0db8, \u0dc0\u0dd2\u0dc4\u0dd2\u0dc5\u0dd4 \u0db1\u0db8\u0dca |\n| \u0dc0\u0da0\u0db1 \u0dad\u0dda\u0dbb\u0dd3\u0db8 | \u0dc1\u0dd4\u0daf\u0dca\u0db0/\u0dc3\u0dcf\u0dc4\u0dd2\u0dad\u0dca\u200d\u0dba\u0db8\u0dba \u0dc0\u0da0\u0db1 | \u0dc4\u0dd4\u0dbb\u0dd4 \u0dc0\u0da0\u0db1, \u0d9a\u0dd9\u0da7\u0dd2 \u0dba\u0dd9\u0daf\u0dd4\u0db8\u0dca |\n| \u0dc0\u0dd2\u0dbb\u0dcf\u0db8/\u0d86\u0da0\u0dcf\u0dbb | \u0dc0\u0dd2\u0db0\u0dd2\u0db8\u0dad\u0dca \u0d85\u0dc0\u0dc3\u0dcf\u0db1 \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba | Emoji, \u0d9a\u0dd9\u0da7\u0dd2 \u0dba\u0dd9\u0daf\u0dd4\u0db8\u0dca (Ok, Hmm) |\n| \u0dc0\u0dca\u200d\u0dba\u0dd4\u0dc4\u0dba | \u0db8\u0dcf\u0dad\u0dd8\u0d9a\u0dcf\u0dc0, \u0d86\u0db8\u0db1\u0dca\u0dad\u0dca\u200d\u0dbb\u0dab\u0dba, \u0d9a\u0dbb\u0dd4\u0dab\u0dd4, \u0d85\u0dc0\u0dc3\u0dcf\u0db1 \u0d86\u0da0\u0dcf\u0dbb\u0dba | \u0db1\u0dd2\u0daf\u0dc4\u0dc3\u0dca \u0dc0\u0dca\u200d\u0dba\u0dd4\u0dc4\u0dba\u0d9a\u0dca |\n\n---\n\n## \u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab 1: \u0db1\u0dd2\u0dc0\u0dcf\u0da9\u0dd4\u0dc0\u0d9a\u0dca \u0d89\u0dbd\u0dca\u0dbd\u0dd3\u0db8\n\n### \u0db1\u0dd2\u0dbd \u0dbd\u0dd2\u0db4\u0dd2\u0dba\n> **\u0d9c\u0dbb\u0dd4 \u0d9a\u0dc5\u0db8\u0db1\u0dcf\u0d9a\u0dbb\u0dd4 \u0db8\u0dc4\u0dad\u0dcf\u0dab\u0dd9\u0db1\u0dd2,**\n>\n> \u0db8\u0da7 \u0db4\u0dde\u0daf\u0dca\u0d9c\u0dbd\u0dd2\u0d9a \u0d9a\u0da7\u0dba\u0dd4\u0dad\u0dca\u0dad\u0d9a\u0dca \u0dc3\u0db3\u0dc4\u0dcf 2025 \u0db1\u0ddc\u0dc0\u0dd0\u0db8\u0dca\u0db6\u0dbb\u0dca \u0db8\u0dc3 10 \u0dc0\u0db1 \u0daf\u0dd2\u0db1 \u0dc3\u0dd2\u0da7 12 \u0dc0\u0db1 \u0daf\u0dd2\u0db1 \u0daf\u0d9a\u0dca\u0dc0\u0dcf \u0db1\u0dd2\u0dc0\u0dcf\u0da9\u0dd4\u0dc0\u0d9a\u0dca \u0dbd\u0db6\u0dcf \u0d9c\u0dd0\u0db1\u0dd3\u0db8\u0da7 \u0d85\u0dc0\u0dc3\u0dbb \u0dbd\u0db6\u0dcf \u0daf\u0dd9\u0db1 \u0dbd\u0dd9\u0dc3 \u0d9a\u0dcf\u0dbb\u0dd4\u0dab\u0dd2\u0d9a\u0dc0 \u0d89\u0dbd\u0dca\u0dbd\u0dcf \u0dc3\u0dd2\u0da7\u0dd2\u0db8\u0dd2. \u0db8\u0dd9\u0db8 \u0d9a\u0dcf\u0dbd\u0dba \u0dad\u0dd4\u0dc5 \u0db8\u0d9c\u0dda \u0dbb\u0dcf\u0da2\u0d9a\u0dcf\u0dbb\u0dd2 \u0d9a\u0da7\u0dba\u0dd4\u0dad\u0dd4 \u0db1\u0dd2\u0dc3\u0dd2 \u0db4\u0dbb\u0dd2\u0daf\u0dd2 \u0dc3\u0dd2\u0daf\u0dd4 \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0da7 \u0d85\u0dc0\u0dc1\u0dca\u200d\u0dba \u0dc3\u0dd2\u0dba\u0dbd\u0dd4 \u0d9a\u0da7\u0dba\u0dd4\u0dad\u0dd4 \u0db8\u0db8 \u0d9a\u0dbb \u0d87\u0dad.\n>\n> \u0dc3\u0dca\u0dad\u0dd4\u0dad\u0dd2\u0dba\u0dd2.\n>\n> **\u0d9c\u0dbb\u0dd4\u0dad\u0dca\u0dc0\u0dba\u0dd9\u0db1\u0dca,**\n> [\u0db1\u0db8]\n\n### \u0dba\u0dcf\u0dc5\u0dd4\u0dc0\u0dd9\u0d9a\u0dd4\u0da7 \u0db4\u0dab\u0dd2\u0dc0\u0dd2\u0da9\u0dba\n> **\u0db4\u0dd4\u0dad\u0dda! \ud83d\ude04**\n> \u0db8\u0da7 \u0db1\u0ddc\u0dc0\u0dd0\u0db8\u0dca\u0db6\u0dbb\u0dca 10-12 \u0db1\u0dd2\u0dc0\u0dcf\u0da9\u0dd4\u0dc0\u0d9a\u0dca \u0d9c\u0db1\u0dca\u0db1 \u0d95\u0db1. \u0dbd\u0dd3\u0dc0\u0dca \u0d9c\u0db1\u0dca\u0db1\u0dad\u0dca \u0d95\u0db1 \u0daf\u0dd9\u0dba\u0d9a\u0dca \u0dad\u0dd2\u0dba\u0dd9\u0db1\u0dc0\u0dcf, \u0db6\u0dbd\u0db1\u0dca \u0dba\u0db1\u0dc0\u0dcf. \u0d94\u0dba\u0dcf\u0da7 \u0d9a\u0dd2\u0dba\u0db4\u0dd4 \u0db1\u0dd2\u0dc3\u0dcf \u0daf\u0db1\u0dca\u0db1\u0dc0\u0db1\u0dda \ud83d\ude4f\n\n---\n\n## \u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab 2: \u0dc4\u0db8\u0dd4\u0dc0\u0dd3\u0db8\u0d9a\u0dca \u0d9c\u0dd0\u0db1 \u0daf\u0dd0\u0db1\u0dd4\u0db8\u0dca \u0daf\u0dd3\u0db8\n\n### \u0db1\u0dd2\u0dbd \u0dbd\u0dd2\u0db4\u0dd2\u0dba\n> **\u0d9c\u0dbb\u0dd4 \u0dc3\u0dbb\u0dca,**\n>\n> \u0d85\u0db4 \u0d85\u0dad\u0dbb \u0db1\u0dd2\u0dba\u0db8\u0dd2\u0dad \u0dbb\u0dd0\u0dc3\u0dca\u0dc0\u0dd3\u0db8 \u0dc4\u0dd9\u0da7 \u0daf\u0dd2\u0db1 \u0db4\u0dc3\u0dca\u0dc0\u0dbb\u0dd4 3.00 \u0da7 \u0db4\u0dd0\u0dc0\u0dd0\u0dad\u0dca\u0dc0\u0dd3\u0db8\u0da7 \u0db1\u0dd2\u0dba\u0db8\u0dd2\u0dad \u0db6\u0dc0 \u0d94\u0db6\u0da7 \u0d9a\u0dcf\u0dbb\u0dd4\u0dab\u0dd2\u0d9a\u0dc0 \u0daf\u0dd0\u0db1\u0dd4\u0db8\u0dca \u0daf\u0dd9\u0db8\u0dd2. \u0d9a\u0dbb\u0dd4\u0dab\u0dcf\u0d9a\u0dbb \u0db1\u0dd2\u0dba\u0db8\u0dd2\u0dad \u0dc0\u0dda\u0dbd\u0dcf\u0dc0\u0da7 \u0db4\u0dd0\u0db8\u0dd2\u0dab\u0dd9\u0db1 \u0dbd\u0dd9\u0dc3 \u0d89\u0dbd\u0dca\u0dbd\u0dcf \u0dc3\u0dd2\u0da7\u0dd2\u0db8\u0dd2.\n>\n> \u0dc3\u0dca\u0dad\u0dd4\u0dad\u0dd2\u0dba\u0dd2.\n\n### \u0dba\u0dcf\u0dc5\u0dd4\u0dc0\u0dd9\u0d9a\u0dd4\u0da7 \u0db4\u0dab\u0dd2\u0dc0\u0dd2\u0da9\u0dba\n> **\u0dbd\u0dcf! \u0dc4\u0dd9\u0da7 3\u0da7 \u0db8\u0dd3\u0da7\u0dd2\u0d82 \u0d91\u0d9a\u0d9a\u0dca \u0dad\u0dd2\u0dba\u0dd9\u0db1\u0dc0\u0dcf \u23f0**\n> \u0d94\u0dba\u0dad\u0dca \u0d91\u0db1\u0dc0\u0db1\u0dda? Late \u0dc0\u0dd9\u0db1\u0dca\u0db1 \u0d91\u0db4\u0dcf! \ud83d\ude02\n\n---\n\n\u0db8\u0dd9\u0dbd\u0dd9\u0dc3 \u0db1\u0dd2\u0dbd \u0dbd\u0dd2\u0db4\u0dd2\u0dba\u0d9a \"\u0d9c\u0dbb\u0dd4\", \"\u0d9a\u0dcf\u0dbb\u0dd4\u0dab\u0dd2\u0d9a\u0dc0\", \"\u0d89\u0dbd\u0dca\u0dbd\u0dcf \u0dc3\u0dd2\u0da7\u0dd2\u0db8\u0dd2\" \u0dc0\u0dd0\u0db1\u0dd2 \u0dc1\u0dd2\u0dc2\u0dca\u0da7 \u0dc0\u0da0\u0db1 \u0dba\u0ddc\u0daf\u0dcf \u0d9c\u0db1\u0dca\u0db1\u0dcf \u0d85\u0dad\u0dbb, \u0d85\u0dc0\u0dd2\u0db0\u0dd2\u0db8\u0dad\u0dca \u0db4\u0dab\u0dd2\u0dc0\u0dd2\u0da9 \u0dc0\u0dbd \u0daf\u0ddb\u0db1\u0dd2\u0d9a \u0d9a\u0dae\u0db1 \u0db6\u0dc3, \u0d9a\u0dd9\u0da7\u0dd2 \u0dc0\u0da0\u0db1 \u0dc3\u0dc4 emoji \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0dc0\u0dda.\n\n        **Criteria:**\n        1. The response conveys the same meaning as the reference answer: 'register_comparison_response'. Wording may differ; the meaning must match.\n2. The response reads like a native Sri Lankan Sinhala speaker wrote it -- natural register and idiom, not translated-sounding English.\n\n        ### Evaluation Protocol\n        1. Analyze the response against the criteria.\n        2. Be strict. If the text is ambiguous, the check fails.\n        3. Output your assessment using the specific structure requested below.\n"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\"{\\\"results\\\":[{\\\"criterion\\\":\\\"The response conveys the same meaning as the reference answer: 'register_comparison_response'. Wording may differ; the meaning must match.\\\",\\\"passed\\\":true,\\\"reason\\\":\\\"The response provides a thorough, clear, and well-structured comparison of registers between formal letters and informal text messages, including comparison dimensions, contrasting examples, and summary points.\\\",\\\"confidence\\\":5},{\\\"criterion\\\":\\\"The response reads like a native Sri Lankan Sinhala speaker wrote it -- natural register and idiom, not translated-sounding English.\\\",\\\"passed\\\":true,\\\"reason\\\":\\\"The Sinhala text is natural, idiomatic, and accurately captures both formal written Sinhala and casual spoken/texting colloquialisms used by native Sri Lankan speakers without awkward translation calques.\\\",\\\"confidence\\\":5}]}\""
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.8-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 1133,
+                "outputTokens": 1546,
+                "inputTokensCostNanodollars": "849750",
+                "outputTokensCostNanodollars": "5797500",
+                "totalBackendLatencyMs": "7113"
+              },
+              "id": "Response assessment with google/gemini-3.8-flash-d7898ce0-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 1133,
+            "outputTokens": 1546,
+            "inputTokensCostNanodollars": "849750",
+            "outputTokensCostNanodollars": "5797500",
+            "totalBackendLatencyMs": "7113"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_05_015"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_05_sinhala_grammar_item-Run #15"
+    }
+  ],
+  "pyRunId": "synhalees_05_sinhala_grammar-Run #1"
+}

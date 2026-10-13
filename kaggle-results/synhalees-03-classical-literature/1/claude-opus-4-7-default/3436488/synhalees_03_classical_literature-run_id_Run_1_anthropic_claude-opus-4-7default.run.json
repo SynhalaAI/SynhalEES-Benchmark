@@ -1,0 +1,1067 @@
+{
+  "taskVersion": {
+    "versionNumber": 1,
+    "name": "synhalees_03_classical_literature",
+    "description": "SynhalEES pillar 03_classical_literature: native Sinhala text accuracy.",
+    "definition": "@kbench.task(name=\"synhalees_03_classical_literature\", description=\"SynhalEES pillar 03_classical_literature: native Sinhala text accuracy.\")\ndef synhalees_task(llm) -> float:\n    '''Evaluate Classical Literature (text); return accuracy in [0, 1].'''\n    import pandas as pd\n\n    rows = _rows()\n    if not rows:\n        raise ValueError(\n            \"No runnable text rows for Classical Literature yet -- media files may \"\n            \"not be committed under benchmark_data/.\"\n        )\n    with kbench.client.enable_cache():\n        runs = synhalees_item.evaluate(\n            llm=[llm], evaluation_data=pd.DataFrame(rows),\n            n_jobs=2, max_attempts=2, on_failure=\"continue\",\n            remove_run_files=True,\n        )\n    correct = runs.as_dataframe().result.str.get(\"is_correct\").astype(\"boolean\").fillna(False)\n    return float(correct.mean())\n"
+  },
+  "modelVersion": {
+    "slug": "anthropic/claude-opus-4-7@default"
+  },
+  "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+  "startTime": "2026-09-29T04:04:28.376145Z",
+  "endTime": "2026-09-29T04:05:35.227906Z",
+  "conversations": [
+    {
+      "id": "synhalees_03_classical_literature-9dc7d901",
+      "metrics": {},
+      "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+    }
+  ],
+  "results": [
+    {
+      "type": "AGGREGATED",
+      "numericResult": {
+        "value": 0.3333333333333333
+      }
+    }
+  ],
+  "subruns": [
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-opus-4-7@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-29T04:04:28.389635Z",
+      "endTime": "2026-09-29T04:04:29.235144Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-56ca99c1",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9a\u0dc0\u0dca\u0dc3\u0dd2\u0dc5\u0dd4\u0db8\u0dd2\u0dab \u0d9a\u0dcf\u0dc0\u0dca\u200d\u0dba\u0dba\u0dda \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0d9a\u0dad\u0dcf \u0dc0\u0dc3\u0dca\u0dad\u0dd4\u0dc0\u0dda \u0d89\u0db1\u0dca\u0db1 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0d9a\u0dd4\u0db8\u0dcf\u0dbb\u0dd2\u0d9a\u0dcf\u0dc0\u0d9c\u0dda \u0db1\u0db8 \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dad\u0db1\u0dd2 \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dba\u0dc1\u0ddd\u0db0\u0dbb\u0dcf"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-opus-4-7@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 106,
+                "outputTokens": 11,
+                "inputTokensCostNanodollars": "530000",
+                "outputTokensCostNanodollars": "275000",
+                "totalBackendLatencyMs": "705"
+              },
+              "id": "synhalees_03_classical_literature_item-56ca99c1-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 106,
+            "outputTokens": 11,
+            "inputTokensCostNanodollars": "530000",
+            "outputTokensCostNanodollars": "275000",
+            "totalBackendLatencyMs": "705"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_03_002"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #2"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-opus-4-7@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-29T04:04:28.388546Z",
+      "endTime": "2026-09-29T04:04:29.588187Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-a050b351",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0dc4\u0dcf\u0dc0\u0d82\u0dc1\u0dba \u0dbb\u0da0\u0db1\u0dcf \u0d9a\u0dbb\u0dda \u0d9a\u0dc0\u0dd4\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0dc4\u0dcf\u0db1\u0dcf\u0db8 \u0dc4\u0dd2\u0db8\u0dd2"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-opus-4-7@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 49,
+                "outputTokens": 13,
+                "inputTokensCostNanodollars": "245000",
+                "outputTokensCostNanodollars": "325000",
+                "totalBackendLatencyMs": "1063"
+              },
+              "id": "synhalees_03_classical_literature_item-a050b351-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 49,
+            "outputTokens": 13,
+            "inputTokensCostNanodollars": "245000",
+            "outputTokensCostNanodollars": "325000",
+            "totalBackendLatencyMs": "1063"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_03_001"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #1"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-opus-4-7@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-29T04:04:29.592988Z",
+      "endTime": "2026-09-29T04:04:38.556748Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-75192e09",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc3\u0dcf\u0dc4\u0dd2\u0dad\u0dca\u200d\u0dba\u0dba\u0dda \u0db4\u0dc5\u0dc0\u0dd9\u0db1\u0dd2 \u0dc3\u0db1\u0dca\u0daf\u0dda\u0dc1 \u0d9a\u0dcf\u0dc0\u0dca\u200d\u0dba\u0dba \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1 \u0db8\u0dd6\u0dbd\u0dd2\u0d9a \u0d9a\u0dbb \u0d9c\u0dad\u0dca\u0dad \u0dc3\u0dad\u0dcf \u0d9a\u0dc0\u0dd4\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc3\u0dcf\u0dc4\u0dd2\u0dad\u0dca\u200d\u0dba\u0dba\u0dda \u0db4\u0dc5\u0db8\u0dd4 \u0dc3\u0db1\u0dca\u0daf\u0dda\u0dc1 \u0d9a\u0dcf\u0dc0\u0dca\u200d\u0dba\u0dba \u0dbd\u0dd9\u0dc3 \u0dc3\u0dd0\u0dbd\u0d9a\u0dd9\u0db1\u0dca\u0db1\u0dda **\"\u0db8\u0dba\u0dd4\u0dbb \u0dc3\u0db1\u0dca\u0daf\u0dda\u0dc1\u0dba\"** \u0dba\u0dd2. \u0d91\u0dba \u0dbb\u0da0\u0db1\u0dcf \u0d9a\u0dbb \u0d87\u0dad\u0dca\u0dad\u0dda **\u0db8\u0ddc\u0db1\u0dbb\u0dd9\u0d9a\u0dd4 (\u0db8\u0dba\u0dd4\u0dbb\u0dba\u0dd9\u0d9a\u0dd4)** \u0db8\u0dd6\u0dbd\u0dd2\u0d9a \u0d9a\u0dbb\u0d9c\u0dd9\u0db1 \u0dba.\n\n\u0db8\u0dba\u0dd4\u0dbb \u0dc3\u0db1\u0dca\u0daf\u0dda\u0dc1\u0dba 14 \u0dc0\u0db1 \u0dc3\u0dd2\u0dba\u0dc0\u0dc3\u0dda (\u0d9c\u0db8\u0dca\u0db4\u0ddc\u0dc5 \u0dba\u0dd4\u0d9c\u0dba\u0dda) \u0dbb\u0da0\u0db1\u0dcf \u0dc0\u0dd6 \u0d9a\u0dd8\u0dad\u0dd2\u0dba\u0d9a\u0dca \u0dc0\u0db1 \u0d85\u0dad\u0dbb, \u0d91\u0dc4\u0dd2 \u0d9a\u0dbb\u0dca\u0dad\u0dd8 \u0db1\u0ddc\u0daf\u0db1\u0dca\u0db1\u0dcf \u0d85\u0dad\u0dbb, \u0daf\u0dd6\u0dad \u0db4\u0d9a\u0dca\u0dc2\u0dd2\u0dba\u0dcf \u0dbd\u0dd9\u0dc3 \u0db8\u0ddc\u0db1\u0dbb\u0dd9\u0d9a\u0dd4 \u0dba\u0ddc\u0daf\u0dcf\u0d9c\u0dd9\u0db1 \u0d87\u0dad."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-opus-4-7@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 76,
+                "outputTokens": 241,
+                "inputTokensCostNanodollars": "380000",
+                "outputTokensCostNanodollars": "6025000",
+                "totalBackendLatencyMs": "8891"
+              },
+              "id": "synhalees_03_classical_literature_item-75192e09-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 76,
+            "outputTokens": 241,
+            "inputTokensCostNanodollars": "380000",
+            "outputTokensCostNanodollars": "6025000",
+            "totalBackendLatencyMs": "8891"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_03_004"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #4"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-opus-4-7@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-29T04:04:38.561694Z",
+      "endTime": "2026-09-29T04:04:41.210780Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-edff670a",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc4\u0d82\u0dc3 \u0dc3\u0db1\u0dca\u0daf\u0dda\u0dc1\u0dba \u0dbb\u0da0\u0db1\u0dcf \u0d9a\u0dc5\u0dda \u0d9a\u0dc0\u0dd4\u0daf? (\u0dc0\u0da0\u0db1 \u0dad\u0dd4\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc4\u0d82\u0dc3 \u0dc3\u0db1\u0dca\u0daf\u0dda\u0dc1\u0dba \u0dbb\u0da0\u0db1\u0dcf \u0d9a\u0dc5\u0dda **\u0dad\u0ddc\u0da7\u0d9c\u0db8\u0dd4\u0dc0\u0dda \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbb\u0dcf\u0dc4\u0dd4\u0dbd** \u0dc4\u0dd2\u0db8\u0dd2\u0dba\u0db1\u0dca \u0dc0\u0dd2\u0dc3\u0dd2\u0db1\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-opus-4-7@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 51,
+                "outputTokens": 58,
+                "inputTokensCostNanodollars": "255000",
+                "outputTokensCostNanodollars": "1450000",
+                "totalBackendLatencyMs": "2588"
+              },
+              "id": "synhalees_03_classical_literature_item-edff670a-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 51,
+            "outputTokens": 58,
+            "inputTokensCostNanodollars": "255000",
+            "outputTokensCostNanodollars": "1450000",
+            "totalBackendLatencyMs": "2588"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_03_005"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #5"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-opus-4-7@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-29T04:04:41.215990Z",
+      "endTime": "2026-09-29T04:04:43.041226Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-ff9432aa",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dad\u0dd2\u0dc3\u0dbb \u0dc3\u0db1\u0dca\u0daf\u0dda\u0dc1\u0dba \u0dbb\u0da0\u0db1\u0dcf \u0d9a\u0dc5\u0dda \u0d9a\u0dc0\u0dd4\u0daf? (\u0dc0\u0da0\u0db1 \u0dc4\u0dad\u0dbb\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dad\u0ddc\u0da7\u0d9c\u0db8\u0dd4\u0dc0\u0dda \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbb\u0dcf\u0dc4\u0dd4\u0dbd \u0dc4\u0dd2\u0db8\u0dd2"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-opus-4-7@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 52,
+                "outputTokens": 30,
+                "inputTokensCostNanodollars": "260000",
+                "outputTokensCostNanodollars": "750000",
+                "totalBackendLatencyMs": "1726"
+              },
+              "id": "synhalees_03_classical_literature_item-ff9432aa-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 52,
+            "outputTokens": 30,
+            "inputTokensCostNanodollars": "260000",
+            "outputTokensCostNanodollars": "750000",
+            "totalBackendLatencyMs": "1726"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_03_006"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #6"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-opus-4-7@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-29T04:04:43.046089Z",
+      "endTime": "2026-09-29T04:04:44.948815Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-1aeed31b",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd0\u0dc5\u0dbd\u0dd2\u0dc4\u0dd2\u0dab\u0dd2 \u0dc3\u0db1\u0dca\u0daf\u0dda\u0dc1\u0dba \u0dbb\u0da0\u0db1\u0dcf \u0d9a\u0dc5\u0dda \u0d9a\u0dc0\u0dd4\u0daf? (\u0dc0\u0da0\u0db1 \u0dad\u0dd4\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dad\u0ddc\u0da7\u0d9c\u0db8\u0dd4\u0dc0\u0dda \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbb\u0dcf\u0dc4\u0dd4\u0dbd"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-opus-4-7@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 57,
+                "outputTokens": 26,
+                "inputTokensCostNanodollars": "285000",
+                "outputTokensCostNanodollars": "650000",
+                "totalBackendLatencyMs": "1842"
+              },
+              "id": "synhalees_03_classical_literature_item-1aeed31b-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 57,
+            "outputTokens": 26,
+            "inputTokensCostNanodollars": "285000",
+            "outputTokensCostNanodollars": "650000",
+            "totalBackendLatencyMs": "1842"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_03_007"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #7"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-opus-4-7@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-29T04:04:44.953614Z",
+      "endTime": "2026-09-29T04:04:58.152303Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-41bcf142",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db4\u0dbb\u0dd9\u0dc0\u0dd2 \u0dc3\u0db1\u0dca\u0daf\u0dda\u0dc1\u0dba \u0dbb\u0da0\u0db1\u0dcf \u0d9a\u0dc5\u0dda \u0d9a\u0dc0\u0dd4\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db4\u0dbb\u0dd9\u0dc0\u0dd2 \u0dc3\u0db1\u0dca\u0daf\u0dda\u0dc1\u0dba \u0dbb\u0da0\u0db1\u0dcf \u0d9a\u0dc5\u0dda **\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbb\u0dcf\u0dc4\u0dd4\u0dbd \u0dc4\u0dd2\u0db8\u0dd2\u0dba\u0db1\u0dca** (\u0dad\u0ddc\u0da7\u0d9c\u0db8\u0dd4\u0dc0\u0dda \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbb\u0dcf\u0dc4\u0dd4\u0dbd \u0dc3\u0d82\u0d9d\u0dbb\u0dcf\u0da2 \u0dc4\u0dd2\u0db8\u0dd2) \u0dc0\u0dd2\u0dc3\u0dd2\u0db1\u0dd2. \u0db8\u0dd9\u0dba 15 \u0dc0\u0db1 \u0dc3\u0dd2\u0dba\u0dc0\u0dc3\u0dda\u0daf\u0dd3 (\u0d9a\u0ddd\u0da7\u0dca\u0da7\u0dda \u0dba\u0dd4\u0d9c\u0dba\u0dda\u0daf\u0dd3) \u0dbb\u0da0\u0db1\u0dcf \u0d9a\u0dbb\u0db1 \u0dbd\u0daf \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc3\u0db8\u0dca\u0db7\u0dcf\u0dc0\u0dca\u200d\u0dba \u0dc3\u0db1\u0dca\u0daf\u0dda\u0dc1 \u0d9a\u0dcf\u0dc0\u0dca\u200d\u0dba\u0dba\u0d9a\u0dd2.\n\n\u0db8\u0dd9\u0db8 \u0dc3\u0db1\u0dca\u0daf\u0dda\u0dc1\u0dba\u0dda\u0daf\u0dd3 \u0db4\u0dbb\u0dd9\u0dc0\u0dd2\u0dba\u0dd9\u0d9a\u0dd4 \u0daf\u0dd6\u0dad\u0dba\u0dcf \u0dbd\u0dd9\u0dc3 \u0dba\u0dc0\u0dcf \u0d87\u0dad\u0dca\u0dad\u0dda \u0da2\u0dba\u0dc0\u0dbb\u0dca\u0db0\u0db1\u0db4\u0dd4\u0dbb \u0d9a\u0ddd\u0da7\u0dca\u0da7\u0dda \u0dc3\u0dd2\u0da7 \u0daf\u0dd9\u0dc0\u0dd2\u0db1\u0dd4\u0dc0\u0dbb (\u0daf\u0ddc\u0db3\u0db1\u0dca\u0daf\u0dd4\u0dc0) \u0d8b\u0db4\u0dd4\u0dbd\u0dca\u0dc0\u0db1\u0dca \u0daf\u0dd9\u0dc0\u0dd2\u0dba\u0db1\u0dca \u0dc0\u0dd9\u0dad\u0da7\u0dba\u0dd2. \u0d91\u0dc4\u0dd2 \u0d85\u0dbb\u0db8\u0dd4\u0dab \u0dc0\u0dd6\u0dba\u0dda \u0dc4\u0dba \u0dc0\u0db1 \u0db4\u0dbb\u0dcf\u0d9a\u0dca\u200d\u0dbb\u0db8\u0db6\u0dcf\u0dc4\u0dd4 \u0dbb\u0da2\u0dd4\u0da7 \u0db4\u0dd4\u0dad\u0dd4\u0dbb\u0dd4\u0dc0\u0db1\u0d9a\u0dca \u0dbd\u0dd0\u0db6\u0dd3\u0db8 \u0db4\u0dd2\u0dab\u0dd2\u0dc3 \u0d86\u0dc1\u0dd2\u0dbb\u0dca\u0dc0\u0dcf\u0daf \u0db4\u0dd0\u0dad\u0dd3\u0db8\u0dba\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-opus-4-7@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 37,
+                "outputTokens": 352,
+                "inputTokensCostNanodollars": "185000",
+                "outputTokensCostNanodollars": "8800000",
+                "totalBackendLatencyMs": "13140"
+              },
+              "id": "synhalees_03_classical_literature_item-41bcf142-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 37,
+            "outputTokens": 352,
+            "inputTokensCostNanodollars": "185000",
+            "outputTokensCostNanodollars": "8800000",
+            "totalBackendLatencyMs": "13140"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_03_008"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #8"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-opus-4-7@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-29T04:04:29.241347Z",
+      "endTime": "2026-09-29T04:04:59.537252Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-5147d0c4",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d8b\u0db8\u0dca\u0db8\u0d9c\u0dca\u0d9c \u0da2\u0dcf\u0dad\u0d9a\u0dba \u0dad\u0dd2\u0dba\u0dd9\u0db1 \u0db4\u0ddc\u0dad\u0dda \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dad\u0dda\u0db8\u0dcf\u0dc0 \u0db8\u0ddc\u0d9a\u0daf\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# \u0d8b\u0db8\u0dca\u0db8\u0d9c\u0dca\u0d9c \u0da2\u0dcf\u0dad\u0d9a\u0dba\u0dda \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dad\u0dda\u0db8\u0dcf\u0dc0\n\n\u0d8b\u0db8\u0dca\u0db8\u0d9c\u0dca\u0d9c \u0da2\u0dcf\u0dad\u0d9a\u0dba\u0dda (\u0db8\u0dc4\u0dcf \u0d8b\u0db8\u0d9f \u0da2\u0dcf\u0dad\u0d9a\u0dba) \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dad\u0dda\u0db8\u0dcf\u0dc0 \u0dc0\u0db1\u0dca\u0db1\u0dda **\u0db4\u0dca\u200d\u0dbb\u0da5\u0dcf\u0dc0 \u0dc4\u0dd9\u0dc0\u0dad\u0dca \u0db4\u0dca\u200d\u0dbb\u0dcf\u0da5\u0db7\u0dcf\u0dc0\u0dba\u0dda \u0db8\u0dc4\u0dd2\u0db8\u0dba** \u0dba\u0dd2.\n\n## \u0db8\u0dd6\u0dbd\u0dd2\u0d9a \u0dad\u0dda\u0db8\u0dcf\n\n**1. \u0db4\u0dca\u200d\u0dbb\u0da5\u0dcf\u0dc0\u0dda \u0db6\u0dbd\u0dba**\n- \u0db8\u0dc4\u0dde\u0dc2\u0db0 \u0db4\u0dab\u0dca\u0da9\u0dd2\u0dad\u0dba\u0db1\u0dca\u0d9c\u0dda \u0d85\u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba \u0db6\u0dd4\u0daf\u0dca\u0db0\u0dd2\u0dba \u0dc3\u0dc4 \u0db1\u0dd4\u0dc0\u0dab\u0dd2\u0db1\u0dca \u0d9c\u0dd0\u0da7\u0dbd\u0dd4 \u0dc0\u0dd2\u0dc3\u0db3\u0dd3\u0db8\u0dda \u0dc4\u0dd0\u0d9a\u0dd2\u0dba\u0dcf\u0dc0\n- \u0dc1\u0dcf\u0dbb\u0dd3\u0dbb\u0dd2\u0d9a \u0db6\u0dbd\u0dba\u0da7 \u0dc0\u0da9\u0dcf \u0db1\u0dd4\u0dc0\u0dab\u0dda \u0dc1\u0dca\u200d\u0dbb\u0dda\u0dc2\u0dca\u0da8\u0dad\u0dca\u0dc0\u0dba\n\n**2. \u0db4\u0dcf\u0dbb\u0db8\u0dd2\u0dad\u0dcf \u0db0\u0dbb\u0dca\u0db8**\n- \u0db6\u0ddd\u0dc3\u0dad\u0dcf\u0dab\u0db1\u0dca \u0dc0\u0dc4\u0db1\u0dca\u0dc3\u0dda \u0db4\u0dd2\u0dbb\u0dd6 **\u0db4\u0dca\u200d\u0dbb\u0da5\u0dcf \u0db4\u0dcf\u0dbb\u0db8\u0dd2\u0dad\u0dcf\u0dc0** \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dc0\u0dc1\u0dba\u0dd9\u0db1\u0dca \u0db1\u0dd2\u0dbb\u0dd6\u0db4\u0dab\u0dba \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\n- \u0daf\u0dc3 \u0db4\u0dcf\u0dbb\u0db8\u0dd2\u0dad\u0dcf\u0dc0\u0db1\u0dca\u0d9c\u0dd9\u0db1\u0dca \u0db4\u0dca\u200d\u0dbb\u0da5\u0dcf\u0dc0\u0da7 \u0d87\u0dad\u0dd2 \u0dc3\u0dca\u0dae\u0dcf\u0db1\u0dba \u0db4\u0dd9\u0db1\u0dca\u0dc0\u0dd3\u0db8\n\n**3. \u0db0\u0dbb\u0dca\u0db8\u0dd2\u0dc2\u0dca\u0da8 \u0db4\u0dcf\u0dbd\u0db1\u0dba**\n- \u0dba\u0dc4\u0db4\u0dad\u0dca \u0dbb\u0dcf\u0da2\u0dca\u200d\u0dba \u0db4\u0dcf\u0dbd\u0db1\u0dba\u0dda \u0dbd\u0d9a\u0dca\u0dc2\u0dab\n- \u0d85\u0db8\u0dcf\u0dad\u0dca\u200d\u0dba\u0dc0\u0dbb\u0dd4\u0db1\u0dca\u0d9c\u0dda \u0d9a\u0dcf\u0dbb\u0dca\u0dba\u0db7\u0dcf\u0dbb\u0dba\n- \u0dbb\u0da2\u0dd4 \u0dc3\u0dc4 \u0db4\u0dca\u200d\u0dbb\u0da2\u0dcf\u0dc0 \u0d85\u0dad\u0dbb \u0dc3\u0db8\u0dca\u0db6\u0db1\u0dca\u0db0\u0dad\u0dcf\u0dc0\u0dba\n\n**4. \u0dc3\u0dad\u0dca\u200d\u0dba \u0dc3\u0dc4 \u0d85\u0dc3\u0dad\u0dca\u200d\u0dba\u0dba \u0d85\u0dad\u0dbb \u0d9c\u0dd0\u0da7\u0dd4\u0db8**\n- \u0db0\u0dbb\u0dca\u0db8\u0dd2\u0dc2\u0dca\u0da8 \u0db8\u0dc4\u0dde\u0dc2\u0db0 vs \u0daf\u0dd4\u0dc2\u0dca\u0da7 \u0d9a\u0dda\u0dc0\u0da7\u0dca\u0da7 \u0db6\u0db8\u0dd4\u0dab\u0dcf\n- \u0dba\u0dc4\u0db4\u0dad \u0d85\u0dc0\u0dc3\u0dcf\u0db1\u0dba\u0dda \u0da2\u0dba\u0d9c\u0dd0\u0db1\u0dd3\u0db8\n\n**5. \u0d8b\u0db4\u0dcf\u0dba\u0dc1\u0dd3\u0dbd\u0dd3\u0dad\u0dca\u0dc0\u0dba \u0dc3\u0dc4 \u0daf\u0dd4\u0dbb\u0daf\u0d9a\u0dca\u0db1\u0dcf \u0db1\u0dd4\u0dc0\u0dab**\n- \u0dc3\u0dad\u0dd4\u0dbb\u0dd4 \u0d86\u0d9a\u0dca\u200d\u0dbb\u0db8\u0dab\u0dc0\u0dbd\u0dd2\u0db1\u0dca \u0da2\u0db1\u0dad\u0dcf\u0dc0 \u0db6\u0dda\u0dbb\u0dcf\u0d9c\u0dd0\u0db1\u0dd3\u0db8\n- \u0d8b\u0db8\u0d82 \u0db8\u0dcf\u0dbb\u0dca\u0d9c \u0d89\u0daf\u0dd2\u0d9a\u0dd2\u0dbb\u0dd3\u0db8 \u0dc0\u0dd0\u0db1\u0dd2 \u0d8b\u0db4\u0dcf\u0dba\u0dba\u0db1\u0dca\n\n## \u0dc3\u0daf\u0dcf\u0da0\u0dcf\u0dbb\u0dcf\u0dad\u0dca\u0db8\u0d9a \u0db4\u0dab\u0dd2\u0dc0\u0dd4\u0da9\u0dba\n\n\u0db8\u0dd9\u0db8 \u0da2\u0dcf\u0dad\u0d9a \u0d9a\u0dad\u0dcf\u0dc0 \u0db8\u0d9c\u0dd2\u0db1\u0dca \u0d9c\u0db8\u0dca\u200d\u0dba \u0d9a\u0dbb\u0db1 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1\u0dad\u0db8 \u0d9a\u0dbb\u0dd4\u0dab \u0db1\u0db8\u0dca, **\u0db1\u0dd4\u0dc0\u0dab\u0dd0\u0dad\u0dd2 \u0db4\u0dd4\u0daf\u0dca\u0d9c\u0dbd\u0dba\u0dd9\u0d9a\u0dd4\u0da7 \u0d95\u0db1\u0dd1\u0db8 \u0daf\u0dd4\u0dc2\u0dca\u0d9a\u0dbb \u0dad\u0dad\u0dca\u0dad\u0dca\u0dc0\u0dba\u0d9a\u0dd2\u0db1\u0dca \u0db8\u0dd2\u0daf\u0dd2\u0dba \u0dc4\u0dd0\u0d9a\u0dd2 \u0db6\u0dc0\u0dad\u0dca, \u0db4\u0dca\u200d\u0dbb\u0da5\u0dcf\u0dc0 \u0dba\u0db1\u0dd4 \u0db8\u0dd2\u0db1\u0dd2\u0dc3\u0dcf\u0da7 \u0dbd\u0dd0\u0db6\u0dd2\u0dba \u0dc4\u0dd0\u0d9a\u0dd2 \u0d8b\u0dad\u0dd4\u0db8\u0dca\u0db8 \u0dc3\u0db8\u0dca\u0db4\u0dad \u0db6\u0dc0\u0dad\u0dca** \u0dba."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-opus-4-7@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 57,
+                "outputTokens": 905,
+                "inputTokensCostNanodollars": "285000",
+                "outputTokensCostNanodollars": "22625000",
+                "totalBackendLatencyMs": "30209"
+              },
+              "id": "synhalees_03_classical_literature_item-5147d0c4-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 57,
+            "outputTokens": 905,
+            "inputTokensCostNanodollars": "285000",
+            "outputTokensCostNanodollars": "22625000",
+            "totalBackendLatencyMs": "30209"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_03_003"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #3"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-opus-4-7@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-29T04:04:59.542232Z",
+      "endTime": "2026-09-29T04:05:00.442906Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-55c10f89",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dbb\u0dd4\u0dc0\u0db1\u0dca\u0dc0\u0dd0\u0dbd\u0dd2\u0dc3\u0dd1\u0dba \u0dc4\u0daf\u0db4\u0dd4 \u0dbb\u0da2\u0dca\u0da2\u0dd4\u0dbb\u0dd4\u0dc0\u0ddd \u0dbb\u0da7 \u0d91\u0d9a\u0dca\u0dc3\u0dda\u0dc3\u0dad\u0dca \u0d9a\u0dbb\u0db1\u0dca\u0db1 \u0dba\u0dd4\u0daf\u0dca\u0db0 \u0d9a\u0dbb\u0dda \u0d9a\u0dcf\u0dad\u0dca \u0d91\u0d9a\u0dca\u0d9a\u0daf? (\u0dad\u0db1\u0dd2 \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d91\u0dc5\u0dcf\u0dbb"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-opus-4-7@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 94,
+                "outputTokens": 8,
+                "inputTokensCostNanodollars": "470000",
+                "outputTokensCostNanodollars": "200000",
+                "totalBackendLatencyMs": "840"
+              },
+              "id": "synhalees_03_classical_literature_item-55c10f89-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 94,
+            "outputTokens": 8,
+            "inputTokensCostNanodollars": "470000",
+            "outputTokensCostNanodollars": "200000",
+            "totalBackendLatencyMs": "840"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_03_010"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #10"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-opus-4-7@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-29T04:05:00.452060Z",
+      "endTime": "2026-09-29T04:05:01.650388Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-cc407f33",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d85\u0db7\u0dba\u0d9c\u0dd2\u0dbb\u0dd2\u0dba \u0dc4\u0dd0\u0daf\u0dd4\u0dc0\u0dda \u0d9a\u0dc0\u0dd4\u0daf? (\u0dc0\u0da0\u0db1 \u0dad\u0dd4\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc0\u0dc5\u0d9c\u0db8\u0dca\u0db6\u0dcf \u0dbb\u0da2\u0dd4"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-opus-4-7@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 48,
+                "outputTokens": 14,
+                "inputTokensCostNanodollars": "240000",
+                "outputTokensCostNanodollars": "350000",
+                "totalBackendLatencyMs": "1122"
+              },
+              "id": "synhalees_03_classical_literature_item-cc407f33-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 48,
+            "outputTokens": 14,
+            "inputTokensCostNanodollars": "240000",
+            "outputTokensCostNanodollars": "350000",
+            "totalBackendLatencyMs": "1122"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_03_011"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #11"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-opus-4-7@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-29T04:04:58.157866Z",
+      "endTime": "2026-09-29T04:05:02.443838Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-45791e6d",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc0\u0dd9\u0dc3\u0dca\u0dc3\u0db1\u0dca\u0dad\u0dbb \u0da2\u0dcf\u0dad\u0d9a\u0dba\u0dda \u0d9a\u0dd4\u0db8\u0dcf\u0dbb\u0dc0\u0dbb\u0dd4\u0db1\u0dca\u0d9c\u0dda \u0db1\u0db8\u0dca \u0db8\u0ddc\u0db1\u0dc0\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0da2\u0dcf\u0dbd\u0dd2\u0dba \u0dc3\u0dc4 \u0d9a\u0dd8\u0dc2\u0dca\u0dab\u0da2\u0dd2\u0db1\u0dcf\n\n(\u0db1\u0db8\u0dd4\u0dad\u0dca \u0db1\u0dd2\u0dc0\u0dd0\u0dbb\u0daf\u0dd2\u0dc0 \u0d9a\u0dd2\u0dc0\u0dc4\u0ddc\u0dad\u0dca, \u0d9a\u0dd4\u0db8\u0dcf\u0dbb\u0dba\u0dcf\u0d9c\u0dda \u0db1\u0db8 **\u0da2\u0dcf\u0dbd\u0dd2\u0dba** \u0dc0\u0db1 \u0d85\u0dad\u0dbb, **\u0d9a\u0dd8\u0dc2\u0dca\u0dab\u0da2\u0dd2\u0db1\u0dcf** \u0dba\u0db1\u0dd4 \u0d9a\u0dd4\u0db8\u0dbb\u0dd2\u0dba\u0d9c\u0dda \u0db1\u0db8\u0dba\u0dd2.)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-opus-4-7@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 70,
+                "outputTokens": 107,
+                "inputTokensCostNanodollars": "350000",
+                "outputTokensCostNanodollars": "2675000",
+                "totalBackendLatencyMs": "4221"
+              },
+              "id": "synhalees_03_classical_literature_item-45791e6d-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 70,
+            "outputTokens": 107,
+            "inputTokensCostNanodollars": "350000",
+            "outputTokensCostNanodollars": "2675000",
+            "totalBackendLatencyMs": "4221"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_03_009"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #9"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-opus-4-7@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-29T04:05:01.655115Z",
+      "endTime": "2026-09-29T04:05:20.218685Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-77ba4b5b",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0daf\u0dc5\u0daf\u0dcf \u0db4\u0dd9\u0dbb\u0dc4\u0dd0\u0dbb \u0dc3\u0db8\u0dca\u0db4\u0dca\u200d\u0dbb\u0daf\u0dcf\u0dba\u0da7 \u0db8\u0dd6\u0dbd\u0dd2\u0d9a \u0dc0\u0dd4\u0db1 \u0d9c\u0dca\u200d\u0dbb\u0db1\u0dca\u0dae\u0dba \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0daf\u0dc5\u0daf\u0dcf \u0db4\u0dd9\u0dbb\u0dc4\u0dd0\u0dbb \u0dc3\u0db8\u0dca\u0db4\u0dca\u200d\u0dbb\u0daf\u0dcf\u0dba\u0da7 \u0db8\u0dd6\u0dbd\u0dd2\u0d9a \u0dc0\u0dd6 \u0d9c\u0dca\u200d\u0dbb\u0db1\u0dca\u0dae\u0dba **\"\u0daf\u0dcf\u0da8\u0dcf\u0dc0\u0d82\u0dc1\u0dba\"** (\u0daf\u0dcf\u0da8\u0dcf \u0db0\u0dcf\u0dad\u0dd4 \u0dc0\u0d82\u0dc1\u0dba) \u0dc0\u0dda.\n\n\u0db8\u0dd9\u0dba \u0db4\u0dcf\u0dbd\u0dd2 \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dd9\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0dd0\u0dc0\u0dd4\u0dab\u0dd4 \u0d9c\u0dca\u200d\u0dbb\u0db1\u0dca\u0dae\u0dba\u0d9a\u0dca \u0dc0\u0db1 \u0d85\u0dad\u0dbb, \u0d9a\u0dca\u200d\u0dbb\u0dd2.\u0dc0. 13 \u0dc0\u0db1 \u0dc3\u0dd2\u0dba\u0dc0\u0dc3\u0dda\u0daf\u0dd3 \u0db4\u0ddc\u0dbd\u0ddc\u0db1\u0dca\u0db1\u0dbb\u0dd4 \u0dba\u0dd4\u0d9c\u0dba\u0dda \u0dbd\u0dd3\u0dbd\u0dcf\u0dc0\u0dad\u0dd3 \u0db6\u0dd2\u0dc3\u0dc0\u0d9c\u0dda \u0d85\u0db1\u0dd4\u0dc1\u0dcf\u0dc3\u0d9a\u0dad\u0dca\u0dc0\u0dba \u0dba\u0da7\u0dad\u0dda **\u0db0\u0db8\u0dca\u0db8\u0d9a\u0dd2\u0dad\u0dca\u0dad\u0dd2 \u0dc4\u0dd2\u0db8\u0dd2\u0dba\u0db1\u0dca** \u0dc0\u0dd2\u0dc3\u0dd2\u0db1\u0dca \u0dbb\u0da0\u0db1\u0dcf \u0d9a\u0dbb\u0db1 \u0dbd\u0daf\u0dd3. \u0db8\u0dd9\u0db8 \u0d9c\u0dca\u200d\u0dbb\u0db1\u0dca\u0dae\u0dba \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0da7 **\"\u0daf\u0dc5\u0daf\u0dcf \u0dc3\u0dd2\u0dbb\u0dd2\u0dad\"** \u0dbd\u0dd9\u0dc3 \u0db4\u0dbb\u0dd2\u0dc0\u0dbb\u0dca\u0dad\u0db1\u0dba \u0d9a\u0dbb \u0d87\u0dad.\n\n\u0daf\u0dcf\u0da8\u0dcf\u0dc0\u0d82\u0dc1\u0dba\u0dda \u0daf\u0dc5\u0daf\u0dcf \u0dc0\u0dc4\u0db1\u0dca\u0dc3\u0dda \u0d9a\u0dbd\u0dd2\u0d9f\u0dd4 \u0daf\u0dda\u0dc1\u0dba\u0dda \u0dc3\u0dd2\u0da7 \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0da7 \u0dc0\u0dd0\u0da9\u0db8 \u0d9a\u0dbb\u0dc0\u0dd3\u0db8, \u0daf\u0dc5\u0daf\u0dcf \u0db4\u0dd6\u0da2\u0dcf \u0dc0\u0dd2\u0db0\u0dd2, \u0db4\u0dd9\u0dbb\u0dc4\u0dd0\u0dbb \u0db4\u0dd0\u0dc0\u0dd0\u0dad\u0dca\u0dc0\u0dd3\u0db8\u0dda \u0d9a\u0dca\u200d\u0dbb\u0db8\u0dc0\u0dda\u0daf, \u0dc3\u0dc4 \u0daf\u0dc5\u0daf\u0dcf \u0dc0\u0dc4\u0db1\u0dca\u0dc3\u0dda\u0da7 \u0d9a\u0dc5 \u0dba\u0dd4\u0dad\u0dd4 \u0d9c\u0dde\u0dbb\u0dc0 \u0dc3\u0db8\u0dca\u0db8\u0dcf\u0db1 \u0db4\u0dd2\u0dc5\u0dd2\u0db6\u0db3 \u0dc0\u0dd2\u0dc3\u0dca\u0dad\u0dbb \u0d85\u0da9\u0d82\u0d9c\u0dd4 \u0dc0\u0dda. \u0db8\u0dd9\u0db8 \u0d9c\u0dca\u200d\u0dbb\u0db1\u0dca\u0dae\u0dba \u0d85\u0db1\u0dd4\u0dc0\u0db8 \u0d85\u0daf \u0daf\u0d9a\u0dca\u0dc0\u0dcf **\u0d91\u0dc3\u0dc5 \u0daf\u0dc5\u0daf\u0dcf \u0db4\u0dd9\u0dbb\u0dc4\u0dd0\u0dbb** \u0db4\u0dc0\u0dad\u0dca\u0dc0\u0dcf\u0d9c\u0dd9\u0db1 \u0dba\u0db1\u0dd4 \u0dbd\u0db6\u0dba\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-opus-4-7@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 60,
+                "outputTokens": 513,
+                "inputTokensCostNanodollars": "300000",
+                "outputTokensCostNanodollars": "12825000",
+                "totalBackendLatencyMs": "18502"
+              },
+              "id": "synhalees_03_classical_literature_item-77ba4b5b-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 60,
+            "outputTokens": 513,
+            "inputTokensCostNanodollars": "300000",
+            "outputTokensCostNanodollars": "12825000",
+            "totalBackendLatencyMs": "18502"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_03_012"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #12"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-opus-4-7@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-29T04:05:02.448874Z",
+      "endTime": "2026-09-29T04:05:20.663828Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-eaa82ade",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0dc4\u0dcf\u0dc0\u0d82\u0dc1\u0dba\u0dda \u0d86\u0dbb\u0db8\u0dca\u0db7\u0dba\u0dda \u0d91\u0db1 \u0db4\u0dc5\u0dc0\u0dd9\u0db1\u0dd2 \u0dbb\u0da2\u0dca\u0da2\u0dd4\u0dbb\u0dd4\u0dc0\u0ddd \u0d86\u0dc0\u0dda \u0db8\u0ddc\u0db1 \u0dbb\u0da7\u0dd9\u0db1\u0dca\u0daf? (\u0d92 \u0dbb\u0da7\u0dda \u0dc0\u0dbb\u0dca\u0dad\u0db8\u0dcf\u0db1 \u0db1\u0db8 \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0dc4\u0dcf\u0dc0\u0d82\u0dc1\u0dba\u0dda \u0dc3\u0db3\u0dc4\u0db1\u0dca \u0dc0\u0db1 \u0db4\u0dbb\u0dd2\u0daf\u0dd2, \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc0\u0d82\u0dc1\u0dba\u0dda \u0db8\u0dd4\u0dbd\u0dca \u0db4\u0dd4\u0dbb\u0dd4\u0dc2\u0dba\u0dcf \u0dc0\u0db1 **\u0dc0\u0dd2\u0da2\u0dba \u0d9a\u0dd4\u0db8\u0dbb\u0dd4** \u0db4\u0dd0\u0db8\u0dd2\u0dab\u0dd2\u0dba\u0dda **\u0dc0\u0d82\u0d9c \u0daf\u0dda\u0dc1\u0dba\u0dda** (\u0dc4\u0ddd \u0dbd\u0dcf\u0dc5 \u0dbb\u0da7/\u0dc3\u0dd2\u0d82\u0dc4\u0db4\u0dd4\u0dbb) \u0dc3\u0dd2\u0da7\u0dba\u0dd2.\n\n\u0db8\u0dc4\u0dcf\u0dc0\u0d82\u0dc1\u0dba\u0da7 \u0d85\u0db1\u0dd4\u0dc0, \u0dc0\u0dd2\u0da2\u0dba\u0d9c\u0dda \u0db8\u0dd4\u0dad\u0dca\u0dad\u0dcf \u0dc0\u0dd6 \u0dc3\u0dd2\u0d82\u0dc4\u0db6\u0dcf\u0dc4\u0dd4 \u0dbb\u0da2\u0dd4 \u0dc0\u0dd2\u0dc3\u0dd2\u0db1\u0dca \u0dbd\u0dcf\u0dc5 \u0dbb\u0da7\u0dda **\u0dc3\u0dd2\u0d82\u0dc4\u0db4\u0dd4\u0dbb** \u0db1\u0db8\u0dca \u0db1\u0d9c\u0dbb\u0dba\u0dda \u0dbb\u0dcf\u0da2\u0db0\u0dcf\u0db1\u0dd2\u0dba \u0db4\u0dd2\u0dc4\u0dd2\u0da7\u0dd4\u0dc0\u0dcf \u0dad\u0dd2\u0db6\u0dd6 \u0d85\u0dad\u0dbb, \u0dc0\u0dd2\u0da2\u0dba \u0d9a\u0dd4\u0db8\u0dbb\u0dd4 \u0d91\u0dad\u0dd0\u0db1\u0dd2\u0db1\u0dca \u0db1\u0dd9\u0dbb\u0db4\u0dcf \u0dc4\u0dbb\u0dd2\u0db1 \u0dbd\u0daf \u0db4\u0dc3\u0dd4 \u0db1\u0dd0\u0dc0\u0dca\u0dc0\u0dbd\u0dd2\u0db1\u0dca \u0db4\u0dd2\u0da7\u0dad\u0dca\u0dc0 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0da7 \u0db4\u0dd0\u0db8\u0dd2\u0dab\u0dd2\u0dba\u0dda\u0dba.\n\n**\u0dc0\u0dbb\u0dca\u0dad\u0db8\u0dcf\u0db1 \u0db1\u0db8:** \u0dc0\u0dd2\u0da2\u0dba\u0d9c\u0dda \u0db8\u0dd4\u0dad\u0dd4\u0db1\u0dca \u0db8\u0dd2\u0dad\u0dca\u0dad\u0db1\u0dca \u0d86 \u0db4\u0dca\u200d\u0dbb\u0daf\u0dda\u0dc1\u0dba \u0dc0\u0dbb\u0dca\u0dad\u0db8\u0dcf\u0db1 **\u0d89\u0db1\u0dca\u0daf\u0dd2\u0dba\u0dcf\u0dc0\u0dda \u0db6\u0da7\u0dc4\u0dd2\u0dbb \u0db6\u0dd9\u0d82\u0d9c\u0dcf\u0dbd (West Bengal) \u0dc3\u0dc4 \u0d9c\u0dd4\u0da2\u0dbb\u0dcf\u0da7** \u0db4\u0dca\u200d\u0dbb\u0dcf\u0db1\u0dca\u0dad \u0d86\u0dc1\u0dca\u200d\u0dbb\u0dd2\u0dad \u0db4\u0dca\u200d\u0dbb\u0daf\u0dda\u0dc1\u0dba \u0dbd\u0dd9\u0dc3 \u0db4\u0dac\u0dd2\u0dc0\u0dbb\u0dd4 \u0dc4\u0db3\u0dd4\u0db1\u0dcf \u0d9c\u0db1\u0dd2\u0dad\u0dd2. (\u0dbd\u0dcf\u0dc5 \u0dbb\u0da7 \u0dba\u0db1\u0dd4 \u0dc0\u0dbb\u0dca\u0dad\u0db8\u0dcf\u0db1 \u0d9c\u0dd4\u0da2\u0dbb\u0dcf\u0da7\u0dca \u0db4\u0dca\u200d\u0dbb\u0daf\u0dda\u0dc1\u0dba \u0dbd\u0dd9\u0dc3\u0dad\u0dca, \u0dc0\u0d82\u0d9c \u0daf\u0dda\u0dc1\u0dba \u0db6\u0dd9\u0d82\u0d9c\u0dcf\u0dbd\u0dba \u0dbd\u0dd9\u0dc3\u0dad\u0dca \u0dc3\u0dbd\u0d9a\u0db1\u0dd4 \u0dbd\u0dd0\u0db6\u0dda.)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-opus-4-7@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 92,
+                "outputTokens": 491,
+                "inputTokensCostNanodollars": "460000",
+                "outputTokensCostNanodollars": "12275000",
+                "totalBackendLatencyMs": "18141"
+              },
+              "id": "synhalees_03_classical_literature_item-eaa82ade-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 92,
+            "outputTokens": 491,
+            "inputTokensCostNanodollars": "460000",
+            "outputTokensCostNanodollars": "12275000",
+            "totalBackendLatencyMs": "18141"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_03_013"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #13"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-opus-4-7@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-29T04:05:20.223712Z",
+      "endTime": "2026-09-29T04:05:31.328763Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-7dd42e71",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9c\u0dd4\u0dad\u0dca\u0dad\u0dd2\u0dbd \u0d9a\u0dcf\u0dc0\u0dca\u200d\u0dba\u0dba\u0dda \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0da0\u0dbb\u0dd2\u0dad\u0dba \u0daf\u0d9a\u0dca\u0dc2 \u0db8\u0ddc\u0db1 \u0dc3\u0d82\u0d9c\u0dd3\u0dad \u0db7\u0dcf\u0dab\u0dca\u0da9\u0dba\u0da7\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9c\u0dd4\u0dad\u0dca\u0dad\u0dd2\u0dbd \u0d9a\u0dcf\u0dc0\u0dca\u200d\u0dba\u0dba\u0dda \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0da0\u0dbb\u0dd2\u0dad\u0dba \u0dc0\u0db1 **\u0d9c\u0dd4\u0dad\u0dca\u0dad\u0dd2\u0dbd \u0db4\u0dab\u0dca\u0da9\u0dd2\u0dad\u0dba\u0dcf** \u0daf\u0d9a\u0dca\u0dc2 \u0dc0\u0dd6\u0dba\u0dda **\u0dc0\u0dd3\u0dab\u0dcf\u0dc0** \u0dc0\u0dcf\u0daf\u0db1\u0dba\u0da7 \u0dba.\n\n\u0d9c\u0dd4\u0dad\u0dca\u0dad\u0dd2\u0dbd \u0d9a\u0dcf\u0dc0\u0dca\u200d\u0dba\u0dba \u0dbb\u0da0\u0db1\u0dcf \u0d9a\u0dc5\u0dda **\u0dc0\u0dd9\u0dad\u0dca\u0dad\u0dd1\u0dc0\u0dda \u0dad\u0dd9\u0dbb\u0dd4\u0db1\u0dca** \u0dc0\u0dd2\u0dc3\u0dd2\u0db1\u0dca \u0dc0\u0db1 \u0d85\u0dad\u0dbb, \u0d91\u0dba \u0db6\u0dd4\u0daf\u0dd4\u0dbb\u0da2\u0dcf\u0dab\u0db1\u0dca \u0dc0\u0dc4\u0db1\u0dca\u0dc3\u0dda\u0d9c\u0dda \u0db4\u0dd6\u0dbb\u0dca\u0dc0 \u0db7\u0dc0\u0dba\u0d9a\u0dca \u0dc0\u0db1 \u0d9c\u0dd4\u0dad\u0dca\u0dad\u0dd2\u0dbd \u0db4\u0dab\u0dca\u0da9\u0dd2\u0dad \u0da2\u0dcf\u0dad\u0d9a\u0dba \u0db4\u0daf\u0db1\u0db8\u0dca \u0d9a\u0dbb\u0d9c\u0dd9\u0db1 \u0dbd\u0dd2\u0dba\u0db1 \u0dbd\u0daf \u0d9a\u0dcf\u0dc0\u0dca\u200d\u0dba\u0dba\u0d9a\u0dd2. \u0db8\u0dd9\u0db8 \u0d9a\u0dad\u0dcf\u0dc0\u0dda \u0d9c\u0dd4\u0dad\u0dca\u0dad\u0dd2\u0dbd \u0db4\u0dab\u0dca\u0da9\u0dd2\u0dad\u0dba\u0dcf \u0dc3\u0dc4 \u0d94\u0dc4\u0dd4\u0d9c\u0dda \u0dc1\u0dd2\u0dc2\u0dca\u200d\u0dba\u0dba\u0dcf \u0dc0\u0dd6 **\u0db8\u0dd6\u0dc3\u0dd2\u0dbd** \u0d85\u0dad\u0dbb \u0db4\u0dd0\u0dc0\u0dad\u0dd2 \u0dc0\u0dd3\u0dab\u0dcf \u0dc0\u0dcf\u0daf\u0db1 \u0dad\u0dbb\u0d9c\u0dba \u0db4\u0dca\u200d\u0dbb\u0dc3\u0dd2\u0daf\u0dca\u0db0 \u0dc3\u0dd2\u0daf\u0dd4\u0dc0\u0dd3\u0db8\u0d9a\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-opus-4-7@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 70,
+                "outputTokens": 332,
+                "inputTokensCostNanodollars": "350000",
+                "outputTokensCostNanodollars": "8300000",
+                "totalBackendLatencyMs": "11026"
+              },
+              "id": "synhalees_03_classical_literature_item-7dd42e71-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 70,
+            "outputTokens": 332,
+            "inputTokensCostNanodollars": "350000",
+            "outputTokensCostNanodollars": "8300000",
+            "totalBackendLatencyMs": "11026"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_03_014"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #14"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-opus-4-7@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-29T04:05:20.668695Z",
+      "endTime": "2026-09-29T04:05:35.207624Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-9db09ec2",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dda \u0daf\u0dd0\u0db1\u0da7 \u0db1\u0dd0\u0dad\u0dd2 \u0d92\u0dad\u0dca \u0d89\u0d82\u0d9c\u0dca\u200d\u0dbb\u0dd3\u0dc3\u0dd2 \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dda \u0dad\u0dd2\u0dba\u0dd9\u0db1 \u0d85\u0d9a\u0dd4\u0dbb \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0d9a\u0dd0\u0db4\u0dd2\u0da7\u0dbd\u0dca \u0d85\u0d9a\u0dd4\u0dbb\u0d9a\u0dd2\u0db1\u0dca \u0daf\u0dd9\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0dda\u0d9a\u0da7 \u0db1\u0dd2\u0dc1\u0dca\u0da0\u0dd2\u0dad \u0d8b\u0dad\u0dca\u0dad\u0dbb\u0dba\u0d9a\u0dca \u0daf\u0dd9\u0db1\u0dca\u0db1 \u0da7\u0dd2\u0d9a\u0d9a\u0dca \u0d85\u0db8\u0dcf\u0dbb\u0dd4\u0dba\u0dd2, \u0db8\u0ddc\u0d9a\u0daf \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 \u0d89\u0d82\u0d9c\u0dca\u200d\u0dbb\u0dd3\u0dc3\u0dd2 \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 \u0daf\u0dd9\u0d9a \u0db8 \u0dc0\u0dd9\u0db1\u0dc3\u0dca \u0dbd\u0dda\u0d9b\u0db1 \u0db4\u0daf\u0dca\u0db0\u0dad\u0dd2 \u0daf\u0dd9\u0d9a\u0d9a\u0dca. \u0dc4\u0dd0\u0db6\u0dd0\u0dba\u0dd2 \u0d94\u0db6 \u0d85\u0dc4\u0db1\u0dca\u0db1\u0dda \u0d89\u0d82\u0d9c\u0dca\u200d\u0dbb\u0dd3\u0dc3\u0dd2 \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dda \u0dc1\u0db6\u0dca\u0daf\u0dba\u0d9a\u0dca \u0dc3\u0db3\u0dc4\u0dcf \u0d85\u0d9a\u0dd4\u0dbb\u0d9a\u0dca \u0dad\u0dd2\u0dba\u0dd9\u0db1\u0dc0\u0dcf, \u0d92\u0dad\u0dca \u0dc3\u0dd2\u0d82\u0dc4\u0dbd\u0dba\u0dda \u0d92 \u0dc1\u0db6\u0dca\u0daf\u0dba\u0da7 \u0d9a\u0dd9\u0dc5\u0dd2\u0db1\u0dca\u0db8 \u0d85\u0d9a\u0dd4\u0dbb\u0d9a\u0dca \u0db1\u0dd0\u0dad\u0dd2 \u0d91\u0d9a\u0d9a\u0dca \u0d9c\u0dd0\u0db1 \u0db1\u0db8\u0dca, \u0d92\u0d9a \u0dad\u0db8\u0dba\u0dd2:\n\n**F**\n\n\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dda \"F\" \u0dc1\u0db6\u0dca\u0daf\u0dba \u0db1\u0dd2\u0dbb\u0dd6\u0db4\u0dab\u0dba \u0d9a\u0dbb\u0db1\u0dca\u0db1 \u0dc0\u0dd9\u0db1\u0db8 \u0d85\u0d9a\u0dd4\u0dbb\u0d9a\u0dca \u0db1\u0dd0\u0dc4\u0dd0. \u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba\u0dba\u0dd9\u0db1\u0dca \"\u0dc6\" \u0d9a\u0dd2\u0dba\u0db1 \u0d85\u0d9a\u0dd4\u0dbb \u0db4\u0dcf\u0dc0\u0dd2\u0da0\u0dca\u0da0\u0dd2 \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda \"\u0db4\" \u0d85\u0d9a\u0dd4\u0dbb\u0da7 \u0dad\u0dd2\u0dad\u0dca \u0dba\u0ddc\u0daf\u0dbd\u0dcf - \u0db8\u0dda\u0d9a \u0db8\u0dd4\u0dbd\u0dd2\u0db1\u0dca \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc4\u0ddd\u0da9\u0dd2\u0dba\u0dda \u0dad\u0dd2\u0db6\u0dd4\u0dab\u0dda \u0db1\u0dd0\u0dc4\u0dd0, \u0db4\u0dc3\u0dd4\u0d9a\u0dcf\u0dbd\u0dd3\u0db1\u0dc0 \u0d89\u0d82\u0d9c\u0dca\u200d\u0dbb\u0dd3\u0dc3\u0dd2/\u0dc0\u0dd2\u0daf\u0dda\u0dc1\u0dd3\u0dba \u0dc0\u0da0\u0db1 \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1 \u0d91\u0d9a\u0dad\u0dd4 \u0d9a\u0dbb\u0d9c\u0dad\u0dca\u0dad \u0d91\u0d9a\u0d9a\u0dca."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-opus-4-7@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 95,
+                "outputTokens": 440,
+                "inputTokensCostNanodollars": "475000",
+                "outputTokensCostNanodollars": "11000000",
+                "totalBackendLatencyMs": "14463"
+              },
+              "id": "synhalees_03_classical_literature_item-9db09ec2-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 95,
+            "outputTokens": 440,
+            "inputTokensCostNanodollars": "475000",
+            "outputTokensCostNanodollars": "11000000",
+            "totalBackendLatencyMs": "14463"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_03_015"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #15"
+    }
+  ],
+  "pyRunId": "synhalees_03_classical_literature-Run #1"
+}

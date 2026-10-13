@@ -1,0 +1,1067 @@
+{
+  "taskVersion": {
+    "versionNumber": 1,
+    "name": "synhalees_15_numbers_maths",
+    "description": "SynhalEES pillar 15_numbers_maths: native Sinhala text accuracy.",
+    "definition": "@kbench.task(name=\"synhalees_15_numbers_maths\", description=\"SynhalEES pillar 15_numbers_maths: native Sinhala text accuracy.\")\ndef synhalees_task(llm) -> float:\n    '''Evaluate Numbers Maths (text); return accuracy in [0, 1].'''\n    import pandas as pd\n\n    rows = _rows()\n    if not rows:\n        raise ValueError(\n            \"No runnable text rows for Numbers Maths yet -- media files may \"\n            \"not be committed under benchmark_data/.\"\n        )\n    with kbench.client.enable_cache():\n        runs = synhalees_item.evaluate(\n            llm=[llm], evaluation_data=pd.DataFrame(rows),\n            n_jobs=2, max_attempts=2, on_failure=\"continue\",\n            remove_run_files=True,\n        )\n    correct = runs.as_dataframe().result.str.get(\"is_correct\").astype(\"boolean\").fillna(False)\n    return float(correct.mean())\n"
+  },
+  "modelVersion": {
+    "slug": "anthropic/claude-sonnet-5@default"
+  },
+  "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+  "startTime": "2026-09-28T05:44:01.400889Z",
+  "endTime": "2026-09-28T05:45:11.107093Z",
+  "conversations": [
+    {
+      "id": "synhalees_15_numbers_maths-97ba5db7",
+      "metrics": {},
+      "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+    }
+  ],
+  "results": [
+    {
+      "type": "AGGREGATED",
+      "numericResult": {
+        "value": 0.2
+      }
+    }
+  ],
+  "subruns": [
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_15_numbers_maths_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_15_numbers_maths_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-5@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-28T05:44:01.416943Z",
+      "endTime": "2026-09-28T05:44:03.148867Z",
+      "conversations": [
+        {
+          "id": "synhalees_15_numbers_maths_item-f8668469",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "11 \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d91\u0d9a\u0ddc\u0dc5\u0dc4"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-5@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 28,
+                "outputTokens": 59,
+                "inputTokensCostNanodollars": "56000",
+                "outputTokensCostNanodollars": "590000",
+                "totalBackendLatencyMs": "1499"
+              },
+              "id": "synhalees_15_numbers_maths_item-f8668469-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 28,
+            "outputTokens": 59,
+            "inputTokensCostNanodollars": "56000",
+            "outputTokensCostNanodollars": "590000",
+            "totalBackendLatencyMs": "1499"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_15_002"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_15_numbers_maths_item-Run #2"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_15_numbers_maths_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_15_numbers_maths_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-5@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-28T05:44:01.415902Z",
+      "endTime": "2026-09-28T05:44:09.324765Z",
+      "conversations": [
+        {
+          "id": "synhalees_15_numbers_maths_item-f3b6a45f",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "15 \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "**15 = \u0db4\u0dc4\u0dc5\u0ddc\u0dc0**\n\n\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d82\u0d9a \u0dbd\u0dd2\u0dc0\u0dd3\u0db8\u0dda \u0d9a\u0dca\u200d\u0dbb\u0db8\u0dba:\n- 10 - \u0daf\u0dc4\u0dba\n- 11 - \u0d91\u0d9a\u0ddc\u0dc5\u0dc4\n- 12 - \u0daf\u0ddc\u0dc5\u0dc4\n- 13 - \u0daf\u0dc4\u0dad\u0dd4\u0db1\n- 14 - \u0daf\u0dcf\u0dc4\u0dad\u0dbb\n- **15 - \u0db4\u0dc4\u0dc5\u0ddc\u0dc0**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-5@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 28,
+                "outputTokens": 472,
+                "inputTokensCostNanodollars": "56000",
+                "outputTokensCostNanodollars": "4720000",
+                "totalBackendLatencyMs": "7634"
+              },
+              "id": "synhalees_15_numbers_maths_item-f3b6a45f-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 28,
+            "outputTokens": 472,
+            "inputTokensCostNanodollars": "56000",
+            "outputTokensCostNanodollars": "4720000",
+            "totalBackendLatencyMs": "7634"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_15_001"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_15_numbers_maths_item-Run #1"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_15_numbers_maths_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_15_numbers_maths_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-5@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-28T05:44:03.155048Z",
+      "endTime": "2026-09-28T05:44:09.518190Z",
+      "conversations": [
+        {
+          "id": "synhalees_15_numbers_maths_item-d645766b",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "20 \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 20\u0d9a\u0dca\n\n1. \u0d85\n2. \u0d86\n3. \u0d87\n4. \u0d88\n5. \u0d89\n6. \u0d8a\n7. \u0d8b\n8. \u0d8c\n9. \u0d91\n10. \u0d92\n11. \u0d9a\n12. \u0d9c\n13. \u0da0\n14. \u0da2\n15. \u0da7\n16. \u0da9\n17. \u0dad\n18. \u0daf\n19. \u0db1\n20. \u0db8\n\n\u0db8\u0dda\u0dc0\u0dcf \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc4\u0ddd\u0da9\u0dd2\u0dba\u0dda \u0d87\u0dad\u0dd2 \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 \u0dc0\u0dbd\u0dd2\u0db1\u0dca \u0d9a\u0ddc\u0da7\u0dc3\u0d9a\u0dd2. \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc4\u0ddd\u0da9\u0dd2\u0dba\u0dda \u0dc3\u0dca\u0dc0\u0dbb \u0dc3\u0dc4 \u0dc0\u0dca\u200d\u0dba\u0da4\u0dca\u0da2\u0db1\u0dcf\u0d9a\u0dca\u0dc2\u0dbb \u0d87\u0dad\u0dd4\u0dc5\u0dd4\u0dc0 \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 60\u0d9a\u0da7 \u0dc0\u0dd0\u0da9\u0dd2 \u0db4\u0dca\u200d\u0dbb\u0db8\u0dcf\u0dab\u0dba\u0d9a\u0dca \u0dad\u0dd2\u0db6\u0dda."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-5@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 28,
+                "outputTokens": 252,
+                "inputTokensCostNanodollars": "56000",
+                "outputTokensCostNanodollars": "2520000",
+                "totalBackendLatencyMs": "6224"
+              },
+              "id": "synhalees_15_numbers_maths_item-d645766b-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 28,
+            "outputTokens": 252,
+            "inputTokensCostNanodollars": "56000",
+            "outputTokensCostNanodollars": "2520000",
+            "totalBackendLatencyMs": "6224"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_15_003"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_15_numbers_maths_item-Run #3"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_15_numbers_maths_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_15_numbers_maths_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-5@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-28T05:44:09.523800Z",
+      "endTime": "2026-09-28T05:44:26.825162Z",
+      "conversations": [
+        {
+          "id": "synhalees_15_numbers_maths_item-d5c87828",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "100 \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 100\u0d9a\u0dca\n\n\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc4\u0ddd\u0da9\u0dd2\u0dba\u0dda \u0d87\u0dad\u0dd2 \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 \u0dc3\u0dc4 \u0dc0\u0dca\u200d\u0dba\u0dcf\u0d82\u0da2\u0db1\u0dcf\u0d9a\u0dca\u0dc2\u0dbb \u0db8\u0dd9\u0db1\u0dca\u0db1:\n\n**\u0dc3\u0dca\u0dc0\u0dbb (12):**\n\u0d85, \u0d86, \u0d87, \u0d88, \u0d89, \u0d8a, \u0d8b, \u0d8c, \u0d8d, \u0d8e, \u0d91, \u0d92, \u0d93, \u0d94, \u0d95, \u0d96\n\n**\u0dc0\u0dca\u200d\u0dba\u0dcf\u0d82\u0da2\u0db1\u0dcf\u0d9a\u0dca\u0dc2\u0dbb:**\n1. \u0d9a\n2. \u0d9b\n3. \u0d9c\n4. \u0d9d\n5. \u0d9e\n6. \u0d9f\n7. \u0da0\n8. \u0da1\n9. \u0da2\n10. \u0da3\n11. \u0da4\n12. \u0da5\n13. \u0da7\n14. \u0da8\n15. \u0da9\n16. \u0daa\n17. \u0dab\n18. \u0dac\n19. \u0dad\n20. \u0dae\n21. \u0daf\n22. \u0db0\n23. \u0db1\n24. \u0db3\n25. \u0db4\n26. \u0db5\n27. \u0db6\n28. \u0db7\n29. \u0db8\n30. \u0db9\n31. \u0dba\n32. \u0dbb\n33. \u0dbd\n34. \u0dc0\n35. \u0dc1\n36. \u0dc2\n37. \u0dc3\n38. \u0dc4\n39. \u0dc5\n40. \u0dc6\n\n**\u0dc3\u0db8\u0dca\u0db4\u0dd6\u0dbb\u0dca\u0dab \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 100\u0d9a\u0dca \u0dc3\u0db3\u0dc4\u0dcf** (\u0dc3\u0dca\u0dc0\u0dbb + \u0dc0\u0dca\u200d\u0dba\u0dcf\u0d82\u0da2\u0db1\u0dcf\u0d9a\u0dca\u0dc2\u0dbb + \u0dc0\u0dd2\u0dc1\u0dda\u0dc2 \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 \u0d87\u0dad\u0dd4\u0dc5\u0dd4\u0dc0):\n\n\u0d85 \u0d86 \u0d87 \u0d88 \u0d89 \u0d8a \u0d8b \u0d8c \u0d8d \u0d8e \u0d8f \u0d90 \u0d91 \u0d92 \u0d93 \u0d94 \u0d95 \u0d96 \u0d82 \u0d83\n\u0d9a \u0d9b \u0d9c \u0d9d \u0d9e \u0d9f \u0da0 \u0da1 \u0da2 \u0da3 \u0da4 \u0da5 \u0da7 \u0da8 \u0da9 \u0daa \u0dab \u0dac \u0dad \u0dae\n\u0daf \u0db0 \u0db1 \u0db3 \u0db4 \u0db5 \u0db6 \u0db7 \u0db8 \u0db9 \u0dba \u0dbb \u0dbd \u0dc0 \u0dc1 \u0dc2 \u0dc3 \u0dc4 \u0dc5 \u0dc6\n\n\u0db8\u0dd9\u0dba \u0dc3\u0db8\u0dca\u0db4\u0dd6\u0dbb\u0dca\u0dab \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc4\u0ddd\u0da9\u0dd2\u0dba \u0db1\u0dd2\u0dba\u0ddd\u0da2\u0db1\u0dba \u0d9a\u0dbb\u0dba\u0dd2. \u0d94\u0db6\u0da7 \u0d9a\u0dd2\u0dc3\u0dd2\u0dba\u0db8\u0dca \u0dc0\u0dd2\u0dc1\u0dda\u0dc2\u0dd2\u0dad \u0d85\u0dc0\u0dc1\u0dca\u200d\u0dba\u0dad\u0dcf\u0dc0\u0dba\u0d9a\u0dca \u0dad\u0dd2\u0db6\u0dda \u0db1\u0db8\u0dca (\u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab\u0dba\u0d9a\u0dca \u0dbd\u0dd9\u0dc3, \u0dba\u0dad\u0dd4\u0dbb\u0dd4\u0dbd\u0dd2\u0dba\u0db1\u0dba \u0dc3\u0db3\u0dc4\u0dcf \u0db4\u0dd4\u0db1\u0dbb\u0dcf\u0dc0\u0dbb\u0dca\u0dad\u0db1 \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 \u0dc4\u0ddd \u0dc0\u0dd9\u0db1\u0dad\u0dca \u0dc0\u0dd2\u0dc1\u0dda\u0dc2 \u0d85\u0dc0\u0dc1\u0dca\u200d\u0dba\u0dad\u0dcf\u0dc0\u0d9a\u0dca) \u0d9a\u0dbb\u0dd4\u0dab\u0dcf\u0d9a\u0dbb \u0daf\u0db1\u0dca\u0dc0\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-5@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 28,
+                "outputTokens": 847,
+                "inputTokensCostNanodollars": "56000",
+                "outputTokensCostNanodollars": "8470000",
+                "totalBackendLatencyMs": "17067"
+              },
+              "id": "synhalees_15_numbers_maths_item-d5c87828-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 28,
+            "outputTokens": 847,
+            "inputTokensCostNanodollars": "56000",
+            "outputTokensCostNanodollars": "8470000",
+            "totalBackendLatencyMs": "17067"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_15_005"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_15_numbers_maths_item-Run #5"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_15_numbers_maths_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_15_numbers_maths_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-5@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-28T05:44:09.329939Z",
+      "endTime": "2026-09-28T05:44:31.034818Z",
+      "conversations": [
+        {
+          "id": "synhalees_15_numbers_maths_item-52b88e6c",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "50 \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 50\n\n## \u0dc3\u0dca\u0dc0\u0dbb (Vowels)\n1. \u0d85\n2. \u0d86\n3. \u0d87\n4. \u0d88\n5. \u0d89\n6. \u0d8a\n7. \u0d8b\n8. \u0d8c\n9. \u0d8d\n10. \u0d8e\n11. \u0d8f\n12. \u0d90\n13. \u0d91\n14. \u0d92\n15. \u0d93\n16. \u0d94\n17. \u0d95\n18. \u0d96\n\n## \u0dc0\u0dca\u200d\u0dba\u0da4\u0dca\u0da2\u0db1 (Consonants)\n19. \u0d9a\n20. \u0d9b\n21. \u0d9c\n22. \u0d9d\n23. \u0d9e\n24. \u0da0\n25. \u0da1\n26. \u0da2\n27. \u0da3\n28. \u0da4\n29. \u0da7\n30. \u0da8\n31. \u0da9\n32. \u0daa\n33. \u0dab\n34. \u0dad\n35. \u0dae\n36. \u0daf\n37. \u0db0\n38. \u0db1\n39. \u0db4\n40. \u0db5\n41. \u0db6\n42. \u0db7\n43. \u0db8\n44. \u0dba\n45. \u0dbb\n46. \u0dbd\n47. \u0dc0\n48. \u0dc1\n49. \u0dc2\n50. \u0dc3\n\n\u0db8\u0dda \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 50 \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dca\u0dc2\u0dbb \u0db8\u0dcf\u0dbd\u0dcf\u0dc0\u0dda \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dc3\u0dca\u0dc0\u0dbb \u0dc3\u0dc4 \u0dc0\u0dca\u200d\u0dba\u0da4\u0dca\u0da2\u0db1 \u0db1\u0dd2\u0dba\u0ddd\u0da2\u0db1\u0dba \u0d9a\u0dbb\u0dba\u0dd2. \u0d89\u0dad\u0dd2\u0dbb\u0dd2 \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 (\u0dc6, \u0dc5, \u0dd9, \u0dd3 \u0d86\u0daf\u0dd3) \u0d85\u0dc0\u0dc1\u0dca\u200d\u0dba \u0db1\u0db8\u0dca \u0daf\u0dd0\u0db1\u0dd4\u0db8\u0dca \u0daf\u0dd9\u0db1\u0dca\u0db1!"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-5@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 28,
+                "outputTokens": 1664,
+                "inputTokensCostNanodollars": "56000",
+                "outputTokensCostNanodollars": "16640000",
+                "totalBackendLatencyMs": "21513"
+              },
+              "id": "synhalees_15_numbers_maths_item-52b88e6c-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 28,
+            "outputTokens": 1664,
+            "inputTokensCostNanodollars": "56000",
+            "outputTokensCostNanodollars": "16640000",
+            "totalBackendLatencyMs": "21513"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_15_004"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_15_numbers_maths_item-Run #4"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_15_numbers_maths_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_15_numbers_maths_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-5@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-28T05:44:31.039763Z",
+      "endTime": "2026-09-28T05:44:54.992577Z",
+      "conversations": [
+        {
+          "id": "synhalees_15_numbers_maths_item-67ddd412",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dbd\u0d9a\u0dca\u0dc2\u0dda \u0d89\u0dbd\u0d9a\u0dca\u0d9a\u0db8\u0dd9\u0db1\u0dca \u0d9a\u0ddc\u0db8\u0dcf \u0daf\u0dcf\u0dbd\u0dcf \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "**\u0dbd\u0d9a\u0dca\u0dc2\u0dba \u0d89\u0dbd\u0d9a\u0dca\u0d9a\u0db8\u0dd9\u0db1\u0dca \u0d9a\u0ddc\u0db8\u0dcf \u0daf\u0db8\u0dcf \u0dbd\u0dd2\u0dc0\u0dd3\u0db8:**\n\n\u0dbd\u0d9a\u0dca\u0dc2\u0dba = **100,000**\n\n**\u0dc0\u0dd2\u0dc3\u0dca\u0dad\u0dbb\u0dba:**\n- \u0dbd\u0d9a\u0dca\u0dc2\u0dba \u0dba\u0db1\u0dd4 1 \u0da7 \u0db4\u0dc3\u0dd4\u0dc0 \u0db6\u0dd2\u0d82\u0daf\u0dd4 5\u0d9a\u0dca \u0d91\u0d9a\u0dad\u0dd4 \u0dc0\u0dd6 \u0dc3\u0d82\u0d9b\u0dca\u200d\u0dba\u0dcf\u0dc0\u0dba\u0dd2\n- \u0d91\u0db1\u0db8\u0dca: 1,00,000 = 100,000\n\n**\u0dc3\u0dca\u0dae\u0dcf\u0db1 \u0d85\u0d9c\u0dba \u0d85\u0db1\u0dd4\u0dc0 \u0db6\u0dd9\u0daf\u0dd3\u0db8:**\n\n| \u0dbd\u0d9a\u0dca\u0dc2 | \u0daf\u0dc4\u0dc3\u0dca | \u0dc3\u0dd2\u0dba | \u0daf\u0dc4\u0dba | \u0d92\u0d9a |\n|------|------|-----|------|-----|\n| 1 | 0 | 0 | 0 | 0 |\n\n\u0d91\u0db6\u0dd0\u0dc0\u0dd2\u0db1\u0dca \u0dbd\u0d9a\u0dca\u0dc2\u0dba \u0d9a\u0ddc\u0db8\u0dcf \u0dc3\u0db8\u0d9f \u0dbd\u0dd2\u0dba\u0db1 \u0dc0\u0dd2\u0da7: **100,000** \u0dbd\u0dd9\u0dc3 \u0dbd\u0dd2\u0dba\u0db1\u0dd4 \u0dbd\u0dd0\u0db6\u0dda.\n\n*(\u0dc3\u0da7\u0dc4\u0db1: \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0dc3\u0db8\u0dca\u0db4\u0dca\u200d\u0dbb\u0daf\u0dcf\u0dba\u0dd2\u0d9a \u0d9a\u0dca\u200d\u0dbb\u0db8\u0dba\u0da7 \u0d85\u0db1\u0dd4\u0dc0 \u0dc3\u0db8\u0dc4\u0dbb \u0dc0\u0dd2\u0da7 1,00,000 \u0dbd\u0dd9\u0dc3\u0daf \u0dbd\u0dd2\u0dba\u0db1\u0dd4 \u0dbd\u0dd0\u0db6\u0dda, \u0d91\u0dc4\u0dd9\u0dad\u0dca \u0db4\u0dcf\u0dc3\u0dbd\u0dca \u0db4\u0dd9\u0dc5\u0db4\u0ddc\u0dad\u0dca\u0dc0\u0dbd \u0db6\u0dc4\u0dd4\u0dbd\u0dc0 \u0db7\u0dcf\u0dc0\u0dd2\u0dad \u0dc0\u0db1\u0dca\u0db1\u0dda 100,000 \u0dba\u0db1 \u0d86\u0d9a\u0dd8\u0dad\u0dd2\u0dba\u0dba\u0dd2.)*"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-5@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 42,
+                "outputTokens": 818,
+                "inputTokensCostNanodollars": "84000",
+                "outputTokensCostNanodollars": "8180000",
+                "totalBackendLatencyMs": "23467"
+              },
+              "id": "synhalees_15_numbers_maths_item-67ddd412-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 42,
+            "outputTokens": 818,
+            "inputTokensCostNanodollars": "84000",
+            "outputTokensCostNanodollars": "8180000",
+            "totalBackendLatencyMs": "23467"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_15_007"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_15_numbers_maths_item-Run #7"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_15_numbers_maths_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_15_numbers_maths_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-5@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-28T05:44:26.830898Z",
+      "endTime": "2026-09-28T05:44:58.062867Z",
+      "conversations": [
+        {
+          "id": "synhalees_15_numbers_maths_item-e6e48943",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "1000 \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# 1000 \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd4\n\n\u0db8\u0dd9\u0db1\u0dca\u0db1 \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 1000\u0d9a\u0dca \u0dbd\u0dd2\u0dba\u0dcf \u0d87\u0dad (\u0d91\u0d9a\u0db8 \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 \u0db4\u0dd4\u0db1\u0dbb\u0dcf\u0dc0\u0dbb\u0dca\u0dad\u0db1\u0dba \u0d9a\u0dbb\u0db8\u0dd2\u0db1\u0dca):\n\n**\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc4\u0ddd\u0da9\u0dd2\u0dba\u0dda \u0db8\u0dd6\u0dbd\u0dd2\u0d9a \u0d85\u0d9a\u0dd4\u0dbb\u0dd4:**\n\u0d85 \u0d86 \u0d87 \u0d88 \u0d89 \u0d8a \u0d8b \u0d8c \u0d8d \u0d91 \u0d92 \u0d93 \u0d94 \u0d95 \u0d96\n\u0d9a \u0d9b \u0d9c \u0d9d \u0d9e \u0da0 \u0da1 \u0da2 \u0da3 \u0da4 \u0da7 \u0da8 \u0da9 \u0daa \u0dab\n\u0dad \u0dae \u0daf \u0db0 \u0db1 \u0db4 \u0db5 \u0db6 \u0db7 \u0db8 \u0dba \u0dbb \u0dbd \u0dc0 \u0dc1\n\u0dc2 \u0dc3 \u0dc4 \u0dc5 \u0dc6\n\n**\u0db8\u0dd9\u0db8 \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 1000\u0d9a\u0dca \u0dc3\u0db8\u0dca\u0db4\u0dd6\u0dbb\u0dca\u0dab \u0d9a\u0dd2\u0dbb\u0dd3\u0db8 \u0dc3\u0db3\u0dc4\u0dcf \u0db4\u0dd4\u0db1\u0dbb\u0dcf\u0dc0\u0dbb\u0dca\u0dad\u0db1\u0dba \u0d9a\u0dbb \u0d87\u0dad:**\n\n\u0d9a \u0d9a \u0d9a \u0d9a \u0d9a \u0d9a \u0d9a \u0d9a \u0d9a \u0d9a \u0d9a \u0d9a \u0d9a \u0d9a \u0d9a \u0d9a \u0d9a \u0d9a \u0d9a \u0d9a\n\u0d9c \u0d9c \u0d9c \u0d9c \u0d9c \u0d9c \u0d9c \u0d9c \u0d9c \u0d9c \u0d9c \u0d9c \u0d9c \u0d9c \u0d9c \u0d9c \u0d9c \u0d9c \u0d9c \u0d9c\n\u0dad \u0dad \u0dad \u0dad \u0dad \u0dad \u0dad \u0dad \u0dad \u0dad \u0dad \u0dad \u0dad \u0dad \u0dad \u0dad \u0dad \u0dad \u0dad \u0dad\n\u0db8 \u0db8 \u0db8 \u0db8 \u0db8 \u0db8 \u0db8 \u0db8 \u0db8 \u0db8 \u0db8 \u0db8 \u0db8 \u0db8 \u0db8 \u0db8 \u0db8 \u0db8 \u0db8 \u0db8\n\u0dbb \u0dbb \u0dbb \u0dbb \u0dbb \u0dbb \u0dbb \u0dbb \u0dbb \u0dbb \u0dbb \u0dbb \u0dbb \u0dbb \u0dbb \u0dbb \u0dbb \u0dbb \u0dbb \u0dbb\n\u0dbd \u0dbd \u0dbd \u0dbd \u0dbd \u0dbd \u0dbd \u0dbd \u0dbd \u0dbd \u0dbd \u0dbd \u0dbd \u0dbd \u0dbd \u0dbd \u0dbd \u0dbd \u0dbd \u0dbd\n\u0dc3 \u0dc3 \u0dc3 \u0dc3 \u0dc3 \u0dc3 \u0dc3 \u0dc3 \u0dc3 \u0dc3 \u0dc3 \u0dc3 \u0dc3 \u0dc3 \u0dc3 \u0dc3 \u0dc3 \u0dc3 \u0dc3 \u0dc3\n\u0dc4 \u0dc4 \u0dc4 \u0dc4 \u0dc4 \u0dc4 \u0dc4 \u0dc4 \u0dc4 \u0dc4 \u0dc4 \u0dc4 \u0dc4 \u0dc4 \u0dc4 \u0dc4 \u0dc4 \u0dc4 \u0dc4 \u0dc4\n\u0db1 \u0db1 \u0db1 \u0db1 \u0db1 \u0db1 \u0db1 \u0db1 \u0db1 \u0db1 \u0db1 \u0db1 \u0db1 \u0db1 \u0db1 \u0db1 \u0db1 \u0db1 \u0db1 \u0db1\n\u0daf \u0daf \u0daf \u0daf \u0daf \u0daf \u0daf \u0daf \u0daf \u0daf \u0daf \u0daf \u0daf \u0daf \u0daf \u0daf \u0daf \u0daf \u0daf \u0daf\n\u0dc0 \u0dc0 \u0dc0 \u0dc0 \u0dc0 \u0dc0 \u0dc0 \u0dc0 \u0dc0 \u0dc0 \u0dc0 \u0dc0 \u0dc0 \u0dc0 \u0dc0 \u0dc0 \u0dc0 \u0dc0 \u0dc0 \u0dc0\n\u0dba \u0dba \u0dba \u0dba \u0dba \u0dba \u0dba \u0dba \u0dba \u0dba \u0dba \u0dba \u0dba \u0dba \u0dba \u0dba \u0dba \u0dba \u0dba \u0dba\n\u0db6 \u0db6 \u0db6 \u0db6 \u0db6 \u0db6 \u0db6 \u0db6 \u0db6 \u0db6 \u0db6 \u0db6 \u0db6 \u0db6 \u0db6 \u0db6 \u0db6 \u0db6 \u0db6 \u0db6\n\u0db4 \u0db4 \u0db4 \u0db4 \u0db4 \u0db4 \u0db4 \u0db4 \u0db4 \u0db4 \u0db4 \u0db4 \u0db4 \u0db4 \u0db4 \u0db4 \u0db4 \u0db4 \u0db4 \u0db4\n\u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85\n\u0d89 \u0d89 \u0d89 \u0d89 \u0d89 \u0d89 \u0d89 \u0d89 \u0d89 \u0d89 \u0d89 \u0d89 \u0d89 \u0d89 \u0d89 \u0d89 \u0d89 \u0d89 \u0d89 \u0d89\n\u0d8b \u0d8b \u0d8b \u0d8b \u0d8b \u0d8b \u0d8b \u0d8b \u0d8b \u0d8b \u0d8b \u0d8b \u0d8b \u0d8b \u0d8b \u0d8b \u0d8b \u0d8b \u0d8b \u0d8b\n\u0d91 \u0d91 \u0d91 \u0d91 \u0d91 \u0d91 \u0d91 \u0d91 \u0d91 \u0d91 \u0d91 \u0d91 \u0d91 \u0d91 \u0d91 \u0d91 \u0d91 \u0d91 \u0d91 \u0d91\n\u0d94 \u0d94 \u0d94 \u0d94 \u0d94 \u0d94 \u0d94 \u0d94 \u0d94 \u0d94 \u0d94 \u0d94 \u0d94 \u0d94 \u0d94 \u0d94 \u0d94 \u0d94 \u0d94 \u0d94\n\u0da0 \u0da0 \u0da0 \u0da0 \u0da0 \u0da0 \u0da0 \u0da0 \u0da0 \u0da0 \u0da0 \u0da0 \u0da0 \u0da0 \u0da0 \u0da0 \u0da0 \u0da0 \u0da0 \u0da0\n\n\u0d89\u0dc4\u0dad \u0dbd\u0dd0\u0dba\u0dd2\u0dc3\u0dca\u0dad\u0dd4\u0dc0\u0dda \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 1000\u0d9a\u0dca \u0d85\u0da9\u0d82\u0d9c\u0dd4 \u0dc0\u0dda (\u0d91\u0d9a\u0dca \u0d91\u0d9a\u0dca \u0db4\u0dda\u0dc5\u0dd2\u0dba\u0dda \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 20 \u0db6\u0dd0\u0d9c\u0dd2\u0db1\u0dca, \u0db4\u0dda\u0dc5\u0dd2 50).\n\n*\u0db8\u0dd9\u0dba \u0d94\u0db6\u0da7 \u0d9a\u0dd4\u0db8\u0db1 \u0d85\u0dc0\u0dc1\u0dca\u200d\u0dba\u0dad\u0dcf\u0dc0\u0dba\u0d9a\u0dca \u0dc3\u0db3\u0dc4\u0dcf\u0daf \u0d85\u0dc0\u0dc1\u0dca\u200d\u0dba \u0db6\u0dc0 \u0dc3\u0db3\u0dc4\u0db1\u0dca \u0d9a\u0dc5\u0dc4\u0ddc\u0dad\u0dca \u0dc0\u0da9\u0dcf\u0dad\u0dca \u0d8b\u0db4\u0d9a\u0dcf\u0dbb\u0dd3 \u0dc0\u0dd2\u0dba \u0dc4\u0dd0\u0d9a - \u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab\u0dba\u0d9a\u0dca \u0dbd\u0dd9\u0dc3, \u0d91\u0d9a\u0dca \u0d91\u0d9a\u0dca \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 \u0d9a\u0dd3 \u0dc0\u0dad\u0dcf\u0dc0\u0d9a\u0dca \u0db4\u0dd4\u0db1\u0dbb\u0dcf\u0dc0\u0dbb\u0dca\u0dad\u0db1\u0dba \u0dc0\u0dd2\u0dba \u0dba\u0dd4\u0dad\u0dd4\u0daf, \u0db1\u0dd0\u0dad\u0dc4\u0ddc\u0dad\u0dca \u0dc0\u0dd9\u0db1\u0dad\u0dca \u0dbb\u0da7\u0dcf\u0dc0\u0d9a\u0dca \u0d85\u0dc0\u0dc1\u0dca\u200d\u0dba\u0daf \u0dba\u0db1\u0dca\u0db1.*"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-5@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 29,
+                "outputTokens": 1427,
+                "inputTokensCostNanodollars": "58000",
+                "outputTokensCostNanodollars": "14270000",
+                "totalBackendLatencyMs": "31081"
+              },
+              "id": "synhalees_15_numbers_maths_item-e6e48943-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 29,
+            "outputTokens": 1427,
+            "inputTokensCostNanodollars": "58000",
+            "outputTokensCostNanodollars": "14270000",
+            "totalBackendLatencyMs": "31081"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_15_006"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_15_numbers_maths_item-Run #6"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_15_numbers_maths_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_15_numbers_maths_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-5@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-28T05:44:54.997348Z",
+      "endTime": "2026-09-28T05:44:58.247641Z",
+      "conversations": [
+        {
+          "id": "synhalees_15_numbers_maths_item-0c3351c4",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db4\u0dc4\u0da7 \u0dad\u0dd2\u0dc4\u0d9a\u0dca \u0d91\u0d9a\u0dad\u0dd4 \u0d9a\u0dbb\u0dcf\u0db8 \u0d9a\u0dd3\u0dba\u0daf? (\u0d8b\u0dad\u0dca\u0dad\u0dbb\u0dda \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db4\u0dc4\u0da7 \u0dad\u0dd2\u0dc4\u0d9a\u0dca \u0d91\u0d9a\u0dad\u0dd4 \u0d9a\u0dc5\u0dc4\u0ddc\u0dad\u0dca: 5 + 30 = 35\n\n\u0d8b\u0dad\u0dca\u0dad\u0dbb\u0dba: **\u0dad\u0dd2\u0dc3\u0dca \u0db4\u0dc4**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-5@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 55,
+                "outputTokens": 146,
+                "inputTokensCostNanodollars": "110000",
+                "outputTokensCostNanodollars": "1460000",
+                "totalBackendLatencyMs": "3104"
+              },
+              "id": "synhalees_15_numbers_maths_item-0c3351c4-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 55,
+            "outputTokens": 146,
+            "inputTokensCostNanodollars": "110000",
+            "outputTokensCostNanodollars": "1460000",
+            "totalBackendLatencyMs": "3104"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_15_008"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_15_numbers_maths_item-Run #8"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_15_numbers_maths_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_15_numbers_maths_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-5@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-28T05:44:58.253274Z",
+      "endTime": "2026-09-28T05:45:01.776168Z",
+      "conversations": [
+        {
+          "id": "synhalees_15_numbers_maths_item-6331e92b",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd3\u0dba\u0dd9\u0db1\u0dca \u0daf\u0dc4\u0dba\u0d9a\u0dca \u0d85\u0da9\u0dd4 \u0d9a\u0dbb\u0dcf\u0db8 \u0d9a\u0dd3\u0dba\u0daf? (\u0d8b\u0dad\u0dca\u0dad\u0dbb\u0dda \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd3\u0dba\u0dd9\u0db1\u0dca (100) \u0daf\u0dc4\u0dba\u0d9a\u0dca (10) \u0d85\u0da9\u0dd4 \u0d9a\u0dc5\u0dc4\u0ddc\u0dad\u0dca **\u0d85\u0db1\u0dd6\u0dc0** (90) \u0dbd\u0dd0\u0db6\u0dda.\n\n**100 - 10 = 90 (\u0d85\u0db1\u0dd6\u0dc0)**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-5@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 59,
+                "outputTokens": 126,
+                "inputTokensCostNanodollars": "118000",
+                "outputTokensCostNanodollars": "1260000",
+                "totalBackendLatencyMs": "3371"
+              },
+              "id": "synhalees_15_numbers_maths_item-6331e92b-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 59,
+            "outputTokens": 126,
+            "inputTokensCostNanodollars": "118000",
+            "outputTokensCostNanodollars": "1260000",
+            "totalBackendLatencyMs": "3371"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_15_010"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_15_numbers_maths_item-Run #10"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_15_numbers_maths_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_15_numbers_maths_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-5@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-28T05:44:58.067625Z",
+      "endTime": "2026-09-28T05:45:02.875004Z",
+      "conversations": [
+        {
+          "id": "synhalees_15_numbers_maths_item-d7b2cde9",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db1\u0db8\u0dba \u0db4\u0dc4\u0dd9\u0db1\u0dca \u0dc0\u0dd0\u0da9\u0dd2 \u0d9a\u0dbb\u0dcf\u0db8 \u0d9a\u0dd3\u0dba\u0daf? (\u0d8b\u0dad\u0dca\u0dad\u0dbb\u0dda \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "**\u0db1\u0db8\u0dba \u0db4\u0dc4\u0dd9\u0db1\u0dca \u0dc0\u0dd0\u0da9\u0dd2 \u0d9a\u0dd2\u0dbb\u0dd3\u0db8:**\n\n\u0db1\u0db8\u0dba + \u0db4\u0dc4 = 9 + 5 = 14\n\n**\u0d8b\u0dad\u0dca\u0dad\u0dbb\u0dba: \u0daf\u0dc4\u0dc4\u0dad\u0dbb**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-5@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 57,
+                "outputTokens": 228,
+                "inputTokensCostNanodollars": "114000",
+                "outputTokensCostNanodollars": "2280000",
+                "totalBackendLatencyMs": "4645"
+              },
+              "id": "synhalees_15_numbers_maths_item-d7b2cde9-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 57,
+            "outputTokens": 228,
+            "inputTokensCostNanodollars": "114000",
+            "outputTokensCostNanodollars": "2280000",
+            "totalBackendLatencyMs": "4645"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_15_009"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_15_numbers_maths_item-Run #9"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_15_numbers_maths_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_15_numbers_maths_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-5@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-28T05:45:01.782043Z",
+      "endTime": "2026-09-28T05:45:04.814013Z",
+      "conversations": [
+        {
+          "id": "synhalees_15_numbers_maths_item-1f5c1c34",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc4\u0dd0\u0dad\u0dca\u0dad\u0dd1 \u0db4\u0dc4 \u0dc0\u0dd2\u0dc3\u0dd2 \u0db4\u0dc4\u0dd9\u0db1\u0dca \u0db6\u0dd9\u0daf\u0dd4\u0dc0\u0dcf\u0db8 \u0d9a\u0dd3\u0dba\u0daf? (\u0d8b\u0dad\u0dca\u0dad\u0dbb\u0dda \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "**75 \u00f7 25 = 3**\n\n\u0d8b\u0dad\u0dca\u0dad\u0dbb\u0dba \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca: **\u0dad\u0dd4\u0db1**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-5@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 67,
+                "outputTokens": 105,
+                "inputTokensCostNanodollars": "134000",
+                "outputTokensCostNanodollars": "1050000",
+                "totalBackendLatencyMs": "2880"
+              },
+              "id": "synhalees_15_numbers_maths_item-1f5c1c34-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 67,
+            "outputTokens": 105,
+            "inputTokensCostNanodollars": "134000",
+            "outputTokensCostNanodollars": "1050000",
+            "totalBackendLatencyMs": "2880"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_15_011"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_15_numbers_maths_item-Run #11"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_15_numbers_maths_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_15_numbers_maths_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-5@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-28T05:45:02.881129Z",
+      "endTime": "2026-09-28T05:45:06.780369Z",
+      "conversations": [
+        {
+          "id": "synhalees_15_numbers_maths_item-7505104a",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "83+33=? (\u0d8b\u0dad\u0dca\u0dad\u0dbb\u0dda \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "**83+33 = 116**\n\n\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca: **\u0d91\u0d9a\u0dc3\u0dd2\u0dba \u0daf\u0dc4\u0dc3\u0dba**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-5@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 39,
+                "outputTokens": 145,
+                "inputTokensCostNanodollars": "78000",
+                "outputTokensCostNanodollars": "1450000",
+                "totalBackendLatencyMs": "3746"
+              },
+              "id": "synhalees_15_numbers_maths_item-7505104a-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 39,
+            "outputTokens": 145,
+            "inputTokensCostNanodollars": "78000",
+            "outputTokensCostNanodollars": "1450000",
+            "totalBackendLatencyMs": "3746"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_15_012"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_15_numbers_maths_item-Run #12"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_15_numbers_maths_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_15_numbers_maths_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-5@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-28T05:45:06.785150Z",
+      "endTime": "2026-09-28T05:45:09.345779Z",
+      "conversations": [
+        {
+          "id": "synhalees_15_numbers_maths_item-37954e6e",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "99-43=? (\u0d8b\u0dad\u0dca\u0dad\u0dbb\u0dda \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# 99-43 = 56\n\n**\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd2\u0db1\u0dca:** \u0db4\u0db1\u0dc3\u0dca \u0dc4\u0dba"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-5@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 39,
+                "outputTokens": 32,
+                "inputTokensCostNanodollars": "78000",
+                "outputTokensCostNanodollars": "320000",
+                "totalBackendLatencyMs": "2412"
+              },
+              "id": "synhalees_15_numbers_maths_item-37954e6e-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 39,
+            "outputTokens": 32,
+            "inputTokensCostNanodollars": "78000",
+            "outputTokensCostNanodollars": "320000",
+            "totalBackendLatencyMs": "2412"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_15_014"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_15_numbers_maths_item-Run #14"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_15_numbers_maths_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_15_numbers_maths_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-5@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-28T05:45:04.820891Z",
+      "endTime": "2026-09-28T05:45:10.099946Z",
+      "conversations": [
+        {
+          "id": "synhalees_15_numbers_maths_item-6fd9e8f9",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "2*1024=? (\u0d8b\u0dad\u0dca\u0dad\u0dbb\u0dda \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# \u0d9c\u0dab\u0db1\u0dba \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\n\n2 \u00d7 1024 = 2048\n\n## \u0d8b\u0dad\u0dca\u0dad\u0dbb\u0dba \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd2\u0db1\u0dca\n\n**\u0daf\u0dd9\u0daf\u0dc4\u0dc3\u0dca \u0dc4\u0dad\u0dc5\u0dd2\u0dc3\u0dca \u0d85\u0da7**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-5@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 40,
+                "outputTokens": 62,
+                "inputTokensCostNanodollars": "80000",
+                "outputTokensCostNanodollars": "620000",
+                "totalBackendLatencyMs": "5142"
+              },
+              "id": "synhalees_15_numbers_maths_item-6fd9e8f9-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 40,
+            "outputTokens": 62,
+            "inputTokensCostNanodollars": "80000",
+            "outputTokensCostNanodollars": "620000",
+            "totalBackendLatencyMs": "5142"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_15_013"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_15_numbers_maths_item-Run #13"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_15_numbers_maths_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_15_numbers_maths_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-5@default"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-28T05:45:09.351670Z",
+      "endTime": "2026-09-28T05:45:11.089634Z",
+      "conversations": [
+        {
+          "id": "synhalees_15_numbers_maths_item-db5d3010",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "44/11=? (\u0d8b\u0dad\u0dca\u0dad\u0dbb\u0dda \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "**44/11 = 4**\n\n\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca: **\u0dc4\u0dad\u0dbb**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-5@default"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 39,
+                "outputTokens": 64,
+                "inputTokensCostNanodollars": "78000",
+                "outputTokensCostNanodollars": "640000",
+                "totalBackendLatencyMs": "1591"
+              },
+              "id": "synhalees_15_numbers_maths_item-db5d3010-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 39,
+            "outputTokens": 64,
+            "inputTokensCostNanodollars": "78000",
+            "outputTokensCostNanodollars": "640000",
+            "totalBackendLatencyMs": "1591"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_15_015"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_15_numbers_maths_item-Run #15"
+    }
+  ],
+  "pyRunId": "synhalees_15_numbers_maths-Run #1"
+}

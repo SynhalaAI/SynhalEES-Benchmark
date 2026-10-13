@@ -1,0 +1,1368 @@
+{
+  "taskVersion": {
+    "versionNumber": 1,
+    "name": "synhalees_04_kavi_sindu",
+    "description": "SynhalEES pillar 04_kavi_sindu: native Sinhala text accuracy.",
+    "definition": "@kbench.task(name=\"synhalees_04_kavi_sindu\", description=\"SynhalEES pillar 04_kavi_sindu: native Sinhala text accuracy.\")\ndef synhalees_task(llm) -> float:\n    '''Evaluate Kavi Sindu (text); return accuracy in [0, 1].'''\n    import pandas as pd\n\n    rows = _rows()\n    if not rows:\n        raise ValueError(\n            \"No runnable text rows for Kavi Sindu yet -- media files may \"\n            \"not be committed under benchmark_data/.\"\n        )\n    with kbench.client.enable_cache():\n        runs = synhalees_item.evaluate(\n            llm=[llm], evaluation_data=pd.DataFrame(rows),\n            n_jobs=2, max_attempts=2, on_failure=\"continue\",\n            remove_run_files=True,\n        )\n    correct = runs.as_dataframe().result.str.get(\"is_correct\").astype(\"boolean\").fillna(False)\n    return float(correct.mean())\n"
+  },
+  "modelVersion": {
+    "slug": "anthropic/claude-haiku-5-5"
+  },
+  "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+  "startTime": "2026-10-13T09:07:36.828104Z",
+  "endTime": "2026-10-13T09:09:20.280579Z",
+  "conversations": [
+    {
+      "id": "synhalees_04_kavi_sindu-b3c98581",
+      "metrics": {},
+      "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+    }
+  ],
+  "results": [
+    {
+      "type": "AGGREGATED",
+      "numericResult": {
+        "value": 0.3333333333333333
+      }
+    }
+  ],
+  "subruns": [
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_04_kavi_sindu_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_04_kavi_sindu_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-5-5"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-10-13T09:07:36.838709Z",
+      "endTime": "2026-10-13T09:07:38.273292Z",
+      "conversations": [
+        {
+          "id": "synhalees_04_kavi_sindu_item-b99b27fd",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9a\u0dc0\u0dd2\u0dba\u0d9a \u0d85\u0dc0\u0dc3\u0dcf\u0db1 \u0db4\u0daf \u0dbd\u0dc3\u0dca\u0dc3\u0db1\u0da7 \u0d9c\u0dd0\u0dc5\u0db4\u0dd9\u0db1 \u0d91\u0d9a\u0da7 \u0db8\u0ddc\u0d9a\u0d9a\u0dca \u0d9a\u0dd2\u0dba\u0dbd\u0daf \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda? (\u0dad\u0db1\u0dd2 \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "**\u0db4\u0dca\u200d\u0dbb\u0dcf\u0dc3\u0dba**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-5-5"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 71,
+                "outputTokens": 130,
+                "inputTokensCostNanodollars": "7100",
+                "outputTokensCostNanodollars": "65000",
+                "totalBackendLatencyMs": "1028"
+              },
+              "id": "synhalees_04_kavi_sindu_item-b99b27fd-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 71,
+            "outputTokens": 130,
+            "inputTokensCostNanodollars": "7100",
+            "outputTokensCostNanodollars": "65000",
+            "totalBackendLatencyMs": "1028"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_04_001"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_04_kavi_sindu_item-Run #1"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_04_kavi_sindu_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_04_kavi_sindu_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-5-5"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-10-13T09:07:36.839766Z",
+      "endTime": "2026-10-13T09:07:44.689250Z",
+      "conversations": [
+        {
+          "id": "synhalees_04_kavi_sindu_item-cae7a5bc",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d92 \u0d9a\u0dcf\u0dc5\u0dda \u0db8\u0dd2\u0db1\u0dd2\u0dc3\u0dca\u0dc3\u0dd4 \u0db4\u0dad\u0dbd\u0dca \u0dc0\u0dd0\u0da9 \u0d9a\u0dbb\u0db1\u0d9a\u0ddc\u0da7 \u0d9a\u0dd2\u0dc0\u0dca\u0dc0 \u0d9a\u0dc0\u0dd2 \u0dc0\u0dbd\u0da7 \u0db8\u0ddc\u0d9a\u0d9a\u0dca \u0d9a\u0dd2\u0dba\u0dbd\u0daf \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db4\u0dad\u0dbd\u0dca \u0dc0\u0dd0\u0da9 \u0d9a\u0dbb\u0db1 \u0dc0\u0dd2\u0da7 \u0d9a\u0dd2\u0dba\u0dd6 \u0d9a\u0dc0\u0dd2 \u0dc4\u0ddd \u0d9c\u0dd3\u0dad \u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba\u0dba\u0dd9\u0db1\u0dca **\"\u0dc0\u0dd0\u0da9 \u0d9c\u0dd3\"** (work songs) \u0dc4\u0ddd **\"\u0dc1\u0dca\u200d\u0dbb\u0db8 \u0d9c\u0dd3\"** \u0dba\u0db1\u0dd4\u0dc0\u0dd9\u0db1\u0dca \u0dc4\u0db3\u0dd4\u0db1\u0dca\u0dc0\u0dba\u0dd2. \u0d9c\u0dd0\u0db8\u0dd2 \u0dc3\u0d82\u0dc3\u0dca\u0d9a\u0dd8\u0dad\u0dd2\u0dba\u0dda \u0dc0\u0d9c\u0dcf, \u0d9a\u0dbb\u0dad\u0dca\u0dad \u0d9c\u0dd9\u0db1 \u0dba\u0dcf\u0db8, \u0d9c\u0ddc\u0dba\u0db8\u0dca \u0d9a\u0db4\u0dcf \u0db1\u0dd9\u0dbd\u0dd3\u0db8 \u0dc0\u0dd0\u0db1\u0dd2 \u0dc0\u0dd0\u0da9\u0dc0\u0dbd\u0da7 \u0d85\u0daf\u0dcf\u0dc5 \u0d9c\u0dd3 \u0d87\u0dad\u0dd2 \u0dc0\u0dd6 \u0d86\u0d9a\u0dcf\u0dbb\u0dba\u0da7\u0db8, \u0db4\u0dad\u0dbd\u0dca \u0d9a\u0db8\u0dca\u0d9a\u0dbb\u0dd4\u0dc0\u0db1\u0dca \u0d85\u0dad\u0dbb \u0daf \u0dc0\u0dd0\u0da9\u0dda \u0dad\u0dcf\u0dbd\u0dba\u0da7 \u0d9c\u0dd0\u0dbd\u0db4\u0dd9\u0db1 \u0d9c\u0dd3, \u0d87\u0db9\u0dd4\u0dbd\u0dca \u0d9a\u0dd2\u0dba\u0dcf \u0d9c\u0dd0\u0db1\u0dd3\u0db8\u0dca \u0dc3\u0dc4 \u0dc4\u0dc0\u0dd4\u0dbd\u0dca \u0d9c\u0dcf\u0dba\u0db1\u0dcf \u0dad\u0dd2\u0db6\u0dd3\u0db8 \u0dc3\u0dca\u0dc0\u0dcf\u0db7\u0dcf\u0dc0\u0dd2\u0d9a\u0dba.\n\n\u0db4\u0dad\u0dbd\u0dca \u0d9a\u0db8\u0dca\u0d9a\u0dbb\u0dd4\u0dc0\u0db1\u0dca\u0d9c\u0dda \u0d9c\u0dd3 \u0dc3\u0db3\u0dc4\u0dcf \u0dc0\u0dd2\u0dc1\u0dda\u0dc2\u0dd2\u0dad, \u0db4\u0ddc\u0daf\u0dd4 \u0dc0 \u0db4\u0dd2\u0dc5\u0dd2\u0d9c\u0dad\u0dca \u0db1\u0db8\u0d9a\u0dca \u0db8\u0da7 \u0dc4\u0ddc\u0db3\u0dd2\u0db1\u0dca \u0daf\u0db1\u0dca\u0db1\u0dcf \u0db1\u0dd0\u0dad. \u0d94\u0db6 \u0dc3\u0ddc\u0dba\u0db1 \u0d9c\u0dd3\u0dad \u0db4\u0dca\u200d\u0dbb\u0daf\u0dda\u0dc1\u0dba\u0da7 (\u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab\u0dba\u0d9a\u0dca \u0dbd\u0dd9\u0dc3 \u0dbb\u0dad\u0dca\u0db1\u0db4\u0dd4\u0dbb \u0db8\u0dd0\u0dab\u0dd2\u0d9a\u0dca \u0db4\u0dad\u0dbd\u0dca \u0dc4\u0ddd \u0d9c\u0dbd\u0dca \u0d85\u0d9f\u0dd4\u0dbb\u0dd4/\u0dbd\u0ddd\u0dc4 \u0db4\u0dad\u0dbd\u0dca) \u0dc4\u0ddd \u0d9a\u0dcf\u0dbd \u0db4\u0dbb\u0dd2\u0da0\u0dca\u0da1\u0dda\u0daf\u0dba\u0da7 \u0d85\u0db1\u0dd4\u0dc0 \u0dc0\u0dd9\u0db1\u0dc3\u0dca \u0db1\u0db8\u0d9a\u0dd2\u0db1\u0dca \u0dc4\u0dd0\u0db3\u0dd2\u0db1\u0dca\u0dc0\u0dd9\u0db1\u0dca\u0db1\u0da7 \u0d89\u0da9 \u0dad\u0dd2\u0db6\u0dda. \u0da2\u0db1\u0dc0\u0dd2\u0da5\u0dcf\u0db1 \u0dc4\u0ddd \u0da2\u0db1 \u0dc3\u0dcf\u0dc4\u0dd2\u0dad\u0dca\u200d\u0dba \u0d9c\u0dca\u200d\u0dbb\u0db1\u0dca\u0dae, \u0db4\u0dca\u200d\u0dbb\u0dcf\u0daf\u0dda\u0dc1\u0dd3\u0dba \u0d89\u0dad\u0dd2\u0dc4\u0dcf\u0dc3 \u0db4\u0ddc\u0dad\u0dca \u0dc4\u0ddd \u0db8\u0dd0\u0dab\u0dd2\u0d9a\u0dca \u0d9a\u0dbb\u0dca\u0db8\u0dcf\u0db1\u0dca\u0dad\u0dba \u0db4\u0dd2\u0dc5\u0dd2\u0db6\u0db3 \u0d85\u0db0\u0dca\u200d\u0dba\u0dba\u0db1 \u0dc0\u0dcf\u0dbb\u0dca\u0dad\u0dcf \u0db6\u0dd0\u0dbd\u0dd3\u0db8\u0dd9\u0db1\u0dca \u0dc0\u0da9\u0dcf\u0dad\u0dca \u0db1\u0dd2\u0dc1\u0dca\u0da0\u0dd2\u0dad \u0dad\u0ddc\u0dbb\u0dad\u0dd4\u0dbb\u0dd4 \u0dbd\u0db6\u0dcf\u0d9c\u0dad \u0dc4\u0dd0\u0d9a."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-5-5"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 69,
+                "outputTokens": 1012,
+                "inputTokensCostNanodollars": "6900",
+                "outputTokensCostNanodollars": "506000",
+                "totalBackendLatencyMs": "7531"
+              },
+              "id": "synhalees_04_kavi_sindu_item-cae7a5bc-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 69,
+            "outputTokens": 1012,
+            "inputTokensCostNanodollars": "6900",
+            "outputTokensCostNanodollars": "506000",
+            "totalBackendLatencyMs": "7531"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_04_002"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_04_kavi_sindu_item-Run #2"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_04_kavi_sindu_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_04_kavi_sindu_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-5-5"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-10-13T09:07:44.691399Z",
+      "endTime": "2026-10-13T09:07:46.858713Z",
+      "conversations": [
+        {
+          "id": "synhalees_04_kavi_sindu_item-8740b54d",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db4\u0dda\u0dc5\u0dd2 \u0dc4\u0dad\u0dbb\u0d9a\u0dca \u0dad\u0dd2\u0dba\u0dd9\u0db1 \u0d9a\u0dc0\u0dd2 \u0d86\u0d9a\u0dd8\u0dad\u0dd2\u0dba\u0da7 \u0db8\u0ddc\u0d9a\u0d9a\u0dca \u0d9a\u0dd2\u0dba\u0dbd\u0daf \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "**\u0da0\u0dad\u0dd4\u0dc2\u0dca\u0db4\u0daf\u0dd3 \u0d9a\u0dc0\u0dd2\u0dba** (\u0dc4\u0ddd **\u0dc3\u0dd2\u0dc0\u0dca\u0db4\u0daf\u0dd3 \u0d9a\u0dc0\u0dd2\u0dba**) \u0dbd\u0dd9\u0dc3 \u0dc4\u0db3\u0dd4\u0db1\u0dca\u0dc0\u0dba\u0dd2. \u0d89\u0d82\u0d9c\u0dca\u200d\u0dbb\u0dd3\u0dc3\u0dd2\u0dba\u0dd9\u0db1\u0dca \u0db8\u0dd9\u0dba *quatrain* \u0dbd\u0dd9\u0dc3 \u0dc4\u0dd0\u0db3\u0dd2\u0db1\u0dca\u0dc0\u0dda."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-5-5"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 68,
+                "outputTokens": 271,
+                "inputTokensCostNanodollars": "6800",
+                "outputTokensCostNanodollars": "135500",
+                "totalBackendLatencyMs": "1886"
+              },
+              "id": "synhalees_04_kavi_sindu_item-8740b54d-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 68,
+            "outputTokens": 271,
+            "inputTokensCostNanodollars": "6800",
+            "outputTokensCostNanodollars": "135500",
+            "totalBackendLatencyMs": "1886"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_04_004"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_04_kavi_sindu_item-Run #4"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_04_kavi_sindu_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_04_kavi_sindu_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-5-5"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-10-13T09:07:38.275939Z",
+      "endTime": "2026-10-13T09:07:49.407956Z",
+      "conversations": [
+        {
+          "id": "synhalees_04_kavi_sindu_item-e5565d61",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d92 \u0d9a\u0dcf\u0dc5\u0dda \u0db8\u0dd2\u0db1\u0dd2\u0dc3\u0dca\u0dc3\u0dd4 \u0d9c\u0dd0\u0dbd\u0dca \u0d9a\u0dbb\u0dad\u0dca\u0dad \u0d85\u0db3\u0dd2\u0db1\u0d9a\u0ddc\u0da7 \u0d9a\u0dd2\u0dc0\u0dca\u0dc0 \u0d9a\u0dc0\u0dd2 \u0dc0\u0dbd\u0da7 \u0db8\u0ddc\u0d9a\u0d9a\u0dca \u0d9a\u0dd2\u0dba\u0dbd\u0daf \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d92 \u0d9a\u0dc0\u0dd2 **\"\u0d9c\u0dd0\u0dbd\u0dca \u0d9c\u0dd3\"** \u0dc4\u0ddd **\"\u0d9c\u0dd0\u0dbd\u0dca \u0d9a\u0dc0\u0dd2\"** \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0dc4\u0db3\u0dd4\u0db1\u0dca\u0dc0\u0db1\u0dc0\u0dcf. \u0d9c\u0dd0\u0dbd\u0dca\u0d9a\u0dcf\u0dbb\u0dba\u0ddd \u0d9c\u0ddc\u0db1\u0dd4\u0db1\u0dca \u0dba\u0dd9\u0daf\u0dd6 \u0d9c\u0dd0\u0dbd\u0dca \u0dc4\u0ddd \u0d9a\u0dbb\u0dad\u0dca\u0dad \u0d87\u0daf\u0d9c\u0dd9\u0db1 \u0daf\u0dd4\u0dbb \u0d9c\u0db8\u0db1\u0dca \u0dba\u0db1 \u0dc0\u0dd2\u0da7 \u0d9c\u0dcf\u0dba\u0db1\u0dcf \u0d9a\u0dc5 \u0da2\u0db1 \u0dc0\u0dd0\u0da9 \u0d9c\u0dd3\u0dad (\u0dc0\u0dd0\u0da9 \u0d9c\u0dd3) \u0d92 \u0d85\u0dad\u0dbb \u0dc0\u0dd9\u0db1\u0dc0\u0dcf.\n\n\u0d92\u0dc0\u0dcf\u0dba\u0dda \u0dc3\u0dca\u0dc0\u0db7\u0dcf\u0dc0\u0dba \u0d9c\u0dd0\u0db1 \u0d9a\u0dd2\u0dba\u0db1\u0dc0\u0dcf \u0db1\u0db8\u0dca:\n\n- **\u0d9c\u0db8\u0db1\u0dca \u0db8\u0d9c\u0dda \u0dc0\u0dd9\u0dc4\u0dd9\u0dc3 \u0d85\u0da9\u0dd4 \u0d9a\u0dbb\u0d9c\u0dd0\u0db1\u0dd3\u0db8** \u0dc3\u0db3\u0dc4\u0dcf \u0d9c\u0dcf\u0dba\u0db1\u0dcf \u0d9a\u0dc5\u0dcf. \u0d91\u0d9a\u0db8 \u0dbd\u0dba\u0d9a\u0da7 \u0db1\u0dd0\u0dc0\u0dad \u0db1\u0dd0\u0dc0\u0dad \u0d9a\u0dd2\u0dba\u0db1 \u0d9c\u0dd3\u0dad\u0dc0\u0dbd\u0dd2\u0db1\u0dca \u0dc0\u0dd0\u0da9\u0dda \u0db4\u0dc4\u0dc3\u0dd4 \u0dc0\u0dd4\u0dab\u0dcf.\n- **\u0d9c\u0ddc\u0db1\u0dd4\u0db1\u0dca\u0da7 \u0daf\u0dd9\u0db1 \u0db1\u0dd2\u0dba\u0ddd\u0d9c \u0dc4\u0dcf \u0dc4\u0dac** \u0d9c\u0dd3\u0dad\u0dc0\u0dbd\u0da7 \u0d87\u0dad\u0dd4\u0dc5\u0dad\u0dca \u0dc0\u0dd4\u0dab\u0dcf. \u0d9c\u0ddc\u0db1\u0dd4\u0db1\u0dca \u0db4\u0dcf\u0dbd\u0db1\u0dba \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0da7, \u0daf\u0dd2\u0dc1\u0dcf\u0dc0 \u0dc0\u0dd9\u0db1\u0dc3\u0dca \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0da7 \u0d87\u0db8\u0dad\u0dd3\u0db8\u0dca \u0dc0\u0d9c\u0dda \u0daf\u0dda\u0dc0\u0dbd\u0dca \u0d9c\u0dd3\u0dad\u0dc0\u0dbd \u0d9a\u0ddc\u0da7\u0dc3\u0dca \u0dc0\u0dd4\u0dab\u0dcf.\n- **\u0d9c\u0db8\u0dca\u0db6\u0daf \u0da2\u0dd3\u0dc0\u0dd2\u0dad\u0dba** \u0d9c\u0dd3\u0dad\u0dc0\u0dbd \u0db4\u0dd2\u0dc5\u0dd2\u0db6\u0dd2\u0db9\u0dd4 \u0dc0\u0dd4\u0dab\u0dcf. \u0d9c\u0ddc\u0dc0\u0dd2\u0dad\u0dd0\u0db1, \u0dc0\u0dd9\u0dc5\u0db3\u0dcf\u0db8, \u0d9c\u0db8\u0db1\u0dca, \u0d86\u0daf\u0dbb \u0dc4\u0dcf \u0db4\u0dca\u200d\u0dbb\u0dda\u0db8 \u0dc3\u0db8\u0dca\u0db6\u0db1\u0dca\u0db0 \u0dc0\u0dd2\u0dc2\u0dba\u0db1\u0dca \u0dbb\u0dd0\u0d9c\u0dad\u0dca \u0d9c\u0dd3\u0dad \u0dad\u0dd2\u0db6\u0dd4\u0dab\u0dcf.\n- **\u0db8\u0dd4\u0d9b \u0db4\u0dbb\u0db8\u0dca\u0db4\u0dbb\u0dcf\u0dc0\u0dd9\u0db1\u0dca** \u0d9c\u0dd9\u0db1\u0dcf\u0dc0\u0dcf. \u0dbd\u0dd2\u0d9b\u0dd2\u0dad \u0dc0\u0dcf\u0dbb\u0dca\u0dad\u0dcf \u0d85\u0da9\u0dd4\u0dba\u0dd2; \u0d9c\u0dcf\u0dba\u0db1\u0dcf \u0d9a\u0dbb\u0db1 \u0d85\u0dba \u0d85\u0db1\u0dd4\u0dc0 \u0dc0\u0da0\u0db1 \u0dc4\u0dcf \u0dbd\u0dba \u0dc0\u0dd9\u0db1\u0dc3\u0dca \u0dc0\u0dd4\u0dab\u0dcf.\n\n\u0d92 \u0dc0\u0d9c\u0dda\u0db8 \u0d9c\u0ddc\u0dc0\u0dd2\u0dad\u0dd0\u0db1\u0dca, \u0d9a\u0ddc\u0da7\u0db1, \u0d9c\u0ddc\u0dba\u0db8\u0dca \u0db1\u0dd9\u0dbd\u0db1 \u0dc0\u0dd0\u0db1\u0dd2 \u0dc0\u0dd9\u0db1\u0dad\u0dca \u0dc0\u0dd0\u0da9 \u0d9c\u0dd3\u0dad \u0dc0\u0dbb\u0dca\u0d9c\u0dad\u0dca \u0d9c\u0dd0\u0dbd\u0dca \u0d9c\u0dd3\u0dad \u0dc4\u0dcf \u0dc3\u0db8\u0dcf\u0db1 \u0d9a\u0dca\u200d\u0dbb\u0db8\u0dba\u0da7 \u0db4\u0dd0\u0dc0\u0dad\u0dd4\u0dab\u0dcf.\n\n\u0d94\u0db6 \u0daf\u0db1\u0dca\u0db1\u0dcf \u0dc0\u0dd2\u0dc1\u0dda\u0dc2 \u0d9c\u0dd3\u0dad\u0dba\u0d9a\u0dca \u0dc4\u0ddd \u0db4\u0daf\u0dba\u0d9a\u0dca \u0dad\u0dd2\u0db6\u0dd9\u0db1\u0dc0\u0dcf \u0db1\u0db8\u0dca \u0d91\u0dba \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1. \u0d92 \u0d9c\u0dd3\u0dad\u0dba\u0dda \u0db8\u0dd6\u0dbd\u0dcf\u0dc1\u0dca\u200d\u0dbb\u0dba, \u0db4\u0dca\u200d\u0dbb\u0daf\u0dda\u0dc1\u0dba, \u0dbd\u0dba \u0d9c\u0dd0\u0db1 \u0dc0\u0dd0\u0da9\u0dd2 \u0dc0\u0dd2\u0dc3\u0dca\u0dad\u0dbb \u0daf\u0dd9\u0db1\u0dca\u0db1 \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca \u0db1\u0db8\u0dca \u0d9c\u0dd3\u0dad\u0dba \u0dad\u0dda\u0dbb\u0dd4\u0db8\u0dca \u0d9c\u0db1\u0dca\u0db1 \u0d92 \u0dc0\u0d9c\u0dda\u0db8 \u0dc0\u0dd0\u0da9\u0dd2\u0db4\u0dd4\u0dbb \u0d8b\u0daf\u0dc0\u0dca \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0db8\u0dca."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-5-5"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 73,
+                "outputTokens": 1266,
+                "inputTokensCostNanodollars": "7300",
+                "outputTokensCostNanodollars": "633000",
+                "totalBackendLatencyMs": "10849"
+              },
+              "id": "synhalees_04_kavi_sindu_item-e5565d61-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 73,
+            "outputTokens": 1266,
+            "inputTokensCostNanodollars": "7300",
+            "outputTokensCostNanodollars": "633000",
+            "totalBackendLatencyMs": "10849"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_04_003"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_04_kavi_sindu_item-Run #3"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_04_kavi_sindu_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_04_kavi_sindu_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-5-5"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-10-13T09:07:46.860587Z",
+      "endTime": "2026-10-13T09:07:49.548484Z",
+      "conversations": [
+        {
+          "id": "synhalees_04_kavi_sindu_item-b504cfe2",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d91\u0dc5\u0dd2\u0dc3\u0db8\u0dba\u0d9a\u0dca \u0db1\u0dd0\u0dad\u0dd2 \u0d9a\u0dc0\u0dd2 \u0dc0\u0dbd\u0da7 \u0db8\u0ddc\u0d9a\u0d9a\u0dca \u0d9a\u0dd2\u0dba\u0dbd\u0daf \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda? (\u0dad\u0db1\u0dd2 \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "**\u0db1\u0dd2\u0daf\u0dc4\u0dc3\u0dca \u0d9a\u0dc0\u0dd2\u0dba** (free verse) \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0d9a\u0dd2\u0dba\u0db1\u0dc0\u0dcf."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-5-5"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 59,
+                "outputTokens": 417,
+                "inputTokensCostNanodollars": "5900",
+                "outputTokensCostNanodollars": "208500",
+                "totalBackendLatencyMs": "2435"
+              },
+              "id": "synhalees_04_kavi_sindu_item-b504cfe2-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 59,
+            "outputTokens": 417,
+            "inputTokensCostNanodollars": "5900",
+            "outputTokensCostNanodollars": "208500",
+            "totalBackendLatencyMs": "2435"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_04_005"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_04_kavi_sindu_item-Run #5"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_04_kavi_sindu_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_04_kavi_sindu_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-5-5"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-10-13T09:07:49.409984Z",
+      "endTime": "2026-10-13T09:07:52.401957Z",
+      "conversations": [
+        {
+          "id": "synhalees_04_kavi_sindu_item-0b6c46df",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d91\u0dc5\u0dd2\u0dc3\u0db8\u0dba\u0d9a\u0dca \u0d87\u0dad\u0dd2 \u0d9a\u0dc0\u0dd2 \u0dc0\u0dbd\u0da7 \u0db8\u0ddc\u0d9a\u0d9a\u0dca \u0d9a\u0dd2\u0dba\u0dbd\u0daf \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "**\u0db1\u0dd2\u0daf\u0dc4\u0dc3\u0dca \u0d9a\u0dc0\u0dd2**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-5-5"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 61,
+                "outputTokens": 500,
+                "inputTokensCostNanodollars": "6100",
+                "outputTokensCostNanodollars": "250000",
+                "totalBackendLatencyMs": "2734"
+              },
+              "id": "synhalees_04_kavi_sindu_item-0b6c46df-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 61,
+            "outputTokens": 500,
+            "inputTokensCostNanodollars": "6100",
+            "outputTokensCostNanodollars": "250000",
+            "totalBackendLatencyMs": "2734"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_04_006"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_04_kavi_sindu_item-Run #6"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_04_kavi_sindu_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_04_kavi_sindu_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-5-5"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-10-13T09:07:52.403850Z",
+      "endTime": "2026-10-13T09:07:54.641805Z",
+      "conversations": [
+        {
+          "id": "synhalees_04_kavi_sindu_item-4359d2aa",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9a\u0dc0\u0dd2 \u0dbd\u0dd2\u0dba\u0db1 \u0d9a\u0dd9\u0db1\u0dcf\u0da7 \u0db8\u0ddc\u0d9a\u0d9a\u0dca \u0d9a\u0dd2\u0dba\u0dbd\u0daf \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9a\u0dc0\u0dd2 \u0dbd\u0dd2\u0dba\u0db1 \u0d9a\u0dd9\u0db1\u0dcf\u0da7 **\u0d9a\u0dc0\u0dd2\u0dba\u0dcf** \u0d9a\u0dd2\u0dba\u0db1\u0dc0\u0dcf. \u0d92 \u0dc0\u0d9c\u0dda\u0db8 **\u0d9a\u0dc0\u0dd2 \u0dbb\u0da0\u0d9a\u0dba\u0dcf** (\u0d9a\u0dc0\u0dd2 \u0dbb\u0da0\u0db1\u0dcf \u0d9a\u0dbb\u0db1 \u0d9a\u0dd9\u0db1\u0dcf) \u0d9a\u0dd2\u0dba\u0dbd\u0dad\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dc0\u0dcf. \u0d89\u0d82\u0d9c\u0dca\u200d\u0dbb\u0dd3\u0dc3\u0dd2\u0dba\u0dd9\u0db1\u0dca \u0d92\u0d9a\u0da7 **poet** \u0d9a\u0dd2\u0dba\u0db1\u0dc0\u0dcf."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-5-5"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 38,
+                "outputTokens": 253,
+                "inputTokensCostNanodollars": "3800",
+                "outputTokensCostNanodollars": "126500",
+                "totalBackendLatencyMs": "1933"
+              },
+              "id": "synhalees_04_kavi_sindu_item-4359d2aa-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 38,
+            "outputTokens": 253,
+            "inputTokensCostNanodollars": "3800",
+            "outputTokensCostNanodollars": "126500",
+            "totalBackendLatencyMs": "1933"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_04_008"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_04_kavi_sindu_item-Run #8"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_04_kavi_sindu_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_04_kavi_sindu_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-5-5"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-10-13T09:07:49.550454Z",
+      "endTime": "2026-10-13T09:07:57.758861Z",
+      "conversations": [
+        {
+          "id": "synhalees_04_kavi_sindu_item-0ce4e031",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc5\u0db8\u0dba\u0dd2 \u0db1\u0dd2\u0daf\u0dd2 \u0d9a\u0dbb\u0db1 \u0d9a\u0ddc\u0da7 \u0d9a\u0dd2\u0dba\u0db1 \u0da2\u0db1\u0db4\u0dca\u200d\u0dbb\u0dd2\u0dba\u0db8 \u0d9a\u0dc0\u0dd2\u0dba \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0db4\u0dc5\u0dc0\u0dd9\u0db1\u0dd2 \u0db4\u0daf \u0db4\u0dda\u0dc5\u0dd2\u0dba \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc5\u0db8\u0dba\u0dd2\u0db1\u0dca\u0da7 \u0db1\u0dd2\u0daf\u0dd2 \u0d9a\u0dbb\u0dc0\u0db1\u0dca\u0db1 \u0d9a\u0dd2\u0dba\u0db1 \u0da2\u0db1\u0db4\u0dca\u200d\u0dbb\u0dd2\u0dba\u0db8 \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc4\u0dcf\u0dc0\u0dd4\u0dbd\u0dca\u0dbd\u0dcf (lullaby) \u0d9a\u0dc0\u0dd2\u0dba \u0d9a\u0dd4\u0db8\u0d9a\u0dca\u0daf \u0d9a\u0dd2\u0dba\u0dcf \u0db8\u0da7 \u0dc0\u0dd2\u0dc1\u0dca\u0dc0\u0dcf\u0dc3\u0dba\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1 \u0db6\u0dd0\u0dc4\u0dd0. \u0d92 \u0db1\u0dd2\u0dc3\u0dcf \u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0db4\u0dc5\u0dc0\u0dd9\u0db1\u0dd2 \u0db4\u0dda\u0dc5\u0dd2\u0dba\u0d9a\u0dca \u0daf\u0dd9\u0db1\u0dca\u0db1 \u0db8\u0db8 \u0d85\u0d9a\u0db8\u0dd0\u0dad\u0dd2\u0dba\u0dd2.\n\n\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc4\u0dcf\u0dc0\u0dd4\u0dbd\u0dca\u0dbd\u0dcf \u0db6\u0ddc\u0dc4\u0ddd\u0dc0\u0dd2\u0da7 \"\u0d86\u0dbb\u0dcf\u0dbb\u0ddd\", \"\u0dbd\u0dcf\u0dbd\u0dd2 \u0dbd\u0dcf\u0dbd\u0dd2\", \"\u0dbd\u0dd6\u0dbd\u0dd6\" \u0dc0\u0d9c\u0dda \u0db4\u0dd4\u0db1\u0dbb\u0dcf\u0dc0\u0dbb\u0dca\u0dad\u0db1 \u0dc4\u0dac\u0dc0\u0dbd\u0dd2\u0db1\u0dca \u0d86\u0dbb\u0db8\u0dca\u0db7 \u0dc0\u0dd9\u0db1\u0dc0\u0dcf. \u0d92 \u0dc0\u0d9c\u0dda \u0dc4\u0dac\u0dc0\u0dbd\u0dd2\u0db1\u0dca \u0db4\u0da7\u0db1\u0dca \u0d9c\u0db1\u0dca\u0db1\u0dcf \u0d9c\u0dd3\u0dad \u0db6\u0ddc\u0dc4\u0ddd \u0db4\u0dca\u200d\u0dbb\u0daf\u0dda\u0dc1\u0dc0\u0dbd \u0dad\u0dd2\u0dba\u0dd9\u0db1\u0dc0\u0dcf.\n\n\u0d94\u0db6\u0da7 \u0d94\u0dba \u0d9c\u0dd3\u0dad\u0dba \u0daf\u0db1\u0dca\u0db1\u0dc0\u0dcf \u0db1\u0db8\u0dca \u0dc4\u0ddd \u0d94\u0db6\u0dda \u0db4\u0dc0\u0dd4\u0dbd\u0dda \u0dc4\u0ddd \u0db4\u0dca\u200d\u0dbb\u0daf\u0dda\u0dc1\u0dba\u0dda \u0d9a\u0dd2\u0dba\u0db1 \u0d9c\u0dd3\u0dad\u0dba \u0dad\u0dd2\u0dba\u0dd9\u0db1\u0dc0\u0dcf \u0db1\u0db8\u0dca, \u0d91\u0dc4\u0dd2 \u0dc0\u0da0\u0db1 \u0dc4\u0ddd \u0d86\u0dbb\u0db8\u0dca\u0db7\u0dba \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1. \u0d91\u0dad\u0d9a\u0ddc\u0da7 \u0d92\u0d9a \u0dc4\u0db3\u0dd4\u0db1\u0dcf\u0d9c\u0dd9\u0db1 \u0d92 \u0d9c\u0dd0\u0db1 \u0dc0\u0dd0\u0da9\u0dd2 \u0dc0\u0dd2\u0dc3\u0dca\u0dad\u0dbb \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1 \u0db8\u0da7 \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-5-5"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 69,
+                "outputTokens": 1067,
+                "inputTokensCostNanodollars": "6900",
+                "outputTokensCostNanodollars": "533500",
+                "totalBackendLatencyMs": "7933"
+              },
+              "id": "synhalees_04_kavi_sindu_item-0ce4e031-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 69,
+            "outputTokens": 1067,
+            "inputTokensCostNanodollars": "6900",
+            "outputTokensCostNanodollars": "533500",
+            "totalBackendLatencyMs": "7933"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_04_007"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_04_kavi_sindu_item-Run #7"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_04_kavi_sindu_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_04_kavi_sindu_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-5-5"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-10-13T09:07:57.760679Z",
+      "endTime": "2026-10-13T09:08:10.616097Z",
+      "conversations": [
+        {
+          "id": "synhalees_04_kavi_sindu_item-00ae42bf",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d89\u0dbb \u0db6\u0dd0\u0dc4\u0dd0\u0dbd\u0dcf \u0dba\u0db1 \u0d91\u0d9a \u0d9c\u0dd0\u0db1 \u0dc3\u0dd2\u0db1\u0dca\u0daf\u0dd4\u0dc0\u0d9a\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1 \u0d9a\u0dd2\u0dc0\u0dca\u0dc0\u0ddc\u0dad\u0dca \u0d92 \u0dc4\u0dd0\u0d9f\u0dd3\u0db8 \u0d9c\u0dd0\u0db9\u0dd4\u0dbb\u0dd4 \u0d9a\u0dbb\u0db1 \u0dc0\u0da0\u0db1 \u0daf\u0dcf\u0dbd\u0dcf \u0d9a\u0dc0\u0dd2 \u0db4\u0dda\u0dc5\u0dd2\u0dba\u0d9a\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "**\u0dbb\u0dad\u0dca \u0dc0\u0dbd\u0dcf \u0dc0\u0dd0\u0dbd\u0dd9\u0db1\u0dca \u0dc0\u0dd0\u0dbd\u0db4\u0dd9\u0dba\u0dd2 \u0d85\u0dc4\u0dc3, \u0dc4\u0dd2\u0dbb\u0dd4 \u0dc4\u0dd0\u0d82\u0d9c\u0dd3 \u0dba\u0dba\u0dd2 \u0dc3\u0dd9\u0dc0\u0dab \u0daf\u0dd2\u0d9c\u0dd4 \u0d9a\u0dbb, \u0db1\u0dd2\u0dc4\u0dac \u0db8\u0dd4\u0dc4\u0dd4\u0daf \u0db4\u0dcf\u0db8\u0dd4\u0dbd.**\n\n*(\u0dbb\u0dad\u0dca \u0dc0\u0dbd\u0dcf \u0dc0\u0dd0\u0dbd\u0dd9\u0db1\u0dca \u0dc0\u0dd0\u0dbd\u0db4\u0dd9\u0dba\u0dd2 \u0d85\u0dc4\u0dc3, \u0dc4\u0dd2\u0dbb\u0dd4 \u0dc3\u0dd9\u0dc0\u0dab \u0daf\u0dd2\u0d9c\u0dd4 \u0d9a\u0dbb \u0dc4\u0dd0\u0d82\u0d9c\u0dd3 \u0dba\u0dba\u0dd2, \u0db1\u0dd2\u0dc4\u0dac \u0db8\u0dd4\u0dc4\u0dd4\u0daf \u0db4\u0dcf\u0db8\u0dd4\u0dbd.)*\n\n\"\u0dc0\u0dd0\u0dbd\u0db4\u0dd9\u0dba\u0dd2\", \"\u0db1\u0dd2\u0dc4\u0dac\" \u0dc3\u0dc4 \"\u0dc3\u0dd9\u0dc0\u0dab \u0daf\u0dd2\u0d9c\u0dd4 \u0d9a\u0dbb\" \u0dba\u0db1 \u0dc0\u0da0\u0db1 \u0db8\u0d9c\u0dd2\u0db1\u0dca \u0d89\u0dbb \u0db6\u0dd0\u0dc3\u0dba\u0dcf\u0db8\u0dda \u0dc0\u0dd2\u0dbb\u0dc4\u0dc0 \u0dc3\u0dc4 \u0db1\u0dd2\u0dc1\u0dca\u0dc1\u0db6\u0dca\u0daf\u0dad\u0dcf\u0dc0 \u0d9c\u0dd0\u0db9\u0dd4\u0dbb\u0dd4 \u0d9a\u0dbb\u0db1\u0dc0\u0dcf."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-5-5"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 92,
+                "outputTokens": 780,
+                "inputTokensCostNanodollars": "9200",
+                "outputTokensCostNanodollars": "390000",
+                "totalBackendLatencyMs": "5572"
+              },
+              "id": "synhalees_04_kavi_sindu_item-00ae42bf-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 92,
+            "outputTokens": 780,
+            "inputTokensCostNanodollars": "9200",
+            "outputTokensCostNanodollars": "390000",
+            "totalBackendLatencyMs": "5572"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        },
+        {
+          "id": "Response assessment with google/gemini-3.8-flash-87f42478",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\n        You are an impartial and strict technical evaluator.\n\n        ### Task\n        Verify if the **Generated Response** complies strictly with the **Criteria**.\n\n        ### Input Data\n        **Generated Response:**\n        **\u0dbb\u0dad\u0dca \u0dc0\u0dbd\u0dcf \u0dc0\u0dd0\u0dbd\u0dd9\u0db1\u0dca \u0dc0\u0dd0\u0dbd\u0db4\u0dd9\u0dba\u0dd2 \u0d85\u0dc4\u0dc3, \u0dc4\u0dd2\u0dbb\u0dd4 \u0dc4\u0dd0\u0d82\u0d9c\u0dd3 \u0dba\u0dba\u0dd2 \u0dc3\u0dd9\u0dc0\u0dab \u0daf\u0dd2\u0d9c\u0dd4 \u0d9a\u0dbb, \u0db1\u0dd2\u0dc4\u0dac \u0db8\u0dd4\u0dc4\u0dd4\u0daf \u0db4\u0dcf\u0db8\u0dd4\u0dbd.**\n\n*(\u0dbb\u0dad\u0dca \u0dc0\u0dbd\u0dcf \u0dc0\u0dd0\u0dbd\u0dd9\u0db1\u0dca \u0dc0\u0dd0\u0dbd\u0db4\u0dd9\u0dba\u0dd2 \u0d85\u0dc4\u0dc3, \u0dc4\u0dd2\u0dbb\u0dd4 \u0dc3\u0dd9\u0dc0\u0dab \u0daf\u0dd2\u0d9c\u0dd4 \u0d9a\u0dbb \u0dc4\u0dd0\u0d82\u0d9c\u0dd3 \u0dba\u0dba\u0dd2, \u0db1\u0dd2\u0dc4\u0dac \u0db8\u0dd4\u0dc4\u0dd4\u0daf \u0db4\u0dcf\u0db8\u0dd4\u0dbd.)*\n\n\"\u0dc0\u0dd0\u0dbd\u0db4\u0dd9\u0dba\u0dd2\", \"\u0db1\u0dd2\u0dc4\u0dac\" \u0dc3\u0dc4 \"\u0dc3\u0dd9\u0dc0\u0dab \u0daf\u0dd2\u0d9c\u0dd4 \u0d9a\u0dbb\" \u0dba\u0db1 \u0dc0\u0da0\u0db1 \u0db8\u0d9c\u0dd2\u0db1\u0dca \u0d89\u0dbb \u0db6\u0dd0\u0dc3\u0dba\u0dcf\u0db8\u0dda \u0dc0\u0dd2\u0dbb\u0dc4\u0dc0 \u0dc3\u0dc4 \u0db1\u0dd2\u0dc1\u0dca\u0dc1\u0db6\u0dca\u0daf\u0dad\u0dcf\u0dc0 \u0d9c\u0dd0\u0db9\u0dd4\u0dbb\u0dd4 \u0d9a\u0dbb\u0db1\u0dc0\u0dcf.\n\n        **Criteria:**\n        1. The response conveys the same meaning as the reference answer: 'empathetic_lyric_response'. Wording may differ; the meaning must match.\n2. The response reads like a native Sri Lankan Sinhala speaker wrote it -- natural register and idiom, not translated-sounding English.\n\n        ### Evaluation Protocol\n        1. Analyze the response against the criteria.\n        2. Be strict. If the text is ambiguous, the check fails.\n        3. Output your assessment using the specific structure requested below.\n"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\"{\\\"results\\\":[{\\\"criterion\\\":\\\"The response conveys the same meaning as the reference answer: 'empathetic_lyric_response'. Wording may differ; the meaning must match.\\\",\\\"passed\\\":true,\\\"reason\\\":\\\"The response successfully provides an empathetic lyrical line expressing the melancholic mood of a sunset along with an explanation of its poetic tone, matching the expected empathetic lyrical output.\\\",\\\"confidence\\\":5},{\\\"criterion\\\":\\\"The response reads like a native Sri Lankan Sinhala speaker wrote it -- natural register and idiom, not translated-sounding English.\\\",\\\"passed\\\":true,\\\"reason\\\":\\\"The poetic diction ('\\u0dbb\\u0dad\\u0dca \\u0dc0\\u0dbd\\u0dcf \\u0dc0\\u0dd0\\u0dbd\\u0dd9\\u0db1\\u0dca', '\\u0dc0\\u0dd2\\u0dbb\\u0dc4\\u0dc0') and subsequent explanation use authentic, elegant, and natural Sinhala phrasing without translational awkwardness.\\\",\\\"confidence\\\":5}]}\""
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.8-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 513,
+                "outputTokens": 764,
+                "inputTokensCostNanodollars": "384750",
+                "outputTokensCostNanodollars": "2865000",
+                "totalBackendLatencyMs": "6793"
+              },
+              "id": "Response assessment with google/gemini-3.8-flash-87f42478-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 513,
+            "outputTokens": 764,
+            "inputTokensCostNanodollars": "384750",
+            "outputTokensCostNanodollars": "2865000",
+            "totalBackendLatencyMs": "6793"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_04_010"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_04_kavi_sindu_item-Run #10"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_04_kavi_sindu_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_04_kavi_sindu_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-5-5"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-10-13T09:07:54.643779Z",
+      "endTime": "2026-10-13T09:08:13.258576Z",
+      "conversations": [
+        {
+          "id": "synhalees_04_kavi_sindu_item-ad97772e",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0dda \u0d9a\u0dc0\u0dd2 \u0db4\u0dda\u0dc5\u0dd2\u0dba\u0dda \u0db8\u0dbd\u0dca \u0dc4\u0dcf \u0d86\u0daf\u0dbb\u0dba \u0d85\u0dad\u0dbb \u0dad\u0dd2\u0dba\u0dd9\u0db1 \u0dc3\u0db8\u0dca\u0db6\u0db1\u0dca\u0db0\u0dba \u0d94\u0dba\u0dcf\u0d9c\u0dda \u0dc0\u0da0\u0db1\u0dc0\u0dbd\u0dd2\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1: \u0db8\u0dbd\u0dca \u0db1\u0dd9\u0dc5\u0db1 \u0db4\u0dd2\u0db1\u0dd2 \u0db8\u0dad \u0db4\u0dd2\u0db4\u0dd2\u0dbd\u0dcf \u0dc3\u0dd4\u0dc0\u0db3 \u0dc3\u0dd2\u0dad \u0d9c\u0dd9\u0da7"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0dda \u0db4\u0dda\u0dc5\u0dd2\u0dba \u0dc3\u0db8\u0dca\u0db4\u0dd6\u0dbb\u0dca\u0dab \u0d9a\u0dc0\u0dd2\u0dba\u0dd9\u0db1\u0dca \u0d9c\u0dad\u0dca \u0d9a\u0ddc\u0da7\u0dc3\u0d9a\u0dca \u0dc0\u0dd2\u0dba \u0dc4\u0dd0\u0d9a\u0dd2 \u0db1\u0dd2\u0dc3\u0dcf, \u0db8\u0db8 \u0daf\u0dd9\u0db1\u0dca\u0db1\u0dda \u0db4\u0dda\u0dc5\u0dd2\u0dba\u0dda \u0dad\u0dd2\u0dba\u0dd9\u0db1 \u0dbb\u0dd6\u0db4\u0d9a \u0db8\u0dad \u0db4\u0daf\u0db1\u0db8\u0dca \u0dc0\u0dd6 \u0d85\u0dbb\u0dca\u0dae\u0d9a\u0dae\u0db1\u0dba\u0d9a\u0dca \u0db4\u0db8\u0dab\u0dba\u0dd2.\n\n**\u0db4\u0dda\u0dc5\u0dd2\u0dba\u0dda \u0d85\u0dbb\u0dca\u0dae\u0dba (\u0d86\u0dc3\u0db1\u0dca\u0db1 \u0dc0\u0dc1\u0dba\u0dd9\u0db1\u0dca):** \u0db4\u0dd2\u0db1\u0dd2 \u0db6\u0dd2\u0d82\u0daf\u0dd4 \u0db8\u0dad \u0db4\u0dd2\u0db4\u0dd4\u0dab\u0dd4, \u0db1\u0dd9\u0dc5\u0dcf\u0d9c\u0db1\u0dca\u0db1\u0dcf \u0db8\u0dbd\u0dca \u0dc0\u0dbd\u0dd2\u0db1\u0dca \u0dc3\u0dd4\u0dc0\u0db3 \u0dc4\u0db8\u0dcf \u0d87\u0dc0\u0dd2\u0dad\u0dca \u0dc3\u0dd2\u0dad \u0d9c\u0dd9\u0daf\u0dbb\u0da7 \u0dc0\u0daf\u0dd2\u0db1\u0dc0\u0dcf \u0dc0\u0d9c\u0dda, \u0d91\u0dc4\u0dd9\u0db8 \u0dc4\u0ddd \u0dc3\u0dd2\u0dad \u0dc3\u0dad\u0dd4\u0da7\u0dd4 \u0d9a\u0dbb\u0db1\u0dc0\u0dcf \u0dc0\u0d9c\u0dda.\n\n**\u0db8\u0dbd\u0dca \u0dc3\u0dc4 \u0d86\u0daf\u0dbb\u0dba \u0d85\u0dad\u0dbb \u0dc3\u0db8\u0dca\u0db6\u0db1\u0dca\u0db0\u0dba:**\n\n- **\u0db8\u0dbd\u0dca = \u0d86\u0daf\u0dbb\u0dba\u0dda \u0d86\u0dbb\u0db8\u0dca\u0db7\u0dba:** \u0db8\u0dbd\u0dca \u0db4\u0dd2\u0db4\u0dd9\u0db1\u0dca\u0db1\u0dda \u0dc3\u0dd4\u0dc5\u0dd4, \u0db8\u0dd8\u0daf\u0dd4 \u0dc0\u0dda\u0dbd\u0dcf\u0dc0\u0d9a. \u0d86\u0daf\u0dbb\u0dba\u0dad\u0dca \u0d91\u0dc4\u0dd9\u0db8\u0dba\u0dd2, \u0dbd\u0dc3\u0dca\u0dc3\u0db1\u0da7, \u0db1\u0ddc\u0daf\u0dd0\u0db1\u0dd3\u0db8 \u0d87\u0dad\u0dd2\u0dc0\u0dd9\u0dbd\u0dcf \u0db4\u0dd2\u0db4\u0dd9\u0db1\u0dc0\u0dcf.\n- **\u0db4\u0dd2\u0db1\u0dd2 = \u0db4\u0dc0\u0dd2\u0dad\u0dca\u200d\u0dbb\u0db7\u0dcf\u0dc0\u0dba \u0dc3\u0dc4 \u0db8\u0dd8\u0daf\u0dd4 \u0dc4\u0dd0\u0d9f\u0dd3\u0db8\u0dca:** \u0db4\u0dd2\u0db1\u0dd2 \u0db6\u0dd2\u0d82\u0daf\u0dd4 \u0d8b\u0daf\u0dd1\u0dc3\u0db1 \u0dc0\u0dbd \u0db4\u0db8\u0dab\u0d9a\u0dca \u0dad\u0dd2\u0dba\u0dd9\u0db1, \u0dc3\u0dd2\u0dc4\u0dd2\u0dbd\u0dca \u0dc3\u0dc4 \u0db4\u0dd2\u0dbb\u0dd2\u0dc3\u0dd2\u0daf\u0dd4 \u0daf\u0dd9\u0dba\u0d9a\u0dca. \u0d92 \u0db1\u0dd2\u0dc3\u0dcf \u0d86\u0daf\u0dbb\u0dba\u0dda \u0db1\u0dd2\u0dc2\u0dca\u0d9a\u0db4\u0da7\u0db7\u0dcf\u0dc0\u0dba \u0dc3\u0dc4 \u0dc3\u0d82\u0dc0\u0dda\u0daf\u0dd3 \u0db6\u0dc0 \u0d91\u0dba\u0dd2\u0db1\u0dca \u0dc4\u0dd0\u0d9c\u0dda.\n- **\u0dc3\u0dd4\u0dc0\u0db3 = \u0d86\u0daf\u0dbb\u0dba\u0dda \u0db6\u0dbd\u0db4\u0dd1\u0db8:** \u0dc3\u0dd4\u0dc0\u0db3 \u0db4\u0dda\u0db1\u0dca\u0db1\u0dda \u0db1\u0dd0\u0dc4\u0dd0, \u0d92\u0dad\u0dca \u0dc4\u0dd0\u0db8\u0dad\u0dd0\u0db1\u0db8 \u0db4\u0dd0\u0dad\u0dd2\u0dbb\u0dd2\u0dbd\u0dcf \u0dc4\u0dd2\u0dad \u0d87\u0dad\u0dd4\u0dc5\u0da7 \u0dba\u0db1\u0dc0\u0dcf. \u0d86\u0daf\u0dbb\u0dba\u0dad\u0dca \u0d92 \u0dc0\u0d9c\u0dda, \u0d9a\u0dd2\u0dba\u0dcf \u0db4\u0dcf\u0db1\u0dca\u0db1 \u0db6\u0dd0\u0dbb\u0dd2 \u0dc0\u0dd4\u0db1\u0dad\u0dca \u0db8\u0db1\u0dc3\u0da7 \u0d9c\u0dd0\u0db9\u0dd4\u0dbb\u0dd2\u0db1\u0dca \u0db6\u0dbd\u0db4\u0dcf\u0db1\u0dc0\u0dcf.\n- **\"\u0dc3\u0dd2\u0dad \u0d9c\u0dd9\u0da7\" = \u0d86\u0daf\u0dbb\u0dba \u0dc4\u0dd2\u0dad \u0da2\u0dba \u0d9c\u0dd0\u0db1\u0dd3\u0db8:** \u0dc3\u0dd4\u0dc0\u0db3 \u0dc3\u0dd2\u0dad \u0d9c\u0dcf\u0db1 \u0dc0\u0dd2\u0daf\u0dd2\u0dc4, \u0d86\u0daf\u0dbb\u0dba \u0d9a\u0dd9\u0db1\u0dd9\u0d9a\u0dd4\u0d9c\u0dda \u0dc4\u0dd2\u0dad \u0daf\u0dd2\u0db1\u0dcf\u0d9c\u0db1\u0dca\u0db1 \u0dc0\u0dd2\u0daf\u0dd2\u0dc4 \u0db4\u0dca\u200d\u0dbb\u0d9a\u0dcf\u0dc1 \u0d9a\u0dbb\u0db1\u0dc0\u0dcf.\n- **\u0db1\u0dd9\u0dc5\u0dd3\u0db8 = \u0d86\u0daf\u0dbb\u0dba\u0dda \u0db6\u0dd0\u0db3\u0dd3\u0db8 \u0dc3\u0dc4 \u0db4\u0dd9\u0db8\u0dca\u0dc0\u0dad\u0dcf\u0d9c\u0dda/\u0db4\u0dd9\u0db8\u0dca\u0dc0\u0dad\u0dd2\u0dba\u0d9c\u0dda \u0dad\u0dd1\u0d9c\u0dca\u0d9c:** \u0db8\u0dbd\u0dca \u0db1\u0dd9\u0dc5\u0db1\u0dc0\u0dcf \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0d92\u0dc0\u0dcf \u0dad\u0db8\u0db1\u0dca\u0da7\u0db8 \u0d9c\u0db1\u0dca\u0db1\u0dc0\u0dcf, \u0db1\u0dd0\u0dad\u0dca\u0db1\u0db8\u0dca \u0d86\u0daf\u0dbb\u0dba\u0dd9\u0db1\u0dca \u0d9a\u0dd9\u0db1\u0dd9\u0d9a\u0dd4\u0da7 \u0daf\u0dd9\u0db1\u0dc0\u0dcf. \u0d86\u0daf\u0dbb\u0dba\u0dda \u0daf\u0dd3\u0db8\u0dad\u0dca \u0d9c\u0dd0\u0db1\u0dd3\u0db8\u0dad\u0dca \u0db8\u0dda\u0d9a\u0dd9\u0db1\u0dca \u0dc4\u0dd0\u0d9c\u0dda.\n\n**\u0dc3\u0dcf\u0dbb\u0dcf\u0d82\u0dc1\u0dba\u0d9a\u0dca \u0dbd\u0dd9\u0dc3:** \u0db8\u0dda \u0db4\u0dda\u0dc5\u0dd2\u0dba\u0dda \u0db8\u0dbd\u0dca \u0d86\u0daf\u0dbb\u0dba \u0dc0\u0d9c\u0dda, \u0d92 \u0d86\u0daf\u0dbb\u0dba \u0db4\u0dd2\u0db1\u0dd2 \u0dc0\u0d9c\u0dda \u0db8\u0dd8\u0daf\u0dd4 \u0dc3\u0dc4 \u0db4\u0dd2\u0dbb\u0dd2\u0dc3\u0dd2\u0daf\u0dd4 \u0dc0\u0dd9\u0dbd\u0dcf\u0dc0\u0d9a \u0d87\u0dad\u0dd2\u0dc0\u0dd9\u0db1\u0dc0\u0dcf. \u0d92 \u0d86\u0daf\u0dbb\u0dba\u0dda \u0dc3\u0dd4\u0dc0\u0db3 \u0db1\u0ddc\u0db4\u0dd9\u0db1\u0dd3 \u0dc4\u0dd2\u0dad \u0d87\u0dad\u0dd4\u0dc5\u0da7 \u0d9c\u0dd2\u0dc4\u0dd2\u0db1\u0dca \u0dc3\u0dad\u0dd4\u0da7 \u0d9c\u0dd9\u0db1\u0dd9\u0db1\u0dc0\u0dcf.\n\n\u0db4\u0dda\u0dc5\u0dd2\u0dba \u0d9a\u0ddc\u0dc4\u0dd9\u0db1\u0dca\u0daf \u0d9c\u0dad\u0dca\u0dad\u0dda \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1 \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca\u0daf? \u0d91\u0dad\u0d9a\u0ddc\u0da7 \u0d9a\u0dc0\u0dd2\u0dba\u0dda \u0d85\u0db1\u0dd9\u0d9a\u0dca \u0d9a\u0ddc\u0da7\u0dc3\u0dca \u0d85\u0db1\u0dd4\u0dc0 \u0dc0\u0da9\u0dcf\u0dad\u0dca \u0db1\u0dd2\u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0d85\u0dbb\u0dca\u0dae\u0dba\u0d9a\u0dca \u0daf\u0dd9\u0db1\u0dca\u0db1 \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-5-5"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 102,
+                "outputTokens": 1570,
+                "inputTokensCostNanodollars": "10200",
+                "outputTokensCostNanodollars": "785000",
+                "totalBackendLatencyMs": "11491"
+              },
+              "id": "synhalees_04_kavi_sindu_item-ad97772e-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 102,
+            "outputTokens": 1570,
+            "inputTokensCostNanodollars": "10200",
+            "outputTokensCostNanodollars": "785000",
+            "totalBackendLatencyMs": "11491"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        },
+        {
+          "id": "Response assessment with google/gemini-3.8-flash-3e7d5a09",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\n        You are an impartial and strict technical evaluator.\n\n        ### Task\n        Verify if the **Generated Response** complies strictly with the **Criteria**.\n\n        ### Input Data\n        **Generated Response:**\n        \u0db8\u0dda \u0db4\u0dda\u0dc5\u0dd2\u0dba \u0dc3\u0db8\u0dca\u0db4\u0dd6\u0dbb\u0dca\u0dab \u0d9a\u0dc0\u0dd2\u0dba\u0dd9\u0db1\u0dca \u0d9c\u0dad\u0dca \u0d9a\u0ddc\u0da7\u0dc3\u0d9a\u0dca \u0dc0\u0dd2\u0dba \u0dc4\u0dd0\u0d9a\u0dd2 \u0db1\u0dd2\u0dc3\u0dcf, \u0db8\u0db8 \u0daf\u0dd9\u0db1\u0dca\u0db1\u0dda \u0db4\u0dda\u0dc5\u0dd2\u0dba\u0dda \u0dad\u0dd2\u0dba\u0dd9\u0db1 \u0dbb\u0dd6\u0db4\u0d9a \u0db8\u0dad \u0db4\u0daf\u0db1\u0db8\u0dca \u0dc0\u0dd6 \u0d85\u0dbb\u0dca\u0dae\u0d9a\u0dae\u0db1\u0dba\u0d9a\u0dca \u0db4\u0db8\u0dab\u0dba\u0dd2.\n\n**\u0db4\u0dda\u0dc5\u0dd2\u0dba\u0dda \u0d85\u0dbb\u0dca\u0dae\u0dba (\u0d86\u0dc3\u0db1\u0dca\u0db1 \u0dc0\u0dc1\u0dba\u0dd9\u0db1\u0dca):** \u0db4\u0dd2\u0db1\u0dd2 \u0db6\u0dd2\u0d82\u0daf\u0dd4 \u0db8\u0dad \u0db4\u0dd2\u0db4\u0dd4\u0dab\u0dd4, \u0db1\u0dd9\u0dc5\u0dcf\u0d9c\u0db1\u0dca\u0db1\u0dcf \u0db8\u0dbd\u0dca \u0dc0\u0dbd\u0dd2\u0db1\u0dca \u0dc3\u0dd4\u0dc0\u0db3 \u0dc4\u0db8\u0dcf \u0d87\u0dc0\u0dd2\u0dad\u0dca \u0dc3\u0dd2\u0dad \u0d9c\u0dd9\u0daf\u0dbb\u0da7 \u0dc0\u0daf\u0dd2\u0db1\u0dc0\u0dcf \u0dc0\u0d9c\u0dda, \u0d91\u0dc4\u0dd9\u0db8 \u0dc4\u0ddd \u0dc3\u0dd2\u0dad \u0dc3\u0dad\u0dd4\u0da7\u0dd4 \u0d9a\u0dbb\u0db1\u0dc0\u0dcf \u0dc0\u0d9c\u0dda.\n\n**\u0db8\u0dbd\u0dca \u0dc3\u0dc4 \u0d86\u0daf\u0dbb\u0dba \u0d85\u0dad\u0dbb \u0dc3\u0db8\u0dca\u0db6\u0db1\u0dca\u0db0\u0dba:**\n\n- **\u0db8\u0dbd\u0dca = \u0d86\u0daf\u0dbb\u0dba\u0dda \u0d86\u0dbb\u0db8\u0dca\u0db7\u0dba:** \u0db8\u0dbd\u0dca \u0db4\u0dd2\u0db4\u0dd9\u0db1\u0dca\u0db1\u0dda \u0dc3\u0dd4\u0dc5\u0dd4, \u0db8\u0dd8\u0daf\u0dd4 \u0dc0\u0dda\u0dbd\u0dcf\u0dc0\u0d9a. \u0d86\u0daf\u0dbb\u0dba\u0dad\u0dca \u0d91\u0dc4\u0dd9\u0db8\u0dba\u0dd2, \u0dbd\u0dc3\u0dca\u0dc3\u0db1\u0da7, \u0db1\u0ddc\u0daf\u0dd0\u0db1\u0dd3\u0db8 \u0d87\u0dad\u0dd2\u0dc0\u0dd9\u0dbd\u0dcf \u0db4\u0dd2\u0db4\u0dd9\u0db1\u0dc0\u0dcf.\n- **\u0db4\u0dd2\u0db1\u0dd2 = \u0db4\u0dc0\u0dd2\u0dad\u0dca\u200d\u0dbb\u0db7\u0dcf\u0dc0\u0dba \u0dc3\u0dc4 \u0db8\u0dd8\u0daf\u0dd4 \u0dc4\u0dd0\u0d9f\u0dd3\u0db8\u0dca:** \u0db4\u0dd2\u0db1\u0dd2 \u0db6\u0dd2\u0d82\u0daf\u0dd4 \u0d8b\u0daf\u0dd1\u0dc3\u0db1 \u0dc0\u0dbd \u0db4\u0db8\u0dab\u0d9a\u0dca \u0dad\u0dd2\u0dba\u0dd9\u0db1, \u0dc3\u0dd2\u0dc4\u0dd2\u0dbd\u0dca \u0dc3\u0dc4 \u0db4\u0dd2\u0dbb\u0dd2\u0dc3\u0dd2\u0daf\u0dd4 \u0daf\u0dd9\u0dba\u0d9a\u0dca. \u0d92 \u0db1\u0dd2\u0dc3\u0dcf \u0d86\u0daf\u0dbb\u0dba\u0dda \u0db1\u0dd2\u0dc2\u0dca\u0d9a\u0db4\u0da7\u0db7\u0dcf\u0dc0\u0dba \u0dc3\u0dc4 \u0dc3\u0d82\u0dc0\u0dda\u0daf\u0dd3 \u0db6\u0dc0 \u0d91\u0dba\u0dd2\u0db1\u0dca \u0dc4\u0dd0\u0d9c\u0dda.\n- **\u0dc3\u0dd4\u0dc0\u0db3 = \u0d86\u0daf\u0dbb\u0dba\u0dda \u0db6\u0dbd\u0db4\u0dd1\u0db8:** \u0dc3\u0dd4\u0dc0\u0db3 \u0db4\u0dda\u0db1\u0dca\u0db1\u0dda \u0db1\u0dd0\u0dc4\u0dd0, \u0d92\u0dad\u0dca \u0dc4\u0dd0\u0db8\u0dad\u0dd0\u0db1\u0db8 \u0db4\u0dd0\u0dad\u0dd2\u0dbb\u0dd2\u0dbd\u0dcf \u0dc4\u0dd2\u0dad \u0d87\u0dad\u0dd4\u0dc5\u0da7 \u0dba\u0db1\u0dc0\u0dcf. \u0d86\u0daf\u0dbb\u0dba\u0dad\u0dca \u0d92 \u0dc0\u0d9c\u0dda, \u0d9a\u0dd2\u0dba\u0dcf \u0db4\u0dcf\u0db1\u0dca\u0db1 \u0db6\u0dd0\u0dbb\u0dd2 \u0dc0\u0dd4\u0db1\u0dad\u0dca \u0db8\u0db1\u0dc3\u0da7 \u0d9c\u0dd0\u0db9\u0dd4\u0dbb\u0dd2\u0db1\u0dca \u0db6\u0dbd\u0db4\u0dcf\u0db1\u0dc0\u0dcf.\n- **\"\u0dc3\u0dd2\u0dad \u0d9c\u0dd9\u0da7\" = \u0d86\u0daf\u0dbb\u0dba \u0dc4\u0dd2\u0dad \u0da2\u0dba \u0d9c\u0dd0\u0db1\u0dd3\u0db8:** \u0dc3\u0dd4\u0dc0\u0db3 \u0dc3\u0dd2\u0dad \u0d9c\u0dcf\u0db1 \u0dc0\u0dd2\u0daf\u0dd2\u0dc4, \u0d86\u0daf\u0dbb\u0dba \u0d9a\u0dd9\u0db1\u0dd9\u0d9a\u0dd4\u0d9c\u0dda \u0dc4\u0dd2\u0dad \u0daf\u0dd2\u0db1\u0dcf\u0d9c\u0db1\u0dca\u0db1 \u0dc0\u0dd2\u0daf\u0dd2\u0dc4 \u0db4\u0dca\u200d\u0dbb\u0d9a\u0dcf\u0dc1 \u0d9a\u0dbb\u0db1\u0dc0\u0dcf.\n- **\u0db1\u0dd9\u0dc5\u0dd3\u0db8 = \u0d86\u0daf\u0dbb\u0dba\u0dda \u0db6\u0dd0\u0db3\u0dd3\u0db8 \u0dc3\u0dc4 \u0db4\u0dd9\u0db8\u0dca\u0dc0\u0dad\u0dcf\u0d9c\u0dda/\u0db4\u0dd9\u0db8\u0dca\u0dc0\u0dad\u0dd2\u0dba\u0d9c\u0dda \u0dad\u0dd1\u0d9c\u0dca\u0d9c:** \u0db8\u0dbd\u0dca \u0db1\u0dd9\u0dc5\u0db1\u0dc0\u0dcf \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0d92\u0dc0\u0dcf \u0dad\u0db8\u0db1\u0dca\u0da7\u0db8 \u0d9c\u0db1\u0dca\u0db1\u0dc0\u0dcf, \u0db1\u0dd0\u0dad\u0dca\u0db1\u0db8\u0dca \u0d86\u0daf\u0dbb\u0dba\u0dd9\u0db1\u0dca \u0d9a\u0dd9\u0db1\u0dd9\u0d9a\u0dd4\u0da7 \u0daf\u0dd9\u0db1\u0dc0\u0dcf. \u0d86\u0daf\u0dbb\u0dba\u0dda \u0daf\u0dd3\u0db8\u0dad\u0dca \u0d9c\u0dd0\u0db1\u0dd3\u0db8\u0dad\u0dca \u0db8\u0dda\u0d9a\u0dd9\u0db1\u0dca \u0dc4\u0dd0\u0d9c\u0dda.\n\n**\u0dc3\u0dcf\u0dbb\u0dcf\u0d82\u0dc1\u0dba\u0d9a\u0dca \u0dbd\u0dd9\u0dc3:** \u0db8\u0dda \u0db4\u0dda\u0dc5\u0dd2\u0dba\u0dda \u0db8\u0dbd\u0dca \u0d86\u0daf\u0dbb\u0dba \u0dc0\u0d9c\u0dda, \u0d92 \u0d86\u0daf\u0dbb\u0dba \u0db4\u0dd2\u0db1\u0dd2 \u0dc0\u0d9c\u0dda \u0db8\u0dd8\u0daf\u0dd4 \u0dc3\u0dc4 \u0db4\u0dd2\u0dbb\u0dd2\u0dc3\u0dd2\u0daf\u0dd4 \u0dc0\u0dd9\u0dbd\u0dcf\u0dc0\u0d9a \u0d87\u0dad\u0dd2\u0dc0\u0dd9\u0db1\u0dc0\u0dcf. \u0d92 \u0d86\u0daf\u0dbb\u0dba\u0dda \u0dc3\u0dd4\u0dc0\u0db3 \u0db1\u0ddc\u0db4\u0dd9\u0db1\u0dd3 \u0dc4\u0dd2\u0dad \u0d87\u0dad\u0dd4\u0dc5\u0da7 \u0d9c\u0dd2\u0dc4\u0dd2\u0db1\u0dca \u0dc3\u0dad\u0dd4\u0da7 \u0d9c\u0dd9\u0db1\u0dd9\u0db1\u0dc0\u0dcf.\n\n\u0db4\u0dda\u0dc5\u0dd2\u0dba \u0d9a\u0ddc\u0dc4\u0dd9\u0db1\u0dca\u0daf \u0d9c\u0dad\u0dca\u0dad\u0dda \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1 \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca\u0daf? \u0d91\u0dad\u0d9a\u0ddc\u0da7 \u0d9a\u0dc0\u0dd2\u0dba\u0dda \u0d85\u0db1\u0dd9\u0d9a\u0dca \u0d9a\u0ddc\u0da7\u0dc3\u0dca \u0d85\u0db1\u0dd4\u0dc0 \u0dc0\u0da9\u0dcf\u0dad\u0dca \u0db1\u0dd2\u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0d85\u0dbb\u0dca\u0dae\u0dba\u0d9a\u0dca \u0daf\u0dd9\u0db1\u0dca\u0db1 \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca.\n\n        **Criteria:**\n        1. The response conveys the same meaning as the reference answer: 'poetic_metaphor_interpretation'. Wording may differ; the meaning must match.\n2. The response reads like a native Sri Lankan Sinhala speaker wrote it -- natural register and idiom, not translated-sounding English.\n\n        ### Evaluation Protocol\n        1. Analyze the response against the criteria.\n        2. Be strict. If the text is ambiguous, the check fails.\n        3. Output your assessment using the specific structure requested below.\n"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\"{\\\"results\\\":[{\\\"criterion\\\":\\\"The response conveys the same meaning as the reference answer: 'poetic_metaphor_interpretation'. Wording may differ; the meaning must match.\\\",\\\"passed\\\":true,\\\"reason\\\":\\\"The response explicitly focuses on interpreting the poetic metaphors in the line (analyzing flowers, dew, fragrance, etc., as metaphors for love).\\\",\\\"confidence\\\":5},{\\\"criterion\\\":\\\"The response reads like a native Sri Lankan Sinhala speaker wrote it -- natural register and idiom, not translated-sounding English.\\\",\\\"passed\\\":true,\\\"reason\\\":\\\"The Sinhala text is natural, fluent, and uses native phrasing and conversational conventions rather than translated-sounding structures.\\\",\\\"confidence\\\":5}]}\""
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.8-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 957,
+                "outputTokens": 862,
+                "inputTokensCostNanodollars": "717750",
+                "outputTokensCostNanodollars": "3232500",
+                "totalBackendLatencyMs": "6570"
+              },
+              "id": "Response assessment with google/gemini-3.8-flash-3e7d5a09-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 957,
+            "outputTokens": 862,
+            "inputTokensCostNanodollars": "717750",
+            "outputTokensCostNanodollars": "3232500",
+            "totalBackendLatencyMs": "6570"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_04_009"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_04_kavi_sindu_item-Run #9"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_04_kavi_sindu_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_04_kavi_sindu_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-5-5"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-10-13T09:08:10.618670Z",
+      "endTime": "2026-10-13T09:08:26.036413Z",
+      "conversations": [
+        {
+          "id": "synhalees_04_kavi_sindu_item-bb30d0c5",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0dda \u0d9c\u0dd3 \u0db4\u0dda\u0dc5\u0dd2\u0dba\u0dda \u0dc4\u0dd0\u0d9f\u0dd3\u0db8 \u0dc4\u0db3\u0dd4\u0db1\u0dcf\u0d9c\u0dd9\u0db1 \u0d9a\u0dd9\u0da7\u0dd2\u0dba\u0dd9\u0db1\u0dca \u0dc0\u0dd2\u0dc3\u0dca\u0dad\u0dbb \u0d9a\u0dbb\u0db1\u0dca\u0db1: \u0dc3\u0dd4\u0dc0\u0db3 \u0db8\u0dbd\u0dca \u0dc3\u0dd2\u0dad \u0dad\u0dd4\u0dc5 \u0daf\u0dd0\u0db1\u0dd9\u0dba\u0dd2 \u0dc3\u0daf\u0dc4\u0da7\u0db8"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "## \u0dc4\u0dd0\u0d9f\u0dd3\u0db8: \u0d86\u0daf\u0dbb\u0dab\u0dd3\u0dba \u0db8\u0dad\u0d9a\u0dba \u0db1\u0dd2\u0dc3\u0dcf \u0d87\u0dad\u0dd2\u0dc0\u0db1 \u0db8\u0dd2\u0dc4\u0dd2\u0dbb\u0dd2 \u0dc4\u0dcf \u0dc0\u0dda\u0daf\u0db1\u0dcf\u0d9a\u0dcf\u0dbb\u0dd3 \u0dc3\u0dd2\u0dc4\u0dd2\u0db1\u0dba (\u0db1\u0ddc\u0dc3\u0dca\u0da7\u0dd0\u0dbd\u0dca\u0da2\u0dd2\u0dba\u0dcf\u0dc0)\n\n**\u0dc0\u0dd2\u0dc3\u0dca\u0dad\u0dbb\u0dba:**\n- **\"\u0dc3\u0dd4\u0dc0\u0db3 \u0db8\u0dbd\u0dca\"** \u0dba\u0db1\u0dd4 \u0db8\u0dd2\u0dc4\u0dd2\u0dbb\u0dd2, \u0db4\u0dca\u200d\u0dbb\u0dd2\u0dba \u0db8\u0dad\u0d9a \u0dc4\u0ddd \u0d86\u0daf\u0dbb\u0dab\u0dd3\u0dba \u0db4\u0dd4\u0daf\u0dca\u0d9c\u0dbd\u0dba\u0dcf \u0dc3\u0d82\u0d9a\u0dda\u0dad\u0dc0\u0dad\u0dca \u0d9a\u0dbb\u0dba\u0dd2.\n- **\"\u0dc3\u0dd2\u0dad \u0dad\u0dd4\u0dc5 \u0daf\u0dd0\u0db1\u0dd9\u0dba\u0dd2\"** \u0dba\u0db1\u0dd4 \u0d92 \u0db8\u0dad\u0d9a \u0dc4\u0ddd \u0d86\u0daf\u0dbb\u0dba \u0d89\u0dad\u0dcf \u0d9c\u0dd0\u0db9\u0dd4\u0dbb\u0dd2\u0db1\u0dca \u0dc4\u0dd0\u0d9f\u0dd9\u0db1 \u0db6\u0dc0 \u0db4\u0dd9\u0db1\u0dca\u0dc0\u0dba\u0dd2.\n- **\"\u0dc3\u0daf\u0dc4\u0da7\u0db8\"** \u0dba\u0db1 \u0dc0\u0da0\u0db1\u0dba \u0d91\u0db8 \u0dc4\u0dd0\u0d9f\u0dd3\u0db8 \u0d9a\u0dd2\u0dc3\u0dd2\u0daf\u0dcf \u0db1\u0ddc\u0db8\u0dd0\u0d9a\u0dd9\u0db1 \u0db6\u0dc0 \u0db4\u0dca\u200d\u0dbb\u0d9a\u0dcf\u0dc1 \u0d9a\u0dbb\u0dba\u0dd2.\n\n\u0dc3\u0dcf\u0dbb\u0dcf\u0d82\u0dc1\u0dba\u0d9a\u0dca \u0dbd\u0dd9\u0dc3, \u0db8\u0dd9\u0db8 \u0db4\u0dda\u0dc5\u0dd2\u0dba \u0db4\u0dca\u200d\u0dbb\u0dd2\u0dba \u0daf\u0dd9\u0dba\u0d9a\u0dca \u0dc4\u0ddd \u0d85\u0dba\u0dd9\u0d9a\u0dca \u0d9c\u0dd0\u0db1 \u0d87\u0dad\u0dd2 \u0dc3\u0dd2\u0dc4\u0dd2\u0dba \u0d9a\u0dbd\u0dca \u0d9c\u0dad \u0dc0\u0dd4\u0dc0\u0dad\u0dca \u0db1\u0ddc\u0db1\u0dd0\u0dc3\u0dd3 \u0db4\u0dc0\u0dad\u0dd2\u0db1 \u0db6\u0dc0 \u0d9a\u0dd2\u0dba\u0dba\u0dd2. \u0d91\u0dc4\u0dd2 \u0d8b\u0dab\u0dd4\u0dc3\u0dd4\u0db8\u0d9a\u0dca \u0dc3\u0dc4 \u0d86\u0daf\u0dbb\u0dba\u0d9a\u0dca \u0d87\u0dad\u0dd2 \u0d85\u0dad\u0dbb, \u0d92 \u0dc3\u0db8\u0d9f\u0db8 \u0daf\u0dd4\u0dbb\u0dc3\u0dca \u0dc0\u0dd6 \u0daf\u0dd9\u0dba\u0d9a\u0dca \u0d9c\u0dd0\u0db1 \u0d87\u0dad\u0dd2 \u0d86\u0dc1\u0dcf\u0dc0\u0dda \u0dc4\u0ddd \u0dc0\u0dd2\u0dbb\u0dc4\u0dc0\u0dda \u0db8\u0db3 \u0dc0\u0dda\u0daf\u0db1\u0dcf\u0dc0\u0d9a\u0dca\u0daf \u0daf\u0dd2\u0dc3\u0dca\u0dc0\u0dda."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-5-5"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 84,
+                "outputTokens": 699,
+                "inputTokensCostNanodollars": "8400",
+                "outputTokensCostNanodollars": "349500",
+                "totalBackendLatencyMs": "5418"
+              },
+              "id": "synhalees_04_kavi_sindu_item-bb30d0c5-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 84,
+            "outputTokens": 699,
+            "inputTokensCostNanodollars": "8400",
+            "outputTokensCostNanodollars": "349500",
+            "totalBackendLatencyMs": "5418"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        },
+        {
+          "id": "Response assessment with google/gemini-3.8-flash-354dd8c3",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\n        You are an impartial and strict technical evaluator.\n\n        ### Task\n        Verify if the **Generated Response** complies strictly with the **Criteria**.\n\n        ### Input Data\n        **Generated Response:**\n        ## \u0dc4\u0dd0\u0d9f\u0dd3\u0db8: \u0d86\u0daf\u0dbb\u0dab\u0dd3\u0dba \u0db8\u0dad\u0d9a\u0dba \u0db1\u0dd2\u0dc3\u0dcf \u0d87\u0dad\u0dd2\u0dc0\u0db1 \u0db8\u0dd2\u0dc4\u0dd2\u0dbb\u0dd2 \u0dc4\u0dcf \u0dc0\u0dda\u0daf\u0db1\u0dcf\u0d9a\u0dcf\u0dbb\u0dd3 \u0dc3\u0dd2\u0dc4\u0dd2\u0db1\u0dba (\u0db1\u0ddc\u0dc3\u0dca\u0da7\u0dd0\u0dbd\u0dca\u0da2\u0dd2\u0dba\u0dcf\u0dc0)\n\n**\u0dc0\u0dd2\u0dc3\u0dca\u0dad\u0dbb\u0dba:**\n- **\"\u0dc3\u0dd4\u0dc0\u0db3 \u0db8\u0dbd\u0dca\"** \u0dba\u0db1\u0dd4 \u0db8\u0dd2\u0dc4\u0dd2\u0dbb\u0dd2, \u0db4\u0dca\u200d\u0dbb\u0dd2\u0dba \u0db8\u0dad\u0d9a \u0dc4\u0ddd \u0d86\u0daf\u0dbb\u0dab\u0dd3\u0dba \u0db4\u0dd4\u0daf\u0dca\u0d9c\u0dbd\u0dba\u0dcf \u0dc3\u0d82\u0d9a\u0dda\u0dad\u0dc0\u0dad\u0dca \u0d9a\u0dbb\u0dba\u0dd2.\n- **\"\u0dc3\u0dd2\u0dad \u0dad\u0dd4\u0dc5 \u0daf\u0dd0\u0db1\u0dd9\u0dba\u0dd2\"** \u0dba\u0db1\u0dd4 \u0d92 \u0db8\u0dad\u0d9a \u0dc4\u0ddd \u0d86\u0daf\u0dbb\u0dba \u0d89\u0dad\u0dcf \u0d9c\u0dd0\u0db9\u0dd4\u0dbb\u0dd2\u0db1\u0dca \u0dc4\u0dd0\u0d9f\u0dd9\u0db1 \u0db6\u0dc0 \u0db4\u0dd9\u0db1\u0dca\u0dc0\u0dba\u0dd2.\n- **\"\u0dc3\u0daf\u0dc4\u0da7\u0db8\"** \u0dba\u0db1 \u0dc0\u0da0\u0db1\u0dba \u0d91\u0db8 \u0dc4\u0dd0\u0d9f\u0dd3\u0db8 \u0d9a\u0dd2\u0dc3\u0dd2\u0daf\u0dcf \u0db1\u0ddc\u0db8\u0dd0\u0d9a\u0dd9\u0db1 \u0db6\u0dc0 \u0db4\u0dca\u200d\u0dbb\u0d9a\u0dcf\u0dc1 \u0d9a\u0dbb\u0dba\u0dd2.\n\n\u0dc3\u0dcf\u0dbb\u0dcf\u0d82\u0dc1\u0dba\u0d9a\u0dca \u0dbd\u0dd9\u0dc3, \u0db8\u0dd9\u0db8 \u0db4\u0dda\u0dc5\u0dd2\u0dba \u0db4\u0dca\u200d\u0dbb\u0dd2\u0dba \u0daf\u0dd9\u0dba\u0d9a\u0dca \u0dc4\u0ddd \u0d85\u0dba\u0dd9\u0d9a\u0dca \u0d9c\u0dd0\u0db1 \u0d87\u0dad\u0dd2 \u0dc3\u0dd2\u0dc4\u0dd2\u0dba \u0d9a\u0dbd\u0dca \u0d9c\u0dad \u0dc0\u0dd4\u0dc0\u0dad\u0dca \u0db1\u0ddc\u0db1\u0dd0\u0dc3\u0dd3 \u0db4\u0dc0\u0dad\u0dd2\u0db1 \u0db6\u0dc0 \u0d9a\u0dd2\u0dba\u0dba\u0dd2. \u0d91\u0dc4\u0dd2 \u0d8b\u0dab\u0dd4\u0dc3\u0dd4\u0db8\u0d9a\u0dca \u0dc3\u0dc4 \u0d86\u0daf\u0dbb\u0dba\u0d9a\u0dca \u0d87\u0dad\u0dd2 \u0d85\u0dad\u0dbb, \u0d92 \u0dc3\u0db8\u0d9f\u0db8 \u0daf\u0dd4\u0dbb\u0dc3\u0dca \u0dc0\u0dd6 \u0daf\u0dd9\u0dba\u0d9a\u0dca \u0d9c\u0dd0\u0db1 \u0d87\u0dad\u0dd2 \u0d86\u0dc1\u0dcf\u0dc0\u0dda \u0dc4\u0ddd \u0dc0\u0dd2\u0dbb\u0dc4\u0dc0\u0dda \u0db8\u0db3 \u0dc0\u0dda\u0daf\u0db1\u0dcf\u0dc0\u0d9a\u0dca\u0daf \u0daf\u0dd2\u0dc3\u0dca\u0dc0\u0dda.\n\n        **Criteria:**\n        1. The response conveys the same meaning as the reference answer: 'emotion_analysis_response'. Wording may differ; the meaning must match.\n2. The response reads like a native Sri Lankan Sinhala speaker wrote it -- natural register and idiom, not translated-sounding English.\n\n        ### Evaluation Protocol\n        1. Analyze the response against the criteria.\n        2. Be strict. If the text is ambiguous, the check fails.\n        3. Output your assessment using the specific structure requested below.\n"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\"{\\\"results\\\":[{\\\"criterion\\\":\\\"The response conveys the same meaning as the reference answer: 'emotion_analysis_response'. Wording may differ; the meaning must match.\\\",\\\"passed\\\":true,\\\"reason\\\":\\\"The response provides a comprehensive and appropriate emotion analysis of the given poetic line, identifying the nostalgic/melancholic emotional tone and explaining the symbolic meaning of each phrase.\\\",\\\"confidence\\\":5},{\\\"criterion\\\":\\\"The response reads like a native Sri Lankan Sinhala speaker wrote it -- natural register and idiom, not translated-sounding English.\\\",\\\"passed\\\":true,\\\"reason\\\":\\\"The Sinhala phrasing is natural, grammatically sound, and uses native phrasing and literary vocabulary (e.g., '\\u0db8\\u0dd2\\u0dc4\\u0dd2\\u0dbb\\u0dd2 \\u0dc4\\u0dcf \\u0dc0\\u0dda\\u0daf\\u0db1\\u0dcf\\u0d9a\\u0dcf\\u0dbb\\u0dd3', '\\u0db1\\u0ddc\\u0db1\\u0dd0\\u0dc3\\u0dd3 \\u0db4\\u0dc0\\u0dad\\u0dd2\\u0db1', '\\u0dc0\\u0dd2\\u0dbb\\u0dc4\\u0dc0\\u0dda \\u0db8\\u0db3 \\u0dc0\\u0dda\\u0daf\\u0db1\\u0dcf\\u0dc0\\u0d9a\\u0dca\\u0daf') without awkward calques or translated syntax.\\\",\\\"confidence\\\":5}]}\""
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.8-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 595,
+                "outputTokens": 1371,
+                "inputTokensCostNanodollars": "446250",
+                "outputTokensCostNanodollars": "5141250",
+                "totalBackendLatencyMs": "9488"
+              },
+              "id": "Response assessment with google/gemini-3.8-flash-354dd8c3-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 595,
+            "outputTokens": 1371,
+            "inputTokensCostNanodollars": "446250",
+            "outputTokensCostNanodollars": "5141250",
+            "totalBackendLatencyMs": "9488"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_04_011"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_04_kavi_sindu_item-Run #11"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_04_kavi_sindu_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_04_kavi_sindu_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-5-5"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-10-13T09:08:13.261159Z",
+      "endTime": "2026-10-13T09:08:44.173090Z",
+      "conversations": [
+        {
+          "id": "synhalees_04_kavi_sindu_item-09a8925c",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9a\u0dc0\u0dd2 \u0d8b\u0dc5\u0dd9\u0dbd\u0d9a \u0d87\u0dc3\u0dd4\u0dab\u0dd4 \u0dc0\u0dd2\u0dbb\u0dc4\u0dcf \u0d9c\u0dd3\u0dba\u0d9a \u0dc3\u0d82\u0d9c\u0dd3\u0dad \u0dc4\u0dd0\u0d9f\u0dd3\u0db8 \u0dc3\u0d82\u0dc0\u0dda\u0daf\u0dd3 \u0dc0\u0dd2\u0daf\u0dd2\u0dc4\u0da7 \u0dc0\u0dd2\u0dc3\u0dca\u0dad\u0dbb \u0d9a\u0dbb\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# \u0d9a\u0dc0\u0dd2 \u0d8b\u0dc5\u0dd9\u0dbd\u0dda \u0dc0\u0dd2\u0dbb\u0dc4\u0dcf \u0d9c\u0dd3\u0dba\u0d9a \u0dc3\u0d82\u0d9c\u0dd3\u0dad \u0dc4\u0dd0\u0d9f\u0dd3\u0db8\n\n\u0dbb\u0dcf\u0dad\u0dca\u200d\u0dbb\u0dd2\u0dba \u0dad\u0dc0\u0dad\u0dca \u0d9c\u0dd0\u0db9\u0dd4\u0dbb\u0dd4 \u0dc0\u0dd9\u0db8\u0dd2\u0db1\u0dca \u0dad\u0dd2\u0db6\u0dd4\u0dab\u0dda \u0dba. \u0dc0\u0dda\u0daf\u0dd2\u0d9a\u0dcf\u0dc0 \u0db8\u0dad \u0dad\u0dd2\u0db6\u0dd6 \u0db8\u0db3 \u0db6\u0dbd\u0dca\u0db6 \u0d86\u0dbd\u0ddd\u0d9a\u0dba \u0d9a\u0dc5\u0dd4 \u0dbb\u0dd9\u0daf\u0dd2 \u0db4\u0dd2\u0da7 \u0dbd\u0dcf \u0dbb\u0db1\u0dca\u0dc0\u0db1\u0dca \u0dc0\u0dbd\u0dcf \u0d9a\u0dd0\u0da7\u0dd2 \u0daf\u0dd0\u0db8\u0dd4\u0dc0\u0dda \u0dba. \u0d9a\u0dad\u0dcf \u0db6\u0dc4 \u0db1\u0dad\u0dbb \u0dc0\u0dd6 \u0db8\u0ddc\u0dc4\u0ddc\u0dad\u0dda, \u0d9c\u0dcf\u0dba\u0d9a\u0dba\u0dcf \u0daf\u0dd1\u0dc3\u0dca \u0db4\u0dd2\u0dba\u0dcf\u0d9c\u0dd9\u0db1 \u0dc3\u0dd2\u0da7\u0dd2\u0dba\u0dda \u0dba. \u0d92 \u0db1\u0dd2\u0dc1\u0dca\u0da0\u0dbd\u0dad\u0dcf\u0dc0 \u0dad\u0dd4\u0dc5 \u0db4\u0dc5\u0db8\u0dd4 \u0dad\u0db1\u0dca\u0dad\u0dca\u200d\u0dbb\u0dd3 \u0db1\u0dcf\u0daf\u0dba \u0dc0\u0dcf\u0dad\u0dba\u0da7 \u0db1\u0dd0\u0d9c\u0dd4\u0dab\u0dd2.\n\n**\u0d86\u0dbb\u0db8\u0dca\u0db7\u0dba: \u0db1\u0dd2\u0dc4\u0dac\u0dad\u0dcf\u0dc0\u0dd9\u0db1\u0dca \u0d89\u0db4\u0daf\u0dd4\u0dab\u0dd4 \u0db1\u0dcf\u0daf\u0dba**\n\u0d9c\u0dd3\u0dad\u0dba\u0dda \u0db4\u0dc5\u0db8\u0dd4 \u0dc3\u0dca\u0dc0\u0dbb \u0d89\u0dad\u0dcf \u0db8\u0dd8\u0daf\u0dd4\u0dc0, \u0db4\u0dcf\u0dc4\u0dda \u0d87\u0dc3\u0dd9\u0db1\u0dca\u0db1\u0dda \u0db1\u0dd0\u0dad\u0dd2 \u0dad\u0dbb\u0db8\u0da7 \u0d86\u0dc0\u0dda \u0dba. \u0d91\u0dba \u0d86\u0daf\u0dbb\u0dba \u0dbd\u0dd0\u0db6\u0dd3\u0db8\u0dd9\u0db1\u0dca \u0db4\u0dc3\u0dd4 \u0daf\u0dd4\u0d9a\u0dca \u0dc0\u0dd2\u0db1\u0dca\u0daf\u0dcf \u0dc0\u0dd6 \u0dc4\u0daf\u0dc0\u0dad\u0d9a \u0dc3\u0dca\u0dc0\u0dbb\u0dba \u0dc0\u0d9c\u0dda \u0dba. \u0d91\u0d9a\u0dca \u0d91\u0d9a\u0dca \u0db1\u0ddd\u0da7\u0dca\u0da7\u0dd4\u0dc0 \u0d85\u0dad\u0dbb \u0dad\u0dd2\u0db6\u0dd6 \u0db1\u0dd2\u0dc4\u0dac \u0dc0\u0dd2\u0dbb\u0dcf\u0db8\u0dba\u0db1\u0dca \u0db4\u0dc0\u0dcf \u0dad\u0dda\u0dbb\u0dd4\u0db8\u0d9a\u0dca \u0d9c\u0dad\u0dca\u0dad\u0dda \u0dba. \u0d92 \u0dc4\u0dd2\u0dc3\u0dca \u0d85\u0dc0\u0d9a\u0dcf\u0dc1\u0dba \u0dad\u0dd4\u0dc5 \u0dc1\u0dca\u200d\u0dbb\u0dcf\u0dc0\u0d9a\u0dba\u0dcf \u0dad\u0db8\u0dcf\u0d9c\u0dda\u0db8 \u0dc3\u0dd2\u0dc4\u0dd2\u0db1\u0dba\u0db1\u0dca \u0dc4\u0dcf \u0d85\u0dad\u0dd3\u0dad \u0db8\u0dad\u0d9a\u0dba\u0db1\u0dca \u0dc3\u0ddc\u0dba\u0dcf \u0d9c\u0dd2\u0dba\u0dda \u0dba.\n\n**\u0db8\u0dd0\u0daf \u0d9a\u0ddc\u0da7\u0dc3: \u0dc3\u0dca\u0dc0\u0dbb \u0dc0\u0dbd \u0d9a\u0db8\u0dca\u0db4\u0db1\u0dba**\n\u0d9c\u0dcf\u0dba\u0d9a\u0dba\u0dcf\u0d9c\u0dda \u0dc4\u0dac \u0d9c\u0dd3\u0dad\u0dba\u0dda \u0db8\u0dd0\u0daf \u0d9a\u0ddc\u0da7\u0dc3\u0dda\u0daf\u0dd3 \u0d9a\u0dca\u200d\u0dbb\u0db8\u0dba\u0dd9\u0db1\u0dca \u0d8b\u0dc3\u0dca \u0dc0\u0dd4\u0dab\u0dd2. \u0d91\u0dc4\u0dd2 \u0dad\u0dd2\u0db6\u0dd6 \u0d9a\u0db8\u0dca\u0db4\u0db1\u0dba, \u0d9a\u0da7\u0dc4\u0dac \u0db8\u0dd0\u0da9\u0d9c\u0dad\u0dca \u0d9c\u0dd0\u0db9\u0dd4\u0dbb\u0dd4 \u0dc1\u0ddd\u0d9a\u0dba \u0dc0\u0dd2\u0daf\u0dc4\u0dcf \u0db4\u0dd1\u0dc0\u0dda \u0dba. \u0dc4\u0dcf\u0dbb\u0dca\u0db8\u0ddd\u0db1\u0dd2\u0dba\u0db8\u0dda \u0dc1\u0dca\u200d\u0dbb\u0dd0\u0dad\u0dd2 \u0dc3\u0dca\u0dc0\u0dbb \u0d92 \u0dc4\u0dac\u0da7 \u0dc3\u0dd9\u0dc0\u0dab\u0d9a\u0dca \u0dc0\u0d9c\u0dda \u0d91\u0d9a\u0dca\u0dc0\u0dd4\u0dab\u0dd2. \u0dc4\u0dac \u0d9a\u0dd2\u0dc3\u0dd2\u0dc0\u0dd2\u0da7 \u0db1\u0ddc\u0dc0\u0dd0\u0da7\u0dd3, \u0daf\u0dd4\u0d9a \u0dad\u0dd4\u0dc5 \u0db4\u0dc0\u0dcf \u0d9c\u0dde\u0dbb\u0dc0\u0dba\u0d9a\u0dca \u0dbb\u0dd0\u0db3\u0dd3 \u0dad\u0dd2\u0db6\u0dd6 \u0db6\u0dc0 \u0dc4\u0dd0\u0d9f\u0dd4\u0dab\u0dd2. \u0d91\u0dba \u0dc4\u0dac\u0dcf \u0dc0\u0dd0\u0dbd\u0db4\u0dd3\u0db8\u0d9a\u0dca \u0db1\u0ddc\u0dc0, \u0daf\u0dbb\u0dcf\u0d9c\u0dad\u0dca \u0dc0\u0dda\u0daf\u0db1\u0dcf\u0dc0\u0d9a\u0dca \u0dc0\u0dd0\u0db1\u0dd2 \u0dba.\n\n**\u0dc0\u0dd2\u0dbb\u0dc4\u0dcf\u0dc0\u0dda \u0d9c\u0dd0\u0da7\u0dc5\u0dd4\u0dc0: \u0db1\u0dd2\u0dc4\u0dac \u0db4\u0dca\u200d\u0dbb\u0dcf\u0dbb\u0dca\u0dae\u0db1\u0dcf\u0dc0**\n\u0d9c\u0dd3\u0dad\u0dba\u0dda \u0dc0\u0da0\u0db1 \u0dc3\u0db8\u0dc4\u0dbb \u0dad\u0dd0\u0db1\u0dca\u0dc0\u0dbd \u0d9a\u0dd9\u0da7\u0dd2 \u0dc0\u0dd4\u0dab\u0dad\u0dca, \u0d92\u0dc0\u0dcf \u0d87\u0dad\u0dd4\u0dc5\u0dda \u0db8\u0dc4\u0dad\u0dca \u0dc4\u0dd2\u0dc3\u0dca \u0db6\u0dc0\u0d9a\u0dca \u0dad\u0dd2\u0db6\u0dd4\u0dab\u0dd2. \"\u0d94\u0db6 \u0db1\u0dd0\u0dad\u0dd2\" \u0dba\u0db1 \u0d85\u0daf\u0dc4\u0dc3 \u0dc3\u0d82\u0d9c\u0dd3\u0dad\u0dba\u0dd9\u0db1\u0dca\u0db8 \u0da2\u0dd3\u0dc0\u0dad\u0dca \u0dc0\u0dd4\u0dab\u0dd2. \u0dad\u0db1\u0dca\u0dad\u0dca\u200d\u0dbb\u0dd3 \u0dc0\u0dcf\u0daf\u0db1\u0dba\u0dda \u0db1\u0dd0\u0dc0\u0dad \u0db1\u0dd0\u0dc0\u0dad \u0db4\u0dd0\u0db8\u0dd2\u0dab\u0dd2 \u0d91\u0d9a\u0db8 \u0dc3\u0dca\u0dc0\u0dbb \u0dbb\u0da7\u0dcf\u0dc0, \u0db6\u0dbd\u0dcf\u0db4\u0ddc\u0dbb\u0ddc\u0dad\u0dca\u0dad\u0dd4\u0dc0 \u0db1\u0ddc\u0db1\u0dd0\u0dc3\u0dd3 \u0db4\u0dc0\u0dad\u0dd2\u0db1 \u0d86\u0d9a\u0dcf\u0dbb\u0dba \u0d89\u0dc3\u0dca\u0db8\u0dad\u0dd4 \u0d9a\u0dc5\u0dda \u0dba. \u0d91\u0dba \u0d86\u0db4\u0dc3\u0dd4 \u0db4\u0dd0\u0db8\u0dd2\u0dab\u0dd9\u0db1 \u0dbb\u0dd0\u0dbd\u0dca\u0dbd\u0d9a\u0dca \u0dc0\u0d9c\u0dda, \u0d86\u0daf\u0dbb\u0dba \u0d9a\u0dd2\u0dc3\u0dd2\u0daf\u0dcf \u0db1\u0dd2\u0db8 \u0db1\u0ddc\u0dc0\u0db1 \u0db6\u0dc0 \u0d9a\u0dd2\u0dba\u0dcf \u0dc3\u0dd2\u0da7\u0dd2\u0dba\u0dda \u0dba.\n\n**\u0d85\u0dc0\u0dc3\u0dcf\u0db1\u0dba: \u0dc4\u0dd4\u0dc3\u0dca\u0db8\u0d9a\u0dca \u0dc0\u0d9c\u0dda \u0db1\u0dd2\u0db8 \u0dc0\u0dd3\u0db8**\n\u0d9c\u0dd3\u0dad\u0dba \u0db1\u0dd2\u0db8 \u0dc0\u0dd6 \u0dc0\u0dd2\u0da7, \u0dc1\u0db6\u0dca\u0daf\u0dba \u0d9a\u0dca\u200d\u0dbb\u0db8\u0dba\u0dd9\u0db1\u0dca \u0dc0\u0dcf\u0dad\u0dba\u0da7 \u0db8\u0dd2\u0dc1\u0dca\u200d\u0dbb \u0dc0\u0dd3 \u0d85\u0dad\u0dd4\u0dbb\u0dd4\u0daf\u0dc4\u0db1\u0dca \u0dc0\u0dd4\u0dab\u0dd2. \u0d9a\u0dd2\u0dc3\u0dd2\u0dc0\u0dd9\u0d9a\u0dca \u0db8\u0dd4\u0dbd\u0dd2\u0db1\u0dca \u0d85\u0dad\u0dca\u0db4\u0ddc\u0dc5\u0dc3\u0db1\u0dca \u0daf\u0dd4\u0db1\u0dca\u0db1\u0dda \u0db1\u0dd0\u0dad. \u0dc3\u0dcf\u0dbd\u0dcf\u0dc0\u0dda \u0db1\u0dd2\u0dc1\u0dca\u0da0\u0dbd\u0dad\u0dcf\u0dc0 \u0dad\u0dc0 \u0db8\u0ddc\u0dc4\u0ddc\u0dad\u0d9a\u0dca \u0db4\u0dd0\u0dc0\u0dad\u0dd4\u0dab\u0dd2. \u0d89\u0db1\u0dca \u0db4\u0dc3\u0dd4 \u0d87\u0dc3\u0dd4\u0dab\u0dd4 \u0d85\u0dad\u0dca\u0db4\u0ddc\u0dc5\u0dc3\u0db1\u0dca \u0dc4\u0dac, \u0d9c\u0dd3\u0dad\u0dba \u0dc1\u0dca\u200d\u0dbb\u0dcf\u0dc0\u0d9a\u0dba\u0db1\u0dca\u0d9c\u0dda \u0dc4\u0daf\u0dc0\u0dad\u0dca \u0dc3\u0dca\u0db4\u0dbb\u0dca\u0dc1 \u0d9a\u0dbb \u0d87\u0dad\u0dd2 \u0db6\u0dc0\u0da7 \u0dc3\u0dcf\u0d9a\u0dca\u0dc2\u0dd2\u0dba\u0d9a\u0dca \u0dc0\u0dd2\u0dba.\n\n**\u0dc3\u0dcf\u0dbb\u0dcf\u0d82\u0dc1\u0dba**\n\u0d91\u0db8 \u0d9c\u0dd3\u0dad\u0dba\u0dda \u0dc3\u0d82\u0d9c\u0dd3\u0dad \u0dc4\u0dd0\u0d9f\u0dd3\u0db8 \u0dc0\u0dd6\u0dba\u0dda *\u0db1\u0ddc\u0dbd\u0dd0\u0db6\u0dd4\u0dab\u0dd4 \u0d86\u0daf\u0dbb\u0dba \u0d9c\u0dd0\u0db1 \u0dc0\u0dda\u0daf\u0db1\u0dcf\u0dc0* \u0db8\u0dd4\u0dc3\u0dd4 \u0dc0\u0dd6 \u0d9c\u0dde\u0dbb\u0dc0\u0dcf\u0db1\u0dca\u0dc0\u0dd2\u0dad \u0dc1\u0ddd\u0d9a\u0dba\u0d9a\u0dd2. \u0d91\u0dba \u0dc4\u0dac\u0dcf \u0dc0\u0dd0\u0dbd\u0db4\u0dd3\u0db8\u0da7 \u0dc0\u0da9\u0dcf, \u0daf\u0dd4\u0d9a \u0dad\u0dd4\u0dc5 \u0da2\u0dd3\u0dc0\u0dad\u0dca \u0dc0\u0dd3\u0db8\u0dda \u0dc3\u0dd2\u0dc4\u0dd2\u0dba \u0dc0\u0dd2\u0dba. \u0d9a\u0dc0\u0dd2 \u0d8b\u0dc5\u0dd9\u0dbd\u0dda \u0d91\u0db8 \u0db8\u0ddc\u0dc4\u0ddc\u0dad, \u0dc0\u0da0\u0db1 \u0dc4\u0dcf \u0dc3\u0dca\u0dc0\u0dbb \u0d91\u0d9a\u0dad\u0dd4 \u0dc0\u0dd3 \u0dc4\u0daf\u0dc0\u0dad\u0da7 \u0d9a\u0dad\u0dcf \u0d9a\u0dc5, \u0d9a\u0dcf\u0dbd\u0dba\u0d9a\u0dca \u0db8\u0dad\u0d9a \u0dbb\u0dd0\u0db3\u0dd9\u0db1 \u0dbb\u0dcf\u0dad\u0dca\u200d\u0dbb\u0dd2\u0dba\u0d9a\u0dca \u0db6\u0dc0\u0da7 \u0db4\u0dad\u0dca \u0dc0\u0dd2\u0dba."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-5-5"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 66,
+                "outputTokens": 1954,
+                "inputTokensCostNanodollars": "6600",
+                "outputTokensCostNanodollars": "977000",
+                "totalBackendLatencyMs": "17082"
+              },
+              "id": "synhalees_04_kavi_sindu_item-09a8925c-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 66,
+            "outputTokens": 1954,
+            "inputTokensCostNanodollars": "6600",
+            "outputTokensCostNanodollars": "977000",
+            "totalBackendLatencyMs": "17082"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        },
+        {
+          "id": "Response assessment with google/gemini-3.8-flash-dcfaf824",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\n        You are an impartial and strict technical evaluator.\n\n        ### Task\n        Verify if the **Generated Response** complies strictly with the **Criteria**.\n\n        ### Input Data\n        **Generated Response:**\n        # \u0d9a\u0dc0\u0dd2 \u0d8b\u0dc5\u0dd9\u0dbd\u0dda \u0dc0\u0dd2\u0dbb\u0dc4\u0dcf \u0d9c\u0dd3\u0dba\u0d9a \u0dc3\u0d82\u0d9c\u0dd3\u0dad \u0dc4\u0dd0\u0d9f\u0dd3\u0db8\n\n\u0dbb\u0dcf\u0dad\u0dca\u200d\u0dbb\u0dd2\u0dba \u0dad\u0dc0\u0dad\u0dca \u0d9c\u0dd0\u0db9\u0dd4\u0dbb\u0dd4 \u0dc0\u0dd9\u0db8\u0dd2\u0db1\u0dca \u0dad\u0dd2\u0db6\u0dd4\u0dab\u0dda \u0dba. \u0dc0\u0dda\u0daf\u0dd2\u0d9a\u0dcf\u0dc0 \u0db8\u0dad \u0dad\u0dd2\u0db6\u0dd6 \u0db8\u0db3 \u0db6\u0dbd\u0dca\u0db6 \u0d86\u0dbd\u0ddd\u0d9a\u0dba \u0d9a\u0dc5\u0dd4 \u0dbb\u0dd9\u0daf\u0dd2 \u0db4\u0dd2\u0da7 \u0dbd\u0dcf \u0dbb\u0db1\u0dca\u0dc0\u0db1\u0dca \u0dc0\u0dbd\u0dcf \u0d9a\u0dd0\u0da7\u0dd2 \u0daf\u0dd0\u0db8\u0dd4\u0dc0\u0dda \u0dba. \u0d9a\u0dad\u0dcf \u0db6\u0dc4 \u0db1\u0dad\u0dbb \u0dc0\u0dd6 \u0db8\u0ddc\u0dc4\u0ddc\u0dad\u0dda, \u0d9c\u0dcf\u0dba\u0d9a\u0dba\u0dcf \u0daf\u0dd1\u0dc3\u0dca \u0db4\u0dd2\u0dba\u0dcf\u0d9c\u0dd9\u0db1 \u0dc3\u0dd2\u0da7\u0dd2\u0dba\u0dda \u0dba. \u0d92 \u0db1\u0dd2\u0dc1\u0dca\u0da0\u0dbd\u0dad\u0dcf\u0dc0 \u0dad\u0dd4\u0dc5 \u0db4\u0dc5\u0db8\u0dd4 \u0dad\u0db1\u0dca\u0dad\u0dca\u200d\u0dbb\u0dd3 \u0db1\u0dcf\u0daf\u0dba \u0dc0\u0dcf\u0dad\u0dba\u0da7 \u0db1\u0dd0\u0d9c\u0dd4\u0dab\u0dd2.\n\n**\u0d86\u0dbb\u0db8\u0dca\u0db7\u0dba: \u0db1\u0dd2\u0dc4\u0dac\u0dad\u0dcf\u0dc0\u0dd9\u0db1\u0dca \u0d89\u0db4\u0daf\u0dd4\u0dab\u0dd4 \u0db1\u0dcf\u0daf\u0dba**\n\u0d9c\u0dd3\u0dad\u0dba\u0dda \u0db4\u0dc5\u0db8\u0dd4 \u0dc3\u0dca\u0dc0\u0dbb \u0d89\u0dad\u0dcf \u0db8\u0dd8\u0daf\u0dd4\u0dc0, \u0db4\u0dcf\u0dc4\u0dda \u0d87\u0dc3\u0dd9\u0db1\u0dca\u0db1\u0dda \u0db1\u0dd0\u0dad\u0dd2 \u0dad\u0dbb\u0db8\u0da7 \u0d86\u0dc0\u0dda \u0dba. \u0d91\u0dba \u0d86\u0daf\u0dbb\u0dba \u0dbd\u0dd0\u0db6\u0dd3\u0db8\u0dd9\u0db1\u0dca \u0db4\u0dc3\u0dd4 \u0daf\u0dd4\u0d9a\u0dca \u0dc0\u0dd2\u0db1\u0dca\u0daf\u0dcf \u0dc0\u0dd6 \u0dc4\u0daf\u0dc0\u0dad\u0d9a \u0dc3\u0dca\u0dc0\u0dbb\u0dba \u0dc0\u0d9c\u0dda \u0dba. \u0d91\u0d9a\u0dca \u0d91\u0d9a\u0dca \u0db1\u0ddd\u0da7\u0dca\u0da7\u0dd4\u0dc0 \u0d85\u0dad\u0dbb \u0dad\u0dd2\u0db6\u0dd6 \u0db1\u0dd2\u0dc4\u0dac \u0dc0\u0dd2\u0dbb\u0dcf\u0db8\u0dba\u0db1\u0dca \u0db4\u0dc0\u0dcf \u0dad\u0dda\u0dbb\u0dd4\u0db8\u0d9a\u0dca \u0d9c\u0dad\u0dca\u0dad\u0dda \u0dba. \u0d92 \u0dc4\u0dd2\u0dc3\u0dca \u0d85\u0dc0\u0d9a\u0dcf\u0dc1\u0dba \u0dad\u0dd4\u0dc5 \u0dc1\u0dca\u200d\u0dbb\u0dcf\u0dc0\u0d9a\u0dba\u0dcf \u0dad\u0db8\u0dcf\u0d9c\u0dda\u0db8 \u0dc3\u0dd2\u0dc4\u0dd2\u0db1\u0dba\u0db1\u0dca \u0dc4\u0dcf \u0d85\u0dad\u0dd3\u0dad \u0db8\u0dad\u0d9a\u0dba\u0db1\u0dca \u0dc3\u0ddc\u0dba\u0dcf \u0d9c\u0dd2\u0dba\u0dda \u0dba.\n\n**\u0db8\u0dd0\u0daf \u0d9a\u0ddc\u0da7\u0dc3: \u0dc3\u0dca\u0dc0\u0dbb \u0dc0\u0dbd \u0d9a\u0db8\u0dca\u0db4\u0db1\u0dba**\n\u0d9c\u0dcf\u0dba\u0d9a\u0dba\u0dcf\u0d9c\u0dda \u0dc4\u0dac \u0d9c\u0dd3\u0dad\u0dba\u0dda \u0db8\u0dd0\u0daf \u0d9a\u0ddc\u0da7\u0dc3\u0dda\u0daf\u0dd3 \u0d9a\u0dca\u200d\u0dbb\u0db8\u0dba\u0dd9\u0db1\u0dca \u0d8b\u0dc3\u0dca \u0dc0\u0dd4\u0dab\u0dd2. \u0d91\u0dc4\u0dd2 \u0dad\u0dd2\u0db6\u0dd6 \u0d9a\u0db8\u0dca\u0db4\u0db1\u0dba, \u0d9a\u0da7\u0dc4\u0dac \u0db8\u0dd0\u0da9\u0d9c\u0dad\u0dca \u0d9c\u0dd0\u0db9\u0dd4\u0dbb\u0dd4 \u0dc1\u0ddd\u0d9a\u0dba \u0dc0\u0dd2\u0daf\u0dc4\u0dcf \u0db4\u0dd1\u0dc0\u0dda \u0dba. \u0dc4\u0dcf\u0dbb\u0dca\u0db8\u0ddd\u0db1\u0dd2\u0dba\u0db8\u0dda \u0dc1\u0dca\u200d\u0dbb\u0dd0\u0dad\u0dd2 \u0dc3\u0dca\u0dc0\u0dbb \u0d92 \u0dc4\u0dac\u0da7 \u0dc3\u0dd9\u0dc0\u0dab\u0d9a\u0dca \u0dc0\u0d9c\u0dda \u0d91\u0d9a\u0dca\u0dc0\u0dd4\u0dab\u0dd2. \u0dc4\u0dac \u0d9a\u0dd2\u0dc3\u0dd2\u0dc0\u0dd2\u0da7 \u0db1\u0ddc\u0dc0\u0dd0\u0da7\u0dd3, \u0daf\u0dd4\u0d9a \u0dad\u0dd4\u0dc5 \u0db4\u0dc0\u0dcf \u0d9c\u0dde\u0dbb\u0dc0\u0dba\u0d9a\u0dca \u0dbb\u0dd0\u0db3\u0dd3 \u0dad\u0dd2\u0db6\u0dd6 \u0db6\u0dc0 \u0dc4\u0dd0\u0d9f\u0dd4\u0dab\u0dd2. \u0d91\u0dba \u0dc4\u0dac\u0dcf \u0dc0\u0dd0\u0dbd\u0db4\u0dd3\u0db8\u0d9a\u0dca \u0db1\u0ddc\u0dc0, \u0daf\u0dbb\u0dcf\u0d9c\u0dad\u0dca \u0dc0\u0dda\u0daf\u0db1\u0dcf\u0dc0\u0d9a\u0dca \u0dc0\u0dd0\u0db1\u0dd2 \u0dba.\n\n**\u0dc0\u0dd2\u0dbb\u0dc4\u0dcf\u0dc0\u0dda \u0d9c\u0dd0\u0da7\u0dc5\u0dd4\u0dc0: \u0db1\u0dd2\u0dc4\u0dac \u0db4\u0dca\u200d\u0dbb\u0dcf\u0dbb\u0dca\u0dae\u0db1\u0dcf\u0dc0**\n\u0d9c\u0dd3\u0dad\u0dba\u0dda \u0dc0\u0da0\u0db1 \u0dc3\u0db8\u0dc4\u0dbb \u0dad\u0dd0\u0db1\u0dca\u0dc0\u0dbd \u0d9a\u0dd9\u0da7\u0dd2 \u0dc0\u0dd4\u0dab\u0dad\u0dca, \u0d92\u0dc0\u0dcf \u0d87\u0dad\u0dd4\u0dc5\u0dda \u0db8\u0dc4\u0dad\u0dca \u0dc4\u0dd2\u0dc3\u0dca \u0db6\u0dc0\u0d9a\u0dca \u0dad\u0dd2\u0db6\u0dd4\u0dab\u0dd2. \"\u0d94\u0db6 \u0db1\u0dd0\u0dad\u0dd2\" \u0dba\u0db1 \u0d85\u0daf\u0dc4\u0dc3 \u0dc3\u0d82\u0d9c\u0dd3\u0dad\u0dba\u0dd9\u0db1\u0dca\u0db8 \u0da2\u0dd3\u0dc0\u0dad\u0dca \u0dc0\u0dd4\u0dab\u0dd2. \u0dad\u0db1\u0dca\u0dad\u0dca\u200d\u0dbb\u0dd3 \u0dc0\u0dcf\u0daf\u0db1\u0dba\u0dda \u0db1\u0dd0\u0dc0\u0dad \u0db1\u0dd0\u0dc0\u0dad \u0db4\u0dd0\u0db8\u0dd2\u0dab\u0dd2 \u0d91\u0d9a\u0db8 \u0dc3\u0dca\u0dc0\u0dbb \u0dbb\u0da7\u0dcf\u0dc0, \u0db6\u0dbd\u0dcf\u0db4\u0ddc\u0dbb\u0ddc\u0dad\u0dca\u0dad\u0dd4\u0dc0 \u0db1\u0ddc\u0db1\u0dd0\u0dc3\u0dd3 \u0db4\u0dc0\u0dad\u0dd2\u0db1 \u0d86\u0d9a\u0dcf\u0dbb\u0dba \u0d89\u0dc3\u0dca\u0db8\u0dad\u0dd4 \u0d9a\u0dc5\u0dda \u0dba. \u0d91\u0dba \u0d86\u0db4\u0dc3\u0dd4 \u0db4\u0dd0\u0db8\u0dd2\u0dab\u0dd9\u0db1 \u0dbb\u0dd0\u0dbd\u0dca\u0dbd\u0d9a\u0dca \u0dc0\u0d9c\u0dda, \u0d86\u0daf\u0dbb\u0dba \u0d9a\u0dd2\u0dc3\u0dd2\u0daf\u0dcf \u0db1\u0dd2\u0db8 \u0db1\u0ddc\u0dc0\u0db1 \u0db6\u0dc0 \u0d9a\u0dd2\u0dba\u0dcf \u0dc3\u0dd2\u0da7\u0dd2\u0dba\u0dda \u0dba.\n\n**\u0d85\u0dc0\u0dc3\u0dcf\u0db1\u0dba: \u0dc4\u0dd4\u0dc3\u0dca\u0db8\u0d9a\u0dca \u0dc0\u0d9c\u0dda \u0db1\u0dd2\u0db8 \u0dc0\u0dd3\u0db8**\n\u0d9c\u0dd3\u0dad\u0dba \u0db1\u0dd2\u0db8 \u0dc0\u0dd6 \u0dc0\u0dd2\u0da7, \u0dc1\u0db6\u0dca\u0daf\u0dba \u0d9a\u0dca\u200d\u0dbb\u0db8\u0dba\u0dd9\u0db1\u0dca \u0dc0\u0dcf\u0dad\u0dba\u0da7 \u0db8\u0dd2\u0dc1\u0dca\u200d\u0dbb \u0dc0\u0dd3 \u0d85\u0dad\u0dd4\u0dbb\u0dd4\u0daf\u0dc4\u0db1\u0dca \u0dc0\u0dd4\u0dab\u0dd2. \u0d9a\u0dd2\u0dc3\u0dd2\u0dc0\u0dd9\u0d9a\u0dca \u0db8\u0dd4\u0dbd\u0dd2\u0db1\u0dca \u0d85\u0dad\u0dca\u0db4\u0ddc\u0dc5\u0dc3\u0db1\u0dca \u0daf\u0dd4\u0db1\u0dca\u0db1\u0dda \u0db1\u0dd0\u0dad. \u0dc3\u0dcf\u0dbd\u0dcf\u0dc0\u0dda \u0db1\u0dd2\u0dc1\u0dca\u0da0\u0dbd\u0dad\u0dcf\u0dc0 \u0dad\u0dc0 \u0db8\u0ddc\u0dc4\u0ddc\u0dad\u0d9a\u0dca \u0db4\u0dd0\u0dc0\u0dad\u0dd4\u0dab\u0dd2. \u0d89\u0db1\u0dca \u0db4\u0dc3\u0dd4 \u0d87\u0dc3\u0dd4\u0dab\u0dd4 \u0d85\u0dad\u0dca\u0db4\u0ddc\u0dc5\u0dc3\u0db1\u0dca \u0dc4\u0dac, \u0d9c\u0dd3\u0dad\u0dba \u0dc1\u0dca\u200d\u0dbb\u0dcf\u0dc0\u0d9a\u0dba\u0db1\u0dca\u0d9c\u0dda \u0dc4\u0daf\u0dc0\u0dad\u0dca \u0dc3\u0dca\u0db4\u0dbb\u0dca\u0dc1 \u0d9a\u0dbb \u0d87\u0dad\u0dd2 \u0db6\u0dc0\u0da7 \u0dc3\u0dcf\u0d9a\u0dca\u0dc2\u0dd2\u0dba\u0d9a\u0dca \u0dc0\u0dd2\u0dba.\n\n**\u0dc3\u0dcf\u0dbb\u0dcf\u0d82\u0dc1\u0dba**\n\u0d91\u0db8 \u0d9c\u0dd3\u0dad\u0dba\u0dda \u0dc3\u0d82\u0d9c\u0dd3\u0dad \u0dc4\u0dd0\u0d9f\u0dd3\u0db8 \u0dc0\u0dd6\u0dba\u0dda *\u0db1\u0ddc\u0dbd\u0dd0\u0db6\u0dd4\u0dab\u0dd4 \u0d86\u0daf\u0dbb\u0dba \u0d9c\u0dd0\u0db1 \u0dc0\u0dda\u0daf\u0db1\u0dcf\u0dc0* \u0db8\u0dd4\u0dc3\u0dd4 \u0dc0\u0dd6 \u0d9c\u0dde\u0dbb\u0dc0\u0dcf\u0db1\u0dca\u0dc0\u0dd2\u0dad \u0dc1\u0ddd\u0d9a\u0dba\u0d9a\u0dd2. \u0d91\u0dba \u0dc4\u0dac\u0dcf \u0dc0\u0dd0\u0dbd\u0db4\u0dd3\u0db8\u0da7 \u0dc0\u0da9\u0dcf, \u0daf\u0dd4\u0d9a \u0dad\u0dd4\u0dc5 \u0da2\u0dd3\u0dc0\u0dad\u0dca \u0dc0\u0dd3\u0db8\u0dda \u0dc3\u0dd2\u0dc4\u0dd2\u0dba \u0dc0\u0dd2\u0dba. \u0d9a\u0dc0\u0dd2 \u0d8b\u0dc5\u0dd9\u0dbd\u0dda \u0d91\u0db8 \u0db8\u0ddc\u0dc4\u0ddc\u0dad, \u0dc0\u0da0\u0db1 \u0dc4\u0dcf \u0dc3\u0dca\u0dc0\u0dbb \u0d91\u0d9a\u0dad\u0dd4 \u0dc0\u0dd3 \u0dc4\u0daf\u0dc0\u0dad\u0da7 \u0d9a\u0dad\u0dcf \u0d9a\u0dc5, \u0d9a\u0dcf\u0dbd\u0dba\u0d9a\u0dca \u0db8\u0dad\u0d9a \u0dbb\u0dd0\u0db3\u0dd9\u0db1 \u0dbb\u0dcf\u0dad\u0dca\u200d\u0dbb\u0dd2\u0dba\u0d9a\u0dca \u0db6\u0dc0\u0da7 \u0db4\u0dad\u0dca \u0dc0\u0dd2\u0dba.\n\n        **Criteria:**\n        1. The response conveys the same meaning as the reference answer: 'empathetic_response'. Wording may differ; the meaning must match.\n2. The response reads like a native Sri Lankan Sinhala speaker wrote it -- natural register and idiom, not translated-sounding English.\n\n        ### Evaluation Protocol\n        1. Analyze the response against the criteria.\n        2. Be strict. If the text is ambiguous, the check fails.\n        3. Output your assessment using the specific structure requested below.\n"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\"{\\\"results\\\":[{\\\"criterion\\\":\\\"The response conveys the same meaning as the reference answer: 'empathetic_response'. Wording may differ; the meaning must match.\\\",\\\"passed\\\":false,\\\"reason\\\":\\\"The generated response is an essay describing a musical performance of a melancholic song at a poetry festival. It does not convey the meaning of the reference answer 'empathetic_response'.\\\",\\\"confidence\\\":5},{\\\"criterion\\\":\\\"The response reads like a native Sri Lankan Sinhala speaker wrote it -- natural register and idiom, not translated-sounding English.\\\",\\\"passed\\\":false,\\\"reason\\\":\\\"The text contains unnatural phrasings and literal calques from English, such as using '\\u0db1\\u0ddd\\u0da7\\u0dca\\u0da7\\u0dd4\\u0dc0' instead of '\\u0dc3\\u0dca\\u0dc0\\u0dbb\\u0dba' for a musical note, and unnatural expressions like '\\u0dc0\\u0dcf\\u0dad\\u0dba\\u0da7 \\u0db1\\u0dd0\\u0d9c\\u0dd4\\u0dab\\u0dd2' (rose into the air) and '\\u0dad\\u0dda\\u0dbb\\u0dd4\\u0db8\\u0d9a\\u0dca \\u0d9c\\u0dad\\u0dca\\u0dad\\u0dda \\u0dba' (took on meaning).\\\",\\\"confidence\\\":4}]}\""
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.8-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 1183,
+                "outputTokens": 1403,
+                "inputTokensCostNanodollars": "887250",
+                "outputTokensCostNanodollars": "5261250",
+                "totalBackendLatencyMs": "13337"
+              },
+              "id": "Response assessment with google/gemini-3.8-flash-dcfaf824-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 1183,
+            "outputTokens": 1403,
+            "inputTokensCostNanodollars": "887250",
+            "outputTokensCostNanodollars": "5261250",
+            "totalBackendLatencyMs": "13337"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_04_012"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_04_kavi_sindu_item-Run #12"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_04_kavi_sindu_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_04_kavi_sindu_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-5-5"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-10-13T09:08:26.038630Z",
+      "endTime": "2026-10-13T09:08:51.533934Z",
+      "conversations": [
+        {
+          "id": "synhalees_04_kavi_sindu_item-6342803c",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0da2\u0db1 \u0d9a\u0dc0\u0dd2 \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0db4\u0ddc\u0da9\u0dd2 \u0dc5\u0db8\u0dba\u0dd9\u0d9a\u0dd4\u0da7 \u0dad\u0dda\u0dbb\u0dd9\u0db1 \u0dc0\u0dd2\u0daf\u0dd2\u0dba\u0da7 \u0db4\u0dd0\u0dc4\u0dd0\u0daf\u0dd2\u0dbd\u0dd2 \u0d9a\u0dbb\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# \u0da2\u0db1 \u0d9a\u0dc0\u0dd2 \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?\n\n\u0da2\u0db1 \u0d9a\u0dc0\u0dd2 \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda **\u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba \u0da2\u0db1\u0dad\u0dcf\u0dc0** \u0d85\u0dad\u0dbb \u0dc4\u0daf\u0dbd\u0dcf, \u0db8\u0dd4\u0d9b \u0db4\u0dbb\u0db8\u0dca\u0db4\u0dbb\u0dcf\u0dc0\u0dd9\u0db1\u0dca \u0d91\u0d9a\u0dd2\u0db1\u0dd9\u0d9a\u0dcf\u0da7 \u0d9a\u0dd2\u0dba\u0dbd\u0dcf, \u0d9c\u0dcf\u0dba\u0db1\u0dcf \u0d9a\u0dbb\u0dbd\u0dcf, \u0db4\u0dbb\u0db8\u0dca\u0db4\u0dbb\u0dcf\u0dc0\u0dd9\u0db1\u0dca \u0db4\u0dbb\u0db8\u0dca\u0db4\u0dbb\u0dcf\u0dc0\u0da7 \u0dbb\u0dd0\u0d9c\u0dd9\u0db1 \u0d86\u0db4\u0dd4 \u0d9a\u0dc0\u0dd2.\n\n## \u0d92\u0d9a \u0dbd\u0dda\u0dc3\u0dd2\u0dba\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1 \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca:\n\n\u0d94\u0dba\u0dcf\u0d9c\u0dda \u0d86\u0da0\u0dca\u0da0\u0dd2 \u0dc4\u0ddd \u0dc3\u0dd3\u0dba\u0dcf \u0db4\u0ddc\u0da9\u0dd2 \u0d9a\u0dcf\u0dbd\u0dda \u0d94\u0dba\u0dcf\u0da7 \u0d9c\u0dd3\u0dad\u0dba\u0d9a\u0dca \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0db1\u0dd2\u0db1\u0dca\u0daf \u0dba\u0dc0\u0db1\u0dca\u0db1 \u0d87\u0dad\u0dd2. \u0d92 \u0d9c\u0dd3\u0dad\u0dba \u0d92 \u0d85\u0dba\u0da7 \u0d92 \u0d85\u0dba\u0d9c\u0dda \u0d86\u0da0\u0dca\u0da0\u0dd2 \u0dc3\u0dd3\u0dba\u0dcf\u0dbd\u0dcf \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0daf\u0dd4\u0db1\u0dca\u0db1\u0dda. \u0d92\u0d9a \u0dad\u0db8\u0dba\u0dd2 \u0da2\u0db1 \u0d9a\u0dc0\u0dd2\u0dba\u0d9a\u0dca \u0dc0\u0dd9\u0db1\u0dca\u0db1\u0dda. \u0d92\u0d9a \u0d9a\u0dcf\u0da7\u0dc0\u0dad\u0dca \u0dbd\u0dd2\u0dba\u0dbd\u0dcf \u0dad\u0dd2\u0db6\u0dd4\u0dab\u0dda \u0db1\u0dd0\u0dad\u0dd2 \u0dc0\u0dd9\u0db1\u0dca\u0db1\u0dad\u0dca \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca. \u0db8\u0dd4\u0dbd\u0dd2\u0db1\u0dca\u0db8 \u0d9a\u0dc0\u0dca\u0daf \u0d9a\u0dd2\u0dc0\u0dca\u0dc0\u0dda \u0d9a\u0dd2\u0dba\u0dbd\u0dc0\u0dad\u0dca \u0daf\u0db1\u0dca\u0db1\u0dda \u0db1\u0dd0\u0dc4\u0dd0, \u0db1\u0db8\u0dd4\u0dad\u0dca \u0dc4\u0dd0\u0db8\u0ddd\u0db8 \u0d92\u0d9a \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0d86\u0dc0\u0dcf.\n\n## \u0da2\u0db1 \u0d9a\u0dc0\u0dd2\u0dc0\u0dbd \u0dbd\u0d9a\u0dca\u0dc2\u0dab:\n\n- **\u0d9c\u0dd0\u0db8\u0dd2 \u0da2\u0dd3\u0dc0\u0dd2\u0dad\u0dba** \u0d9c\u0dd0\u0db1 \u0d9a\u0dad\u0dcf \u0d9a\u0dbb\u0db1\u0dc0\u0dcf: \u0d9a\u0dd4\u0db9\u0dd4\u0dbb\u0dd4 \u0dc0\u0dd0\u0da9, \u0d9c\u0ddc\u0dc0\u0dd2\u0dad\u0dd0\u0db1, \u0d9c\u0db8\u0dca\u0db6\u0daf \u0da2\u0dd3\u0dc0\u0dd2\u0dad\u0dba.\n- **\u0dc3\u0dca\u0dc0\u0db7\u0dcf\u0dc0\u0dba** \u0d9c\u0dd0\u0db1 \u0d9a\u0dd2\u0dba\u0db1\u0dc0\u0dcf: \u0d9c\u0d82\u0d9c\u0dcf, \u0d9a\u0db3\u0dd4, \u0dc0\u0dd0\u0dc3\u0dd2, \u0dc4\u0db3, \u0dad\u0dbb\u0dd4.\n- **\u0d86\u0daf\u0dbb\u0dba, \u0dc4\u0dd2\u0dad \u0dc4\u0daf\u0db1 \u0daf\u0dda\u0dc0\u0dbd\u0dca** \u0d9c\u0dd0\u0db1 \u0d9a\u0dd2\u0dba\u0db1\u0dc0\u0dcf.\n- **\u0dc3\u0dbb\u0dbd \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dd9\u0db1\u0dca** \u0dbd\u0dd2\u0dba\u0dbd\u0dcf \u0dad\u0dd2\u0dba\u0dd9\u0db1\u0dc0\u0dcf, \u0dbd\u0dda\u0dc3\u0dd2\u0dba\u0dd9\u0db1\u0dca \u0db8\u0dad\u0d9a \u0dad\u0dd2\u0dba\u0dcf\u0d9c\u0db1\u0dca\u0db1 \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca.\n- **\u0dbb\u0dd2\u0daf\u0dca\u0db8\u0dba\u0d9a\u0dca** \u0dad\u0dd2\u0dba\u0dd9\u0db1\u0dc0\u0dcf, \u0d9c\u0dcf\u0dba\u0db1\u0dcf \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dad\u0dca \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca.\n\n## \u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab:\n\n- **\u0db1\u0dd0\u0dc5\u0dc0\u0dd2\u0dbd\u0dd2 \u0d9c\u0dd3** \u2013 \u0dc5\u0db8\u0dba\u0dd2\u0db1\u0dca\u0da7 \u0db1\u0dd2\u0db1\u0dca\u0daf \u0dba\u0dc0\u0db1\u0dca\u0db1 \u0d9a\u0dd2\u0dba\u0db1 \u0d9c\u0dd3\u0dad.\n- **\u0d9c\u0ddc\u0dc0\u0dd2 \u0d9c\u0dd3** \u2013 \u0d9a\u0dd4\u0db9\u0dd4\u0dbb\u0dda \u0dc0\u0dd0\u0da9 \u0d9a\u0dbb\u0daf\u0dca\u0daf\u0dd3 \u0d9c\u0dba\u0db1 \u0d9c\u0dd3\u0dad.\n- **\u0d9c\u0dd0\u0db8\u0dd2 \u0d9c\u0dd3** \u2013 \u0d9c\u0db8\u0dda \u0d8b\u0dad\u0dca\u0dc3\u0dc0, \u0dc0\u0dd2\u0dc0\u0dcf\u0dc4, \u0d9a\u0dd9\u0dad\u0dca\u0dc0\u0dad\u0dd4 \u0dc0\u0dd0\u0db1\u0dd2 \u0daf\u0dda\u0dc0\u0dbd\u0dca \u0d9c\u0dd0\u0db1 \u0d9a\u0dd2\u0dba\u0db1 \u0d9c\u0dd3\u0dad.\n\n## \u0dc3\u0dbb\u0dbd \u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab\u0dba\u0d9a\u0dca (\u0db4\u0dd0\u0dc4\u0dd0\u0daf\u0dd2\u0dbd\u0dd2 \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0da7\u0dba\u0dd2):\n\n> *\"\u0dbd\u0dcf \u0dbd\u0dcf \u0dbd\u0dcf \u0dbd\u0dcf \u0dbd\u0dcf, \u0db1\u0dd2\u0daf\u0dd2 \u0dba\u0db1\u0dca\u0db1 \u0db4\u0dd4\u0dad\u0dda \u0dbd\u0dcf,\n> \u0dc3\u0db3 \u0db8\u0dcf\u0db8\u0dcf \u0d91\u0dc5\u0dd2\u0dba \u0daf\u0dd9\u0dba\u0dd2, \u0dad\u0dbb\u0dd4 \u0dc5\u0d9f \u0db1\u0dd2\u0daf\u0dcf \u0dbd\u0dcf.\"*\n\n\u0db8\u0dda \u0dc0\u0d9c\u0dda \u0d9a\u0dc0\u0dd2 \u0db4\u0dc0\u0dd4\u0dbd\u0dda \u0d85\u0dba\u0da7 \u0d9a\u0dd2\u0dba\u0dbd\u0dcf, \u0dc5\u0db8\u0dba\u0dd2\u0db1\u0dca\u0da7 \u0d9a\u0dd2\u0dba\u0dbd\u0dcf, \u0d9c\u0db8\u0dda \u0db8\u0dd2\u0db1\u0dd2\u0dc3\u0dca\u0dc3\u0dd4 \u0d85\u0dad\u0dbb \u0d9c\u0dd9\u0db1\u0dd2\u0dba\u0db1\u0dc0\u0dcf. \u0d92\u0d9a\u0dba\u0dd2 \u0da2\u0db1 \u0d9a\u0dc0\u0dd2 \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda: **\u0da2\u0db1\u0dad\u0dcf\u0dc0\u0d9c\u0dda \u0dc4\u0daf\u0dc0\u0dad\u0dd2\u0db1\u0dca \u0d89\u0db4\u0daf\u0dd4\u0dab\u0dd4, \u0da2\u0db1\u0dad\u0dcf\u0dc0 \u0dc0\u0dd2\u0dc3\u0dd2\u0db1\u0dca\u0db8 \u0da2\u0dd3\u0dc0\u0dad\u0dca \u0d9a\u0dbb\u0dc0\u0db1 \u0d9a\u0dc0\u0dd2.**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-5-5"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 70,
+                "outputTokens": 1507,
+                "inputTokensCostNanodollars": "7000",
+                "outputTokensCostNanodollars": "753500",
+                "totalBackendLatencyMs": "11730"
+              },
+              "id": "synhalees_04_kavi_sindu_item-6342803c-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 70,
+            "outputTokens": 1507,
+            "inputTokensCostNanodollars": "7000",
+            "outputTokensCostNanodollars": "753500",
+            "totalBackendLatencyMs": "11730"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        },
+        {
+          "id": "Response assessment with google/gemini-3.8-flash-97c6d225",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\n        You are an impartial and strict technical evaluator.\n\n        ### Task\n        Verify if the **Generated Response** complies strictly with the **Criteria**.\n\n        ### Input Data\n        **Generated Response:**\n        # \u0da2\u0db1 \u0d9a\u0dc0\u0dd2 \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?\n\n\u0da2\u0db1 \u0d9a\u0dc0\u0dd2 \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda **\u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba \u0da2\u0db1\u0dad\u0dcf\u0dc0** \u0d85\u0dad\u0dbb \u0dc4\u0daf\u0dbd\u0dcf, \u0db8\u0dd4\u0d9b \u0db4\u0dbb\u0db8\u0dca\u0db4\u0dbb\u0dcf\u0dc0\u0dd9\u0db1\u0dca \u0d91\u0d9a\u0dd2\u0db1\u0dd9\u0d9a\u0dcf\u0da7 \u0d9a\u0dd2\u0dba\u0dbd\u0dcf, \u0d9c\u0dcf\u0dba\u0db1\u0dcf \u0d9a\u0dbb\u0dbd\u0dcf, \u0db4\u0dbb\u0db8\u0dca\u0db4\u0dbb\u0dcf\u0dc0\u0dd9\u0db1\u0dca \u0db4\u0dbb\u0db8\u0dca\u0db4\u0dbb\u0dcf\u0dc0\u0da7 \u0dbb\u0dd0\u0d9c\u0dd9\u0db1 \u0d86\u0db4\u0dd4 \u0d9a\u0dc0\u0dd2.\n\n## \u0d92\u0d9a \u0dbd\u0dda\u0dc3\u0dd2\u0dba\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1 \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca:\n\n\u0d94\u0dba\u0dcf\u0d9c\u0dda \u0d86\u0da0\u0dca\u0da0\u0dd2 \u0dc4\u0ddd \u0dc3\u0dd3\u0dba\u0dcf \u0db4\u0ddc\u0da9\u0dd2 \u0d9a\u0dcf\u0dbd\u0dda \u0d94\u0dba\u0dcf\u0da7 \u0d9c\u0dd3\u0dad\u0dba\u0d9a\u0dca \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0db1\u0dd2\u0db1\u0dca\u0daf \u0dba\u0dc0\u0db1\u0dca\u0db1 \u0d87\u0dad\u0dd2. \u0d92 \u0d9c\u0dd3\u0dad\u0dba \u0d92 \u0d85\u0dba\u0da7 \u0d92 \u0d85\u0dba\u0d9c\u0dda \u0d86\u0da0\u0dca\u0da0\u0dd2 \u0dc3\u0dd3\u0dba\u0dcf\u0dbd\u0dcf \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0daf\u0dd4\u0db1\u0dca\u0db1\u0dda. \u0d92\u0d9a \u0dad\u0db8\u0dba\u0dd2 \u0da2\u0db1 \u0d9a\u0dc0\u0dd2\u0dba\u0d9a\u0dca \u0dc0\u0dd9\u0db1\u0dca\u0db1\u0dda. \u0d92\u0d9a \u0d9a\u0dcf\u0da7\u0dc0\u0dad\u0dca \u0dbd\u0dd2\u0dba\u0dbd\u0dcf \u0dad\u0dd2\u0db6\u0dd4\u0dab\u0dda \u0db1\u0dd0\u0dad\u0dd2 \u0dc0\u0dd9\u0db1\u0dca\u0db1\u0dad\u0dca \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca. \u0db8\u0dd4\u0dbd\u0dd2\u0db1\u0dca\u0db8 \u0d9a\u0dc0\u0dca\u0daf \u0d9a\u0dd2\u0dc0\u0dca\u0dc0\u0dda \u0d9a\u0dd2\u0dba\u0dbd\u0dc0\u0dad\u0dca \u0daf\u0db1\u0dca\u0db1\u0dda \u0db1\u0dd0\u0dc4\u0dd0, \u0db1\u0db8\u0dd4\u0dad\u0dca \u0dc4\u0dd0\u0db8\u0ddd\u0db8 \u0d92\u0d9a \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0d86\u0dc0\u0dcf.\n\n## \u0da2\u0db1 \u0d9a\u0dc0\u0dd2\u0dc0\u0dbd \u0dbd\u0d9a\u0dca\u0dc2\u0dab:\n\n- **\u0d9c\u0dd0\u0db8\u0dd2 \u0da2\u0dd3\u0dc0\u0dd2\u0dad\u0dba** \u0d9c\u0dd0\u0db1 \u0d9a\u0dad\u0dcf \u0d9a\u0dbb\u0db1\u0dc0\u0dcf: \u0d9a\u0dd4\u0db9\u0dd4\u0dbb\u0dd4 \u0dc0\u0dd0\u0da9, \u0d9c\u0ddc\u0dc0\u0dd2\u0dad\u0dd0\u0db1, \u0d9c\u0db8\u0dca\u0db6\u0daf \u0da2\u0dd3\u0dc0\u0dd2\u0dad\u0dba.\n- **\u0dc3\u0dca\u0dc0\u0db7\u0dcf\u0dc0\u0dba** \u0d9c\u0dd0\u0db1 \u0d9a\u0dd2\u0dba\u0db1\u0dc0\u0dcf: \u0d9c\u0d82\u0d9c\u0dcf, \u0d9a\u0db3\u0dd4, \u0dc0\u0dd0\u0dc3\u0dd2, \u0dc4\u0db3, \u0dad\u0dbb\u0dd4.\n- **\u0d86\u0daf\u0dbb\u0dba, \u0dc4\u0dd2\u0dad \u0dc4\u0daf\u0db1 \u0daf\u0dda\u0dc0\u0dbd\u0dca** \u0d9c\u0dd0\u0db1 \u0d9a\u0dd2\u0dba\u0db1\u0dc0\u0dcf.\n- **\u0dc3\u0dbb\u0dbd \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dd9\u0db1\u0dca** \u0dbd\u0dd2\u0dba\u0dbd\u0dcf \u0dad\u0dd2\u0dba\u0dd9\u0db1\u0dc0\u0dcf, \u0dbd\u0dda\u0dc3\u0dd2\u0dba\u0dd9\u0db1\u0dca \u0db8\u0dad\u0d9a \u0dad\u0dd2\u0dba\u0dcf\u0d9c\u0db1\u0dca\u0db1 \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca.\n- **\u0dbb\u0dd2\u0daf\u0dca\u0db8\u0dba\u0d9a\u0dca** \u0dad\u0dd2\u0dba\u0dd9\u0db1\u0dc0\u0dcf, \u0d9c\u0dcf\u0dba\u0db1\u0dcf \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dad\u0dca \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca.\n\n## \u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab:\n\n- **\u0db1\u0dd0\u0dc5\u0dc0\u0dd2\u0dbd\u0dd2 \u0d9c\u0dd3** \u2013 \u0dc5\u0db8\u0dba\u0dd2\u0db1\u0dca\u0da7 \u0db1\u0dd2\u0db1\u0dca\u0daf \u0dba\u0dc0\u0db1\u0dca\u0db1 \u0d9a\u0dd2\u0dba\u0db1 \u0d9c\u0dd3\u0dad.\n- **\u0d9c\u0ddc\u0dc0\u0dd2 \u0d9c\u0dd3** \u2013 \u0d9a\u0dd4\u0db9\u0dd4\u0dbb\u0dda \u0dc0\u0dd0\u0da9 \u0d9a\u0dbb\u0daf\u0dca\u0daf\u0dd3 \u0d9c\u0dba\u0db1 \u0d9c\u0dd3\u0dad.\n- **\u0d9c\u0dd0\u0db8\u0dd2 \u0d9c\u0dd3** \u2013 \u0d9c\u0db8\u0dda \u0d8b\u0dad\u0dca\u0dc3\u0dc0, \u0dc0\u0dd2\u0dc0\u0dcf\u0dc4, \u0d9a\u0dd9\u0dad\u0dca\u0dc0\u0dad\u0dd4 \u0dc0\u0dd0\u0db1\u0dd2 \u0daf\u0dda\u0dc0\u0dbd\u0dca \u0d9c\u0dd0\u0db1 \u0d9a\u0dd2\u0dba\u0db1 \u0d9c\u0dd3\u0dad.\n\n## \u0dc3\u0dbb\u0dbd \u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab\u0dba\u0d9a\u0dca (\u0db4\u0dd0\u0dc4\u0dd0\u0daf\u0dd2\u0dbd\u0dd2 \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0da7\u0dba\u0dd2):\n\n> *\"\u0dbd\u0dcf \u0dbd\u0dcf \u0dbd\u0dcf \u0dbd\u0dcf \u0dbd\u0dcf, \u0db1\u0dd2\u0daf\u0dd2 \u0dba\u0db1\u0dca\u0db1 \u0db4\u0dd4\u0dad\u0dda \u0dbd\u0dcf,\n> \u0dc3\u0db3 \u0db8\u0dcf\u0db8\u0dcf \u0d91\u0dc5\u0dd2\u0dba \u0daf\u0dd9\u0dba\u0dd2, \u0dad\u0dbb\u0dd4 \u0dc5\u0d9f \u0db1\u0dd2\u0daf\u0dcf \u0dbd\u0dcf.\"*\n\n\u0db8\u0dda \u0dc0\u0d9c\u0dda \u0d9a\u0dc0\u0dd2 \u0db4\u0dc0\u0dd4\u0dbd\u0dda \u0d85\u0dba\u0da7 \u0d9a\u0dd2\u0dba\u0dbd\u0dcf, \u0dc5\u0db8\u0dba\u0dd2\u0db1\u0dca\u0da7 \u0d9a\u0dd2\u0dba\u0dbd\u0dcf, \u0d9c\u0db8\u0dda \u0db8\u0dd2\u0db1\u0dd2\u0dc3\u0dca\u0dc3\u0dd4 \u0d85\u0dad\u0dbb \u0d9c\u0dd9\u0db1\u0dd2\u0dba\u0db1\u0dc0\u0dcf. \u0d92\u0d9a\u0dba\u0dd2 \u0da2\u0db1 \u0d9a\u0dc0\u0dd2 \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda: **\u0da2\u0db1\u0dad\u0dcf\u0dc0\u0d9c\u0dda \u0dc4\u0daf\u0dc0\u0dad\u0dd2\u0db1\u0dca \u0d89\u0db4\u0daf\u0dd4\u0dab\u0dd4, \u0da2\u0db1\u0dad\u0dcf\u0dc0 \u0dc0\u0dd2\u0dc3\u0dd2\u0db1\u0dca\u0db8 \u0da2\u0dd3\u0dc0\u0dad\u0dca \u0d9a\u0dbb\u0dc0\u0db1 \u0d9a\u0dc0\u0dd2.**\n\n        **Criteria:**\n        1. The response conveys the same meaning as the reference answer: 'simple_explanation_response'. Wording may differ; the meaning must match.\n2. The response reads like a native Sri Lankan Sinhala speaker wrote it -- natural register and idiom, not translated-sounding English.\n\n        ### Evaluation Protocol\n        1. Analyze the response against the criteria.\n        2. Be strict. If the text is ambiguous, the check fails.\n        3. Output your assessment using the specific structure requested below.\n"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\"{\\\"results\\\":[{\\\"criterion\\\":\\\"The response conveys the same meaning as the reference answer: 'simple_explanation_response'. Wording may differ; the meaning must match.\\\",\\\"passed\\\":true,\\\"reason\\\":\\\"The response successfully provides a clear, simple explanation of folk poems (\\u0da2\\u0db1 \\u0d9a\\u0dc0\\u0dd2), their origin, characteristics, and examples in an accessible manner.\\\",\\\"confidence\\\":5},{\\\"criterion\\\":\\\"The response reads like a native Sri Lankan Sinhala speaker wrote it -- natural register and idiom, not translated-sounding English.\\\",\\\"passed\\\":false,\\\"reason\\\":\\\"The Sinhala text exhibits clear syntactic and conceptual calques from English rather than natural Sri Lankan idiom. Phrases like '\\u0db1\\u0dd2\\u0db1\\u0dca\\u0daf \\u0dba\\u0dc0\\u0db1\\u0dca\\u0db1 \\u0d87\\u0dad\\u0dd2' (a literal translation of 'put to sleep' instead of '\\u0db1\\u0dd2\\u0daf\\u0dd2 \\u0d9a\\u0dbb\\u0dc0\\u0db1\\u0dca\\u0db1 \\u0d87\\u0dad\\u0dd2' or '\\u0db1\\u0dc5\\u0dc0\\u0db1\\u0dca\\u0db1 \\u0d87\\u0dad\\u0dd2'), '\\u0dc3\\u0dca\\u0dc0\\u0db7\\u0dcf\\u0dc0\\u0dba \\u0d9c\\u0dd0\\u0db1 \\u0d9a\\u0dd2\\u0dba\\u0db1\\u0dc0\\u0dcf' (literal rendering of 'talks about nature' instead of '\\u0dc3\\u0dca\\u0dc0\\u0db7\\u0dcf\\u0dc0\\u0db0\\u0dbb\\u0dca\\u0db8\\u0dba / \\u0db4\\u0dbb\\u0dd2\\u0dc3\\u0dbb\\u0dba'), and the invented lullaby beginning with '\\u0dbd\\u0dcf \\u0dbd\\u0dcf \\u0dbd\\u0dcf \\u0dbd\\u0dcf \\u0dbd\\u0dcf' (reflecting Western 'la la la' nursery rhyme conventions rather than authentic Sinhala lullaby idioms like '\\u0daf\\u0ddc\\u0dba\\u0dd2 \\u0daf\\u0ddc\\u0dba\\u0dd2' or '\\u0d94\\u0db1\\u0dca\\u0db1 \\u0db6\\u0db6\\u0ddd') indicate machine-translated English thinking.\\\",\\\"confidence\\\":5}]}\""
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.8-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 953,
+                "outputTokens": 1441,
+                "inputTokensCostNanodollars": "714750",
+                "outputTokensCostNanodollars": "5403750",
+                "totalBackendLatencyMs": "13240"
+              },
+              "id": "Response assessment with google/gemini-3.8-flash-97c6d225-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 953,
+            "outputTokens": 1441,
+            "inputTokensCostNanodollars": "714750",
+            "outputTokensCostNanodollars": "5403750",
+            "totalBackendLatencyMs": "13240"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_04_013"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_04_kavi_sindu_item-Run #13"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_04_kavi_sindu_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_04_kavi_sindu_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-5-5"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-10-13T09:08:44.175514Z",
+      "endTime": "2026-10-13T09:09:16.888379Z",
+      "conversations": [
+        {
+          "id": "synhalees_04_kavi_sindu_item-f5596cbd",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db4\u0dbb\u0dab \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc3\u0dd2\u0db1\u0dca\u0daf\u0dd4\u0dc0\u0d9a\u0dca \u0d85\u0dbd\u0dd4\u0dad\u0dca \u0dad\u0dbb\u0dd4\u0dab \u0db4\u0dbb\u0db8\u0dca\u0db4\u0dbb\u0dcf\u0dc0\u0da7 \u0d9c\u0dd0\u0dc5\u0db4\u0dd9\u0db1 \u0dc0\u0dd2\u0daf\u0dd2\u0dc4\u0da7 \u0dc4\u0dbb\u0dc0\u0db1\u0dca\u0db1 \u0dc4\u0ddc\u0db3 \u0dba\u0ddd\u0da2\u0db1\u0dcf\u0dc0\u0d9a\u0dca \u0d9a\u0dbb\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# \u0db4\u0dbb\u0dab \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc3\u0dd2\u0db1\u0dca\u0daf\u0dd4\u0dc0\u0d9a\u0dca \u0d85\u0dbd\u0dd4\u0dad\u0dca \u0db4\u0dbb\u0db8\u0dca\u0db4\u0dbb\u0dcf\u0dc0\u0da7 \u0d9c\u0dd0\u0dc5\u0db4\u0dd9\u0db1 \u0dc0\u0dd2\u0daf\u0dd2\u0dc4\u0da7 \u0dc4\u0dd0\u0dbb\u0dc0\u0dd3\u0db8\u0dda \u0dba\u0ddd\u0da2\u0db1\u0dcf\u0dc0\n\n## 1. \u0db8\u0dd4\u0dbd\u0dca \u0dc3\u0dd2\u0db1\u0dca\u0daf\u0dd4\u0dc0\u0dda \u0dc4\u0dbb\u0dba \u0dbb\u0db3\u0dc0\u0dcf \u0d9c\u0db1\u0dca\u0db1\n- \u0db8\u0dd4\u0dbd\u0dca \u0db8\u0dd9\u0dbd\u0da9\u0dd2\u0dba (\u0dbb\u0dcf\u0d9c\u0dba) \u0dc3\u0dc4 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dc0\u0da0\u0db1 \u0dc4\u0ddd \u0d9a\u0ddc\u0da7\u0dc3\u0dca \u0dad\u0db6\u0dcf \u0d9c\u0db1\u0dca\u0db1. \u0da2\u0db1\u0db4\u0dca\u200d\u0dbb\u0dd2\u0dba \u0d9a\u0ddc\u0da7\u0dc3 (chorus / hook) \u0dc0\u0da9\u0dcf\u0dad\u0dca \u0dc4\u0db3\u0dd4\u0db1\u0dcf\u0d9c\u0dad \u0dc4\u0dd0\u0d9a\u0dd2 \u0dbd\u0dd9\u0dc3 \u0dad\u0dd2\u0dba\u0db1\u0dca\u0db1.\n- \u0d9c\u0dd3\u0dad\u0dba\u0dda \u0dc4\u0dd0\u0d9f\u0dd3\u0db8 (\u0d86\u0daf\u0dbb\u0dba, \u0dc0\u0dd2\u0dba\u0ddd\u0dc0, \u0dc3\u0db8\u0dcf\u0da2 \u0db4\u0dab\u0dd2\u0dc0\u0dd2\u0da9\u0dba) \u0dc0\u0dd9\u0db1\u0dc3\u0dca \u0db1\u0ddc\u0d9a\u0dbb \u0dad\u0dd2\u0dba\u0db1\u0dca\u0db1. \u0d91\u0dba\u0dd2\u0db1\u0dca \u0db4\u0dd0\u0dbb\u0dab\u0dd2 \u0dbb\u0dc3\u0dd2\u0d9a\u0dba\u0db1\u0dca\u0dad\u0dca \u0d86\u0d9a\u0dbb\u0dca\u0dc2\u0dab\u0dba \u0dc0\u0dd9\u0dba\u0dd2.\n\n## 2. \u0dc3\u0d82\u0d9c\u0dd3\u0dad \u0dc1\u0ddb\u0dbd\u0dd2\u0dba \u0dba\u0dcf\u0dc0\u0dad\u0dca\u0d9a\u0dcf\u0dbd\u0dd3\u0db1 \u0d9a\u0dbb\u0db1\u0dca\u0db1\n- **Lo-fi / Chill beats:** \u0dc3\u0dd0\u0dc4\u0dd0\u0dbd\u0dca\u0dbd\u0dd4 \u0d9c\u0dd2\u0da7\u0dcf\u0dbb\u0dca, \u0db8\u0dd8\u0daf\u0dd4 \u0db6\u0dd3\u0da7\u0dca \u0dc3\u0dc4 \u0dc0\u0dba\u0dd2\u0db6\u0dca \u0d91\u0d9a\u0d9a\u0dca \u0d91\u0d9a\u0dca\u0d9a\u0dbd\u0dcf \u0dbb\u0dcf\u0dad\u0dca\u200d\u0dbb\u0dd3 \u0dc0\u0dda\u0dbd\u0dcf\u0dc0\u0da7 \u0d9c\u0dd0\u0dc5\u0db4\u0dd9\u0db1 \u0dc3\u0d82\u0dc3\u0dca\u0d9a\u0dbb\u0dab\u0dba\u0d9a\u0dca.\n- **Acoustic / Unplugged:** \u0d9c\u0dd2\u0da7\u0dcf\u0dbb\u0dca, \u0db4\u0dd2\u0dba\u0dcf\u0db1\u0ddd, \u0dc4\u0ddd \u0da9\u0dca\u200d\u0dbb\u0db8\u0dca \u0db1\u0dd0\u0dad\u0dd2\u0dc0 \u0dc3\u0dbb\u0dbd \u0dc3\u0d82\u0d9c\u0dd3\u0dad\u0dba\u0d9a\u0dca. \u0dad\u0dbb\u0dd4\u0dab \u0dc3\u0db8\u0dcf\u0da2 \u0db8\u0dcf\u0db0\u0dca\u200d\u0dba\u0dc0\u0dbd \u0da2\u0db1\u0db4\u0dca\u200d\u0dbb\u0dd2\u0dba.\n- **Trap / Hip-hop \u0dc3\u0dc4 R&B:** \u0d9c\u0dcf\u0dba\u0db1\u0dba \u0db8\u0dd8\u0daf\u0dd4 \u0d9a\u0dbb, \u0db6\u0dd3\u0da7\u0dca \u0d91\u0d9a \u0d86\u0db0\u0dd4\u0db1\u0dd2\u0d9a \u0dbd\u0dd9\u0dc3 \u0dba\u0ddc\u0daf\u0db1\u0dca\u0db1.\n- **EDM / Synth-pop:** \u0db1\u0dd0\u0da7\u0dd3\u0db8\u0da7 \u0dc4\u0dd0\u0d9a\u0dd2 \u0dbd\u0dd9\u0dc3 \u0da7\u0dd9\u0db8\u0dca\u0db4\u0ddd \u0dc0\u0dd0\u0da9\u0dd2 \u0d9a\u0dbb synth \u0dc1\u0db6\u0dca\u0daf \u0d91\u0d9a\u0dca\u0d9a\u0dbb\u0db1\u0dca\u0db1.\n\n## 3. \u0d9c\u0dcf\u0dba\u0db1\u0dba \u0dc3\u0dc4 \u0dc0\u0da0\u0db1\n- \u0d9c\u0dcf\u0dba\u0db1 \u0dc1\u0ddb\u0dbd\u0dd2\u0dba \u0dad\u0dbb\u0dd4\u0dab \u0dc4\u0dac\u0da7 \u0d9c\u0dd0\u0dbd\u0db4\u0dd9\u0db1 \u0dbd\u0dd9\u0dc3 \u0dc3\u0dbb\u0dbd \u0d9a\u0dbb\u0db1\u0dca\u0db1. \u0dc3\u0db8\u0dc4\u0dbb \u0dc0\u0dd2\u0da7 \u0db4\u0dd2\u0dbb\u0dd2\u0db8\u0dd2/\u0d9c\u0dd0\u0dc4\u0dd0\u0dab\u0dd4 \u0d9c\u0dcf\u0dba\u0d9a\u0dba\u0db1\u0dca \u0d85\u0dbd\u0dd4\u0dad\u0dca \u0d86\u0d9a\u0dcf\u0dbb\u0dba\u0da7 \u0d92\u0d9a\u0dcf\u0db6\u0daf\u0dca\u0db0 \u0d9a\u0dbb\u0db1\u0dca\u0db1.\n- \u0dc0\u0da0\u0db1 \u0db4\u0dd2\u0dc5\u0dd2\u0db6\u0db3 \u0d9c\u0dd0\u0da7\u0dc5\u0dd4\u0dc0\u0d9a\u0dca \u0db1\u0dd0\u0dad\u0dd2 \u0db1\u0db8\u0dca, \u0dc3\u0db8\u0dc4\u0dbb \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba \u0dc0\u0dbb\u0dca\u0dad\u0db8\u0dcf\u0db1 \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0da7 (Singlish \u0dc4\u0ddd \u0daf\u0ddb\u0db1\u0dd2\u0d9a \u0d9a\u0dae\u0db1 \u0dc3\u0dd2\u0d82\u0dc4\u0dbd) \u0dc3\u0db8\u0dd3\u0db4 \u0d9a\u0dbb\u0db1\u0dca\u0db1. \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0d85\u0dbb\u0dca\u0dae\u0dba \u0dc0\u0dd9\u0db1\u0dc3\u0dca \u0db1\u0ddc\u0dc0\u0dd2\u0dba \u0dba\u0dd4\u0dad\u0dd4\u0dba\u0dd2.\n- Hook \u0d91\u0d9a\u0da7 \u0dad\u0dbb\u0dd4\u0dab\u0dba\u0db1\u0dca\u0da7 \u0d85\u0daf\u0dcf\u0dc5 \u0dad\u0dda\u0db8\u0dcf\u0dc0\u0d9a\u0dca (\u0dc4\u0daf\u0dc0\u0dad\u0dca \u0d9a\u0dd0\u0da9\u0dd3\u0db8, \u0db1\u0d9c\u0dbb\u0dba\u0dda \u0da2\u0dd3\u0dc0\u0dd2\u0dad\u0dba, \u0db8\u0dd2\u0dad\u0dd4\u0dbb\u0dd4\u0d9a\u0db8) \u0d86\u0daf\u0dda\u0dc1 \u0d9a\u0dc5 \u0dc4\u0dd0\u0d9a\u0dd2\u0dba\u0dd2.\n\n## 4. Feature / Collaboration\n- \u0dc0\u0dbb\u0dca\u0dad\u0db8\u0dcf\u0db1 \u0da2\u0db1\u0db4\u0dca\u200d\u0dbb\u0dd2\u0dba \u0dbb\u0dd0\u0db4\u0dca \u0d9a\u0dbd\u0dcf\u0d9a\u0dbb\u0dd4\u0dc0\u0dd9\u0d9a\u0dca \u0dc4\u0ddd \u0db1\u0dd6\u0dad\u0db1 \u0d9c\u0dcf\u0dba\u0d9a\u0dba\u0dd9\u0d9a\u0dca \u0d9c\u0dd3\u0dad\u0dba\u0da7 \u0d91\u0d9a\u0dad\u0dd4 \u0d9a\u0dbb\u0db1\u0dca\u0db1. \u0d91\u0dba Spotify, YouTube \u0dc3\u0dc4 TikTok \u0dc4\u0dd2 \u0db4\u0dca\u200d\u0dbb\u0da0\u0dcf\u0dbb\u0dba \u0dc0\u0dd0\u0da9\u0dd2 \u0d9a\u0dbb\u0dba\u0dd2.\n- \u0db1\u0dd2\u0dc2\u0dca\u0db4\u0dcf\u0daf\u0d9a\u0dba\u0dd9\u0d9a\u0dca (producer) \u0dc3\u0db8\u0d9c \u0db4\u0dd0\u0dbb\u0dab\u0dd2 \u0d9c\u0dcf\u0dba\u0d9a/\u0d9c\u0dcf\u0dba\u0dd2\u0d9a\u0dcf\u0dc0\u0d9a\u0d9c\u0dda \u0dc4\u0dac \u0db1\u0dd6\u0dad\u0db1 \u0db6\u0dd3\u0da7\u0dca \u0d91\u0d9a\u0d9a\u0dca \u0db8\u0dad \u0dba\u0ddc\u0daf\u0dcf \"remix\" \u0d91\u0d9a\u0d9a\u0dca \u0d9a\u0dc5 \u0dc4\u0dd0\u0d9a\u0dd2\u0dba\u0dd2.\n\n## 5. \u0daf\u0dd8\u0dc1\u0dca\u200d\u0dba (Visual) \u0dc3\u0dc4 \u0db8\u0dcf\u0db0\u0dca\u200d\u0dba \u0db4\u0dca\u200d\u0dbb\u0da0\u0dcf\u0dbb\u0dab\u0dba\n- **Music video:** \u0db1\u0dd6\u0dad\u0db1 \u0db1\u0d9c\u0dbb \u0daf\u0dbb\u0dca\u0dc1\u0db1, Vlog \u0dc1\u0ddb\u0dbd\u0dd2\u0dba, \u0dc4\u0ddd \u0d9a\u0dd9\u0da7\u0dd2 \u0d9a\u0dad\u0dcf \u0d86\u0d9a\u0dd8\u0dad\u0dd2\u0dba\u0dd9\u0db1\u0dca \u0dc4\u0daf\u0db1\u0dca\u0db1.\n- **Short-form content:** TikTok \u0dc3\u0dc4 Instagram Reels \u0dc3\u0db3\u0dc4\u0dcf \u0dad\u0dad\u0dca\u0db4\u0dbb 15-30 \u0d9a \"hook\" \u0dc3\u0dd0\u0d9a\u0dc3\u0dd3\u0db8. \u0db1\u0dd0\u0da7\u0dd4\u0db8\u0dca \u0d85\u0db7\u0dd2\u0dba\u0ddd\u0d9c (dance challenge) \u0dc4\u0ddd \u0db8\u0dd3\u0db8\u0dca \u0db4\u0dca\u200d\u0dbb\u0dc0\u0dab\u0dad\u0dcf \u0dc4\u0dbb\u0dc4\u0dcf \u0d9c\u0dd3\u0dad\u0dba \u0dc0\u0dca\u200d\u0dba\u0dcf\u0db4\u0dca\u0dad \u0d9a\u0dbb\u0db1\u0dca\u0db1.\n- **Lyric videos** \u0dc3\u0dc4 **behind-the-scenes** \u0d9a\u0ddc\u0da7\u0dc3\u0dca \u0dc3\u0db8\u0dcf\u0da2 \u0db8\u0dcf\u0db0\u0dca\u200d\u0dba\u0dc0\u0dbd \u0db6\u0dd9\u0daf\u0dcf \u0d9c\u0db1\u0dca\u0db1.\n\n## 6. \u0db4\u0dd0\u0dbb\u0dab\u0dd2 \u0dc3\u0dc4 \u0db1\u0dc0 \u0dbb\u0dc3\u0dd2\u0d9a\u0dba\u0db1\u0dca \u0d91\u0d9a \u0dad\u0dd0\u0db1\u0d9a\u0da7 \u0d9c\u0dd9\u0db1 \u0d92\u0db8\n- \u0db8\u0dd4\u0dbd\u0dca \u0d9c\u0dcf\u0dba\u0d9a\u0dba\u0dcf\u0d9c\u0dda \u0dc4\u0ddd \u0d9c\u0dd3\u0dad\u0dba \u0dbb\u0da0\u0db1\u0dcf \u0d9a\u0dc5 \u0d85\u0dba\u0d9c\u0dda \u0db1\u0db8 \u0d9c\u0dde\u0dbb\u0dc0\u0dba\u0dd9\u0db1\u0dca \u0dc3\u0db3\u0dc4\u0db1\u0dca \u0d9a\u0dbb\u0db1\u0dca\u0db1.\n- \"Original\" \u0dc3\u0dc4 \"Remix\" \u0d85\u0db1\u0dd4\u0dc0\u0dcf\u0daf \u0daf\u0dd9\u0d9a\u0db8 \u0db1\u0dd2\u0d9a\u0dd4\u0dad\u0dca \u0d9a\u0dbb\u0db1\u0dca\u0db1. \u0d91\u0dc0\u0dd2\u0da7 \u0db4\u0dd0\u0dbb\u0dab\u0dd2 \u0dbb\u0dc3\u0dd2\u0d9a\u0dba\u0db1\u0dca\u0da7 \u0db8\u0dd4\u0dbd\u0dca \u0d85\u0db1\u0dd4\u0dc0\u0dcf\u0daf\u0dba \u0daf, \u0db1\u0dc0 \u0db4\u0dbb\u0db8\u0dca\u0db4\u0dbb\u0dcf\u0dc0\u0da7 \u0d85\u0dbd\u0dd4\u0dad\u0dca \u0d85\u0db1\u0dd4\u0dc0\u0dcf\u0daf\u0dba \u0daf \u0dbd\u0dd0\u0db6\u0dda.\n\n## 7. \u0db1\u0dd3\u0dad\u0dd2\u0db8\u0dba \u0dc3\u0dc4 \u0d9c\u0dde\u0dbb\u0dc0\u0db1\u0dd3\u0dba \u0db4\u0dd0\u0dad\u0dca\u0dad\n- \u0d9c\u0dd3\u0dad\u0dba\u0dda \u0dc4\u0dd2\u0db8\u0dd2\u0d9a\u0db8\u0dca (lyrics, composition) \u0dc3\u0dc4 \u0db1\u0dd2\u0dc2\u0dca\u0db4\u0dcf\u0daf\u0db1 \u0dc4\u0dd2\u0db8\u0dd2\u0d9a\u0db8\u0dca \u0db1\u0dd2\u0dc3\u0dd2 \u0dbd\u0dd9\u0dc3 \u0dbd\u0db6\u0dcf \u0d9c\u0db1\u0dca\u0db1. \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0db1\u0dd2\u0dbb\u0dca\u0db8\u0dcf\u0dab \u0dc4\u0dd2\u0db8\u0dd2\u0d9a\u0db8\u0dca \u0d86\u0dba\u0dad\u0db1 (\u0d8b\u0daf\u0dcf: SCRIPT / PRS for Music) \u0dc4\u0dbb\u0dc4\u0dcf \u0d85\u0dc0\u0dc3\u0dbb \u0dbd\u0db6\u0dcf\u0d9c\u0dd0\u0db1\u0dd3\u0db8 \u0dc0\u0dd0\u0daf\u0d9c\u0dad\u0dca.\n- \u0d85\u0dbd\u0dd4\u0dad\u0dca \u0d85\u0db1\u0dd4\u0dc0\u0dcf\u0daf\u0dba \u0db8\u0dd4\u0dbd\u0dca \u0db1\u0dd2\u0dbb\u0dca\u0db8\u0dcf\u0dab\u0dba\u0da7 \u0d9c\u0dde\u0dbb\u0dc0 \u0d9a\u0dbb\u0db1 \u0d86\u0d9a\u0dcf\u0dbb\u0dba\u0dd9\u0db1\u0dca \u0dad\u0dd2\u0db6\u0dd2\u0dba \u0dba\u0dd4\u0dad\u0dd4\u0dba\u0dd2.\n\n---\n\n**\u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab \u0dc3\u0dd0\u0dbd\u0dd0\u0dc3\u0dca\u0db8\u0d9a\u0dca:**\n\u0db4\u0dd0\u0dbb\u0dab\u0dd2 \u0db8\u0dd8\u0daf\u0dd4 \u0dbb\u0ddc\u0db8\u0dd0\u0db1\u0dca\u0da7\u0dd2\u0d9a\u0dca \u0d9c\u0dd3\u0dad\u0dba\u0d9a\u0dca \u2192 Acoustic guitar + Lo-fi beat \u2192 \u0db1\u0dd6\u0dad\u0db1 \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dd9\u0db1\u0dca \u0dc3\u0dbb\u0dbd \u0d9a\u0dc5 hook \u2192 \u0dad\u0dbb\u0dd4\u0dab \u0d9c\u0dcf\u0dba\u0d9a\u0dba\u0dd9\u0d9a\u0dd4\u0d9c\u0dda feature \u2192 \u0db1\u0d9c\u0dbb \u0dbb\u0dcf\u0dad\u0dca\u200d\u0dbb\u0dd3 \u0daf\u0dbb\u0dca\u0dc1\u0db1 \u0dc3\u0dc4\u0dd2\u0dad music video \u2192 TikTok \u0dc4\u0dd2 20 \u0dad\u0dad\u0dca\u0db4\u0dbb \u0d9a\u0ddc\u0da7\u0dc3\u0d9a\u0dca \u0db4\u0dca\u200d\u0dbb\u0da0\u0dcf\u0dbb\u0dba \u2192 \"Original\" \u0dc3\u0dc4 \"Remix\" \u0daf\u0dd9\u0d9a\u0db8 Spotify/YouTube \u0dc0\u0dd9\u0dad.\n\n\u0d94\u0db6 \u0d9a\u0dd0\u0db8\u0dad\u0dd2 \u0db4\u0dd0\u0dbb\u0dab\u0dd2 \u0d9c\u0dd3\u0dad\u0dba\u0d9a \u0db1\u0db8 \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1. \u0d92 \u0d9c\u0dd3\u0dad\u0dba\u0da7 \u0d9c\u0dd0\u0dc5\u0db4\u0dd9\u0db1 \u0db1\u0dd2\u0dc1\u0dca\u0da0\u0dd2\u0dad \u0dc1\u0ddb\u0dbd\u0dd2\u0dba \u0dc3\u0dc4 \u0dc3\u0dd0\u0dbd\u0dd0\u0dc3\u0dca\u0db8\u0d9a\u0dca \u0db8\u0db8 \u0dc0\u0dd2\u0dc3\u0dca\u0dad\u0dbb\u0dcf\u0dad\u0dca\u0db8\u0d9a\u0dc0 \u0dba\u0ddd\u0da2\u0db1\u0dcf \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0db8\u0dca."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-5-5"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 83,
+                "outputTokens": 2386,
+                "inputTokensCostNanodollars": "8300",
+                "outputTokensCostNanodollars": "1193000",
+                "totalBackendLatencyMs": "18169"
+              },
+              "id": "synhalees_04_kavi_sindu_item-f5596cbd-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 83,
+            "outputTokens": 2386,
+            "inputTokensCostNanodollars": "8300",
+            "outputTokensCostNanodollars": "1193000",
+            "totalBackendLatencyMs": "18169"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        },
+        {
+          "id": "Response assessment with google/gemini-3.8-flash-ee783cd6",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\n        You are an impartial and strict technical evaluator.\n\n        ### Task\n        Verify if the **Generated Response** complies strictly with the **Criteria**.\n\n        ### Input Data\n        **Generated Response:**\n        # \u0db4\u0dbb\u0dab \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc3\u0dd2\u0db1\u0dca\u0daf\u0dd4\u0dc0\u0d9a\u0dca \u0d85\u0dbd\u0dd4\u0dad\u0dca \u0db4\u0dbb\u0db8\u0dca\u0db4\u0dbb\u0dcf\u0dc0\u0da7 \u0d9c\u0dd0\u0dc5\u0db4\u0dd9\u0db1 \u0dc0\u0dd2\u0daf\u0dd2\u0dc4\u0da7 \u0dc4\u0dd0\u0dbb\u0dc0\u0dd3\u0db8\u0dda \u0dba\u0ddd\u0da2\u0db1\u0dcf\u0dc0\n\n## 1. \u0db8\u0dd4\u0dbd\u0dca \u0dc3\u0dd2\u0db1\u0dca\u0daf\u0dd4\u0dc0\u0dda \u0dc4\u0dbb\u0dba \u0dbb\u0db3\u0dc0\u0dcf \u0d9c\u0db1\u0dca\u0db1\n- \u0db8\u0dd4\u0dbd\u0dca \u0db8\u0dd9\u0dbd\u0da9\u0dd2\u0dba (\u0dbb\u0dcf\u0d9c\u0dba) \u0dc3\u0dc4 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dc0\u0da0\u0db1 \u0dc4\u0ddd \u0d9a\u0ddc\u0da7\u0dc3\u0dca \u0dad\u0db6\u0dcf \u0d9c\u0db1\u0dca\u0db1. \u0da2\u0db1\u0db4\u0dca\u200d\u0dbb\u0dd2\u0dba \u0d9a\u0ddc\u0da7\u0dc3 (chorus / hook) \u0dc0\u0da9\u0dcf\u0dad\u0dca \u0dc4\u0db3\u0dd4\u0db1\u0dcf\u0d9c\u0dad \u0dc4\u0dd0\u0d9a\u0dd2 \u0dbd\u0dd9\u0dc3 \u0dad\u0dd2\u0dba\u0db1\u0dca\u0db1.\n- \u0d9c\u0dd3\u0dad\u0dba\u0dda \u0dc4\u0dd0\u0d9f\u0dd3\u0db8 (\u0d86\u0daf\u0dbb\u0dba, \u0dc0\u0dd2\u0dba\u0ddd\u0dc0, \u0dc3\u0db8\u0dcf\u0da2 \u0db4\u0dab\u0dd2\u0dc0\u0dd2\u0da9\u0dba) \u0dc0\u0dd9\u0db1\u0dc3\u0dca \u0db1\u0ddc\u0d9a\u0dbb \u0dad\u0dd2\u0dba\u0db1\u0dca\u0db1. \u0d91\u0dba\u0dd2\u0db1\u0dca \u0db4\u0dd0\u0dbb\u0dab\u0dd2 \u0dbb\u0dc3\u0dd2\u0d9a\u0dba\u0db1\u0dca\u0dad\u0dca \u0d86\u0d9a\u0dbb\u0dca\u0dc2\u0dab\u0dba \u0dc0\u0dd9\u0dba\u0dd2.\n\n## 2. \u0dc3\u0d82\u0d9c\u0dd3\u0dad \u0dc1\u0ddb\u0dbd\u0dd2\u0dba \u0dba\u0dcf\u0dc0\u0dad\u0dca\u0d9a\u0dcf\u0dbd\u0dd3\u0db1 \u0d9a\u0dbb\u0db1\u0dca\u0db1\n- **Lo-fi / Chill beats:** \u0dc3\u0dd0\u0dc4\u0dd0\u0dbd\u0dca\u0dbd\u0dd4 \u0d9c\u0dd2\u0da7\u0dcf\u0dbb\u0dca, \u0db8\u0dd8\u0daf\u0dd4 \u0db6\u0dd3\u0da7\u0dca \u0dc3\u0dc4 \u0dc0\u0dba\u0dd2\u0db6\u0dca \u0d91\u0d9a\u0d9a\u0dca \u0d91\u0d9a\u0dca\u0d9a\u0dbd\u0dcf \u0dbb\u0dcf\u0dad\u0dca\u200d\u0dbb\u0dd3 \u0dc0\u0dda\u0dbd\u0dcf\u0dc0\u0da7 \u0d9c\u0dd0\u0dc5\u0db4\u0dd9\u0db1 \u0dc3\u0d82\u0dc3\u0dca\u0d9a\u0dbb\u0dab\u0dba\u0d9a\u0dca.\n- **Acoustic / Unplugged:** \u0d9c\u0dd2\u0da7\u0dcf\u0dbb\u0dca, \u0db4\u0dd2\u0dba\u0dcf\u0db1\u0ddd, \u0dc4\u0ddd \u0da9\u0dca\u200d\u0dbb\u0db8\u0dca \u0db1\u0dd0\u0dad\u0dd2\u0dc0 \u0dc3\u0dbb\u0dbd \u0dc3\u0d82\u0d9c\u0dd3\u0dad\u0dba\u0d9a\u0dca. \u0dad\u0dbb\u0dd4\u0dab \u0dc3\u0db8\u0dcf\u0da2 \u0db8\u0dcf\u0db0\u0dca\u200d\u0dba\u0dc0\u0dbd \u0da2\u0db1\u0db4\u0dca\u200d\u0dbb\u0dd2\u0dba.\n- **Trap / Hip-hop \u0dc3\u0dc4 R&B:** \u0d9c\u0dcf\u0dba\u0db1\u0dba \u0db8\u0dd8\u0daf\u0dd4 \u0d9a\u0dbb, \u0db6\u0dd3\u0da7\u0dca \u0d91\u0d9a \u0d86\u0db0\u0dd4\u0db1\u0dd2\u0d9a \u0dbd\u0dd9\u0dc3 \u0dba\u0ddc\u0daf\u0db1\u0dca\u0db1.\n- **EDM / Synth-pop:** \u0db1\u0dd0\u0da7\u0dd3\u0db8\u0da7 \u0dc4\u0dd0\u0d9a\u0dd2 \u0dbd\u0dd9\u0dc3 \u0da7\u0dd9\u0db8\u0dca\u0db4\u0ddd \u0dc0\u0dd0\u0da9\u0dd2 \u0d9a\u0dbb synth \u0dc1\u0db6\u0dca\u0daf \u0d91\u0d9a\u0dca\u0d9a\u0dbb\u0db1\u0dca\u0db1.\n\n## 3. \u0d9c\u0dcf\u0dba\u0db1\u0dba \u0dc3\u0dc4 \u0dc0\u0da0\u0db1\n- \u0d9c\u0dcf\u0dba\u0db1 \u0dc1\u0ddb\u0dbd\u0dd2\u0dba \u0dad\u0dbb\u0dd4\u0dab \u0dc4\u0dac\u0da7 \u0d9c\u0dd0\u0dbd\u0db4\u0dd9\u0db1 \u0dbd\u0dd9\u0dc3 \u0dc3\u0dbb\u0dbd \u0d9a\u0dbb\u0db1\u0dca\u0db1. \u0dc3\u0db8\u0dc4\u0dbb \u0dc0\u0dd2\u0da7 \u0db4\u0dd2\u0dbb\u0dd2\u0db8\u0dd2/\u0d9c\u0dd0\u0dc4\u0dd0\u0dab\u0dd4 \u0d9c\u0dcf\u0dba\u0d9a\u0dba\u0db1\u0dca \u0d85\u0dbd\u0dd4\u0dad\u0dca \u0d86\u0d9a\u0dcf\u0dbb\u0dba\u0da7 \u0d92\u0d9a\u0dcf\u0db6\u0daf\u0dca\u0db0 \u0d9a\u0dbb\u0db1\u0dca\u0db1.\n- \u0dc0\u0da0\u0db1 \u0db4\u0dd2\u0dc5\u0dd2\u0db6\u0db3 \u0d9c\u0dd0\u0da7\u0dc5\u0dd4\u0dc0\u0d9a\u0dca \u0db1\u0dd0\u0dad\u0dd2 \u0db1\u0db8\u0dca, \u0dc3\u0db8\u0dc4\u0dbb \u0dc0\u0dcf\u0d9a\u0dca\u200d\u0dba \u0dc0\u0dbb\u0dca\u0dad\u0db8\u0dcf\u0db1 \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0da7 (Singlish \u0dc4\u0ddd \u0daf\u0ddb\u0db1\u0dd2\u0d9a \u0d9a\u0dae\u0db1 \u0dc3\u0dd2\u0d82\u0dc4\u0dbd) \u0dc3\u0db8\u0dd3\u0db4 \u0d9a\u0dbb\u0db1\u0dca\u0db1. \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0d85\u0dbb\u0dca\u0dae\u0dba \u0dc0\u0dd9\u0db1\u0dc3\u0dca \u0db1\u0ddc\u0dc0\u0dd2\u0dba \u0dba\u0dd4\u0dad\u0dd4\u0dba\u0dd2.\n- Hook \u0d91\u0d9a\u0da7 \u0dad\u0dbb\u0dd4\u0dab\u0dba\u0db1\u0dca\u0da7 \u0d85\u0daf\u0dcf\u0dc5 \u0dad\u0dda\u0db8\u0dcf\u0dc0\u0d9a\u0dca (\u0dc4\u0daf\u0dc0\u0dad\u0dca \u0d9a\u0dd0\u0da9\u0dd3\u0db8, \u0db1\u0d9c\u0dbb\u0dba\u0dda \u0da2\u0dd3\u0dc0\u0dd2\u0dad\u0dba, \u0db8\u0dd2\u0dad\u0dd4\u0dbb\u0dd4\u0d9a\u0db8) \u0d86\u0daf\u0dda\u0dc1 \u0d9a\u0dc5 \u0dc4\u0dd0\u0d9a\u0dd2\u0dba\u0dd2.\n\n## 4. Feature / Collaboration\n- \u0dc0\u0dbb\u0dca\u0dad\u0db8\u0dcf\u0db1 \u0da2\u0db1\u0db4\u0dca\u200d\u0dbb\u0dd2\u0dba \u0dbb\u0dd0\u0db4\u0dca \u0d9a\u0dbd\u0dcf\u0d9a\u0dbb\u0dd4\u0dc0\u0dd9\u0d9a\u0dca \u0dc4\u0ddd \u0db1\u0dd6\u0dad\u0db1 \u0d9c\u0dcf\u0dba\u0d9a\u0dba\u0dd9\u0d9a\u0dca \u0d9c\u0dd3\u0dad\u0dba\u0da7 \u0d91\u0d9a\u0dad\u0dd4 \u0d9a\u0dbb\u0db1\u0dca\u0db1. \u0d91\u0dba Spotify, YouTube \u0dc3\u0dc4 TikTok \u0dc4\u0dd2 \u0db4\u0dca\u200d\u0dbb\u0da0\u0dcf\u0dbb\u0dba \u0dc0\u0dd0\u0da9\u0dd2 \u0d9a\u0dbb\u0dba\u0dd2.\n- \u0db1\u0dd2\u0dc2\u0dca\u0db4\u0dcf\u0daf\u0d9a\u0dba\u0dd9\u0d9a\u0dca (producer) \u0dc3\u0db8\u0d9c \u0db4\u0dd0\u0dbb\u0dab\u0dd2 \u0d9c\u0dcf\u0dba\u0d9a/\u0d9c\u0dcf\u0dba\u0dd2\u0d9a\u0dcf\u0dc0\u0d9a\u0d9c\u0dda \u0dc4\u0dac \u0db1\u0dd6\u0dad\u0db1 \u0db6\u0dd3\u0da7\u0dca \u0d91\u0d9a\u0d9a\u0dca \u0db8\u0dad \u0dba\u0ddc\u0daf\u0dcf \"remix\" \u0d91\u0d9a\u0d9a\u0dca \u0d9a\u0dc5 \u0dc4\u0dd0\u0d9a\u0dd2\u0dba\u0dd2.\n\n## 5. \u0daf\u0dd8\u0dc1\u0dca\u200d\u0dba (Visual) \u0dc3\u0dc4 \u0db8\u0dcf\u0db0\u0dca\u200d\u0dba \u0db4\u0dca\u200d\u0dbb\u0da0\u0dcf\u0dbb\u0dab\u0dba\n- **Music video:** \u0db1\u0dd6\u0dad\u0db1 \u0db1\u0d9c\u0dbb \u0daf\u0dbb\u0dca\u0dc1\u0db1, Vlog \u0dc1\u0ddb\u0dbd\u0dd2\u0dba, \u0dc4\u0ddd \u0d9a\u0dd9\u0da7\u0dd2 \u0d9a\u0dad\u0dcf \u0d86\u0d9a\u0dd8\u0dad\u0dd2\u0dba\u0dd9\u0db1\u0dca \u0dc4\u0daf\u0db1\u0dca\u0db1.\n- **Short-form content:** TikTok \u0dc3\u0dc4 Instagram Reels \u0dc3\u0db3\u0dc4\u0dcf \u0dad\u0dad\u0dca\u0db4\u0dbb 15-30 \u0d9a \"hook\" \u0dc3\u0dd0\u0d9a\u0dc3\u0dd3\u0db8. \u0db1\u0dd0\u0da7\u0dd4\u0db8\u0dca \u0d85\u0db7\u0dd2\u0dba\u0ddd\u0d9c (dance challenge) \u0dc4\u0ddd \u0db8\u0dd3\u0db8\u0dca \u0db4\u0dca\u200d\u0dbb\u0dc0\u0dab\u0dad\u0dcf \u0dc4\u0dbb\u0dc4\u0dcf \u0d9c\u0dd3\u0dad\u0dba \u0dc0\u0dca\u200d\u0dba\u0dcf\u0db4\u0dca\u0dad \u0d9a\u0dbb\u0db1\u0dca\u0db1.\n- **Lyric videos** \u0dc3\u0dc4 **behind-the-scenes** \u0d9a\u0ddc\u0da7\u0dc3\u0dca \u0dc3\u0db8\u0dcf\u0da2 \u0db8\u0dcf\u0db0\u0dca\u200d\u0dba\u0dc0\u0dbd \u0db6\u0dd9\u0daf\u0dcf \u0d9c\u0db1\u0dca\u0db1.\n\n## 6. \u0db4\u0dd0\u0dbb\u0dab\u0dd2 \u0dc3\u0dc4 \u0db1\u0dc0 \u0dbb\u0dc3\u0dd2\u0d9a\u0dba\u0db1\u0dca \u0d91\u0d9a \u0dad\u0dd0\u0db1\u0d9a\u0da7 \u0d9c\u0dd9\u0db1 \u0d92\u0db8\n- \u0db8\u0dd4\u0dbd\u0dca \u0d9c\u0dcf\u0dba\u0d9a\u0dba\u0dcf\u0d9c\u0dda \u0dc4\u0ddd \u0d9c\u0dd3\u0dad\u0dba \u0dbb\u0da0\u0db1\u0dcf \u0d9a\u0dc5 \u0d85\u0dba\u0d9c\u0dda \u0db1\u0db8 \u0d9c\u0dde\u0dbb\u0dc0\u0dba\u0dd9\u0db1\u0dca \u0dc3\u0db3\u0dc4\u0db1\u0dca \u0d9a\u0dbb\u0db1\u0dca\u0db1.\n- \"Original\" \u0dc3\u0dc4 \"Remix\" \u0d85\u0db1\u0dd4\u0dc0\u0dcf\u0daf \u0daf\u0dd9\u0d9a\u0db8 \u0db1\u0dd2\u0d9a\u0dd4\u0dad\u0dca \u0d9a\u0dbb\u0db1\u0dca\u0db1. \u0d91\u0dc0\u0dd2\u0da7 \u0db4\u0dd0\u0dbb\u0dab\u0dd2 \u0dbb\u0dc3\u0dd2\u0d9a\u0dba\u0db1\u0dca\u0da7 \u0db8\u0dd4\u0dbd\u0dca \u0d85\u0db1\u0dd4\u0dc0\u0dcf\u0daf\u0dba \u0daf, \u0db1\u0dc0 \u0db4\u0dbb\u0db8\u0dca\u0db4\u0dbb\u0dcf\u0dc0\u0da7 \u0d85\u0dbd\u0dd4\u0dad\u0dca \u0d85\u0db1\u0dd4\u0dc0\u0dcf\u0daf\u0dba \u0daf \u0dbd\u0dd0\u0db6\u0dda.\n\n## 7. \u0db1\u0dd3\u0dad\u0dd2\u0db8\u0dba \u0dc3\u0dc4 \u0d9c\u0dde\u0dbb\u0dc0\u0db1\u0dd3\u0dba \u0db4\u0dd0\u0dad\u0dca\u0dad\n- \u0d9c\u0dd3\u0dad\u0dba\u0dda \u0dc4\u0dd2\u0db8\u0dd2\u0d9a\u0db8\u0dca (lyrics, composition) \u0dc3\u0dc4 \u0db1\u0dd2\u0dc2\u0dca\u0db4\u0dcf\u0daf\u0db1 \u0dc4\u0dd2\u0db8\u0dd2\u0d9a\u0db8\u0dca \u0db1\u0dd2\u0dc3\u0dd2 \u0dbd\u0dd9\u0dc3 \u0dbd\u0db6\u0dcf \u0d9c\u0db1\u0dca\u0db1. \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0db1\u0dd2\u0dbb\u0dca\u0db8\u0dcf\u0dab \u0dc4\u0dd2\u0db8\u0dd2\u0d9a\u0db8\u0dca \u0d86\u0dba\u0dad\u0db1 (\u0d8b\u0daf\u0dcf: SCRIPT / PRS for Music) \u0dc4\u0dbb\u0dc4\u0dcf \u0d85\u0dc0\u0dc3\u0dbb \u0dbd\u0db6\u0dcf\u0d9c\u0dd0\u0db1\u0dd3\u0db8 \u0dc0\u0dd0\u0daf\u0d9c\u0dad\u0dca.\n- \u0d85\u0dbd\u0dd4\u0dad\u0dca \u0d85\u0db1\u0dd4\u0dc0\u0dcf\u0daf\u0dba \u0db8\u0dd4\u0dbd\u0dca \u0db1\u0dd2\u0dbb\u0dca\u0db8\u0dcf\u0dab\u0dba\u0da7 \u0d9c\u0dde\u0dbb\u0dc0 \u0d9a\u0dbb\u0db1 \u0d86\u0d9a\u0dcf\u0dbb\u0dba\u0dd9\u0db1\u0dca \u0dad\u0dd2\u0db6\u0dd2\u0dba \u0dba\u0dd4\u0dad\u0dd4\u0dba\u0dd2.\n\n---\n\n**\u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab \u0dc3\u0dd0\u0dbd\u0dd0\u0dc3\u0dca\u0db8\u0d9a\u0dca:**\n\u0db4\u0dd0\u0dbb\u0dab\u0dd2 \u0db8\u0dd8\u0daf\u0dd4 \u0dbb\u0ddc\u0db8\u0dd0\u0db1\u0dca\u0da7\u0dd2\u0d9a\u0dca \u0d9c\u0dd3\u0dad\u0dba\u0d9a\u0dca \u2192 Acoustic guitar + Lo-fi beat \u2192 \u0db1\u0dd6\u0dad\u0db1 \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dd9\u0db1\u0dca \u0dc3\u0dbb\u0dbd \u0d9a\u0dc5 hook \u2192 \u0dad\u0dbb\u0dd4\u0dab \u0d9c\u0dcf\u0dba\u0d9a\u0dba\u0dd9\u0d9a\u0dd4\u0d9c\u0dda feature \u2192 \u0db1\u0d9c\u0dbb \u0dbb\u0dcf\u0dad\u0dca\u200d\u0dbb\u0dd3 \u0daf\u0dbb\u0dca\u0dc1\u0db1 \u0dc3\u0dc4\u0dd2\u0dad music video \u2192 TikTok \u0dc4\u0dd2 20 \u0dad\u0dad\u0dca\u0db4\u0dbb \u0d9a\u0ddc\u0da7\u0dc3\u0d9a\u0dca \u0db4\u0dca\u200d\u0dbb\u0da0\u0dcf\u0dbb\u0dba \u2192 \"Original\" \u0dc3\u0dc4 \"Remix\" \u0daf\u0dd9\u0d9a\u0db8 Spotify/YouTube \u0dc0\u0dd9\u0dad.\n\n\u0d94\u0db6 \u0d9a\u0dd0\u0db8\u0dad\u0dd2 \u0db4\u0dd0\u0dbb\u0dab\u0dd2 \u0d9c\u0dd3\u0dad\u0dba\u0d9a \u0db1\u0db8 \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1. \u0d92 \u0d9c\u0dd3\u0dad\u0dba\u0da7 \u0d9c\u0dd0\u0dc5\u0db4\u0dd9\u0db1 \u0db1\u0dd2\u0dc1\u0dca\u0da0\u0dd2\u0dad \u0dc1\u0ddb\u0dbd\u0dd2\u0dba \u0dc3\u0dc4 \u0dc3\u0dd0\u0dbd\u0dd0\u0dc3\u0dca\u0db8\u0d9a\u0dca \u0db8\u0db8 \u0dc0\u0dd2\u0dc3\u0dca\u0dad\u0dbb\u0dcf\u0dad\u0dca\u0db8\u0d9a\u0dc0 \u0dba\u0ddd\u0da2\u0db1\u0dcf \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0db8\u0dca.\n\n        **Criteria:**\n        1. The response conveys the same meaning as the reference answer: 'remix_suggestion_response'. Wording may differ; the meaning must match.\n2. The response reads like a native Sri Lankan Sinhala speaker wrote it -- natural register and idiom, not translated-sounding English.\n\n        ### Evaluation Protocol\n        1. Analyze the response against the criteria.\n        2. Be strict. If the text is ambiguous, the check fails.\n        3. Output your assessment using the specific structure requested below.\n"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\"{\\\"results\\\":[{\\\"criterion\\\":\\\"The response conveys the same meaning as the reference answer: 'remix_suggestion_response'. Wording may differ; the meaning must match.\\\",\\\"passed\\\":true,\\\"reason\\\":\\\"The response comprehensively provides creative and practical suggestions for remixing and adapting an old Sinhala song for a modern audience.\\\",\\\"confidence\\\":5},{\\\"criterion\\\":\\\"The response reads like a native Sri Lankan Sinhala speaker wrote it -- natural register and idiom, not translated-sounding English.\\\",\\\"passed\\\":false,\\\"reason\\\":\\\"The response contains unnatural literal calques from English as well as jarring register mixing. For example, '\\u0dc4\\u0daf\\u0dc0\\u0dad\\u0dca \\u0d9a\\u0dd0\\u0da9\\u0dd3\\u0db8' is a word-for-word translation of 'heartbreak' (natural Sinhala would use '\\u0dc0\\u0dd2\\u0dbb\\u0dc4\\u0dc0' or '\\u0dc4\\u0daf\\u0dc0\\u0dad \\u0db6\\u0dd2\\u0db3\\u0dd3\\u0db8'). Phrasing like '\\u0db6\\u0dd3\\u0da7\\u0dca \\u0d91\\u0d9a \\u0d86\\u0db0\\u0dd4\\u0db1\\u0dd2\\u0d9a \\u0dbd\\u0dd9\\u0dc3 \\u0dba\\u0ddc\\u0daf\\u0db1\\u0dca\\u0db1' appears to be a mistranslation, and colloquial spoken markers ('\\u0d91\\u0d9a\\u0dca\\u0d9a\\u0dbd\\u0dcf', '\\u0dad\\u0dd2\\u0dba\\u0db1\\u0dca\\u0db1') are awkwardly mixed into formal written grammatical structures.\\\",\\\"confidence\\\":5}]}\""
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.8-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 1532,
+                "outputTokens": 1528,
+                "inputTokensCostNanodollars": "1149000",
+                "outputTokensCostNanodollars": "5730000",
+                "totalBackendLatencyMs": "13950"
+              },
+              "id": "Response assessment with google/gemini-3.8-flash-ee783cd6-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 1532,
+            "outputTokens": 1528,
+            "inputTokensCostNanodollars": "1149000",
+            "outputTokensCostNanodollars": "5730000",
+            "totalBackendLatencyMs": "13950"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_04_014"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_04_kavi_sindu_item-Run #14"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_04_kavi_sindu_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_04_kavi_sindu_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-5-5"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-10-13T09:08:51.536613Z",
+      "endTime": "2026-10-13T09:09:20.266208Z",
+      "conversations": [
+        {
+          "id": "synhalees_04_kavi_sindu_item-f9a91cab",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd2\u0db1\u0dca\u0daf\u0dd4\u0dc0\u0d9a\u0da7 \u0dc3\u0d82\u0d9c\u0dd3\u0dad \u0db7\u0dcf\u0dab\u0dca\u0da9 \u0d9a\u0dbb\u0db1 \u0db6\u0dbd\u0db4\u0dd1\u0db8 \u0d85\u0d9c\u0dba\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# \u0dc3\u0dd2\u0db1\u0dca\u0daf\u0dd4\u0dc0\u0d9a\u0da7 \u0dc3\u0d82\u0d9c\u0dd3\u0dad \u0db7\u0dcf\u0dab\u0dca\u0da9 \u0d9a\u0dbb\u0db1 \u0db6\u0dbd\u0db4\u0dd1\u0db8\n\n\u0dc3\u0dd2\u0db1\u0dca\u0daf\u0dd4\u0dc0\u0d9a\u0dca \u0dba\u0db1\u0dd4 \u0db4\u0daf \u0dbb\u0da0\u0db1\u0dba, \u0d9c\u0dcf\u0dba\u0db1\u0dba \u0dc3\u0dc4 \u0dc3\u0d82\u0d9c\u0dd3\u0dad\u0dba \u0d91\u0d9a\u0dad\u0dd4 \u0dc0\u0dd6 \u0d9a\u0dbd\u0dcf\u0d9a\u0dd8\u0dad\u0dd2\u0dba\u0d9a\u0dd2. \u0d92 \u0d85\u0dad\u0dbb\u0dd2\u0db1\u0dca \u0dc3\u0d82\u0d9c\u0dd3\u0dad \u0db7\u0dcf\u0dab\u0dca\u0da9\u0dc0\u0dbd\u0da7 \u0dc3\u0dd2\u0db1\u0dca\u0daf\u0dd4\u0dc0\u0dda \u0dc4\u0dd0\u0da9\u0dba, \u0dc4\u0dd0\u0d9f\u0dd3\u0db8 \u0dc3\u0dc4 \u0d86\u0dad\u0dca\u0db8\u0dba \u0dc4\u0dd0\u0da9\u0d9c\u0dc3\u0dca\u0dc0\u0db1\u0dca\u0db1 \u0dc0\u0dd2\u0dc1\u0dcf\u0dbd \u0db7\u0dd6\u0db8\u0dd2\u0d9a\u0dcf\u0dc0\u0d9a\u0dca \u0d87\u0dad.\n\n## 1. \u0dc4\u0dd0\u0d9f\u0dd3\u0db8\u0dca \u0db4\u0dca\u200d\u0dbb\u0d9a\u0dcf\u0dc1\u0db1\u0dba\n\u0dc3\u0dd2\u0db1\u0dca\u0daf\u0dd4\u0dc0\u0d9a \u0dc4\u0dd0\u0d9f\u0dd3\u0db8\u0dca \u0d89\u0dc3\u0dca\u0db8\u0dad\u0dd4 \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda \u0db6\u0ddc\u0dc4\u0ddd \u0dc0\u0dd2\u0da7 \u0db7\u0dcf\u0dab\u0dca\u0da9\u0dc0\u0dbd \u0dc4\u0dac\u0dba\u0dd2.\n- **\u0dc0\u0dba\u0dbd\u0dd2\u0db1\u0dca** \u0dc4\u0ddd **\u0dc3\u0dd9\u0dbd\u0ddd** \u0dc4\u0dac \u0db8\u0d9c\u0dd2\u0db1\u0dca \u0dc0\u0dda\u0daf\u0db1\u0dcf\u0dc0, \u0d86\u0daf\u0dbb\u0dba \u0dc4\u0ddd \u0dc1\u0ddd\u0d9a\u0dba \u0d9c\u0dd0\u0db9\u0dd4\u0dbb\u0dd2\u0db1\u0dca \u0db4\u0dca\u200d\u0dbb\u0d9a\u0dcf\u0dc1 \u0d9a\u0dc5 \u0dc4\u0dd0\u0d9a.\n- **\u0d9c\u0dd2\u0da7\u0dcf\u0dbb\u0dba** \u0dc4\u0ddd **\u0db4\u0dd2\u0dba\u0dcf\u0db1\u0ddd\u0dc0** \u0dc3\u0dbb\u0dbd \u0db8\u0dd9\u0dbd\u0da9\u0dd2\u0dba\u0d9a\u0dd2\u0db1\u0dca \u0db4\u0dc0\u0dcf \u0db1\u0ddc\u0d9a\u0dd3 \u0dc4\u0dd0\u0d9f\u0dd3\u0db8\u0dca \u0d9c\u0dd9\u0db1 \u0daf\u0dd9\u0dba\u0dd2.\n- **\u0dad\u0db6la** \u0dc3\u0dc4 **\u0db6\u0dd9\u0dbb** \u0db8\u0d9c\u0dd2\u0db1\u0dca \u0db4\u0dca\u200d\u0dbb\u0dd3\u0dad\u0dd2\u0dba, \u0d8b\u0daf\u0dca\u0daf\u0dd3\u0db4\u0db1\u0dba \u0dc4\u0ddd \u0dc3\u0db8\u0dcf\u0da2\u0dd3\u0dba \u0dc1\u0d9a\u0dca\u0dad\u0dd2\u0dba \u0daf\u0dd0\u0db1\u0dd9\u0dba\u0dd2.\n\n## 2. \u0dbb\u0dd2\u0daf\u0dca\u0db8\u0dba \u0dc3\u0dc4 \u0da0\u0dbd\u0db1\u0dba\n\u0db7\u0dcf\u0dab\u0dca\u0da9 \u0dc3\u0dd2\u0db1\u0dca\u0daf\u0dd4\u0dc0\u0da7 \u0dc3\u0dca\u0db4\u0db1\u0dca\u0daf\u0db1\u0dba\u0d9a\u0dca \u0dbd\u0db6\u0dcf \u0daf\u0dd9\u0dba\u0dd2.\n- **\u0da9\u0dca\u200d\u0dbb\u0db8\u0dca** \u0dc3\u0dc4 **\u0db6\u0dda\u0dc3\u0dca \u0d9c\u0dd2\u0da7\u0dcf\u0dbb\u0dca** \u0dc1\u0dca\u200d\u0dbb\u0dcf\u0dc0\u0d9a\u0dba\u0dcf\u0d9c\u0dda \u0dc1\u0dbb\u0dd3\u0dbb\u0dba\u0da7 \u0db8 \u0dbb\u0dd2\u0daf\u0dca\u0db8\u0dba \u0daf\u0dd0\u0db1\u0dc0\u0dd3\u0db8\u0da7 \u0dc3\u0db8\u0dad\u0dca \u0dc0\u0dda.\n- \u0dbb\u0dd2\u0daf\u0dca\u0db8\u0dba \u0db1\u0dd2\u0dc3\u0dcf \u0dc3\u0dd2\u0db1\u0dca\u0daf\u0dd4\u0dc0 \u0db1\u0dd0\u0da7\u0dd4\u0db8\u0dca, \u0d9c\u0dcf\u0dba\u0db1\u0dba \u0dc4\u0ddd \u0dc3\u0dcf\u0db8\u0dd6\u0dc4\u0dd2\u0d9a \u0dc3\u0dc4\u0db7\u0dcf\u0d9c\u0dd3\u0dad\u0dca\u0dc0\u0dba\u0da7 \u0dc3\u0dd4\u0daf\u0dd4\u0dc3\u0dd4 \u0dc0\u0dda.\n\n## 3. \u0dc3\u0dd4\u0dc3\u0d82\u0dc0\u0dcf\u0daf\u0dba \u0dc3\u0dc4 \u0db8\u0dd9\u0dbd\u0da9\u0dd2\u0dba\n\u0db7\u0dcf\u0dab\u0dca\u0da9\u0dc0\u0dbd \u0d91\u0d9a\u0dad\u0dd4\u0dc0 \u0dc3\u0dd2\u0db1\u0dca\u0daf\u0dd4\u0dc0\u0da7 \u0dc3\u0d82\u0d9a\u0dd3\u0dbb\u0dca\u0dab \u0dc4\u0dcf \u0dc3\u0db8\u0dd8\u0daf\u0dca\u0db0 \u0dc4\u0dac \u0dbd\u0db6\u0dcf \u0daf\u0dd9\u0dba\u0dd2.\n- **\u0dc4\u0dcf\u0db8\u0ddd\u0db1\u0dd2\u0dba\u0db8\u0dca** \u0dc4\u0ddd **\u0d9a\u0dd3\u0db6\u0ddd\u0da9\u0dca** \u0db8\u0d9c\u0dd2\u0db1\u0dca \u0d9c\u0dcf\u0dba\u0db1\u0dba\u0da7 \u0db4\u0dc3\u0dd4\u0db6\u0dd2\u0db8\u0dca \u0dc4\u0dcf \u0dc3\u0dc4\u0dcf\u0dba \u0dc3\u0db4\u0dba\u0dba\u0dd2.\n- \u0dc4\u0dac \u0db4\u0dbb\u0dcf\u0dc3\u0dba \u0dc0\u0dd2\u0dc0\u0dd2\u0db0 \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0dd9\u0db1\u0dca (\u0d8b\u0daf\u0dcf: \u0db6\u0dcf\u0dc3\u0dca \u0dc3\u0dc4 \u0da7\u0dca\u200d\u0dbb\u0dd9\u0db6\u0dbd\u0dca) \u0dc3\u0dd2\u0db1\u0dca\u0daf\u0dd4\u0dc0\u0da7 \u0d9c\u0dd0\u0db9\u0dd4\u0dbb \u0d91\u0d9a\u0dad\u0dd4 \u0dc0\u0dda.\n\n## 4. \u0db4\u0dca\u200d\u0dbb\u0dcf\u0daf\u0dda\u0dc1\u0dd3\u0dba \u0dc4\u0dcf \u0dc3\u0d82\u0dc3\u0dca\u0d9a\u0dd8\u0dad\u0dd2\u0d9a \u0d85\u0db1\u0db1\u0dca\u200d\u0dba\u0dad\u0dcf\u0dc0\n\u0dc3\u0d82\u0d9c\u0dd3\u0dad \u0db7\u0dcf\u0dab\u0dca\u0da9 \u0db6\u0ddc\u0dc4\u0ddd \u0dc0\u0dd2\u0da7 \u0dc3\u0d82\u0dc3\u0dca\u0d9a\u0dd8\u0dad\u0dd2\u0dba\u0dda \u0dc3\u0d82\u0d9a\u0dda\u0dad \u0dc0\u0dda.\n- **\u0dbb\u0db6\u0db1\u0dca**, **\u0d8b\u0da9\u0dd0\u0d9a\u0dca\u0d9a\u0dd2**, **\u0dc4\u0ddc\u0dbb\u0dab\u0dd1\u0dc0**, **\u0db6\u0dd9\u0dbb** \u0dc0\u0dd0\u0db1\u0dd2 \u0db7\u0dcf\u0dab\u0dca\u0da9 \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0dcf\u0d82\u0d9a\u0dd2\u0d9a \u0dc3\u0db8\u0dca\u0db4\u0dca\u200d\u0dbb\u0daf\u0dcf\u0dba\u0db1\u0dca \u0dc3\u0dc4 \u0da2\u0db1\u0d9a\u0dad\u0dcf \u0db8\u0dd9\u0db1\u0dca\u0db8 \u0da2\u0db1\u0dad\u0dcf\u0dc0\u0d9c\u0dda \u0d89\u0dad\u0dd2\u0dc4\u0dcf\u0dc3\u0dba \u0daf \u0db4\u0dca\u200d\u0dbb\u0d9a\u0dcf\u0dc1 \u0d9a\u0dbb\u0dba\u0dd2.\n- \u0d92\u0dc0\u0dcf \u0db7\u0dcf\u0dc0\u0dd2\u0dad \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0dd9\u0db1\u0dca \u0dc3\u0dd2\u0db1\u0dca\u0daf\u0dd4\u0dc0 \u0db8\u0dd4\u0dbd\u0dca \u0dc3\u0db8\u0dca\u0db4\u0dca\u200d\u0dbb\u0daf\u0dcf\u0dba\u0da7 \u0dc4\u0ddd \u0db1\u0dd6\u0dad\u0db1 \u0dc3\u0db8\u0dcf\u0da2\u0dba\u0da7 \u0dc3\u0db8\u0dca\u0db6\u0db1\u0dca\u0db0 \u0dc0\u0dd2\u0dba \u0dc4\u0dd0\u0d9a.\n\n## 5. \u0db4\u0dca\u200d\u0dbb\u0db7\u0dda\u0daf (Genre) \u0dc4\u0db3\u0dd4\u0db1\u0dcf\u0d9c\u0dd0\u0db1\u0dd3\u0db8\n\u0dc0\u0dd2\u0dc1\u0dda\u0dc2\u0dd2\u0dad \u0db7\u0dcf\u0dab\u0dca\u0da9 \u0db8\u0d9c\u0dd2\u0db1\u0dca \u0dc3\u0dd2\u0db1\u0dca\u0daf\u0dd4\u0dc0\u0dda \u0db4\u0dca\u200d\u0dbb\u0db7\u0dda\u0daf\u0dba \u0dc0\u0dc4\u0dcf\u0db8 \u0dc4\u0db3\u0dd4\u0db1\u0dcf\u0d9c\u0dad \u0dc4\u0dd0\u0d9a.\n- **\u0d9c\u0dd2\u0da7\u0dcf\u0dbb\u0dca \u0dc3\u0dc4 \u0da9\u0dca\u200d\u0dbb\u0db8\u0dca** \u0dbb\u0ddc\u0d9a\u0dca \u0dc3\u0d82\u0d9c\u0dd3\u0dad\u0dba\u0da7.\n- **\u0dc3\u0dd2\u0db1\u0dca\u0dad\u0dc3\u0dba\u0dd2\u0dc3\u0dbb\u0dca** \u0db1\u0dd6\u0dad\u0db1 \u0db4\u0ddc\u0db4\u0dca \u0dc4\u0ddd \u0d89\u0dbd\u0dd9\u0d9a\u0dca\u0da7\u0dca\u200d\u0dbb\u0ddc\u0db1\u0dd2\u0d9a\u0dca \u0dc3\u0d82\u0d9c\u0dd3\u0dad\u0dba\u0da7.\n- **\u0dc4\u0dcf\u0db8\u0ddd\u0db1\u0dd2\u0dba\u0db8\u0dca \u0dc3\u0dc4 \u0dad\u0db6la** \u0dc1\u0dcf\u0dc3\u0dca\u0dad\u0dca\u200d\u0dbb\u0dd3\u0dba \u0dc4\u0ddd \u0da2\u0db1\u0db4\u0dca\u200d\u0dbb\u0dd2\u0dba \u0d9c\u0dd3\u0dad\u0dc0\u0dbd\u0da7.\n\n## 6. \u0db4\u0daf \u0dbb\u0da0\u0db1\u0dba\u0da7 \u0d85\u0db1\u0dd4\u0db4\u0dd6\u0dbb\u0d9a\u0dad\u0dca\u0dc0\u0dba\n\u0db7\u0dcf\u0dab\u0dca\u0da9 \u0db4\u0daf \u0dbb\u0da0\u0db1\u0dba\u0dda \u0d85\u0dbb\u0dca\u0dae\u0dba \u0dc0\u0dd0\u0da9\u0dd2 \u0d9a\u0dc5 \u0dc4\u0dd0\u0d9a. \u0d9c\u0dcf\u0dba\u0d9a\u0dba\u0dcf \u0db1\u0dd2\u0dc1\u0dca\u0dc1\u0db6\u0dca\u0daf \u0dc0\u0db1 \u0dc0\u0dd2\u0da7 \u0d91\u0db1 \u0db7\u0dcf\u0dab\u0dca\u0da9 \u0dc0\u0dcf\u0daf\u0db1\u0dba \u0dc4\u0ddd \u0dc0\u0dd2\u0dbb\u0dcf\u0db8 (pause) \u0dc0\u0dbd\u0dd2\u0db1\u0dca \u0db4\u0daf \u0dbb\u0da0\u0db1\u0dba\u0dda \u0db6\u0dbb \u0dc0\u0dd0\u0da9\u0dd2 \u0dc0\u0dda. \u0d85\u0db1\u0dd9\u0d9a\u0dca \u0d85\u0dad\u0da7, \u0db7\u0dcf\u0dab\u0dca\u0da9 \u0dc0\u0dd0\u0da9\u0dd2 \u0dc0\u0dd0\u0da9\u0dd2\u0dba\u0dd9\u0db1\u0dca \u0dc1\u0db6\u0dca\u0daf \u0d9a\u0dc5\u0dc4\u0ddc\u0dad\u0dca \u0db4\u0daf \u0d85\u0db7\u0dd2\u0db6\u0dc0\u0dcf \u0d9c\u0ddc\u0dc3\u0dca \u0d9c\u0dd3\u0dad\u0dba\u0dda \u0d85\u0dbb\u0dca\u0dae\u0dba \u0db1\u0dd0\u0dad\u0dd2 \u0dc0\u0dd2\u0dba\u0dc4\u0dd0\u0d9a.\n\n## 7. \u0db1\u0dd2\u0dbb\u0dca\u0db8\u0dcf\u0dab\u0dcf\u0dad\u0dca\u0db8\u0d9a \u0dc3\u0db8\u0dad\u0dd4\u0dbd\u0dd2\u0dad\u0dad\u0dcf\u0dc0\n\u0db7\u0dcf\u0dab\u0dca\u0da9\u0dc0\u0dbd \u0db6\u0dbd\u0db4\u0dd1\u0db8 \u0db0\u0db1\u0dcf\u0dad\u0dca\u0db8\u0d9a \u0dc0\u0dd3\u0db8\u0da7 \u0dc3\u0db8\u0dad\u0dd4\u0dbd\u0dd2\u0dad\u0dad\u0dcf\u0dc0 \u0d85\u0dc0\u0dc1\u0dca\u200d\u0dba\u0dba\u0dd2.\n- \u0d9c\u0dcf\u0dba\u0db1\u0dba\u0da7 \u0d89\u0da9 \u0daf\u0dd9\u0db1 \u0db4\u0dbb\u0dd2\u0daf\u0dd2 \u0db7\u0dcf\u0dab\u0dca\u0da9 \u0db8\u0da7\u0dca\u0da7\u0db8 \u0db4\u0dcf\u0dbd\u0db1\u0dba \u0d9a\u0dc5 \u0dba\u0dd4\u0dad\u0dd4\u0dba.\n- \u0d85\u0db1\u0dc0\u0dc1\u0dca\u200d\u0dba \u0db7\u0dcf\u0dab\u0dca\u0da9 \u0db6\u0dc4\u0dd4\u0dbd \u0dc0\u0dd3\u0db8 \u0d9c\u0dd3\u0dad\u0dba \u0d85\u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc3\u0dca\u0dae\u0dd2\u0dad \u0d9a\u0dc5 \u0dc4\u0dd0\u0d9a.\n- \u0dc3\u0dbb\u0dbd\u0dad\u0dca\u0dc0\u0dba \u0dc3\u0db8\u0dc4\u0dbb \u0dc0\u0dd2\u0da7 \u0d9c\u0dd0\u0db9\u0dd4\u0dbb\u0da7 \u0dc0\u0da9\u0dcf \u0db6\u0dbd\u0dc0\u0dad\u0dca \u0dc0\u0dd2\u0dba \u0dc4\u0dd0\u0d9a.\n\n## \u0db1\u0dd2\u0d9c\u0db8\u0db1\u0dba\n\u0dc3\u0dd2\u0db1\u0dca\u0daf\u0dd4\u0dc0\u0d9a\u0da7 \u0dc3\u0d82\u0d9c\u0dd3\u0dad \u0db7\u0dcf\u0dab\u0dca\u0da9 \u0db8\u0d9c\u0dd2\u0db1\u0dca \u0dc4\u0dd0\u0d9f\u0dd3\u0db8\u0dca, \u0dbb\u0dd2\u0daf\u0dca\u0db8\u0dba, \u0dc3\u0d82\u0dc3\u0dca\u0d9a\u0dd8\u0dad\u0dd2\u0dba \u0dc3\u0dc4 \u0dc4\u0dac\u0dda \u0d9c\u0dd4\u0dab\u0dcf\u0dad\u0dca\u0db8\u0d9a\u0db7\u0dcf\u0dc0\u0dba \u0dbd\u0db6\u0dcf \u0daf\u0dd9\u0dba\u0dd2. \u0d91\u0dc4\u0dd9\u0dad\u0dca \u0d92\u0dc0\u0dcf\u0dba\u0dda \u0dc3\u0dcf\u0dbb\u0dca\u0dae\u0d9a\u0dad\u0dca\u0dc0\u0dba \u0dbb\u0db3\u0dcf \u0db4\u0dc0\u0dad\u0dd2\u0db1\u0dca\u0db1\u0dda \u0db7\u0dcf\u0dab\u0dca\u0da9 \u0d9c\u0dd3\u0dad\u0dba\u0dda \u0d85\u0dbb\u0db8\u0dd4\u0dab\u0da7 \u0dc3\u0dda\u0dc0\u0dba \u0d9a\u0dbb\u0db1 \u0d86\u0d9a\u0dcf\u0dbb\u0dba \u0dc3\u0dc4 \u0d92\u0dc0\u0dcf \u0db7\u0dcf\u0dc0\u0dd2\u0dad \u0d9a\u0dc5 \u0dc3\u0db8\u0dad\u0dd4\u0dbd\u0dd2\u0dad\u0dad\u0dcf\u0dc0 \u0db8\u0dad\u0dba\u0dd2. \u0db7\u0dcf\u0dab\u0dca\u0da9 \u0db4\u0daf \u0dc4\u0dcf \u0d9c\u0dcf\u0dba\u0db1\u0dba \u0d89\u0d9a\u0dca\u0db8\u0dc0\u0dcf \u0db1\u0ddc\u0dba\u0db1 \u0dc0\u0dd2\u0da7, \u0d92\u0dc0\u0dcf \u0dc3\u0dd2\u0db1\u0dca\u0daf\u0dd4\u0dc0\u0dda \u0d86\u0dad\u0dca\u0db8\u0dba \u0d9c\u0ddc\u0da9\u0db1\u0d9f\u0db1 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0d85\u0d82\u0d9c\u0dba\u0d9a\u0dca \u0dc0\u0dda."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-5-5"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 46,
+                "outputTokens": 2316,
+                "inputTokensCostNanodollars": "4600",
+                "outputTokensCostNanodollars": "1158000",
+                "totalBackendLatencyMs": "17650"
+              },
+              "id": "synhalees_04_kavi_sindu_item-f9a91cab-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 46,
+            "outputTokens": 2316,
+            "inputTokensCostNanodollars": "4600",
+            "outputTokensCostNanodollars": "1158000",
+            "totalBackendLatencyMs": "17650"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        },
+        {
+          "id": "Response assessment with google/gemini-3.8-flash-5d3b34a6",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\n        You are an impartial and strict technical evaluator.\n\n        ### Task\n        Verify if the **Generated Response** complies strictly with the **Criteria**.\n\n        ### Input Data\n        **Generated Response:**\n        # \u0dc3\u0dd2\u0db1\u0dca\u0daf\u0dd4\u0dc0\u0d9a\u0da7 \u0dc3\u0d82\u0d9c\u0dd3\u0dad \u0db7\u0dcf\u0dab\u0dca\u0da9 \u0d9a\u0dbb\u0db1 \u0db6\u0dbd\u0db4\u0dd1\u0db8\n\n\u0dc3\u0dd2\u0db1\u0dca\u0daf\u0dd4\u0dc0\u0d9a\u0dca \u0dba\u0db1\u0dd4 \u0db4\u0daf \u0dbb\u0da0\u0db1\u0dba, \u0d9c\u0dcf\u0dba\u0db1\u0dba \u0dc3\u0dc4 \u0dc3\u0d82\u0d9c\u0dd3\u0dad\u0dba \u0d91\u0d9a\u0dad\u0dd4 \u0dc0\u0dd6 \u0d9a\u0dbd\u0dcf\u0d9a\u0dd8\u0dad\u0dd2\u0dba\u0d9a\u0dd2. \u0d92 \u0d85\u0dad\u0dbb\u0dd2\u0db1\u0dca \u0dc3\u0d82\u0d9c\u0dd3\u0dad \u0db7\u0dcf\u0dab\u0dca\u0da9\u0dc0\u0dbd\u0da7 \u0dc3\u0dd2\u0db1\u0dca\u0daf\u0dd4\u0dc0\u0dda \u0dc4\u0dd0\u0da9\u0dba, \u0dc4\u0dd0\u0d9f\u0dd3\u0db8 \u0dc3\u0dc4 \u0d86\u0dad\u0dca\u0db8\u0dba \u0dc4\u0dd0\u0da9\u0d9c\u0dc3\u0dca\u0dc0\u0db1\u0dca\u0db1 \u0dc0\u0dd2\u0dc1\u0dcf\u0dbd \u0db7\u0dd6\u0db8\u0dd2\u0d9a\u0dcf\u0dc0\u0d9a\u0dca \u0d87\u0dad.\n\n## 1. \u0dc4\u0dd0\u0d9f\u0dd3\u0db8\u0dca \u0db4\u0dca\u200d\u0dbb\u0d9a\u0dcf\u0dc1\u0db1\u0dba\n\u0dc3\u0dd2\u0db1\u0dca\u0daf\u0dd4\u0dc0\u0d9a \u0dc4\u0dd0\u0d9f\u0dd3\u0db8\u0dca \u0d89\u0dc3\u0dca\u0db8\u0dad\u0dd4 \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda \u0db6\u0ddc\u0dc4\u0ddd \u0dc0\u0dd2\u0da7 \u0db7\u0dcf\u0dab\u0dca\u0da9\u0dc0\u0dbd \u0dc4\u0dac\u0dba\u0dd2.\n- **\u0dc0\u0dba\u0dbd\u0dd2\u0db1\u0dca** \u0dc4\u0ddd **\u0dc3\u0dd9\u0dbd\u0ddd** \u0dc4\u0dac \u0db8\u0d9c\u0dd2\u0db1\u0dca \u0dc0\u0dda\u0daf\u0db1\u0dcf\u0dc0, \u0d86\u0daf\u0dbb\u0dba \u0dc4\u0ddd \u0dc1\u0ddd\u0d9a\u0dba \u0d9c\u0dd0\u0db9\u0dd4\u0dbb\u0dd2\u0db1\u0dca \u0db4\u0dca\u200d\u0dbb\u0d9a\u0dcf\u0dc1 \u0d9a\u0dc5 \u0dc4\u0dd0\u0d9a.\n- **\u0d9c\u0dd2\u0da7\u0dcf\u0dbb\u0dba** \u0dc4\u0ddd **\u0db4\u0dd2\u0dba\u0dcf\u0db1\u0ddd\u0dc0** \u0dc3\u0dbb\u0dbd \u0db8\u0dd9\u0dbd\u0da9\u0dd2\u0dba\u0d9a\u0dd2\u0db1\u0dca \u0db4\u0dc0\u0dcf \u0db1\u0ddc\u0d9a\u0dd3 \u0dc4\u0dd0\u0d9f\u0dd3\u0db8\u0dca \u0d9c\u0dd9\u0db1 \u0daf\u0dd9\u0dba\u0dd2.\n- **\u0dad\u0db6la** \u0dc3\u0dc4 **\u0db6\u0dd9\u0dbb** \u0db8\u0d9c\u0dd2\u0db1\u0dca \u0db4\u0dca\u200d\u0dbb\u0dd3\u0dad\u0dd2\u0dba, \u0d8b\u0daf\u0dca\u0daf\u0dd3\u0db4\u0db1\u0dba \u0dc4\u0ddd \u0dc3\u0db8\u0dcf\u0da2\u0dd3\u0dba \u0dc1\u0d9a\u0dca\u0dad\u0dd2\u0dba \u0daf\u0dd0\u0db1\u0dd9\u0dba\u0dd2.\n\n## 2. \u0dbb\u0dd2\u0daf\u0dca\u0db8\u0dba \u0dc3\u0dc4 \u0da0\u0dbd\u0db1\u0dba\n\u0db7\u0dcf\u0dab\u0dca\u0da9 \u0dc3\u0dd2\u0db1\u0dca\u0daf\u0dd4\u0dc0\u0da7 \u0dc3\u0dca\u0db4\u0db1\u0dca\u0daf\u0db1\u0dba\u0d9a\u0dca \u0dbd\u0db6\u0dcf \u0daf\u0dd9\u0dba\u0dd2.\n- **\u0da9\u0dca\u200d\u0dbb\u0db8\u0dca** \u0dc3\u0dc4 **\u0db6\u0dda\u0dc3\u0dca \u0d9c\u0dd2\u0da7\u0dcf\u0dbb\u0dca** \u0dc1\u0dca\u200d\u0dbb\u0dcf\u0dc0\u0d9a\u0dba\u0dcf\u0d9c\u0dda \u0dc1\u0dbb\u0dd3\u0dbb\u0dba\u0da7 \u0db8 \u0dbb\u0dd2\u0daf\u0dca\u0db8\u0dba \u0daf\u0dd0\u0db1\u0dc0\u0dd3\u0db8\u0da7 \u0dc3\u0db8\u0dad\u0dca \u0dc0\u0dda.\n- \u0dbb\u0dd2\u0daf\u0dca\u0db8\u0dba \u0db1\u0dd2\u0dc3\u0dcf \u0dc3\u0dd2\u0db1\u0dca\u0daf\u0dd4\u0dc0 \u0db1\u0dd0\u0da7\u0dd4\u0db8\u0dca, \u0d9c\u0dcf\u0dba\u0db1\u0dba \u0dc4\u0ddd \u0dc3\u0dcf\u0db8\u0dd6\u0dc4\u0dd2\u0d9a \u0dc3\u0dc4\u0db7\u0dcf\u0d9c\u0dd3\u0dad\u0dca\u0dc0\u0dba\u0da7 \u0dc3\u0dd4\u0daf\u0dd4\u0dc3\u0dd4 \u0dc0\u0dda.\n\n## 3. \u0dc3\u0dd4\u0dc3\u0d82\u0dc0\u0dcf\u0daf\u0dba \u0dc3\u0dc4 \u0db8\u0dd9\u0dbd\u0da9\u0dd2\u0dba\n\u0db7\u0dcf\u0dab\u0dca\u0da9\u0dc0\u0dbd \u0d91\u0d9a\u0dad\u0dd4\u0dc0 \u0dc3\u0dd2\u0db1\u0dca\u0daf\u0dd4\u0dc0\u0da7 \u0dc3\u0d82\u0d9a\u0dd3\u0dbb\u0dca\u0dab \u0dc4\u0dcf \u0dc3\u0db8\u0dd8\u0daf\u0dca\u0db0 \u0dc4\u0dac \u0dbd\u0db6\u0dcf \u0daf\u0dd9\u0dba\u0dd2.\n- **\u0dc4\u0dcf\u0db8\u0ddd\u0db1\u0dd2\u0dba\u0db8\u0dca** \u0dc4\u0ddd **\u0d9a\u0dd3\u0db6\u0ddd\u0da9\u0dca** \u0db8\u0d9c\u0dd2\u0db1\u0dca \u0d9c\u0dcf\u0dba\u0db1\u0dba\u0da7 \u0db4\u0dc3\u0dd4\u0db6\u0dd2\u0db8\u0dca \u0dc4\u0dcf \u0dc3\u0dc4\u0dcf\u0dba \u0dc3\u0db4\u0dba\u0dba\u0dd2.\n- \u0dc4\u0dac \u0db4\u0dbb\u0dcf\u0dc3\u0dba \u0dc0\u0dd2\u0dc0\u0dd2\u0db0 \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0dd9\u0db1\u0dca (\u0d8b\u0daf\u0dcf: \u0db6\u0dcf\u0dc3\u0dca \u0dc3\u0dc4 \u0da7\u0dca\u200d\u0dbb\u0dd9\u0db6\u0dbd\u0dca) \u0dc3\u0dd2\u0db1\u0dca\u0daf\u0dd4\u0dc0\u0da7 \u0d9c\u0dd0\u0db9\u0dd4\u0dbb \u0d91\u0d9a\u0dad\u0dd4 \u0dc0\u0dda.\n\n## 4. \u0db4\u0dca\u200d\u0dbb\u0dcf\u0daf\u0dda\u0dc1\u0dd3\u0dba \u0dc4\u0dcf \u0dc3\u0d82\u0dc3\u0dca\u0d9a\u0dd8\u0dad\u0dd2\u0d9a \u0d85\u0db1\u0db1\u0dca\u200d\u0dba\u0dad\u0dcf\u0dc0\n\u0dc3\u0d82\u0d9c\u0dd3\u0dad \u0db7\u0dcf\u0dab\u0dca\u0da9 \u0db6\u0ddc\u0dc4\u0ddd \u0dc0\u0dd2\u0da7 \u0dc3\u0d82\u0dc3\u0dca\u0d9a\u0dd8\u0dad\u0dd2\u0dba\u0dda \u0dc3\u0d82\u0d9a\u0dda\u0dad \u0dc0\u0dda.\n- **\u0dbb\u0db6\u0db1\u0dca**, **\u0d8b\u0da9\u0dd0\u0d9a\u0dca\u0d9a\u0dd2**, **\u0dc4\u0ddc\u0dbb\u0dab\u0dd1\u0dc0**, **\u0db6\u0dd9\u0dbb** \u0dc0\u0dd0\u0db1\u0dd2 \u0db7\u0dcf\u0dab\u0dca\u0da9 \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0dcf\u0d82\u0d9a\u0dd2\u0d9a \u0dc3\u0db8\u0dca\u0db4\u0dca\u200d\u0dbb\u0daf\u0dcf\u0dba\u0db1\u0dca \u0dc3\u0dc4 \u0da2\u0db1\u0d9a\u0dad\u0dcf \u0db8\u0dd9\u0db1\u0dca\u0db8 \u0da2\u0db1\u0dad\u0dcf\u0dc0\u0d9c\u0dda \u0d89\u0dad\u0dd2\u0dc4\u0dcf\u0dc3\u0dba \u0daf \u0db4\u0dca\u200d\u0dbb\u0d9a\u0dcf\u0dc1 \u0d9a\u0dbb\u0dba\u0dd2.\n- \u0d92\u0dc0\u0dcf \u0db7\u0dcf\u0dc0\u0dd2\u0dad \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0dd9\u0db1\u0dca \u0dc3\u0dd2\u0db1\u0dca\u0daf\u0dd4\u0dc0 \u0db8\u0dd4\u0dbd\u0dca \u0dc3\u0db8\u0dca\u0db4\u0dca\u200d\u0dbb\u0daf\u0dcf\u0dba\u0da7 \u0dc4\u0ddd \u0db1\u0dd6\u0dad\u0db1 \u0dc3\u0db8\u0dcf\u0da2\u0dba\u0da7 \u0dc3\u0db8\u0dca\u0db6\u0db1\u0dca\u0db0 \u0dc0\u0dd2\u0dba \u0dc4\u0dd0\u0d9a.\n\n## 5. \u0db4\u0dca\u200d\u0dbb\u0db7\u0dda\u0daf (Genre) \u0dc4\u0db3\u0dd4\u0db1\u0dcf\u0d9c\u0dd0\u0db1\u0dd3\u0db8\n\u0dc0\u0dd2\u0dc1\u0dda\u0dc2\u0dd2\u0dad \u0db7\u0dcf\u0dab\u0dca\u0da9 \u0db8\u0d9c\u0dd2\u0db1\u0dca \u0dc3\u0dd2\u0db1\u0dca\u0daf\u0dd4\u0dc0\u0dda \u0db4\u0dca\u200d\u0dbb\u0db7\u0dda\u0daf\u0dba \u0dc0\u0dc4\u0dcf\u0db8 \u0dc4\u0db3\u0dd4\u0db1\u0dcf\u0d9c\u0dad \u0dc4\u0dd0\u0d9a.\n- **\u0d9c\u0dd2\u0da7\u0dcf\u0dbb\u0dca \u0dc3\u0dc4 \u0da9\u0dca\u200d\u0dbb\u0db8\u0dca** \u0dbb\u0ddc\u0d9a\u0dca \u0dc3\u0d82\u0d9c\u0dd3\u0dad\u0dba\u0da7.\n- **\u0dc3\u0dd2\u0db1\u0dca\u0dad\u0dc3\u0dba\u0dd2\u0dc3\u0dbb\u0dca** \u0db1\u0dd6\u0dad\u0db1 \u0db4\u0ddc\u0db4\u0dca \u0dc4\u0ddd \u0d89\u0dbd\u0dd9\u0d9a\u0dca\u0da7\u0dca\u200d\u0dbb\u0ddc\u0db1\u0dd2\u0d9a\u0dca \u0dc3\u0d82\u0d9c\u0dd3\u0dad\u0dba\u0da7.\n- **\u0dc4\u0dcf\u0db8\u0ddd\u0db1\u0dd2\u0dba\u0db8\u0dca \u0dc3\u0dc4 \u0dad\u0db6la** \u0dc1\u0dcf\u0dc3\u0dca\u0dad\u0dca\u200d\u0dbb\u0dd3\u0dba \u0dc4\u0ddd \u0da2\u0db1\u0db4\u0dca\u200d\u0dbb\u0dd2\u0dba \u0d9c\u0dd3\u0dad\u0dc0\u0dbd\u0da7.\n\n## 6. \u0db4\u0daf \u0dbb\u0da0\u0db1\u0dba\u0da7 \u0d85\u0db1\u0dd4\u0db4\u0dd6\u0dbb\u0d9a\u0dad\u0dca\u0dc0\u0dba\n\u0db7\u0dcf\u0dab\u0dca\u0da9 \u0db4\u0daf \u0dbb\u0da0\u0db1\u0dba\u0dda \u0d85\u0dbb\u0dca\u0dae\u0dba \u0dc0\u0dd0\u0da9\u0dd2 \u0d9a\u0dc5 \u0dc4\u0dd0\u0d9a. \u0d9c\u0dcf\u0dba\u0d9a\u0dba\u0dcf \u0db1\u0dd2\u0dc1\u0dca\u0dc1\u0db6\u0dca\u0daf \u0dc0\u0db1 \u0dc0\u0dd2\u0da7 \u0d91\u0db1 \u0db7\u0dcf\u0dab\u0dca\u0da9 \u0dc0\u0dcf\u0daf\u0db1\u0dba \u0dc4\u0ddd \u0dc0\u0dd2\u0dbb\u0dcf\u0db8 (pause) \u0dc0\u0dbd\u0dd2\u0db1\u0dca \u0db4\u0daf \u0dbb\u0da0\u0db1\u0dba\u0dda \u0db6\u0dbb \u0dc0\u0dd0\u0da9\u0dd2 \u0dc0\u0dda. \u0d85\u0db1\u0dd9\u0d9a\u0dca \u0d85\u0dad\u0da7, \u0db7\u0dcf\u0dab\u0dca\u0da9 \u0dc0\u0dd0\u0da9\u0dd2 \u0dc0\u0dd0\u0da9\u0dd2\u0dba\u0dd9\u0db1\u0dca \u0dc1\u0db6\u0dca\u0daf \u0d9a\u0dc5\u0dc4\u0ddc\u0dad\u0dca \u0db4\u0daf \u0d85\u0db7\u0dd2\u0db6\u0dc0\u0dcf \u0d9c\u0ddc\u0dc3\u0dca \u0d9c\u0dd3\u0dad\u0dba\u0dda \u0d85\u0dbb\u0dca\u0dae\u0dba \u0db1\u0dd0\u0dad\u0dd2 \u0dc0\u0dd2\u0dba\u0dc4\u0dd0\u0d9a.\n\n## 7. \u0db1\u0dd2\u0dbb\u0dca\u0db8\u0dcf\u0dab\u0dcf\u0dad\u0dca\u0db8\u0d9a \u0dc3\u0db8\u0dad\u0dd4\u0dbd\u0dd2\u0dad\u0dad\u0dcf\u0dc0\n\u0db7\u0dcf\u0dab\u0dca\u0da9\u0dc0\u0dbd \u0db6\u0dbd\u0db4\u0dd1\u0db8 \u0db0\u0db1\u0dcf\u0dad\u0dca\u0db8\u0d9a \u0dc0\u0dd3\u0db8\u0da7 \u0dc3\u0db8\u0dad\u0dd4\u0dbd\u0dd2\u0dad\u0dad\u0dcf\u0dc0 \u0d85\u0dc0\u0dc1\u0dca\u200d\u0dba\u0dba\u0dd2.\n- \u0d9c\u0dcf\u0dba\u0db1\u0dba\u0da7 \u0d89\u0da9 \u0daf\u0dd9\u0db1 \u0db4\u0dbb\u0dd2\u0daf\u0dd2 \u0db7\u0dcf\u0dab\u0dca\u0da9 \u0db8\u0da7\u0dca\u0da7\u0db8 \u0db4\u0dcf\u0dbd\u0db1\u0dba \u0d9a\u0dc5 \u0dba\u0dd4\u0dad\u0dd4\u0dba.\n- \u0d85\u0db1\u0dc0\u0dc1\u0dca\u200d\u0dba \u0db7\u0dcf\u0dab\u0dca\u0da9 \u0db6\u0dc4\u0dd4\u0dbd \u0dc0\u0dd3\u0db8 \u0d9c\u0dd3\u0dad\u0dba \u0d85\u0dc0\u0dca\u200d\u0dba\u0dc0\u0dc3\u0dca\u0dae\u0dd2\u0dad \u0d9a\u0dc5 \u0dc4\u0dd0\u0d9a.\n- \u0dc3\u0dbb\u0dbd\u0dad\u0dca\u0dc0\u0dba \u0dc3\u0db8\u0dc4\u0dbb \u0dc0\u0dd2\u0da7 \u0d9c\u0dd0\u0db9\u0dd4\u0dbb\u0da7 \u0dc0\u0da9\u0dcf \u0db6\u0dbd\u0dc0\u0dad\u0dca \u0dc0\u0dd2\u0dba \u0dc4\u0dd0\u0d9a.\n\n## \u0db1\u0dd2\u0d9c\u0db8\u0db1\u0dba\n\u0dc3\u0dd2\u0db1\u0dca\u0daf\u0dd4\u0dc0\u0d9a\u0da7 \u0dc3\u0d82\u0d9c\u0dd3\u0dad \u0db7\u0dcf\u0dab\u0dca\u0da9 \u0db8\u0d9c\u0dd2\u0db1\u0dca \u0dc4\u0dd0\u0d9f\u0dd3\u0db8\u0dca, \u0dbb\u0dd2\u0daf\u0dca\u0db8\u0dba, \u0dc3\u0d82\u0dc3\u0dca\u0d9a\u0dd8\u0dad\u0dd2\u0dba \u0dc3\u0dc4 \u0dc4\u0dac\u0dda \u0d9c\u0dd4\u0dab\u0dcf\u0dad\u0dca\u0db8\u0d9a\u0db7\u0dcf\u0dc0\u0dba \u0dbd\u0db6\u0dcf \u0daf\u0dd9\u0dba\u0dd2. \u0d91\u0dc4\u0dd9\u0dad\u0dca \u0d92\u0dc0\u0dcf\u0dba\u0dda \u0dc3\u0dcf\u0dbb\u0dca\u0dae\u0d9a\u0dad\u0dca\u0dc0\u0dba \u0dbb\u0db3\u0dcf \u0db4\u0dc0\u0dad\u0dd2\u0db1\u0dca\u0db1\u0dda \u0db7\u0dcf\u0dab\u0dca\u0da9 \u0d9c\u0dd3\u0dad\u0dba\u0dda \u0d85\u0dbb\u0db8\u0dd4\u0dab\u0da7 \u0dc3\u0dda\u0dc0\u0dba \u0d9a\u0dbb\u0db1 \u0d86\u0d9a\u0dcf\u0dbb\u0dba \u0dc3\u0dc4 \u0d92\u0dc0\u0dcf \u0db7\u0dcf\u0dc0\u0dd2\u0dad \u0d9a\u0dc5 \u0dc3\u0db8\u0dad\u0dd4\u0dbd\u0dd2\u0dad\u0dad\u0dcf\u0dc0 \u0db8\u0dad\u0dba\u0dd2. \u0db7\u0dcf\u0dab\u0dca\u0da9 \u0db4\u0daf \u0dc4\u0dcf \u0d9c\u0dcf\u0dba\u0db1\u0dba \u0d89\u0d9a\u0dca\u0db8\u0dc0\u0dcf \u0db1\u0ddc\u0dba\u0db1 \u0dc0\u0dd2\u0da7, \u0d92\u0dc0\u0dcf \u0dc3\u0dd2\u0db1\u0dca\u0daf\u0dd4\u0dc0\u0dda \u0d86\u0dad\u0dca\u0db8\u0dba \u0d9c\u0ddc\u0da9\u0db1\u0d9f\u0db1 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0d85\u0d82\u0d9c\u0dba\u0d9a\u0dca \u0dc0\u0dda.\n\n        **Criteria:**\n        1. The response conveys the same meaning as the reference answer: 'instrument_appreciation_response'. Wording may differ; the meaning must match.\n2. The response reads like a native Sri Lankan Sinhala speaker wrote it -- natural register and idiom, not translated-sounding English.\n\n        ### Evaluation Protocol\n        1. Analyze the response against the criteria.\n        2. Be strict. If the text is ambiguous, the check fails.\n        3. Output your assessment using the specific structure requested below.\n"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\"{\\\"results\\\":[{\\\"criterion\\\":\\\"The response conveys the same meaning as the reference answer: 'instrument_appreciation_response'. Wording may differ; the meaning must match.\\\",\\\"passed\\\":true,\\\"reason\\\":\\\"The response thoroughly discusses the role, impact, and appreciation of musical instruments within a song across multiple key dimensions (emotion, rhythm, melody/harmony, cultural identity, balance, etc.).\\\",\\\"confidence\\\":5},{\\\"criterion\\\":\\\"The response reads like a native Sri Lankan Sinhala speaker wrote it -- natural register and idiom, not translated-sounding English.\\\",\\\"passed\\\":false,\\\"reason\\\":\\\"The text exhibits clear characteristics of machine translation from English rather than natural Sinhala prose. Notable issues include calques like '\\u0dc4\\u0dd0\\u0da9\\u0d9c\\u0dc3\\u0dca\\u0dc0\\u0db1\\u0dca\\u0db1 \\u0dc0\\u0dd2\\u0dc1\\u0dcf\\u0dbd \\u0db7\\u0dd6\\u0db8\\u0dd2\\u0d9a\\u0dcf\\u0dc0\\u0d9a\\u0dca \\u0d87\\u0dad' ('plays a big role in shaping') and using '\\u0db8\\u0dd9\\u0dbd\\u0da9\\u0dd2\\u0dba' instead of the natural Sinhala musical term '\\u0dad\\u0db1\\u0dd4\\u0dc0'. Furthermore, there are blatant transliteration artifacts mixing Latin characters into Sinhala words (e.g., '\\u0dad\\u0db6la' appearing twice instead of '\\u0dad\\u0db6\\u0dca\\u0dbd\\u0dcf\\u0dc0'), and an unnatural clash between colloquial vocabulary ('\\u0dc3\\u0dd2\\u0db1\\u0dca\\u0daf\\u0dd4\\u0dc0') and formal written grammar.\\\",\\\"confidence\\\":5}]}\""
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "google/gemini-3.8-flash"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 1464,
+                "outputTokens": 1302,
+                "inputTokensCostNanodollars": "1098000",
+                "outputTokensCostNanodollars": "4882500",
+                "totalBackendLatencyMs": "10583"
+              },
+              "id": "Response assessment with google/gemini-3.8-flash-5d3b34a6-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 1464,
+            "outputTokens": 1302,
+            "inputTokensCostNanodollars": "1098000",
+            "outputTokensCostNanodollars": "4882500",
+            "totalBackendLatencyMs": "10583"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_04_015"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_04_kavi_sindu_item-Run #15"
+    }
+  ],
+  "pyRunId": "synhalees_04_kavi_sindu-Run #1"
+}

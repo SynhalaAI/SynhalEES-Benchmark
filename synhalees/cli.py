@@ -174,6 +174,22 @@ def pop_modality(args):
     return (parse_modality(modality) if modality is not None else None), rest
 
 
+def pop_force(args):
+    """Pull --force out of raw args -> (bool, rest).
+
+    Same pattern as pop_modality: the pull fast path bypasses argparse, so we
+    extract the flag manually from the forwarded argv.
+    """
+    force = False
+    rest = []
+    for tok in args:
+        if str(tok) == "--force":
+            force = True
+        else:
+            rest.append(str(tok))
+    return force, rest
+
+
 def load_scorecard(path):
     with open(path, newline="", encoding="utf-8-sig") as fh:
         rows = list(csv.reader(fh))
@@ -288,6 +304,12 @@ def cmd_kaggle_publish(a):
     return sh([kaggle_bin(), "b", "t", "publish", resolve_task_name(a.task), *a.args])
 
 
+def _task_is_cached(task_slug):
+    """True when kaggle-results/<task>/ already has at least one *.result.json."""
+    task_dir = KG_RESULTS / task_slug
+    return task_dir.is_dir() and any(task_dir.rglob("*.result.json"))
+
+
 def cmd_kaggle_pull(a):
     task = getattr(a, "task", None)
     raw = list(getattr(a, "args", None) or [])
@@ -295,6 +317,9 @@ def cmd_kaggle_pull(a):
         raw.insert(0, str(task))      # fast path ate the flag: 'pull --modality vision'
         task = None
     modality, args = pop_modality(raw)
+    force, args = pop_force(args)
+    if not force:
+        force = getattr(a, "force", False)
     if modality is None:
         cli_mod = getattr(a, "modality", None)
         modality = parse_modality(cli_mod) if cli_mod else ("text",)
@@ -309,24 +334,42 @@ def cmd_kaggle_pull(a):
         if not picked:
             raise SystemExit(f"no '{'|'.join(modality)}' task files in {TASKS_DIR} "
                              f"(run: synhalees kaggle gen)")
-        failed = []
+        failed, skipped = [], 0
         for i, f in enumerate(picked, 1):
             name = task_name_for(f)
+            if not force and _task_is_cached(name):
+                n = len(list((KG_RESULTS / name).rglob("*.result.json")))
+                print(f"[{i}/{len(picked)}] skipping {name} "
+                      f"(cached: {n} result(s); --force to re-download)")
+                skipped += 1
+                continue
             print(f"[{i}/{len(picked)}] pulling {name} -> {KG_RESULTS.relative_to(ROOT)}/")
             rc = sh([kaggle_bin(), "b", "t", "download", name, "-o", str(KG_RESULTS), *args])
             if rc:
                 failed.append(name)
             else:
                 _note_normalized(name, normalize_pulled_runs(name))
+        pulled = len(picked) - skipped - len(failed)
+        parts = []
+        if pulled:
+            parts.append(f"pulled {pulled}")
+        if skipped:
+            parts.append(f"skipped {skipped} (cached)")
         if failed:
+            parts.append(f"failed {len(failed)}")
             print(f"pull failed for {len(failed)} task(s): {', '.join(failed)}")
-            return 1
-        print(f"pulled {len(picked)} [{'|'.join(modality)}] task(s) -> {KG_RESULTS.relative_to(ROOT)}/")
+        print(f"{', '.join(parts)} [{'|'.join(modality)}] task(s) -> {KG_RESULTS.relative_to(ROOT)}/")
+        if skipped and not force:
+            print("hint: --force to re-download cached tasks")
         if sel == {"text"}:
             print("note: vision+audio skipped by default (~730MB more) - "
                   "add --modality 'vision|audio' (or vision / audio / all) to pull them")
-        return 0
+        return 1 if failed else 0
     name = resolve_task_name(task)
+    if not force and _task_is_cached(name):
+        n = len(list((KG_RESULTS / name).rglob("*.result.json")))
+        print(f"skipping {name} (cached: {n} result(s); --force to re-download)")
+        return 0
     rc = sh([kaggle_bin(), "b", "t", "download", name, "-o", str(KG_RESULTS), *args])
     if not rc:
         _note_normalized(name, normalize_pulled_runs(name))
@@ -747,13 +790,15 @@ def build_parser():
     p.add_argument("file", nargs="?", default="all", help="slim CSV path or 'all' (default: all *.slim.csv in kaggle-results/)")
     p.add_argument("--build", action="store_true", help="auto-rebuild leaderboard data after importing (default: off; run 'synhalees build' when ready)")
     p.set_defaults(func=cmd_kaggle_slim_import)
-    p = ks.add_parser("pull", help="download artifacts -> kaggle-results/ (default: all text tasks)")
+    p = ks.add_parser("pull", help="download artifacts -> kaggle-results/ (skips cached tasks; --force to re-download)")
     p.add_argument("task", nargs="?", default="all", help="task slug or 'all' (default: all)")
     p.add_argument("--modality", default=None,
                    help="modality filter for 'all': text (default, 15 tasks ~145MB) | "
                         "vision | audio | all; combine with | or , "
                         "(e.g. 'vision|audio'); an explicit task slug always wins")
-    p.add_argument("args", nargs=argparse.REMAINDER, help="extra flags, e.g. -m <model>, -f")
+    p.add_argument("--force", action="store_true", default=False,
+                   help="re-download even if artifacts are already cached locally")
+    p.add_argument("args", nargs=argparse.REMAINDER, help="extra flags, e.g. -m <model>")
     p.set_defaults(func=cmd_kaggle_pull)
     p = ks.add_parser("import", help="import tasks -> submissions/*.csv (single pulls when missing; all/text/vision/audio use local artifacts only, skip the rest)")
     p.add_argument("task", nargs="?", default="all", help="task slug, or all/text/vision/audio (default: all)")

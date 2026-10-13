@@ -1,0 +1,1067 @@
+{
+  "taskVersion": {
+    "versionNumber": 1,
+    "name": "synhalees_03_classical_literature",
+    "description": "SynhalEES pillar 03_classical_literature: native Sinhala text accuracy.",
+    "definition": "@kbench.task(name=\"synhalees_03_classical_literature\", description=\"SynhalEES pillar 03_classical_literature: native Sinhala text accuracy.\")\ndef synhalees_task(llm) -> float:\n    '''Evaluate Classical Literature (text); return accuracy in [0, 1].'''\n    import pandas as pd\n\n    rows = _rows()\n    if not rows:\n        raise ValueError(\n            \"No runnable text rows for Classical Literature yet -- media files may \"\n            \"not be committed under benchmark_data/.\"\n        )\n    with kbench.client.enable_cache():\n        runs = synhalees_item.evaluate(\n            llm=[llm], evaluation_data=pd.DataFrame(rows),\n            n_jobs=2, max_attempts=2, on_failure=\"continue\",\n            remove_run_files=True,\n        )\n    correct = runs.as_dataframe().result.str.get(\"is_correct\").astype(\"boolean\").fillna(False)\n    return float(correct.mean())\n"
+  },
+  "modelVersion": {
+    "slug": "anthropic/claude-haiku-5-5"
+  },
+  "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+  "startTime": "2026-10-13T09:07:31.420134Z",
+  "endTime": "2026-10-13T09:08:08.119881Z",
+  "conversations": [
+    {
+      "id": "synhalees_03_classical_literature-be1b2cae",
+      "metrics": {},
+      "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+    }
+  ],
+  "results": [
+    {
+      "type": "AGGREGATED",
+      "numericResult": {
+        "value": 0.3333333333333333
+      }
+    }
+  ],
+  "subruns": [
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-5-5"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-10-13T09:07:31.432731Z",
+      "endTime": "2026-10-13T09:07:33.148745Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-65679ed4",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0dc4\u0dcf\u0dc0\u0d82\u0dc1\u0dba \u0dbb\u0da0\u0db1\u0dcf \u0d9a\u0dbb\u0dda \u0d9a\u0dc0\u0dd4\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "**\u0db8\u0dc4\u0dcf\u0db1\u0dcf\u0db8 \u0dc4\u0dd2\u0db8\u0dd2** (\u0db8\u0dc4\u0dcf\u0db1\u0dcf\u0db8 \u0dad\u0dd9\u0dbb\u0dd4\u0db1\u0dca) \u0dc0\u0dd2\u0dc3\u0dd2\u0db1\u0dca \u0dbb\u0da0\u0db1\u0dcf \u0d9a\u0dbb\u0db1 \u0dbd\u0daf\u0dd3."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-5-5"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 46,
+                "outputTokens": 188,
+                "inputTokensCostNanodollars": "4600",
+                "outputTokensCostNanodollars": "94000",
+                "totalBackendLatencyMs": "1469"
+              },
+              "id": "synhalees_03_classical_literature_item-65679ed4-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 46,
+            "outputTokens": 188,
+            "inputTokensCostNanodollars": "4600",
+            "outputTokensCostNanodollars": "94000",
+            "totalBackendLatencyMs": "1469"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_03_001"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #1"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-5-5"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-10-13T09:07:31.433507Z",
+      "endTime": "2026-10-13T09:07:38.909262Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-0cb494cf",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9a\u0dc0\u0dca\u0dc3\u0dd2\u0dc5\u0dd4\u0db8\u0dd2\u0dab \u0d9a\u0dcf\u0dc0\u0dca\u200d\u0dba\u0dba\u0dda \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0d9a\u0dad\u0dcf \u0dc0\u0dc3\u0dca\u0dad\u0dd4\u0dc0\u0dda \u0d89\u0db1\u0dca\u0db1 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0d9a\u0dd4\u0db8\u0dcf\u0dbb\u0dd2\u0d9a\u0dcf\u0dc0\u0d9c\u0dda \u0db1\u0db8 \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0dad\u0db1\u0dd2 \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0da7 \u0db8\u0dda \u0db4\u0dca\u200d\u0dbb\u0dc1\u0dca\u0db1\u0dba\u0da7 \u0db1\u0dd2\u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0db4\u0dd2\u0dc5\u0dd2\u0dad\u0dd4\u0dbb \u0dc0\u0dd2\u0dc1\u0dca\u0dc0\u0dcf\u0dc3\u0dba\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1 \u0db6\u0dd0\u0dc4\u0dd0. \u0d9a\u0dc0\u0dca\u0dc3\u0dd2\u0dc5\u0dd4\u0db8\u0dd2\u0dab \u0d9a\u0dcf\u0dc0\u0dca\u200d\u0dba\u0dba\u0dda \u0d9a\u0dad\u0dcf \u0dc0\u0dc3\u0dca\u0dad\u0dd4\u0dc0 \u0dc3\u0dc4 \u0d91\u0dc4\u0dd2 \u0d9a\u0dd4\u0db8\u0dcf\u0dbb\u0dd2\u0d9a\u0dcf\u0dc0\u0d9c\u0dda \u0db1\u0db8 \u0d9c\u0dd0\u0db1 \u0db8\u0da7 \u0dc0\u0dd2\u0dc1\u0dca\u0dc0\u0dc3\u0db1\u0dd3\u0dba \u0dad\u0ddc\u0dbb\u0dad\u0dd4\u0dbb\u0dd4 \u0db1\u0dd0\u0dc4\u0dd0. \u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0db1\u0db8\u0d9a\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dc0\u0dcf\u0da7 \u0dc0\u0da9\u0dcf \u0db8\u0dd9\u0dba \u0db4\u0dd2\u0dc5\u0dd2\u0d9c\u0db1\u0dca\u0db1\u0dc0\u0dcf \u0dc0\u0da9\u0dcf \u0dc4\u0ddc\u0db3\u0dba\u0dd2.\n\n\u0d94\u0db6\u0da7 \u0db1\u0dd2\u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0dad\u0ddc\u0dbb\u0dad\u0dd4\u0dbb\u0dd4 \u0dbd\u0db6\u0dcf\u0d9c\u0dad \u0dc4\u0dd0\u0d9a\u0dd2 \u0d9a\u0dca\u200d\u0dbb\u0db8 \u0d9a\u0dd2\u0dc4\u0dd2\u0db4\u0dba\u0d9a\u0dca:\n- \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc3\u0dcf\u0dc4\u0dd2\u0dad\u0dca\u200d\u0dba \u0d89\u0dad\u0dd2\u0dc4\u0dcf\u0dc3 \u0d9c\u0dca\u200d\u0dbb\u0db1\u0dca\u0dae\n- \u0d9a\u0dc0\u0dca\u0dc3\u0dd2\u0dc5\u0dd4\u0db8\u0dd2\u0dab \u0d9a\u0dcf\u0dc0\u0dca\u200d\u0dba\u0dba\u0dda \u0dc3\u0d82\u0dc3\u0dca\u0d9a\u0dbb\u0dab (\u0dc0\u0dd2\u0dc1\u0dda\u0dc2\u0dba\u0dd9\u0db1\u0dca \u0dc0\u0dd2\u0dc0\u0dbb\u0dab \u0dc3\u0dc4\u0dd2\u0dad \u0db4\u0ddc\u0dad\u0dca)\n- \u0dc0\u0dd2\u0dc1\u0dca\u0dc0\u0dc0\u0dd2\u0daf\u0dca\u200d\u0dba\u0dcf\u0dbd\u0dc0\u0dbd \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0db0\u0dca\u200d\u0dba\u0dba\u0db1 \u0d85\u0d82\u0dc1\u0dc0\u0dbd \u0d85\u0db1\u0dca\u0dad\u0dbb\u0dca\u0da2\u0dcf\u0dbd \u0dc3\u0db8\u0dca\u0db4\u0dad\u0dca\n\n\u0d94\u0db6 \u0d9a\u0dcf\u0dc0\u0dca\u200d\u0dba\u0dba\u0dd9\u0db1\u0dca \u0d9a\u0ddc\u0da7\u0dc3\u0d9a\u0dca \u0dc4\u0ddd \u0d9a\u0dad\u0dcf\u0dc0\u0dda \u0dc3\u0dcf\u0dbb\u0dcf\u0d82\u0dc1\u0dba\u0d9a\u0dca \u0db8\u0da7 \u0daf\u0dd9\u0db1\u0dc0\u0dcf \u0db1\u0db8\u0dca, \u0d91\u0dba \u0db4\u0daf\u0db1\u0db8\u0dca \u0d9a\u0dbb\u0d9c\u0dd9\u0db1 \u0d8b\u0daf\u0dc0\u0dca \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0da7 \u0db8\u0da7 \u0dc4\u0dd0\u0d9a\u0dd2 \u0dc0\u0dda\u0dc0\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-5-5"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 103,
+                "outputTokens": 1182,
+                "inputTokensCostNanodollars": "10300",
+                "outputTokensCostNanodollars": "591000",
+                "totalBackendLatencyMs": "7235"
+              },
+              "id": "synhalees_03_classical_literature_item-0cb494cf-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 103,
+            "outputTokens": 1182,
+            "inputTokensCostNanodollars": "10300",
+            "outputTokensCostNanodollars": "591000",
+            "totalBackendLatencyMs": "7235"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_03_002"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #2"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-5-5"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-10-13T09:07:38.911715Z",
+      "endTime": "2026-10-13T09:07:43.406329Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-75d23bbc",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc3\u0dcf\u0dc4\u0dd2\u0dad\u0dca\u200d\u0dba\u0dba\u0dda \u0db4\u0dc5\u0dc0\u0dd9\u0db1\u0dd2 \u0dc3\u0db1\u0dca\u0daf\u0dda\u0dc1 \u0d9a\u0dcf\u0dc0\u0dca\u200d\u0dba\u0dba \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1 \u0db8\u0dd6\u0dbd\u0dd2\u0d9a \u0d9a\u0dbb \u0d9c\u0dad\u0dca\u0dad \u0dc3\u0dad\u0dcf \u0d9a\u0dc0\u0dd4\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc3\u0dcf\u0dc4\u0dd2\u0dad\u0dca\u200d\u0dba\u0dba\u0dda \u0db4\u0dc5\u0db8\u0dd4 \u0dc3\u0db1\u0dca\u0daf\u0dda\u0dc1 \u0d9a\u0dcf\u0dc0\u0dca\u200d\u0dba\u0dba \u0dc0\u0db1 **\"\u0db4\u0dbb\u0dc0\u0dd2 \u0dc3\u0dd0\u0daf\u0dd9\u0dc3\u0dca\"** \u0dc3\u0db3\u0dc4\u0dcf \u0db8\u0dd6\u0dbd\u0dd2\u0d9a \u0d9a\u0dbb \u0d9c\u0dad\u0dca \u0dc3\u0dad\u0dcf **\u0db4\u0dbb\u0dc0\u0dd2\u0dba\u0dcf (\u0db4\u0dbb\u0dd9\u0dc0\u0dd2\u0dba\u0dcf)** \u0dba. \u0db8\u0dd9\u0dba \u0dad\u0ddc\u0da7\u0d9c\u0db8\u0dd4\u0dc0\u0dda \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbb\u0dcf\u0dc4\u0dd4\u0dbd \u0dc4\u0dd2\u0db8\u0dd2\u0dba\u0db1\u0dca \u0dc0\u0dd2\u0dc3\u0dd2\u0db1\u0dca \u0dbb\u0da0\u0db1\u0dcf \u0d9a\u0dbb\u0db1 \u0dbd\u0daf\u0dca\u0daf\u0d9a\u0dd2. \u0d9a\u0dcf\u0dc0\u0dca\u200d\u0dba\u0dba\u0dda \u0d9a\u0dae\u0dcf \u0db1\u0dcf\u0dba\u0d9a\u0dba\u0dcf \u0dc0\u0db1 \u0dbb\u0da2\u0dad\u0dd4\u0db8\u0dcf \u0dad\u0db8 \u0db4\u0dca\u200d\u0dbb\u0dda\u0dba\u0dc3\u0dd2\u0dba \u0dc0\u0dd9\u0dad \u0db4\u0dab\u0dd2\u0dc0\u0dd2\u0da9\u0dba\u0d9a\u0dca \u0d9c\u0dd9\u0db1 \u0dba\u0dcf\u0db8\u0da7 \u0db4\u0dbb\u0dc0\u0dd2\u0dba\u0dcf \u0dba\u0ddc\u0daf\u0dcf \u0d9c\u0db1\u0dd3."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-5-5"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 73,
+                "outputTokens": 688,
+                "inputTokensCostNanodollars": "7300",
+                "outputTokensCostNanodollars": "344000",
+                "totalBackendLatencyMs": "4400"
+              },
+              "id": "synhalees_03_classical_literature_item-75d23bbc-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 73,
+            "outputTokens": 688,
+            "inputTokensCostNanodollars": "7300",
+            "outputTokensCostNanodollars": "344000",
+            "totalBackendLatencyMs": "4400"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_03_004"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #4"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-5-5"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-10-13T09:07:43.408883Z",
+      "endTime": "2026-10-13T09:07:45.084769Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-c6216e5c",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc4\u0d82\u0dc3 \u0dc3\u0db1\u0dca\u0daf\u0dda\u0dc1\u0dba \u0dbb\u0da0\u0db1\u0dcf \u0d9a\u0dc5\u0dda \u0d9a\u0dc0\u0dd4\u0daf? (\u0dc0\u0da0\u0db1 \u0dad\u0dd4\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "**\u0dad\u0ddc\u0da7\u0d9c\u0db8\u0dd4\u0dc0\u0dda \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbb\u0dcf\u0dc4\u0dd4\u0dbd \u0dc4\u0dd2\u0db8\u0dd2**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-5-5"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 48,
+                "outputTokens": 202,
+                "inputTokensCostNanodollars": "4800",
+                "outputTokensCostNanodollars": "101000",
+                "totalBackendLatencyMs": "1556"
+              },
+              "id": "synhalees_03_classical_literature_item-c6216e5c-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 48,
+            "outputTokens": 202,
+            "inputTokensCostNanodollars": "4800",
+            "outputTokensCostNanodollars": "101000",
+            "totalBackendLatencyMs": "1556"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_03_005"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #5"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-5-5"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-10-13T09:07:45.087229Z",
+      "endTime": "2026-10-13T09:07:46.784960Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-8ef52cf2",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dad\u0dd2\u0dc3\u0dbb \u0dc3\u0db1\u0dca\u0daf\u0dda\u0dc1\u0dba \u0dbb\u0da0\u0db1\u0dcf \u0d9a\u0dc5\u0dda \u0d9a\u0dc0\u0dd4\u0daf? (\u0dc0\u0da0\u0db1 \u0dc4\u0dad\u0dbb\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "**\u0dad\u0ddc\u0da7\u0d9c\u0db8\u0dd4\u0dc0\u0dda \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbb\u0dcf\u0dc4\u0dd4\u0dbd \u0dc4\u0dd2\u0db8\u0dd2**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-5-5"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 49,
+                "outputTokens": 230,
+                "inputTokensCostNanodollars": "4900",
+                "outputTokensCostNanodollars": "115000",
+                "totalBackendLatencyMs": "1603"
+              },
+              "id": "synhalees_03_classical_literature_item-8ef52cf2-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 49,
+            "outputTokens": 230,
+            "inputTokensCostNanodollars": "4900",
+            "outputTokensCostNanodollars": "115000",
+            "totalBackendLatencyMs": "1603"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_03_006"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #6"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-5-5"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-10-13T09:07:33.152176Z",
+      "endTime": "2026-10-13T09:07:46.866021Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-3dcef0a8",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d8b\u0db8\u0dca\u0db8\u0d9c\u0dca\u0d9c \u0da2\u0dcf\u0dad\u0d9a\u0dba \u0dad\u0dd2\u0dba\u0dd9\u0db1 \u0db4\u0ddc\u0dad\u0dda \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dad\u0dda\u0db8\u0dcf\u0dc0 \u0db8\u0ddc\u0d9a\u0daf\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "**\u0d8b\u0db8\u0dca\u0db8\u0d9c\u0dca\u0d9c \u0da2\u0dcf\u0dad\u0d9a\u0dba** \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dc0\u0dc1\u0dba\u0dd9\u0db1\u0dca **\u0db4\u0dca\u200d\u0dbb\u0da5\u0dcf\u0dc0 (\u0db4\u0da4\u0dca\u0da4\u0dcf)** \u0dc3\u0dc4 **\u0db4\u0dca\u200d\u0dbb\u0da5\u0dcf\u0dc0\u0db1\u0dca\u0dad \u0db4\u0dcf\u0dbd\u0db1\u0dba** \u0dba\u0db1 \u0dad\u0dda\u0db8\u0dcf \u0dc0\u0da7\u0dcf \u0d9a\u0dd0\u0dbb\u0d9a\u0dd9\u0dba\u0dd2.\n\n\u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0d85\u0daf\u0dc4\u0dc3\u0dca \u0d9a\u0dd2\u0dc4\u0dd2\u0db4\u0dba\u0d9a\u0dca \u0db8\u0dd9\u0dc3\u0dda\u0dba:\n\n1. **\u0db6\u0ddd\u0db0\u0dd2\u0dc3\u0dad\u0dca\u0dad\u0dca\u0dc0\u0dba\u0dcf\u0d9c\u0dda \u0db4\u0dca\u200d\u0dbb\u0da5\u0dcf\u0dc0:** \u0da2\u0dcf\u0dad\u0d9a\u0dba\u0dda \u0db1\u0dcf\u0dba\u0d9a \u0da0\u0dbb\u0dd2\u0dad\u0dba \u0dc0\u0db1 \u0db8\u0dc4\u0ddd\u0dc3\u0db0 \u0db4\u0dab\u0dca\u0da9\u0dd2\u0dad \u0db6\u0ddd\u0db0\u0dd2\u0dc3\u0dad\u0dca\u0dc0\u0dba\u0dcf \u0dad\u0db8 \u0db6\u0dd4\u0daf\u0dca\u0db0\u0dd2\u0db8\u0dad\u0dca \u0dad\u0dd3\u0dbb\u0dab \u0dc4\u0dcf \u0d8b\u0db4\u0dcf\u0dba\u0dc1\u0dd3\u0dbd\u0dd3 \u0dc0\u0dd2\u0dc3\u0db3\u0dd4\u0db8\u0dca \u0db8\u0d9c\u0dd2\u0db1\u0dca \u0dbb\u0da2\u0dd4\u0da7 \u0dc4\u0dcf \u0da2\u0db1\u0dad\u0dcf\u0dc0\u0da7 \u0db4\u0dd2\u0dc4\u0dd2\u0da7 \u0dc0\u0dda.\n2. **\u0dc0\u0dba\u0dc3\u0da7 \u0dc0\u0da9\u0dcf \u0db4\u0dca\u200d\u0dbb\u0da5\u0dcf\u0dc0\u0da7 \u0dc0\u0dd0\u0daf\u0d9c\u0dad\u0dca\u0d9a\u0db8:** \u0dad\u0dbb\u0dd4\u0dab \u0dc0\u0dba\u0dc3\u0dda \u0dc3\u0dd2\u0da7\u0dd2\u0dba\u0daf, \u0db4\u0dca\u200d\u0dbb\u0da5\u0dcf\u0dc0 \u0d87\u0dad\u0dd2 \u0d85\u0dba\u0dd9\u0d9a\u0dd4 \u0d8b\u0dc3\u0dc3\u0dca \u0dad\u0dd0\u0db1\u0d9a\u0da7 \u0dc3\u0dd4\u0daf\u0dd4\u0dc3\u0dd4 \u0db6\u0dc0 \u0db8\u0dd9\u0db8 \u0d9a\u0dae\u0dcf\u0dc0 \u0db4\u0dd9\u0db1\u0dca\u0dc0\u0dba\u0dd2.\n3. **\u0db0\u0dbb\u0dca\u0db8\u0dcf\u0db1\u0dd4\u0d9a\u0dd6\u0dbd \u0db4\u0dcf\u0dbd\u0db1\u0dba:** \u0dbb\u0da2\u0dd4\u0da7 \u0dc4\u0ddc\u0db3 \u0d8b\u0db4\u0daf\u0dd9\u0dc3\u0dca \u0daf\u0dd3\u0db8, \u0d85\u0db0\u0dbb\u0dca\u0db8\u0dd2\u0dc2\u0dca\u0da8 \u0d9a\u0dca\u200d\u0dbb\u0dd2\u0dba\u0dcf\u0dc0\u0dbd\u0da7 \u0dc0\u0dd2\u0dbb\u0dd4\u0daf\u0dca\u0db0 \u0dc0\u0dd3\u0db8 \u0dc4\u0dcf \u0da2\u0db1\u0dad\u0dcf\u0dc0\u0d9c\u0dda \u0dc3\u0dd4\u0db7\u0dc3\u0dcf\u0db0\u0db1\u0dba \u0d9c\u0dd0\u0db1 \u0dc3\u0dd2\u0dad\u0dd3\u0db8 \u0db8\u0d9c\u0dd2\u0db1\u0dca \u0db0\u0dbb\u0dca\u0db8\u0dd2\u0dc2\u0dca\u0da8 \u0db4\u0dcf\u0dbd\u0db1\u0dba\u0dda \u0dc0\u0dd0\u0daf\u0d9c\u0dad\u0dca\u0d9a\u0db8 \u0d85\u0dc0\u0db0\u0dcf\u0dbb\u0dab\u0dba \u0dc0\u0dda.\n4. **\"\u0d8b\u0db8\u0dca\u0db8\u0d9c\u0dca\u0d9c\" \u0dba\u0db1\u0dca\u0db1\u0dda \u0d9c\u0dd0\u0db9\u0dd4\u0dbb\u0dd4 \u0d85\u0dbb\u0dca\u0dae\u0dba:** \"\u0d8b\u0db8\u0dca\u0db8\u0d9c\u0dca\u0d9c\" \u0dba\u0db1\u0dd4 \"\u0db8\u0dcf\u0dbb\u0dca\u0d9c\u0dba\u0dd9\u0db1\u0dca \u0d94\u0db6\u0dca\u0db6\u0da7 \u0dba\u0dcf\u0db8\" \u0dc4\u0ddd \"\u0db8\u0dd4\u0d9a\u0dca\u0dad\u0dd2\u0dba\u0da7 \u0dba\u0db1 \u0db8\u0dcf\u0dbb\u0dca\u0d9c\u0dba\" \u0dba\u0db1 \u0d85\u0dbb\u0dca\u0dae\u0dba\u0dd9\u0db1\u0dca \u0daf \u0dc0\u0dd2\u0dc0\u0dbb\u0dab\u0dba \u0d9a\u0dd9\u0dbb\u0dda. \u0d91\u0db6\u0dd0\u0dc0\u0dd2\u0db1\u0dca \u0d89\u0dc4\u0dc5 \u0db0\u0dbb\u0dca\u0db8 \u0d85\u0dbb\u0dca\u0dae\u0dba\u0dd9\u0db1\u0dca, \u0db4\u0dca\u200d\u0dbb\u0da5\u0dcf\u0dc0 \u0db8\u0d9c\u0dd2\u0db1\u0dca \u0daf\u0dd4\u0d9a\u0dca\u0d9b \u0dc3\u0dcf\u0d9c\u0dbb\u0dba\u0dd9\u0db1\u0dca \u0db8\u0dd2\u0daf\u0dd9\u0db1 \u0db8\u0dcf\u0dbb\u0dca\u0d9c\u0dba \u0dc3\u0ddc\u0dba\u0dcf \u0d9c\u0dd0\u0db1\u0dd3\u0db8\u0dda \u0d85\u0daf\u0dc4\u0dc3\u0daf \u0d91\u0dc4\u0dd2 \u0d85\u0db1\u0dca\u0dad\u0dbb\u0dca\u0d9c\u0dad \u0dc0\u0dda.\n\n\u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba\u0dba\u0dd9\u0db1\u0dca \u0db8\u0dd9\u0dba **\u0db8\u0dc4\u0ddd\u0dc3\u0db0 \u0da2\u0dcf\u0dad\u0d9a** \u0d9a\u0dae\u0dcf \u0db8\u0dcf\u0dbd\u0dcf\u0dc0\u0dda \u0d9a\u0ddc\u0da7\u0dc3\u0d9a\u0dca \u0dbd\u0dd9\u0dc3 \u0dc3\u0dbd\u0d9a\u0db1\u0dd4 \u0dbd\u0db6\u0db1 \u0d85\u0dad\u0dbb, \u0d91\u0dc4\u0dd2 \u0db8\u0dd6\u0dbd\u0dd2\u0d9a \u0db4\u0dab\u0dd2\u0dc0\u0dd2\u0da9\u0dba \u0dc0\u0db1\u0dca\u0db1\u0dda **\u0db4\u0dca\u200d\u0dbb\u0da5\u0dcf\u0dc0, \u0db0\u0dbb\u0dca\u0db8\u0dba \u0dc4\u0dcf \u0db4\u0dca\u200d\u0dbb\u0dcf\u0dab\u0dd2\u0dba\u0dcf\u0d9c\u0dda \u0dc4\u0dd2\u0dad\u0dc3\u0dd4\u0dc0** \u0dba\u0db1 \u0d9c\u0dd4\u0dab \u0db8\u0d9c\u0dd2\u0db1\u0dca \u0da2\u0dd3\u0dc0\u0dd2\u0dad\u0dba\u0dda \u0dc3\u0dc4 \u0db4\u0dcf\u0dbd\u0db1\u0dba\u0dda \u0d9c\u0dd0\u0da7\u0dbd\u0dd4 \u0da2\u0dba\u0d9c\u0dad \u0dc4\u0dd0\u0d9a\u0dd2 \u0db6\u0dc0\u0dba\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-5-5"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 54,
+                "outputTokens": 2062,
+                "inputTokensCostNanodollars": "5400",
+                "outputTokensCostNanodollars": "1031000",
+                "totalBackendLatencyMs": "13606"
+              },
+              "id": "synhalees_03_classical_literature_item-3dcef0a8-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 54,
+            "outputTokens": 2062,
+            "inputTokensCostNanodollars": "5400",
+            "outputTokensCostNanodollars": "1031000",
+            "totalBackendLatencyMs": "13606"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_03_003"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #3"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-5-5"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-10-13T09:07:46.788230Z",
+      "endTime": "2026-10-13T09:07:48.818734Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-dd3e4fd0",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd0\u0dc5\u0dbd\u0dd2\u0dc4\u0dd2\u0dab\u0dd2 \u0dc3\u0db1\u0dca\u0daf\u0dda\u0dc1\u0dba \u0dbb\u0da0\u0db1\u0dcf \u0d9a\u0dc5\u0dda \u0d9a\u0dc0\u0dd4\u0daf? (\u0dc0\u0da0\u0db1 \u0dad\u0dd4\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "**\u0dad\u0ddc\u0da7\u0d9c\u0db8\u0dd4\u0dc0\u0dda \u0dbb\u0dcf\u0dc4\u0dd4\u0dbd \u0dc4\u0dd2\u0db8\u0dd2**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-5-5"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 54,
+                "outputTokens": 283,
+                "inputTokensCostNanodollars": "5400",
+                "outputTokensCostNanodollars": "141500",
+                "totalBackendLatencyMs": "1857"
+              },
+              "id": "synhalees_03_classical_literature_item-dd3e4fd0-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 54,
+            "outputTokens": 283,
+            "inputTokensCostNanodollars": "5400",
+            "outputTokensCostNanodollars": "141500",
+            "totalBackendLatencyMs": "1857"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_03_007"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #7"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-5-5"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-10-13T09:07:48.822180Z",
+      "endTime": "2026-10-13T09:07:52.040985Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-3131e0d5",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc0\u0dd9\u0dc3\u0dca\u0dc3\u0db1\u0dca\u0dad\u0dbb \u0da2\u0dcf\u0dad\u0d9a\u0dba\u0dda \u0d9a\u0dd4\u0db8\u0dcf\u0dbb\u0dc0\u0dbb\u0dd4\u0db1\u0dca\u0d9c\u0dda \u0db1\u0db8\u0dca \u0db8\u0ddc\u0db1\u0dc0\u0daf? (\u0dc0\u0da0\u0db1 \u0daf\u0dd9\u0d9a\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc0\u0dd9\u0dc3\u0dca\u0dc3\u0db1\u0dca\u0dad\u0dbb \u0da2\u0dcf\u0dad\u0d9a\u0dba\u0dda \u0daf\u0dbb\u0dd4\u0dc0\u0db1\u0dca \u0daf\u0dd9\u0daf\u0dd9\u0db1\u0dcf **\u0da2\u0dcf\u0dbd\u0dd2** (\u0db4\u0dd4\u0dad\u0dca\u200d\u0dbb\u0dba\u0dcf) \u0dc3\u0dc4 **\u0d9a\u0dab\u0dca\u0dc4\u0dcf\u0da2\u0dd2\u0db1\u0dcf** (\u0daf\u0dd2\u0dba\u0dab\u0dd2\u0dba) \u0dba."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-5-5"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 67,
+                "outputTokens": 456,
+                "inputTokensCostNanodollars": "6700",
+                "outputTokensCostNanodollars": "228000",
+                "totalBackendLatencyMs": "3137"
+              },
+              "id": "synhalees_03_classical_literature_item-3131e0d5-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 67,
+            "outputTokens": 456,
+            "inputTokensCostNanodollars": "6700",
+            "outputTokensCostNanodollars": "228000",
+            "totalBackendLatencyMs": "3137"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_03_009"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #9"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-5-5"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-10-13T09:07:46.868419Z",
+      "endTime": "2026-10-13T09:07:52.216894Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-8cfe4fd6",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db4\u0dbb\u0dd9\u0dc0\u0dd2 \u0dc3\u0db1\u0dca\u0daf\u0dda\u0dc1\u0dba \u0dbb\u0da0\u0db1\u0dcf \u0d9a\u0dc5\u0dda \u0d9a\u0dc0\u0dd4\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "**\u0db4\u0dbb\u0dd9\u0dc0\u0dd2 \u0dc3\u0db1\u0dca\u0daf\u0dda\u0dc1\u0dba** \u0dbb\u0da0\u0db1\u0dcf \u0d9a\u0dc5\u0dda **\u0dad\u0ddc\u0da7\u0d9c\u0db8\u0dd4\u0dc0\u0dda \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbb\u0dcf\u0dc4\u0dd4\u0dbd \u0dc4\u0dd2\u0db8\u0dd2** (Thotagamuwe Sri Rahula Thera) \u0db6\u0dc0 \u0dc3\u0dcf\u0db8\u0dca\u0db4\u0dca\u200d\u0dbb\u0daf\u0dcf\u0dba\u0dd2\u0d9a\u0dc0 \u0dc3\u0dbd\u0d9a\u0db1\u0dd4 \u0dbd\u0dd0\u0db6\u0dda. \u0db8\u0dd9\u0dba \u0db8\u0db0\u0dca\u200d\u0dba\u0d9a\u0dcf\u0dbd\u0dd3\u0db1 \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc3\u0db1\u0dca\u0daf\u0dda\u0dc1 \u0d9a\u0dcf\u0dc0\u0dca\u200d\u0dba\u0dba\u0db1\u0dca\u0d9c\u0dd9\u0db1\u0dca \u0d91\u0d9a\u0d9a\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-5-5"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 34,
+                "outputTokens": 1048,
+                "inputTokensCostNanodollars": "3400",
+                "outputTokensCostNanodollars": "524000",
+                "totalBackendLatencyMs": "5246"
+              },
+              "id": "synhalees_03_classical_literature_item-8cfe4fd6-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 34,
+            "outputTokens": 1048,
+            "inputTokensCostNanodollars": "3400",
+            "outputTokensCostNanodollars": "524000",
+            "totalBackendLatencyMs": "5246"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_03_008"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #8"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-5-5"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-10-13T09:07:52.043472Z",
+      "endTime": "2026-10-13T09:07:53.158960Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-266f81b5",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dbb\u0dd4\u0dc0\u0db1\u0dca\u0dc0\u0dd0\u0dbd\u0dd2\u0dc3\u0dd1\u0dba \u0dc4\u0daf\u0db4\u0dd4 \u0dbb\u0da2\u0dca\u0da2\u0dd4\u0dbb\u0dd4\u0dc0\u0ddd \u0dbb\u0da7 \u0d91\u0d9a\u0dca\u0dc3\u0dda\u0dc3\u0dad\u0dca \u0d9a\u0dbb\u0db1\u0dca\u0db1 \u0dba\u0dd4\u0daf\u0dca\u0db0 \u0d9a\u0dbb\u0dda \u0d9a\u0dcf\u0dad\u0dca \u0d91\u0d9a\u0dca\u0d9a\u0daf? (\u0dad\u0db1\u0dd2 \u0dc0\u0da0\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "**\u0d91\u0dc5\u0dcf\u0dbb**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-5-5"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 91,
+                "outputTokens": 132,
+                "inputTokensCostNanodollars": "9100",
+                "outputTokensCostNanodollars": "66000",
+                "totalBackendLatencyMs": "1021"
+              },
+              "id": "synhalees_03_classical_literature_item-266f81b5-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 91,
+            "outputTokens": 132,
+            "inputTokensCostNanodollars": "9100",
+            "outputTokensCostNanodollars": "66000",
+            "totalBackendLatencyMs": "1021"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_03_010"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #10"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-5-5"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-10-13T09:07:52.219397Z",
+      "endTime": "2026-10-13T09:07:55.896817Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-c70843f7",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d85\u0db7\u0dba\u0d9c\u0dd2\u0dbb\u0dd2\u0dba \u0dc4\u0dd0\u0daf\u0dd4\u0dc0\u0dda \u0d9a\u0dc0\u0dd4\u0daf? (\u0dc0\u0da0\u0db1 \u0dad\u0dd4\u0db1\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "**\u0d92 \u0dc0\u0dc5\u0d9c\u0db8\u0dca\u0db6\u0dcf \u0dbb\u0da2\u0dd4** (\u0d9a\u0dca\u200d\u0dbb\u0dd2.\u0db4\u0dd6. 1 \u0dc0\u0db1 \u0dc3\u0dd2\u0dba\u0dc0\u0dc3\u0dda)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-5-5"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 45,
+                "outputTokens": 630,
+                "inputTokensCostNanodollars": "4500",
+                "outputTokensCostNanodollars": "315000",
+                "totalBackendLatencyMs": "3605"
+              },
+              "id": "synhalees_03_classical_literature_item-c70843f7-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 45,
+            "outputTokens": 630,
+            "inputTokensCostNanodollars": "4500",
+            "outputTokensCostNanodollars": "315000",
+            "totalBackendLatencyMs": "3605"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_03_011"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #11"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-5-5"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-10-13T09:07:55.899064Z",
+      "endTime": "2026-10-13T09:08:03.224663Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-313f734d",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0dc4\u0dcf\u0dc0\u0d82\u0dc1\u0dba\u0dda \u0d86\u0dbb\u0db8\u0dca\u0db7\u0dba\u0dda \u0d91\u0db1 \u0db4\u0dc5\u0dc0\u0dd9\u0db1\u0dd2 \u0dbb\u0da2\u0dca\u0da2\u0dd4\u0dbb\u0dd4\u0dc0\u0ddd \u0d86\u0dc0\u0dda \u0db8\u0ddc\u0db1 \u0dbb\u0da7\u0dd9\u0db1\u0dca\u0daf? (\u0d92 \u0dbb\u0da7\u0dda \u0dc0\u0dbb\u0dca\u0dad\u0db8\u0dcf\u0db1 \u0db1\u0db8 \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db8\u0dc4\u0dcf\u0dc0\u0d82\u0dc1\u0dba\u0dda \u0d86\u0dbb\u0db8\u0dca\u0db7\u0dba\u0dda \u0d91\u0db1 \u0db4\u0dc5\u0db8\u0dd4 \u0dbb\u0da2\u0dd4 \u0dc0\u0db1 **\u0dc0\u0dd2\u0da2\u0dba** \u0dbb\u0da2\u0dd4 \u0d86\u0dc0\u0dda **\u0dbd\u0dcf\u0dc5 \u0dbb\u0da7** (\u0dbd\u0dcf\u0da7) \u0dc0\u0dd9\u0db1\u0dd2\u0db1\u0dca \u0d9a\u0dd2\u0dba\u0dcf \u0dc3\u0db3\u0dc4\u0db1\u0dca \u0dc0\u0dda. \u0d94\u0dc4\u0dd4 \u0da2\u0db1\u0db4\u0daf\u0dba\u0dda **\u0dc3\u0dd2\u0d82\u0dc4\u0db4\u0dd4\u0dbb** \u0db1\u0d9c\u0dbb\u0dba\u0dda \u0dbb\u0da2\u0dd4\u0d9c\u0dda \u0db4\u0dd4\u0dad\u0dca\u200d\u0dbb\u0dba\u0dd9\u0d9a\u0dca \u0dc0\u0dd2\u0dba.\n\n\u0d92 \u0dbd\u0dcf\u0dc5/\u0dbd\u0dcf\u0da7 \u0db4\u0dca\u200d\u0dbb\u0daf\u0dda\u0dc1\u0dba\u0da7 \u0d85\u0db1\u0dd4\u0dc0 \u0d85\u0daf **\u0d89\u0db1\u0dca\u0daf\u0dd2\u0dba\u0dcf\u0dc0\u0dda \u0d9c\u0dd4\u0da2\u0dbb\u0dcf\u0dad\u0dca \u0db4\u0dca\u200d\u0dbb\u0dcf\u0db1\u0dca\u0dad\u0dba\u0dda \u0daf\u0d9a\u0dd4\u0dab\u0dd4 \u0db4\u0dca\u200d\u0dbb\u0daf\u0dda\u0dc1\u0dba \u0dc3\u0dc4 \u0db8\u0dc4\u0dcf\u0dbb\u0dcf\u0dc2\u0dca\u0da7\u0dca\u200d\u0dbb\u0dba\u0dda \u0d8b\u0dad\u0dd4\u0dbb\u0dd4 \u0db4\u0dca\u200d\u0dbb\u0daf\u0dda\u0dc1\u0dba** \u0db4\u0dd2\u0dc4\u0dd2\u0da7\u0dd2 \u0db7\u0dd6\u0db8\u0dd2\u0dba \u0dbd\u0dd9\u0dc3 \u0dc3\u0dbd\u0d9a\u0db1\u0dd4 \u0dbd\u0dd0\u0db6\u0dda. \u0dbd\u0dcf\u0dc5 \u0dbb\u0da7\u0dda \u0daf\u0dd0\u0db1\u0da7 **\u0d89\u0db1\u0dca\u0daf\u0dd2\u0dba\u0dcf\u0dc0** \u0dba\u0db1\u0dca\u0db1 \u0dc0\u0dbb\u0dca\u0dad\u0db8\u0dcf\u0db1 \u0dbb\u0dcf\u0da2\u0dca\u200d\u0dba\u0dba\u0dba\u0dd2.\n\n\u0dc3\u0dd2\u0d82\u0dc4\u0db4\u0dd4\u0dbb\u0dba\u0dda \u0db1\u0dd2\u0dc1\u0dca\u0da0\u0dd2\u0dad \u0dc3\u0dca\u0dae\u0dcf\u0db1\u0dba \u0d89\u0dad\u0dd2\u0dc4\u0dcf\u0dc3\u0da5\u0dba\u0db1\u0dca \u0d85\u0dad\u0dbb \u0dad\u0dc0\u0db8\u0dad\u0dca \u0dc0\u0dd2\u0dc0\u0dcf\u0daf\u0dcf\u0dad\u0dca\u0db8\u0d9a\u0dba. \u0dc3\u0db8\u0dc4\u0dbb \u0dc0\u0dd2\u0daf\u0dca\u0dc0\u0dad\u0dd4\u0db1\u0dca \u0d91\u0dba \u0d9c\u0dd4\u0da2\u0dbb\u0dcf\u0dad\u0dba\u0dda \u0dc3\u0dd2\u0dc4\u0ddd\u0dbb\u0dca \u0db4\u0dca\u200d\u0dbb\u0daf\u0dda\u0dc1\u0dba\u0da7 \u0dc4\u0ddd \u0db6\u0dd9\u0d82\u0d9c\u0dcf\u0dbd\u0dba\u0dda \u0db4\u0dca\u200d\u0dbb\u0daf\u0dda\u0dc1\u0dba\u0d9a\u0da7 \u0dc3\u0db8\u0dca\u0db6\u0db1\u0dca\u0db0 \u0d9a\u0dbb\u0dad\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-5-5"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 89,
+                "outputTokens": 1086,
+                "inputTokensCostNanodollars": "8900",
+                "outputTokensCostNanodollars": "543000",
+                "totalBackendLatencyMs": "7244"
+              },
+              "id": "synhalees_03_classical_literature_item-313f734d-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 89,
+            "outputTokens": 1086,
+            "inputTokensCostNanodollars": "8900",
+            "outputTokensCostNanodollars": "543000",
+            "totalBackendLatencyMs": "7244"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_03_013"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #13"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-5-5"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-10-13T09:07:53.162324Z",
+      "endTime": "2026-10-13T09:08:03.957197Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-4e84afd3",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0daf\u0dc5\u0daf\u0dcf \u0db4\u0dd9\u0dbb\u0dc4\u0dd0\u0dbb \u0dc3\u0db8\u0dca\u0db4\u0dca\u200d\u0dbb\u0daf\u0dcf\u0dba\u0da7 \u0db8\u0dd6\u0dbd\u0dd2\u0d9a \u0dc0\u0dd4\u0db1 \u0d9c\u0dca\u200d\u0dbb\u0db1\u0dca\u0dae\u0dba \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0daf\u0dc5\u0daf\u0dcf \u0db4\u0dd9\u0dbb\u0dc4\u0dd0\u0dbb \u0dc3\u0db8\u0dca\u0db4\u0dca\u200d\u0dbb\u0daf\u0dcf\u0dba \u0db4\u0dd2\u0dc5\u0dd2\u0db6\u0db3 \u0db8\u0dd6\u0dbd\u0dd2\u0d9a \u0d9c\u0dca\u200d\u0dbb\u0db1\u0dca\u0dae \u0dbd\u0dd9\u0dc3 \u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba\u0dba\u0dd9\u0db1\u0dca \u0dc3\u0db3\u0dc4\u0db1\u0dca \u0dc0\u0db1\u0dca\u0db1\u0dda \u0db8\u0dda\u0dc0\u0dcf\u0dba\u0dd2:\n\n1. **\u0daf\u0dc5\u0daf\u0dcf \u0dc3\u0dd2\u0dbb\u0dd2\u0dad (Dalada Sirita)**: \u0daf\u0dc5\u0daf\u0dcf \u0db8\u0dcf\u0dc5\u0dd2\u0d9c\u0dcf\u0dc0\u0dda \u0db4\u0dd6\u0da2\u0dcf \u0dc0\u0dd2\u0db0\u0dd2, \u0da0\u0dcf\u0dbb\u0dd2\u0dad\u0dca\u200d\u0dbb \u0dc3\u0dc4 \u0d8b\u0dad\u0dca\u0dc3\u0dc0 \u0db4\u0dd2\u0dc5\u0dd2\u0dc0\u0dd9\u0dad\u0dca \u0dc0\u0dd2\u0dc3\u0dca\u0dad\u0dbb \u0d9a\u0dbb\u0db1 \u0dc3\u0db8\u0dca\u0db4\u0dca\u200d\u0dbb\u0daf\u0dcf\u0dba\u0dd2\u0d9a \u0d9c\u0dca\u200d\u0dbb\u0db1\u0dca\u0dae\u0dba\u0dba\u0dd2. \u0db4\u0dd9\u0dbb\u0dc4\u0dd0\u0dbb \u0db4\u0dd2\u0dc5\u0dd2\u0db6\u0db3 \u0dc0\u0dd2\u0db0\u0dd2\u0dc0\u0dd2\u0db0\u0dcf\u0db1\u0daf \u0db8\u0dd9\u0dc4\u0dd2 \u0d85\u0db1\u0dca\u0dad\u0dbb\u0dca\u0d9c\u0dad\u0dba\u0dd2.\n\n2. **\u0daf\u0dc5\u0daf\u0dcf \u0db4\u0dd6\u0da2\u0dcf\u0dc0\u0dbd\u0dd2\u0dba (Dalada Pujavaliya)**: \u0daf\u0dc5\u0daf\u0dcf \u0dc0\u0dc4\u0db1\u0dca\u0dc3\u0dda\u0da7 \u0db4\u0dd6\u0da2\u0dcf \u0d9a\u0dbb\u0db1 \u0d86\u0d9a\u0dcf\u0dbb\u0dba \u0dc3\u0dc4 \u0d8b\u0dad\u0dca\u0dc3\u0dc0 \u0d9a\u0dca\u200d\u0dbb\u0db8 \u0d9c\u0dd0\u0db1 \u0dc3\u0db3\u0dc4\u0db1\u0dca \u0d9c\u0dca\u200d\u0dbb\u0db1\u0dca\u0dae\u0dba\u0dba\u0dd2.\n\n3. **\u0daf\u0dcf\u0da8\u0dcf\u0dc0\u0d82\u0dc1\u0dba (Dathavamsa)**: \u0daf\u0db1\u0dca\u0dad \u0db0\u0dcf\u0dad\u0dd4\u0dc0\u0dda \u0d89\u0dad\u0dd2\u0dc4\u0dcf\u0dc3\u0dba, \u0d91\u0dba \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0da7 \u0d9c\u0dd9\u0db1\u0dca\u0dc0\u0dd3\u0db8 \u0dc3\u0dc4 \u0d86\u0dbb\u0d9a\u0dca\u0dc2\u0dcf \u0dc0\u0dd3\u0db8 \u0d9c\u0dd0\u0db1 \u0db4\u0dcf\u0dbd\u0dd2 \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dd9\u0db1\u0dca \u0dbb\u0da0\u0dd2\u0dad \u0d9c\u0dca\u200d\u0dbb\u0db1\u0dca\u0dae\u0dba\u0dba\u0dd2. \u0daf\u0dc5\u0daf\u0dcf \u0dc3\u0db8\u0dca\u0db4\u0dca\u200d\u0dbb\u0daf\u0dcf\u0dba\u0dda \u0d89\u0dad\u0dd2\u0dc4\u0dcf\u0dc3\u0dd2\u0d9a \u0db4\u0dc3\u0dd4\u0db6\u0dd2\u0db8 \u0dbd\u0dd9\u0dc3 \u0db8\u0dd9\u0dba \u0db6\u0ddc\u0dc4\u0ddd \u0dc0\u0dd2\u0da7 \u0d8b\u0db4\u0dd4\u0da7\u0dcf \u0daf\u0dd0\u0d9a\u0dca\u0dc0\u0dda.\n\n\u0dc0\u0dd2\u0dc1\u0dda\u0dc2\u0dba\u0dd9\u0db1\u0dca **\u0daf\u0dc5\u0daf\u0dcf \u0dc3\u0dd2\u0dbb\u0dd2\u0dad** \u0dc3\u0dc4 **\u0daf\u0dc5\u0daf\u0dcf \u0db4\u0dd6\u0da2\u0dcf\u0dc0\u0dbd\u0dd2\u0dba** \u0d9a\u0db1\u0dca\u0daf \u0d8b\u0da9\u0dbb\u0da7 \u0dba\u0dd4\u0d9c\u0dba\u0dda \u0db4\u0dd9\u0dbb\u0dc4\u0dd0\u0dbb \u0da0\u0dcf\u0dbb\u0dd2\u0dad\u0dca\u200d\u0dbb \u0dc3\u0d9a\u0dc3\u0dca \u0dc0\u0dd3\u0db8\u0da7 \u0db6\u0dbd\u0db4\u0dd1 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0d9c\u0dca\u200d\u0dbb\u0db1\u0dca\u0dae \u0dbd\u0dd9\u0dc3 \u0dc3\u0dbd\u0d9a\u0db1\u0dd4 \u0dbd\u0dd0\u0db6\u0dda. \u0d9c\u0dca\u200d\u0dbb\u0db1\u0dca\u0dae\u0dc0\u0dbd \u0db1\u0dd2\u0dc1\u0dca\u0da0\u0dd2\u0dad \u0dbb\u0da0\u0db1\u0dcf \u0d9a\u0dcf\u0dbd\u0dba \u0dc3\u0dc4 \u0d9a\u0dad\u0dd4\u0dc0\u0dbb\u0dd4\u0db1\u0dca \u0db4\u0dd2\u0dc5\u0dd2\u0db6\u0db3 \u0dc0\u0dd2\u0dc3\u0dca\u0dad\u0dbb \u0dc0\u0dd2\u0daf\u0dca\u0dc0\u0dad\u0dd4\u0db1\u0dca \u0d85\u0dad\u0dbb \u0db8\u0dad\u0db7\u0dda\u0daf \u0d87\u0dad\u0dd2 \u0db6\u0dd0\u0dc0\u0dd2\u0db1\u0dca, \u0dc0\u0da9\u0dcf\u0dad\u0dca \u0db1\u0dd2\u0dc0\u0dd0\u0dbb\u0daf\u0dd2 \u0dad\u0ddc\u0dbb\u0dad\u0dd4\u0dbb\u0dd4 \u0dc3\u0db3\u0dc4\u0dcf \u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0daf\u0dc5\u0daf\u0dcf \u0db8\u0dcf\u0dc5\u0dd2\u0d9c\u0dcf\u0dc0 \u0dc4\u0ddd \u0db4\u0dd4\u0dbb\u0dcf\u0dc0\u0dd2\u0daf\u0dca\u200d\u0dba\u0dcf \u0db4\u0dca\u200d\u0dbb\u0d9a\u0dcf\u0dc1\u0db1 \u0db4\u0dbb\u0dd3\u0d9a\u0dca\u0dc2\u0dcf \u0d9a\u0dd2\u0dbb\u0dd3\u0db8 \u0dc3\u0dd4\u0daf\u0dd4\u0dc3\u0dd4\u0dba\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-5-5"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 57,
+                "outputTokens": 1749,
+                "inputTokensCostNanodollars": "5700",
+                "outputTokensCostNanodollars": "874500",
+                "totalBackendLatencyMs": "10696"
+              },
+              "id": "synhalees_03_classical_literature_item-4e84afd3-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 57,
+            "outputTokens": 1749,
+            "inputTokensCostNanodollars": "5700",
+            "outputTokensCostNanodollars": "874500",
+            "totalBackendLatencyMs": "10696"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_03_012"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #12"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-5-5"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-10-13T09:08:03.960130Z",
+      "endTime": "2026-10-13T09:08:07.602701Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-1c65bf36",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dda \u0daf\u0dd0\u0db1\u0da7 \u0db1\u0dd0\u0dad\u0dd2 \u0d92\u0dad\u0dca \u0d89\u0d82\u0d9c\u0dca\u200d\u0dbb\u0dd3\u0dc3\u0dd2 \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dda \u0dad\u0dd2\u0dba\u0dd9\u0db1 \u0d85\u0d9a\u0dd4\u0dbb \u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf? (\u0d9a\u0dd0\u0db4\u0dd2\u0da7\u0dbd\u0dca \u0d85\u0d9a\u0dd4\u0dbb\u0d9a\u0dd2\u0db1\u0dca \u0daf\u0dd9\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "**Q**\n\n\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 \u0db8\u0dcf\u0dbd\u0dcf\u0dc0\u0dda Q \u0dc3\u0db3\u0dc4\u0dcf \u0d85\u0dc0\u0db8 \u0dc0\u0dc1\u0dba\u0dd9\u0db1\u0dca \u0db1\u0dd2\u0dc1\u0dca\u0da0\u0dd2\u0dad \u0d85\u0d9a\u0dd4\u0dbb\u0d9a\u0dca \u0db1\u0dd0\u0dad. \u0d89\u0d82\u0d9c\u0dca\u200d\u0dbb\u0dd3\u0dc3\u0dd2\u0dba\u0dda Q \u0dc1\u0db6\u0dca\u0daf\u0dba \u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba\u0dba\u0dd9\u0db1\u0dca \"\u0d9a\u0dca\u200d\u0dc0\" \u0dbd\u0dd9\u0dc3 \u0dbd\u0dd2\u0dba\u0db1\u0dd4 \u0dbd\u0dd0\u0db6\u0dda."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-5-5"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 92,
+                "outputTokens": 511,
+                "inputTokensCostNanodollars": "9200",
+                "outputTokensCostNanodollars": "255500",
+                "totalBackendLatencyMs": "3551"
+              },
+              "id": "synhalees_03_classical_literature_item-1c65bf36-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 92,
+            "outputTokens": 511,
+            "inputTokensCostNanodollars": "9200",
+            "outputTokensCostNanodollars": "255500",
+            "totalBackendLatencyMs": "3551"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_03_015"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #15"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_03_classical_literature_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_03_classical_literature_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-5-5"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-10-13T09:08:03.227394Z",
+      "endTime": "2026-10-13T09:08:08.107060Z",
+      "conversations": [
+        {
+          "id": "synhalees_03_classical_literature_item-e864568e",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9c\u0dd4\u0dad\u0dca\u0dad\u0dd2\u0dbd \u0d9a\u0dcf\u0dc0\u0dca\u200d\u0dba\u0dba\u0dda \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0da0\u0dbb\u0dd2\u0dad\u0dba \u0daf\u0d9a\u0dca\u0dc2 \u0db8\u0ddc\u0db1 \u0dc3\u0d82\u0d9c\u0dd3\u0dad \u0db7\u0dcf\u0dab\u0dca\u0da9\u0dba\u0da7\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0d9c\u0dd4\u0dad\u0dca\u0dad\u0dd2\u0dbd \u0d9a\u0dcf\u0dc0\u0dca\u200d\u0dba\u0dba\u0dda \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0da0\u0dbb\u0dd2\u0dad\u0dba **\u0db6\u0dd9\u0dbb \u0dc0\u0dcf\u0daf\u0db1\u0dba\u0dda** \u0daf\u0d9a\u0dca\u0dc2\u0dba\u0dd9\u0d9a\u0dd2. \u0d94\u0dc4\u0dd4 \u0db6\u0dd9\u0dbb\u0dba \u0dc0\u0dcf\u0daf\u0db1\u0dba \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0dda \u0daf\u0d9a\u0dca\u0dc2\u0dad\u0dcf\u0dc0 \u0db1\u0dd2\u0dc3\u0dcf \u0db4\u0dca\u200d\u0dbb\u0dc3\u0dd2\u0daf\u0dca\u0db0\u0dd2\u0dba\u0da7 \u0db4\u0dad\u0dca\u0dc0\u0db1 \u0d85\u0dad\u0dbb \u0d9a\u0dcf\u0dc0\u0dca\u200d\u0dba\u0dba\u0dda \u0d9a\u0dad\u0dcf\u0dc0 \u0daf \u0d91\u0db8 \u0d9a\u0dd4\u0dc3\u0dbd\u0dad\u0dcf\u0dc0 \u0dc0\u0da7\u0dcf \u0d9c\u0ddc\u0da9\u0db1\u0d9c\u0dcf \u0d87\u0dad."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-5-5"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 67,
+                "outputTokens": 784,
+                "inputTokensCostNanodollars": "6700",
+                "outputTokensCostNanodollars": "392000",
+                "totalBackendLatencyMs": "4768"
+              },
+              "id": "synhalees_03_classical_literature_item-e864568e-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 67,
+            "outputTokens": 784,
+            "inputTokensCostNanodollars": "6700",
+            "outputTokensCostNanodollars": "392000",
+            "totalBackendLatencyMs": "4768"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_03_014"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_03_classical_literature_item-Run #14"
+    }
+  ],
+  "pyRunId": "synhalees_03_classical_literature-Run #1"
+}

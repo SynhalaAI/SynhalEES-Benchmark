@@ -1,0 +1,1067 @@
+{
+  "taskVersion": {
+    "versionNumber": 1,
+    "name": "synhalees_09_singlish_sms",
+    "description": "SynhalEES pillar 09_singlish_sms: native Sinhala text accuracy.",
+    "definition": "@kbench.task(name=\"synhalees_09_singlish_sms\", description=\"SynhalEES pillar 09_singlish_sms: native Sinhala text accuracy.\")\ndef synhalees_task(llm) -> float:\n    '''Evaluate Singlish Sms (text); return accuracy in [0, 1].'''\n    import pandas as pd\n\n    rows = _rows()\n    if not rows:\n        raise ValueError(\n            \"No runnable text rows for Singlish Sms yet -- media files may \"\n            \"not be committed under benchmark_data/.\"\n        )\n    with kbench.client.enable_cache():\n        runs = synhalees_item.evaluate(\n            llm=[llm], evaluation_data=pd.DataFrame(rows),\n            n_jobs=2, max_attempts=2, on_failure=\"continue\",\n            remove_run_files=True,\n        )\n    correct = runs.as_dataframe().result.str.get(\"is_correct\").astype(\"boolean\").fillna(False)\n    return float(correct.mean())\n"
+  },
+  "modelVersion": {
+    "slug": "anthropic/claude-sonnet-4-5@20250929"
+  },
+  "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+  "startTime": "2026-09-27T15:29:38.751051Z",
+  "endTime": "2026-09-27T15:31:01.948480Z",
+  "conversations": [
+    {
+      "id": "synhalees_09_singlish_sms-d4ddfa93",
+      "metrics": {},
+      "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+    }
+  ],
+  "results": [
+    {
+      "type": "AGGREGATED",
+      "numericResult": {
+        "value": 0.13333333333333333
+      }
+    }
+  ],
+  "subruns": [
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_09_singlish_sms_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_09_singlish_sms_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:29:38.761602Z",
+      "endTime": "2026-09-27T15:29:51.307650Z",
+      "conversations": [
+        {
+          "id": "synhalees_09_singlish_sms_item-aea50cbe",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "Api sms ywna kota 'Class' kiyn wchne kohomd keti krl ywnne?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "API SMS \u0dba\u0dc0\u0db1 \u0d9a\u0ddc\u0da7\u0dba\u0dda 'Class' \u0d9a\u0dd2\u0dba\u0db1 \u0d91\u0d9a **Message Class** \u0d91\u0d9a\u0d9a\u0dca \u0dc4\u0ddd **SMS Class** \u0d91\u0d9a\u0d9a\u0dca \u0dc0\u0dd9\u0db1\u0dca\u0db1 \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca. \u0db8\u0dda\u0d9a set \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda \u0db8\u0dd9\u0dc4\u0dd9\u0db8\u0dba\u0dd2:\n\n## SMS Class \u0dc0\u0dbb\u0dca\u0d9c:\n\n```python\n# Python example\nimport requests\n\nurl = \"https://api.example.com/send-sms\"\ndata = {\n    \"to\": \"0771234567\",\n    \"message\": \"Test message\",\n    \"class\": 0  # \u0dc4\u0ddd 1, 2, 3\n}\n\nresponse = requests.post(url, json=data)\n```\n\n## Class \u0d85\u0d9c\u0dba\u0db1\u0dca:\n\n- **Class 0** - Flash Message (screen \u0d91\u0d9a\u0dda instant \u0daf\u0dd0\u0d9a\u0dca\u0dc0\u0dd9\u0db1\u0dc0\u0dcf, save \u0dc0\u0dd9\u0db1\u0dca\u0db1\u0dda \u0db1\u0dd1)\n- **Class 1** - ME (Mobile Equipment) specific - phone memory \u0d91\u0d9a\u0dda save \u0dc0\u0dd9\u0db1\u0dc0\u0dcf\n- **Class 2** - SIM specific - SIM card \u0d91\u0d9a\u0dda save \u0dc0\u0dd9\u0db1\u0dc0\u0dcf\n- **Class 3** - TE (Terminal Equipment) specific\n\n## PHP Example:\n\n```php\n$data = array(\n    'to' => '0771234567',\n    'message' => 'Test SMS',\n    'class' => 1\n);\n\n$ch = curl_init('https://api.example.com/send');\ncurl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));\ncurl_setopt($ch, CURLOPT_RETURNTRANSFER, true);\n$response = curl_exec($ch);\n```\n\n\u0d94\u0db6 use \u0d9a\u0dbb\u0db1 API \u0d91\u0d9a\u0dda documentation \u0d91\u0d9a check \u0d9a\u0dbb\u0dbd\u0dcf exact parameter name \u0d91\u0d9a \u0db6\u0dbd\u0db1\u0dca\u0db1 (class, message_class, type \u0dc0\u0d9c\u0dda \u0db1\u0db8\u0dca \u0dc0\u0dd9\u0db1\u0dca\u0db1 \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca)."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 35,
+                "outputTokens": 480,
+                "inputTokensCostNanodollars": "105000",
+                "outputTokensCostNanodollars": "7200000",
+                "totalBackendLatencyMs": "12327"
+              },
+              "id": "synhalees_09_singlish_sms_item-aea50cbe-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 35,
+            "outputTokens": 480,
+            "inputTokensCostNanodollars": "105000",
+            "outputTokensCostNanodollars": "7200000",
+            "totalBackendLatencyMs": "12327"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_09_001"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_09_singlish_sms_item-Run #1"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_09_singlish_sms_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_09_singlish_sms_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:29:38.762375Z",
+      "endTime": "2026-09-27T15:29:51.801156Z",
+      "conversations": [
+        {
+          "id": "synhalees_09_singlish_sms_item-794ed574",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "Api sms ywna kota 'Phone' kiyn wchne kohomd keti krl ywnne?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# API SMS \u0d91\u0d9a\u0d9a 'Phone' key \u0d91\u0d9a \u0dc0\u0dd9\u0db1\u0dc3\u0dca \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda \u0d9a\u0dd9\u0dc3\u0dda\u0daf?\n\nAPI \u0d91\u0d9a\u0d9a SMS data \u0d91\u0d9a\u0dda 'Phone' key \u0d91\u0d9a \u0dc0\u0dd9\u0db1\u0dc3\u0dca \u0d9a\u0dbb\u0db1\u0dca\u0db1 \u0db4\u0dc4\u0dad \u0d9a\u0dca\u200d\u0dbb\u0db8 \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0db1\u0dca\u0db1:\n\n## 1. **Backend/API Level \u0d91\u0d9a\u0dda \u0dc0\u0dd9\u0db1\u0dc3\u0dca \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda \u0db1\u0db8\u0dca:**\n\n```python\n# Python/Flask \u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab\u0dba\u0d9a\u0dca\n@app.route('/send-sms', methods=['POST'])\ndef send_sms():\n    data = request.json\n    phone_number = data.get('Mobile')  # 'Phone' \u0dc0\u0dd9\u0db1\u0dd4\u0dc0\u0da7 'Mobile'\n    # \u0dc4\u0ddd\n    phone_number = data.get('ContactNumber')\n```\n\n```javascript\n// Node.js/Express \u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab\u0dba\u0d9a\u0dca\napp.post('/send-sms', (req, res) => {\n    const phoneNumber = req.body.Mobile; // 'Phone' \u0dc0\u0dd9\u0db1\u0dd4\u0dc0\u0da7\n    // \u0dc4\u0ddd \n    const phoneNumber = req.body.ContactNumber;\n});\n```\n\n## 2. **Frontend/Client Side \u0d91\u0d9a\u0dda \u0dc0\u0dd9\u0db1\u0dc3\u0dca \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda \u0db1\u0db8\u0dca:**\n\n```javascript\n// API call \u0d91\u0d9a\u0dda\u0daf\u0dd3\nfetch('https://api.example.com/send-sms', {\n    method: 'POST',\n    headers: {'Content-Type': 'application/json'},\n    body: JSON.stringify({\n        Mobile: \"0771234567\",  // 'Phone' \u0dc0\u0dd9\u0db1\u0dd4\u0dc0\u0da7 'Mobile'\n        Message: \"Test SMS\"\n    })\n});\n```\n\n## 3. **Mapping/Transform \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda \u0db1\u0db8\u0dca:**\n\n```javascript\n// \u0daf\u0dd0\u0db1\u0da7 \u0dad\u0dd2\u0dba\u0db1 data \u0d91\u0d9a transform \u0d9a\u0dbb\u0db1\u0dca\u0db1\nconst apiData = {\n    Phone: \"0771234567\",\n    Message: \"Test\"\n};\n\n// Key \u0d91\u0d9a \u0dc0\u0dd9\u0db1\u0dc3\u0dca \u0d9a\u0dbb\u0db1\u0dca\u0db1\nconst transformedData = {\n    Mobile: apiData.Phone,\n    Message: apiData.Message\n};\n```\n\n\u0d94\u0db6\u0da7 \u0d9a\u0dd4\u0db8\u0db1 \u0dad\u0dad\u0dca\u0dc0\u0dba\u0d9a\u0daf \u0dc0\u0dd9\u0db1\u0dc3\u0dca \u0d9a\u0dbb\u0db1\u0dca\u0db1 \u0d95\u0db1\u0dda?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 35,
+                "outputTokens": 579,
+                "inputTokensCostNanodollars": "105000",
+                "outputTokensCostNanodollars": "8685000",
+                "totalBackendLatencyMs": "12855"
+              },
+              "id": "synhalees_09_singlish_sms_item-794ed574-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 35,
+            "outputTokens": 579,
+            "inputTokensCostNanodollars": "105000",
+            "outputTokensCostNanodollars": "8685000",
+            "totalBackendLatencyMs": "12855"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_09_002"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_09_singlish_sms_item-Run #2"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_09_singlish_sms_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_09_singlish_sms_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:29:51.805430Z",
+      "endTime": "2026-09-27T15:30:04.175001Z",
+      "conversations": [
+        {
+          "id": "synhalees_09_singlish_sms_item-1a60ac6a",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "Api sms ywna kota 'Good Morning' kohomd keti krl ywnne?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# SMS API \u0d91\u0d9a\u0dd9\u0db1\u0dca \"Good Morning\" \u0dba\u0dd0\u0dc0\u0dd3\u0db8\n\nPHP \u0db7\u0dcf\u0dc2\u0dcf\u0dc0\u0dd9\u0db1\u0dca \u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab\u0dba\u0d9a\u0dca:\n\n```php\n<?php\n$api_key = \"YOUR_API_KEY\";\n$phone = \"+94771234567\"; // \u0dbd\u0db6\u0db1\u0dca\u0db1\u0dcf\u0d9c\u0dda \u0daf\u0dd4\u0dbb\u0d9a\u0dae\u0db1 \u0d85\u0d82\u0d9a\u0dba\n$message = \"Good Morning\";\n\n$url = \"https://api.sms-service.com/send\"; // API URL \u0d91\u0d9a\n\n$data = array(\n    'api_key' => $api_key,\n    'to' => $phone,\n    'message' => $message\n);\n\n$ch = curl_init();\ncurl_setopt($ch, CURLOPT_URL, $url);\ncurl_setopt($ch, CURLOPT_POST, true);\ncurl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));\ncurl_setopt($ch, CURLOPT_RETURNTRANSFER, true);\n\n$response = curl_exec($ch);\ncurl_close($ch);\n\necho $response;\n?>\n```\n\n## \u0dc0\u0dd0\u0daf\u0d9c\u0dad\u0dca \u0d9a\u0dbb\u0dd4\u0dab\u0dd4:\n\n1. **API Key** - \u0d94\u0db6\u0d9c\u0dda SMS service provider \u0d9c\u0dd9\u0db1\u0dca \u0dbd\u0db6\u0dcf\u0d9c\u0db1\u0dca\u0db1\n2. **Phone Number** - country code \u0d91\u0d9a \u0dc3\u0db8\u0d9f \u0daf\u0dd9\u0db1\u0dca\u0db1\n3. **API URL** - \u0d94\u0db6 \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0db1 \u0dc3\u0dda\u0dc0\u0dcf\u0dc0\u0da7 \u0d85\u0db1\u0dd4\u0dc0 \u0dc0\u0dd9\u0db1\u0dc3\u0dca \u0dc0\u0dd9\u0db1\u0dc0\u0dcf\n\n## \u0da2\u0db1\u0db4\u0dca\u200d\u0dbb\u0dd2\u0dba SMS Gateways:\n- Dialog SMS API (Sri Lanka)\n- Twilio\n- Nexmo/Vonage\n- AWS SNS\n\n\u0d94\u0db6 \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0db1 SMS provider \u0d91\u0d9a \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1 \u0dc0\u0dd2\u0dc3\u0dca\u0dad\u0dbb\u0dcf\u0dad\u0dca\u0db8\u0d9a \u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab\u0dba\u0d9a\u0dca \u0daf\u0dd9\u0db1\u0dca\u0db1 \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca! \ud83d\udcf1"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 31,
+                "outputTokens": 496,
+                "inputTokensCostNanodollars": "93000",
+                "outputTokensCostNanodollars": "7440000",
+                "totalBackendLatencyMs": "12276"
+              },
+              "id": "synhalees_09_singlish_sms_item-1a60ac6a-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 31,
+            "outputTokens": 496,
+            "inputTokensCostNanodollars": "93000",
+            "outputTokensCostNanodollars": "7440000",
+            "totalBackendLatencyMs": "12276"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_09_004"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_09_singlish_sms_item-Run #4"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_09_singlish_sms_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_09_singlish_sms_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:29:51.313064Z",
+      "endTime": "2026-09-27T15:30:07.434011Z",
+      "conversations": [
+        {
+          "id": "synhalees_09_singlish_sms_item-7763d850",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "Api sms ywna kota 'Photo' kiyn wchne kohomd keti krl ywnne?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# API SMS \u0d91\u0d9a\u0dd9\u0db1\u0dca Photo \u0dba\u0dd0\u0dc0\u0dd3\u0db8\n\nAPI SMS \u0dc3\u0dda\u0dc0\u0dcf\u0dc0\u0db1\u0dca \u0db8\u0d9c\u0dd2\u0db1\u0dca \u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba\u0dba\u0dd9\u0db1\u0dca **text messages \u0db4\u0db8\u0dab\u0d9a\u0dca** \u0dba\u0dd0\u0dc0\u0dd2\u0dba \u0dc4\u0dd0\u0d9a. Photos \u0dc4\u0ddd images \u0dba\u0dd0\u0dc0\u0dd3\u0db8\u0da7 API SMS \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dc5 **\u0db1\u0ddc\u0dc4\u0dd0\u0d9a**.\n\n## \u0dc0\u0dd2\u0d9a\u0dbd\u0dca\u0db4 \u0d9a\u0dca\u200d\u0dbb\u0db8:\n\n### 1\ufe0f\u20e3 **MMS (Multimedia Messaging Service)**\n- SMS \u0dc0\u0dd9\u0db1\u0dd4\u0dc0\u0da7 MMS API \u0d91\u0d9a\u0d9a\u0dca \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0db1\u0dca\u0db1\n- Photos, videos, audio \u0dba\u0dd0\u0dc0\u0dd2\u0dba \u0dc4\u0dd0\u0d9a\n- \u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab \u0dc3\u0dda\u0dc0\u0dcf:\n  - Twilio MMS API\n  - Vonage (Nexmo) MMS API\n  - MessageBird MMS API\n\n### 2\ufe0f\u20e3 **Photo Link \u0d91\u0d9a\u0d9a\u0dca \u0dba\u0dd0\u0dc0\u0dd3\u0db8 (SMS \u0db8\u0d9c\u0dd2\u0db1\u0dca)**\n```\nPhoto \u0d91\u0d9a cloud \u0d91\u0d9a\u0d9a upload \u0d9a\u0dbb\u0db1\u0dca\u0db1 (Google Drive, AWS S3)\n\u2193\nDownload link \u0d91\u0d9a SMS \u0db8\u0d9c\u0dd2\u0db1\u0dca \u0dba\u0dc0\u0db1\u0dca\u0db1\n```\n\n### 3\ufe0f\u20e3 **WhatsApp Business API**\n- Photos \u0dc3\u0dc4 documents \u0dba\u0dd0\u0dc0\u0dd2\u0dba \u0dc4\u0dd0\u0d9a\n- \u0dc0\u0da9\u0dcf \u0dc4\u0ddc\u0db3 multimedia support \u0d91\u0d9a\u0d9a\u0dca\n- Twilio, Meta (Facebook), \u0dc0\u0dd0\u0db1\u0dd2 \u0dc3\u0dda\u0dc0\u0dcf \u0dbd\u0db6\u0dcf \u0daf\u0dd9\u0dba\u0dd2\n\n### 4\ufe0f\u20e3 **Email API**\n- Photos attachments \u0dc0\u0dd2\u0daf\u0dd2\u0dc4\u0da7 \u0dba\u0dc0\u0db1\u0dca\u0db1\n- SendGrid, Mailgun \u0dc0\u0dd0\u0db1\u0dd2 \u0dc3\u0dda\u0dc0\u0dcf\n\n**\u0d85\u0dc0\u0dc1\u0dca\u200d\u0dba\u0dad\u0dcf\u0dc0\u0dba \u0db8\u0dad \u0dc0\u0dd2\u0dc3\u0db3\u0dd4\u0db8 \u0dad\u0ddd\u0dbb\u0dcf\u0d9c\u0db1\u0dca\u0db1!** \ud83d\udcf1\ud83d\udcf8"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 35,
+                "outputTokens": 447,
+                "inputTokensCostNanodollars": "105000",
+                "outputTokensCostNanodollars": "6705000",
+                "totalBackendLatencyMs": "16030"
+              },
+              "id": "synhalees_09_singlish_sms_item-7763d850-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 35,
+            "outputTokens": 447,
+            "inputTokensCostNanodollars": "105000",
+            "outputTokensCostNanodollars": "6705000",
+            "totalBackendLatencyMs": "16030"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_09_003"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_09_singlish_sms_item-Run #3"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_09_singlish_sms_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_09_singlish_sms_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:30:07.438406Z",
+      "endTime": "2026-09-27T15:30:18.663399Z",
+      "conversations": [
+        {
+          "id": "synhalees_09_singlish_sms_item-46d232bf",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "Sms ywnkota 'Fr' kiyala keti karanne mokkda?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "SMS \u0d91\u0d9a\u0d9a 'Fr' \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda **\"For Real\"** \u0d9a\u0dd2\u0dba\u0db1 \u0d91\u0d9a\u0da7.\n\n## \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dba:\n- **\u0d85\u0dbb\u0dca\u0dae\u0dba**: \"\u0d87\u0dad\u0dca\u0dad\u0da7\u0db8\", \"\u0dc3\u0dd0\u0db6\u0dd1\u0da7\u0db8\", \"\u0d87\u0dad\u0dca\u0dad\u0daf\" \u0dc0\u0d9c\u0dda \u0d85\u0dbb\u0dca\u0dae\n- \u0d9a\u0dd9\u0db1\u0dd9\u0d9a\u0dca \u0d9a\u0dd2\u0dba\u0db1 \u0daf\u0dd9\u0dba\u0d9a\u0dca \u0d87\u0dad\u0dca\u0dad\u0daf \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0dad\u0dc4\u0dc0\u0dd4\u0dbb\u0dd4 \u0d9a\u0dbb\u0d9c\u0db1\u0dca\u0db1 \u0dc4\u0ddd \u0db4\u0dd4\u0daf\u0dd4\u0db8\u0dba \u0db4\u0dca\u200d\u0dbb\u0d9a\u0dcf\u0dc1 \u0d9a\u0dbb\u0db1\u0dca\u0db1 \u0dba\u0ddc\u0daf\u0dcf\u0d9c\u0db1\u0dca\u0db1\u0dc0\u0dcf\n\n## \u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab:\n- \"I won the lottery!\" \u2192 \"Fr?\" (\u0d87\u0dad\u0dca\u0dad\u0da7\u0db8 \u0daf?)\n- \"Fr, that happened\" (\u0dc3\u0dd0\u0db6\u0dd1\u0da7\u0db8 \u0d92\u0d9a \u0dc0\u0dd4\u0dab\u0dcf)\n\n\u0db8\u0dda\u0d9a \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dc0\u0dc1\u0dba\u0dd9\u0db1\u0dca \u0dad\u0dbb\u0dd4\u0dab \u0db4\u0dbb\u0db8\u0dca\u0db4\u0dbb\u0dcf\u0dc0 \u0dc3\u0db8\u0dcf\u0da2 \u0db8\u0dcf\u0db0\u0dca\u200d\u0dba \u0dc4\u0dcf SMS \u0dc0\u0dbd \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0db1 internet slang \u0d91\u0d9a\u0d9a\u0dca."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 29,
+                "outputTokens": 297,
+                "inputTokensCostNanodollars": "87000",
+                "outputTokensCostNanodollars": "4455000",
+                "totalBackendLatencyMs": "11123"
+              },
+              "id": "synhalees_09_singlish_sms_item-46d232bf-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 29,
+            "outputTokens": 297,
+            "inputTokensCostNanodollars": "87000",
+            "outputTokensCostNanodollars": "4455000",
+            "totalBackendLatencyMs": "11123"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_09_006"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_09_singlish_sms_item-Run #6"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_09_singlish_sms_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_09_singlish_sms_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:30:04.179680Z",
+      "endTime": "2026-09-27T15:30:20.958573Z",
+      "conversations": [
+        {
+          "id": "synhalees_09_singlish_sms_item-cae5c643",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "Api sms ywna kota 'Good Night' kohomd keti krl ywnne?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# API SMS \u0d91\u0d9a\u0d9a\u0dca \u0dba\u0dc0\u0db1 \u0d9a\u0ddc\u0da7 'Good Night' \u0d9a\u0dd9\u0da7\u0dd2 \u0d9a\u0dbb\u0dbd\u0dcf \u0dba\u0dc0\u0db1\u0dca\u0db1\u0dda \u0d9a\u0ddc\u0dc4\u0ddc\u0db8\u0daf?\n\nSMS API \u0d91\u0d9a\u0d9a\u0dca \u0dc4\u0dbb\u0dc4\u0dcf \u0dba\u0dc0\u0db1 \u0dc0\u0dd2\u0da7 character limit \u0d91\u0d9a \u0d85\u0da9\u0dd4 \u0d9a\u0dbb\u0d9c\u0db1\u0dca\u0db1 'Good Night' \u0d9a\u0dd9\u0da7\u0dd2 \u0d9a\u0dbb\u0db1\u0dca\u0db1 \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca \u0dc0\u0dd2\u0dc0\u0dd2\u0db0 \u0d86\u0d9a\u0dcf\u0dbb\u0dc0\u0dbd\u0dd2\u0db1\u0dca:\n\n## 1. **\u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba \u0d9a\u0dd9\u0da7\u0dd2 \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0dca**\n- **GN** - \u0d89\u0dad\u0dcf\u0db8 \u0d9a\u0dd9\u0da7\u0dd2\n- **Gn8** - \"Good Night\" (8 = \"Night\" \u0dc4\u0dac)\n- **GNite** - \u0d85\u0d9a\u0dca\u0dc2\u0dbb 6\u0d9a\u0dca\n- **Gdnt** - vowels \u0d89\u0dc0\u0dad\u0dca \u0d9a\u0dbb\u0dbd\u0dcf\n\n## 2. **Code \u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab\u0dba\u0d9a\u0dca** (Python)\n\n```python\n# SMS \u0dba\u0dd0\u0dc0\u0dd3\u0db8\u0dda \u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab\u0dba\u0d9a\u0dca\nimport requests\n\ndef send_sms(phone_number, message):\n    # Message \u0d91\u0d9a \u0d9a\u0dd9\u0da7\u0dd2 \u0d9a\u0dbb\u0db1\u0dca\u0db1\n    short_message = message.replace(\"Good Night\", \"GN\")\n    \n    # API call \u0d91\u0d9a\n    api_url = \"https://your-sms-api.com/send\"\n    data = {\n        \"to\": phone_number,\n        \"message\": short_message\n    }\n    \n    response = requests.post(api_url, json=data)\n    return response\n\n# \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dba\nsend_sms(\"+94771234567\", \"Good Night! Sleep well\")\n# \u0dba\u0dc0\u0db1\u0dca\u0db1\u0dda: \"GN! Sleep well\"\n```\n\n## 3. **\u0da2\u0db1\u0db4\u0dca\u200d\u0dbb\u0dd2\u0dba \u0dc0\u0dd2\u0d9a\u0dbd\u0dca\u0db4**\n- \ud83c\udf19 emoji \u0d91\u0d9a use \u0d9a\u0dbb\u0db1\u0dca\u0db1\n- \"Nite\" instead of \"Night\"\n- \"Gd nyt\" \n\n**\u0db4\u0dca\u200d\u0dbb\u0dc1\u0dca\u0db1\u0dba:** \u0d94\u0db6 \u0d9a\u0ddc\u0db1\u0dca API \u0d91\u0d9a\u0d9a\u0dca\u0daf use \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda? (Twilio, Dialog, Mobitel etc.)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 31,
+                "outputTokens": 547,
+                "inputTokensCostNanodollars": "93000",
+                "outputTokensCostNanodollars": "8205000",
+                "totalBackendLatencyMs": "16695"
+              },
+              "id": "synhalees_09_singlish_sms_item-cae5c643-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 31,
+            "outputTokens": 547,
+            "inputTokensCostNanodollars": "93000",
+            "outputTokensCostNanodollars": "8205000",
+            "totalBackendLatencyMs": "16695"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_09_005"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_09_singlish_sms_item-Run #5"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_09_singlish_sms_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_09_singlish_sms_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:30:20.962744Z",
+      "endTime": "2026-09-27T15:30:30.370634Z",
+      "conversations": [
+        {
+          "id": "synhalees_09_singlish_sms_item-4a52f7c7",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "Sms ywnkota 'Mk' kiyala keti karanne mokkda?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\"Mk\" k\u0dd2\u0dba\u0db1 SMS \u0db7\u0dcf\u0dc2\u0dcf \u0d9a\u0dd9\u0da7\u0dd2\u0d9a\u0dad\u0dcf\u0dc0 \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda **\"mmkay\"** \u0dc4\u0ddd **\"okay\"** \u0dba\u0db1 \u0d85\u0dbb\u0dca\u0dae\u0dba \u0db4\u0dca\u200d\u0dbb\u0d9a\u0dcf\u0dc1 \u0d9a\u0dd2\u0dbb\u0dd3\u0db8\u0da7 \u0dba.\n\n\u0d91\u0db1\u0db8\u0dca:\n- **Mk = Mmkay = Okay = \u0dc4\u0dbb\u0dd2/\u0d95\u0d9a\u0dda**\n\n\u0db8\u0dd9\u0dba \u0d91\u0d9a\u0d9f\u0dad\u0dcf\u0dc0\u0dba, \u0d85\u0dc0\u0db6\u0ddd\u0db0\u0dba \u0dc4\u0ddd \u0db4\u0dd2\u0dc5\u0dd2\u0d9c\u0dd0\u0db1\u0dd3\u0db8 \u0db4\u0dca\u200d\u0dbb\u0d9a\u0dcf\u0dc1 \u0d9a\u0dbb\u0db1 \u0dc0\u0dd2\u0da7 \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0db1 \u0d85\u0db1\u0dd2\u0dba\u0db8\u0dca SMS \u0d9a\u0dd9\u0da7\u0dd2 \u0dba\u0dd9\u0daf\u0dd4\u0db8\u0d9a\u0dd2.\n\n**\u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab:**\n- \"\u0d85\u0daf \u0dc4\u0dc0\u0dc3 \u0d91\u0db1\u0dca\u0db1 \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca\u0daf?\" \n- \"Mk\" (\u0dc4\u0dbb\u0dd2/\u0d95\u0d9a\u0dda)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 30,
+                "outputTokens": 241,
+                "inputTokensCostNanodollars": "90000",
+                "outputTokensCostNanodollars": "3615000",
+                "totalBackendLatencyMs": "9266"
+              },
+              "id": "synhalees_09_singlish_sms_item-4a52f7c7-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 30,
+            "outputTokens": 241,
+            "inputTokensCostNanodollars": "90000",
+            "outputTokensCostNanodollars": "3615000",
+            "totalBackendLatencyMs": "9266"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_09_008"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_09_singlish_sms_item-Run #8"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_09_singlish_sms_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_09_singlish_sms_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:30:18.667700Z",
+      "endTime": "2026-09-27T15:30:34.769770Z",
+      "conversations": [
+        {
+          "id": "synhalees_09_singlish_sms_item-19eaae6b",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "Sms ywnkota 'Tnx' kiyala keti karanne mokkda?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# SMS \u0d91\u0d9a\u0da7 \"Tnx\" \u0d9a\u0dd2\u0dba\u0dbd\u0dcf reply \u0d9a\u0dbb\u0db1 \u0d91\u0d9a \u0d85\u0db1\u0dd2\u0dc0\u0dcf\u0dbb\u0dca\u200d\u0dba \u0db1\u0dd1! \ud83d\ude0a\n\n**\"Tnx\" \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \"Thanks\" \u0d9a\u0dd2\u0dba\u0db1 \u0d91\u0d9a\u0dda \u0d9a\u0dd9\u0da7\u0dd2 \u0d86\u0d9a\u0dcf\u0dbb\u0dba\u0dba\u0dd2.** \u0d92 \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0d94\u0db6\u0da7 \u0d9a\u0dbb\u0db4\u0dd4 \u0daf\u0dd9\u0dba\u0d9a\u0da7 \u0dc3\u0dca\u0dad\u0dd6\u0dad\u0dd2\u0dba\u0dd2 \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0d9a\u0dd2\u0dba\u0db1 \u0d91\u0d9a\u0d9a\u0dca.\n\n## \u0d94\u0db6\u0da7 \u0d9a\u0dc5 \u0dc4\u0dd0\u0d9a\u0dd2 \u0daf\u0dda\u0dc0\u0dbd\u0dca:\n\n### 1. **Reply \u0d91\u0d9a\u0d9a\u0dca \u0d91\u0dc0\u0db1\u0dca\u0db1 \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca:**\n- \"Welcome\" / \"You're welcome\"\n- \"No problem\" / \"NP\"\n- \"Anytime\" \n- \"Happy to help\"\n- \ud83d\ude0a (emoji \u0d91\u0d9a\u0d9a\u0dca \u0dc0\u0dd2\u0dad\u0dbb\u0d9a\u0dca)\n\n### 2. **Reply \u0d91\u0d9a\u0d9a\u0dca \u0db1\u0ddc\u0daf\u0db8\u0dcf \u0d89\u0db1\u0dca\u0db1 \u0db4\u0dd4\u0dc5\u0dd4\u0dc0\u0db1\u0dca:**\n- \u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba\u0dba\u0dd9\u0db1\u0dca \"thanks\" \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0d9a\u0dd2\u0dba\u0db4\u0dd4 \u0d91\u0d9a\u0d9a\u0da7 reply \u0d91\u0d9a\u0d9a\u0dca \u0daf\u0dcf\u0db1\u0dca\u0db1 \u0d85\u0db1\u0dd2\u0dc0\u0dcf\u0dbb\u0dca\u200d\u0dba \u0db1\u0dd1\n- Conversation \u0d91\u0d9a \u0d85\u0dc0\u0dc3\u0db1\u0dca \u0dc0\u0dd9\u0dbd\u0dcf \u0dad\u0dd2\u0dba\u0dd9\u0db1\u0dc0\u0dcf \u0db1\u0db8\u0dca reply \u0d91\u0d9a\u0d9a\u0dca \u0daf\u0dcf\u0db1\u0dca\u0db1 \u0d95\u0db1 \u0db1\u0dd1\n\n### 3. **\u0dc3\u0db1\u0dca\u0daf\u0dbb\u0dca\u0db7\u0dba \u0d85\u0db1\u0dd4\u0dc0 \u0dad\u0dd3\u0dbb\u0dab\u0dba \u0d9a\u0dbb\u0db1\u0dca\u0db1:**\n- \u0dba\u0dcf\u0dc5\u0dd4\u0dc0\u0dd9\u0d9a\u0dca \u0db1\u0db8\u0dca casual reply \u0d91\u0d9a\u0d9a\u0dca \u0dc4\u0dbb\u0dd2\n- Official/formal \u0db1\u0db8\u0dca \"You're welcome\" \u0dc0\u0d9c\u0dda \u0daf\u0dd9\u0dba\u0d9a\u0dca\n\n**\u0d94\u0db6\u0dda \u0d85\u0dc0\u0dc1\u0dca\u200d\u0dba\u0dad\u0dcf\u0dc0\u0dba \u0d85\u0db1\u0dd4\u0dc0 \u0dad\u0dd3\u0dbb\u0dab\u0dba \u0d9a\u0dbb\u0db1\u0dca\u0db1! \ud83d\udc4d**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 32,
+                "outputTokens": 470,
+                "inputTokensCostNanodollars": "96000",
+                "outputTokensCostNanodollars": "7050000",
+                "totalBackendLatencyMs": "16026"
+              },
+              "id": "synhalees_09_singlish_sms_item-19eaae6b-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 32,
+            "outputTokens": 470,
+            "inputTokensCostNanodollars": "96000",
+            "outputTokensCostNanodollars": "7050000",
+            "totalBackendLatencyMs": "16026"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_09_007"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_09_singlish_sms_item-Run #7"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_09_singlish_sms_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_09_singlish_sms_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:30:30.375017Z",
+      "endTime": "2026-09-27T15:30:44.894387Z",
+      "conversations": [
+        {
+          "id": "synhalees_09_singlish_sms_item-26e1a04b",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "Sms ywnkota 'Bs' kiyala keti karanne mokkda?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# SMS \u0dba\u0dc0\u0db1\u0dca\u0d9a\u0ddc\u0da7 'Bs' \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0db8\u0ddc\u0d9a\u0daf\u0dca\u0daf?\n\nSMS \u0dc4\u0dbb\u0dc4\u0dcf **'Bs'** \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0dba\u0dc0\u0db1\u0dca\u0db1\u0dda:\n\n## \u0d85\u0dbb\u0dca\u0c25 \u0daf\u0dd0\u0d9a\u0dca\u0dc0\u0dd3\u0db8\u0dca:\n- **\"Bullshit\"** - \u0db6\u0ddc\u0dbb\u0dd4\u0dc0\u0d9a\u0dca, \u0dc0\u0dd2\u0dc4\u0dd2\u0dc5\u0dd4\u0dc0\u0d9a\u0dca, \u0dc0\u0dd2\u0dc1\u0dca\u0dc0\u0dcf\u0dc3 \u0d9a\u0dbb\u0db1\u0dca\u0db1 \u0db6\u0dd0\u0dbb\u0dd2 \u0daf\u0dd9\u0dba\u0d9a\u0dca\n- \u0dc3\u0dd2\u0d82\u0dc4\u0dbd\u0dd9\u0db1\u0dca \u0d9a\u0dd2\u0dc0\u0dca\u0dc0\u0ddc\u0dad\u0dca: \"\u0db8\u0ddc\u0d9a\u0d9a\u0dca\u0daf \u0db8\u0dda \u0d9a\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda\", \"\u0db6\u0ddc\u0dbb\u0dd4 \u0d9a\u0dad\u0dcf\", \"\u0dc0\u0dd2\u0dc1\u0dca\u0dc0\u0dcf\u0dc3 \u0d9a\u0dbb\u0db1\u0dca\u0db1\u0dda \u0db1\u0dd0\u0dc4\u0dd0\"\n\n## \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0dc0\u0db1 \u0d86\u0d9a\u0dcf\u0dbb\u0dba:\n```\nPerson 1: \"I just won 1 million rupees!\"\nPerson 2: \"Bs! Really? \ud83d\ude2e\"\n```\n\n**\u0dc3\u0da7\u0dc4\u0db1:** \u0db8\u0dda\u0d9a \u0d89\u0d82\u0d9c\u0dca\u200d\u0dbb\u0dd3\u0dc3\u0dd2 slang (\u0d85\u0dc0\u0dd2\u0db0\u0dd2\u0db8\u0dad\u0dca \u0db7\u0dcf\u0dc2\u0dcf\u0dc0) \u0d91\u0d9a\u0d9a\u0dca. \u0db1\u0dd2\u0dbd \u0dbd\u0dd2\u0db4\u0dd2 \u0dc4\u0ddd \u0dc0\u0dd2\u0db0\u0dd2\u0db8\u0dad\u0dca \u0dc3\u0d82\u0dc0\u0dcf\u0daf \u0dc0\u0dbd\u0daf\u0dd3 \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dcf \u0d9a\u0dbb\u0db1\u0dca\u0db1 \u0d91\u0db4\u0dcf.\n\n\u0d94\u0db6\u0da7 \u0dc0\u0dd9\u0db1\u0dad\u0dca SMS abbreviations \u0d9c\u0dd0\u0db1\u0dad\u0dca \u0daf\u0dd0\u0db1\u0d9c\u0db1\u0dca\u0db1 \u0d95\u0db1\u0dd9\u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 30,
+                "outputTokens": 371,
+                "inputTokensCostNanodollars": "90000",
+                "outputTokensCostNanodollars": "5565000",
+                "totalBackendLatencyMs": "14388"
+              },
+              "id": "synhalees_09_singlish_sms_item-26e1a04b-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 30,
+            "outputTokens": 371,
+            "inputTokensCostNanodollars": "90000",
+            "outputTokensCostNanodollars": "5565000",
+            "totalBackendLatencyMs": "14388"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_09_009"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_09_singlish_sms_item-Run #9"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_09_singlish_sms_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_09_singlish_sms_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:30:44.901125Z",
+      "endTime": "2026-09-27T15:30:46.894195Z",
+      "conversations": [
+        {
+          "id": "synhalees_09_singlish_sms_item-ddde3ec3",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'Red' kiyn english word ek sinhala walat translate krnn? (Wachana deken kiynna)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\"Red\" kiyn english word sinhala walata translate karama:\n\n1. **\u0dbb\u0dad\u0dd4** (rathu)\n2. **\u0dbb\u0d9a\u0dca\u0dad** (raktha)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 37,
+                "outputTokens": 45,
+                "inputTokensCostNanodollars": "111000",
+                "outputTokensCostNanodollars": "675000",
+                "totalBackendLatencyMs": "1866"
+              },
+              "id": "synhalees_09_singlish_sms_item-ddde3ec3-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 37,
+            "outputTokens": 45,
+            "inputTokensCostNanodollars": "111000",
+            "outputTokensCostNanodollars": "675000",
+            "totalBackendLatencyMs": "1866"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_09_011"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_09_singlish_sms_item-Run #11"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_09_singlish_sms_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_09_singlish_sms_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:30:34.774138Z",
+      "endTime": "2026-09-27T15:30:48.848138Z",
+      "conversations": [
+        {
+          "id": "synhalees_09_singlish_sms_item-e5ca61e7",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "Sms ywnkota 'Tc' kiyala keti karanne mokkda?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# SMS \u0dba\u0dc0\u0db1 \u0d9a\u0ddc\u0da7 'Tc' \u0d9a\u0dd2\u0dba\u0dbd\u0dcf \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1\u0dda \u0db8\u0dda\u0dc0\u0dcf \u0dc0\u0dd2\u0dba \u0dc4\u0dd0\u0d9a\u0dd2\u0dba\u0dd2:\n\n## 1. **Take Care** (\u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0d85\u0dbb\u0dca\u0dae\u0dba)\n- \"\u0db4\u0dca\u200d\u0dbb\u0dc0\u0dda\u0dc3\u0db8\u0dca \u0dc0\u0dd9\u0db1\u0dca\u0db1\" / \"\u0dc3\u0dd4\u0dc0 \u0db4\u0dad\u0db1\u0dc0\u0dcf\"\n- SMS/Chat \u0dc0\u0dbd \u0db6\u0dc4\u0dd4\u0dbd\u0dc0 \u0db4\u0dcf\u0dc0\u0dd2\u0da0\u0dca\u0da0\u0dd2 \u0dc0\u0dd9\u0db1 abbreviation \u0d91\u0d9a\u0d9a\u0dca\n- \u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab\u0dba: \"Bye, tc!\" = \"\u0db6\u0dcf\u0dba\u0dd2, \u0db4\u0dca\u200d\u0dbb\u0dc0\u0dda\u0dc3\u0db8\u0dca \u0dc0\u0dd9\u0db1\u0dca\u0db1!\"\n\n## 2. **Terms and Conditions** \n- \u0db1\u0dd2\u0dba\u0db8 \u0dc3\u0dc4 \u0d9a\u0ddc\u0db1\u0dca\u0daf\u0dda\u0dc3\u0dd2 (\u0dc0\u0dd2\u0dc1\u0dda\u0dc2\u0dba\u0dd9\u0db1\u0dca \u0dc0\u0dca\u200d\u0dba\u0dcf\u0db4\u0dcf\u0dbb\u0dd2\u0d9a SMS \u0dc0\u0dbd)\n\n## 3. **To Confirm**\n- \u0dad\u0dc4\u0dc0\u0dd4\u0dbb\u0dd4 \u0d9a\u0dbb\u0db1\u0dca\u0db1 (\u0dc3\u0db8\u0dc4\u0dbb \u0d85\u0dc0\u0dc3\u0dca\u0dae\u0dcf\u0dc0\u0dbd)\n\n---\n\n**\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0\u0dda \u0db4\u0dca\u200d\u0dbb\u0da0\u0dbd\u0dd2\u0dad \u0db7\u0dcf\u0dc0\u0dd2\u0dad\u0dba:** \"Take Care\" \u0dba\u0db1\u0dca\u0db1\u0dba\u0dd2. \u0db8\u0dd2\u0dad\u0dd4\u0dbb\u0db1\u0dca \u0d85\u0dad\u0dbb, \u0db4\u0dc0\u0dd4\u0dbd\u0dda \u0d85\u0dba \u0d85\u0dad\u0dbb SMS \u0d85\u0dc0\u0dc3\u0dcf\u0db1\u0dba\u0dda \u0dc4\u0dd8\u0daf\u0dba\u0dcf\u0d82\u0d9c\u0db8 \u0d86\u0dbb\u0d82\u0da0\u0dd2\u0dba\u0d9a\u0dca \u0dc0\u0dd2\u0daf\u0dd2\u0dba\u0da7 \u0dba\u0ddc\u0daf\u0dcf \u0d9c\u0db1\u0dca\u0db1\u0dc0\u0dcf."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 30,
+                "outputTokens": 371,
+                "inputTokensCostNanodollars": "90000",
+                "outputTokensCostNanodollars": "5565000",
+                "totalBackendLatencyMs": "13984"
+              },
+              "id": "synhalees_09_singlish_sms_item-e5ca61e7-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 30,
+            "outputTokens": 371,
+            "inputTokensCostNanodollars": "90000",
+            "outputTokensCostNanodollars": "5565000",
+            "totalBackendLatencyMs": "13984"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_09_010"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_09_singlish_sms_item-Run #10"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_09_singlish_sms_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_09_singlish_sms_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:30:46.898398Z",
+      "endTime": "2026-09-27T15:30:50.018481Z",
+      "conversations": [
+        {
+          "id": "synhalees_09_singlish_sms_item-90be5062",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "'Mango' kiyn english word ek sinhala walat translate krnn? (Thani wachnen kiynna)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\"Mango\" kiyana English word eka Sinhala wala\u1e6da translate karanav\u0101 nam thani wachaneyen:\n\n**\u0d85\u0db9** (amba)\n\nHeyin, \"Mango\" = **\u0d85\u0db9**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 39,
+                "outputTokens": 64,
+                "inputTokensCostNanodollars": "117000",
+                "outputTokensCostNanodollars": "960000",
+                "totalBackendLatencyMs": "3029"
+              },
+              "id": "synhalees_09_singlish_sms_item-90be5062-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 39,
+            "outputTokens": 64,
+            "inputTokensCostNanodollars": "117000",
+            "outputTokensCostNanodollars": "960000",
+            "totalBackendLatencyMs": "3029"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_09_012"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_09_singlish_sms_item-Run #12"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_09_singlish_sms_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_09_singlish_sms_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:30:48.852535Z",
+      "endTime": "2026-09-27T15:30:52.710146Z",
+      "conversations": [
+        {
+          "id": "synhalees_09_singlish_sms_item-af88ff22",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "Sudu patata wirudda pata mokakd? (Wachana deken kiynna)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# \u0dc3\u0dd4\u0daf\u0dd4 \u0db4\u0dd0\u0da7\u0dd0\u0da7\u0dcf \u0dc0\u0dd2\u0dbb\u0dd4\u0daf\u0dca\u0db0 \u0db4\u0dcf\u0da7 - **\u0d9a\u0dc5\u0dd4** \ud83d\udda4\n\n\u0dc3\u0dd4\u0daf\u0dd4 \u0db4\u0dd0\u0da7\u0dd0\u0da7\u0dcf\u0da7 \u0dc0\u0dd2\u0dbb\u0dd4\u0daf\u0dca\u0db0 \u0db4\u0dcf\u0da7 \u0d9a\u0dc5\u0dd4 \u0db4\u0dd0\u0da7\u0dd0\u0da7\u0dba\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 32,
+                "outputTokens": 69,
+                "inputTokensCostNanodollars": "96000",
+                "outputTokensCostNanodollars": "1035000",
+                "totalBackendLatencyMs": "3756"
+              },
+              "id": "synhalees_09_singlish_sms_item-af88ff22-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 32,
+            "outputTokens": 69,
+            "inputTokensCostNanodollars": "96000",
+            "outputTokensCostNanodollars": "1035000",
+            "totalBackendLatencyMs": "3756"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_09_013"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_09_singlish_sms_item-Run #13"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_09_singlish_sms_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_09_singlish_sms_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:30:50.023150Z",
+      "endTime": "2026-09-27T15:30:56.540166Z",
+      "conversations": [
+        {
+          "id": "synhalees_09_singlish_sms_item-11905f90",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "20n 10k adu karama ithuru kiyd? (Illakkamen kiynna)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# 20\u0db1\u0dca 10\u0d9a\u0dca \u0d85\u0da9\u0dd4 \u0d9a\u0dbb\u0db8 \u0d89\u0dad\u0dd4\u0dbb\u0dd4 \u0d9a\u0dd3\u0dba\u0daf?\n\n**\u0d8b\u0dad\u0dca\u0dad\u0dbb\u0dba: 10**\n\n## \u0d89\u0dbd\u0d9a\u0dca\u0d9a\u0db8\u0dd9\u0db1\u0dca \u0db4\u0dd0\u0dc4\u0dd0\u0daf\u0dd2\u0dbd\u0dd2 \u0d9a\u0dd2\u0dbb\u0dd3\u0db8:\n\n```\n  20\n- 10\n----\n  10\n```\n\n\u0dc0\u0dd2\u0dc3\u0dca\u0dc3\u0dd9\u0db1\u0dca \u0daf\u0dc4\u0dba\u0d9a\u0dca \u0d85\u0da9\u0dd4 \u0d9a\u0dc5\u0dcf\u0db8 **\u0daf\u0dc4\u0dba\u0d9a\u0dca** \u0d89\u0dad\u0dd4\u0dbb\u0dd4 \u0dc0\u0dd9\u0db1\u0dc0\u0dcf."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 32,
+                "outputTokens": 131,
+                "inputTokensCostNanodollars": "96000",
+                "outputTokensCostNanodollars": "1965000",
+                "totalBackendLatencyMs": "6430"
+              },
+              "id": "synhalees_09_singlish_sms_item-11905f90-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 32,
+            "outputTokens": 131,
+            "inputTokensCostNanodollars": "96000",
+            "outputTokensCostNanodollars": "1965000",
+            "totalBackendLatencyMs": "6430"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_09_014"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_09_singlish_sms_item-Run #14"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_09_singlish_sms_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_09_singlish_sms_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-sonnet-4-5@20250929"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T15:30:52.714915Z",
+      "endTime": "2026-09-27T15:31:01.926466Z",
+      "conversations": [
+        {
+          "id": "synhalees_09_singlish_sms_item-7d11447e",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "Ruwanweli maha seya pihita thiyena palatha mokkda? (Wachana thunen kiynna)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# \u0dbb\u0dd4\u0dc0\u0db1\u0dca\u0dc0\u0dd0\u0dbd\u0dd2 \u0db8\u0dc4\u0dcf \u0dc3\u0dd1\u0dba\u0dda \u0db4\u0dd2\u0dc4\u0dd2\u0da7\u0dd2 \u0db4\u0dcf\u0dc5\u0dcf\u0dad\n\n\u0dbb\u0dd4\u0dc0\u0db1\u0dca\u0dc0\u0dd0\u0dbd\u0dd2 \u0db8\u0dc4\u0dcf \u0dc3\u0dd1\u0dba \u0db4\u0dd2\u0dc4\u0dd2\u0da7\u0dcf \u0d87\u0dad\u0dca\u0dad\u0dda **\u0d8b\u0dad\u0dd4\u0dbb\u0dd4 \u0db8\u0dd0\u0daf \u0db4\u0dc5\u0dcf\u0dad\u0dda** \u0dba.\n\n## \u0dc0\u0da0\u0db1 \u0dad\u0dd4\u0db1:\n\n**\u0d8b\u0dad\u0dd4\u0dbb\u0dd4 \u0db8\u0dd0\u0daf \u0db4\u0dc5\u0dcf\u0dad**\n\n---\n\n*\u0dc3\u0da7\u0dc4\u0db1: \u0dbb\u0dd4\u0dc0\u0db1\u0dca\u0dc0\u0dd0\u0dbd\u0dd2 \u0db8\u0dc4\u0dcf \u0dc3\u0dd1\u0dba \u0d85\u0db1\u0dd4\u0dbb\u0dcf\u0db0\u0db4\u0dd4\u0dbb \u0daf\u0dd2\u0dc3\u0dca\u0dad\u0dca\u200d\u0dbb\u0dd2\u0d9a\u0dca\u0d9a\u0dba\u0dda, \u0d85\u0db1\u0dd4\u0dbb\u0dcf\u0db0\u0db4\u0dd4\u0dbb \u0dc1\u0dcf\u0db1\u0dca\u0dad \u0db1\u0d9c\u0dbb\u0dba\u0dda \u0db4\u0dd2\u0dc4\u0dd2\u0da7\u0dd2 \u0db4\u0dca\u200d\u0dbb\u0dc3\u0dd2\u0daf\u0dca\u0db0 \u0db6\u0dde\u0daf\u0dca\u0db0 \u0dc3\u0dca\u0dae\u0dd6\u0db4\u0dba\u0d9a\u0dd2.*"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-sonnet-4-5@20250929"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 40,
+                "outputTokens": 218,
+                "inputTokensCostNanodollars": "120000",
+                "outputTokensCostNanodollars": "3270000",
+                "totalBackendLatencyMs": "9126"
+              },
+              "id": "synhalees_09_singlish_sms_item-7d11447e-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 40,
+            "outputTokens": 218,
+            "inputTokensCostNanodollars": "120000",
+            "outputTokensCostNanodollars": "3270000",
+            "totalBackendLatencyMs": "9126"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_09_015"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_09_singlish_sms_item-Run #15"
+    }
+  ],
+  "pyRunId": "synhalees_09_singlish_sms-Run #1"
+}

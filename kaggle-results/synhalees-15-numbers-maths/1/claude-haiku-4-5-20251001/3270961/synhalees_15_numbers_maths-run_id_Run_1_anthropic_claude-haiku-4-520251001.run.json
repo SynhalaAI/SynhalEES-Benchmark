@@ -1,0 +1,1067 @@
+{
+  "taskVersion": {
+    "versionNumber": 1,
+    "name": "synhalees_15_numbers_maths",
+    "description": "SynhalEES pillar 15_numbers_maths: native Sinhala text accuracy.",
+    "definition": "@kbench.task(name=\"synhalees_15_numbers_maths\", description=\"SynhalEES pillar 15_numbers_maths: native Sinhala text accuracy.\")\ndef synhalees_task(llm) -> float:\n    '''Evaluate Numbers Maths (text); return accuracy in [0, 1].'''\n    import pandas as pd\n\n    rows = _rows()\n    if not rows:\n        raise ValueError(\n            \"No runnable text rows for Numbers Maths yet -- media files may \"\n            \"not be committed under benchmark_data/.\"\n        )\n    with kbench.client.enable_cache():\n        runs = synhalees_item.evaluate(\n            llm=[llm], evaluation_data=pd.DataFrame(rows),\n            n_jobs=2, max_attempts=2, on_failure=\"continue\",\n            remove_run_files=True,\n        )\n    correct = runs.as_dataframe().result.str.get(\"is_correct\").astype(\"boolean\").fillna(False)\n    return float(correct.mean())\n"
+  },
+  "modelVersion": {
+    "slug": "anthropic/claude-haiku-4-5@20251001"
+  },
+  "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+  "startTime": "2026-09-27T12:05:54.670879Z",
+  "endTime": "2026-09-27T12:06:18.531676Z",
+  "conversations": [
+    {
+      "id": "synhalees_15_numbers_maths-96adb62d",
+      "metrics": {},
+      "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+    }
+  ],
+  "results": [
+    {
+      "type": "AGGREGATED",
+      "numericResult": {
+        "value": 0.06666666666666667
+      }
+    }
+  ],
+  "subruns": [
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_15_numbers_maths_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_15_numbers_maths_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-4-5@20251001"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T12:05:54.682958Z",
+      "endTime": "2026-09-27T12:05:55.734026Z",
+      "conversations": [
+        {
+          "id": "synhalees_15_numbers_maths_item-8a8ff4fe",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "11 \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# 11 \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca:\n\n**\u0d91\u0d9a\u0ddc\u0dc5\u0dc4**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-4-5@20251001"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 30,
+                "outputTokens": 30,
+                "inputTokensCostNanodollars": "30000",
+                "outputTokensCostNanodollars": "150000",
+                "totalBackendLatencyMs": "825"
+              },
+              "id": "synhalees_15_numbers_maths_item-8a8ff4fe-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 30,
+            "outputTokens": 30,
+            "inputTokensCostNanodollars": "30000",
+            "outputTokensCostNanodollars": "150000",
+            "totalBackendLatencyMs": "825"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": true,
+            "id": "TXT_15_002"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_15_numbers_maths_item-Run #2"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_15_numbers_maths_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_15_numbers_maths_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-4-5@20251001"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T12:05:54.682559Z",
+      "endTime": "2026-09-27T12:05:56.657318Z",
+      "conversations": [
+        {
+          "id": "synhalees_15_numbers_maths_item-ffb3d14b",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "15 \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 15\n\n1. \u0d85\n2. \u0d86\n3. \u0d87\n4. \u0d88\n5. \u0d89\n6. \u0d8a\n7. \u0d8b\n8. \u0d8c\n9. \u0d8d\n10. \u0d8e\n11. \u0d8f\n12. \u0d90\n13. \u0d91\n14. \u0d92\n15. \u0d93\n\n\u0d89\u0dc4\u0dad \u0daf\u0dd0\u0d9a\u0dca\u0dc0\u0dd4\u0dc0\u0dda \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dc3\u0dca\u0dc0\u0dbb \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 (vowels) 15 \u0d9a\u0dca \u0dba."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-4-5@20251001"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 30,
+                "outputTokens": 158,
+                "inputTokensCostNanodollars": "30000",
+                "outputTokensCostNanodollars": "790000",
+                "totalBackendLatencyMs": "1816"
+              },
+              "id": "synhalees_15_numbers_maths_item-ffb3d14b-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 30,
+            "outputTokens": 158,
+            "inputTokensCostNanodollars": "30000",
+            "outputTokensCostNanodollars": "790000",
+            "totalBackendLatencyMs": "1816"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_15_001"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_15_numbers_maths_item-Run #1"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_15_numbers_maths_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_15_numbers_maths_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-4-5@20251001"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T12:05:55.739506Z",
+      "endTime": "2026-09-27T12:05:57.996342Z",
+      "conversations": [
+        {
+          "id": "synhalees_15_numbers_maths_item-7e8669a8",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "20 \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 20\u0d9a\u0dca\n\n1. \u0d85\n2. \u0d86\n3. \u0d87\n4. \u0d88\n5. \u0d89\n6. \u0d8a\n7. \u0d8b\n8. \u0d8c\n9. \u0d8d\n10. \u0d8e\n11. \u0d91\n12. \u0d92\n13. \u0d93\n14. \u0d94\n15. \u0d95\n16. \u0d96\n17. \u0d9a\n18. \u0d9b\n19. \u0d9c\n20. \u0d9d\n\n\u0d89\u0dc4\u0dad \u0daf\u0dd0\u0d9a\u0dca\u0dc0\u0dd9\u0db1\u0dca\u0db1\u0dda \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 20\u0d9a\u0dca \u0d89\u0dad\u0dd2\u0dbb\u0db8\u0dd2\u0db1\u0dca \u0d9c\u0dd0\u0da7\u0db4\u0dad\u0dd2\u0db1 \u0d85\u0d9a\u0dd4\u0dbb\u0dd4\u0dba."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-4-5@20251001"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 30,
+                "outputTokens": 202,
+                "inputTokensCostNanodollars": "30000",
+                "outputTokensCostNanodollars": "1010000",
+                "totalBackendLatencyMs": "2182"
+              },
+              "id": "synhalees_15_numbers_maths_item-7e8669a8-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 30,
+            "outputTokens": 202,
+            "inputTokensCostNanodollars": "30000",
+            "outputTokensCostNanodollars": "1010000",
+            "totalBackendLatencyMs": "2182"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_15_003"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_15_numbers_maths_item-Run #3"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_15_numbers_maths_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_15_numbers_maths_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-4-5@20251001"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T12:05:56.661911Z",
+      "endTime": "2026-09-27T12:05:59.686088Z",
+      "conversations": [
+        {
+          "id": "synhalees_15_numbers_maths_item-14b0ad7e",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "50 \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 (50)\n\n1. \u0d85\n2. \u0d86\n3. \u0d87\n4. \u0d88\n5. \u0d89\n6. \u0d8a\n7. \u0d8b\n8. \u0d8c\n9. \u0d8d\n10. \u0d8e\n11. \u0d8f\n12. \u0d90\n13. \u0d91\n14. \u0d92\n15. \ufffd\n16. \u0d94\n17. \u0d95\n18. \u0d96\n19. \u0d9a\n20. \u0d9b\n21. \u0d9c\n22. \u0d9d\n23. \u0d9e\n24. \u0d9f\n25. \u0da0\n26. \u0da1\n27. \u0da2\n28. \u0da3\n29. \u0da4\n30. \u0da5\n31. \u0da7\n32. \u0da8\n33. \u0da9\n34. \u0daa\n35. \u0dab\n36. \u0dac\n37. \u0dad\n38. \u0dae\n39. \u0daf\n40. \u0db0\n41. \u0db1\n42. \u0db3\n43. \u0db4\n44. \u0db5\n45. \u0db6\n46. \u0db7\n47. \u0db8\n48. \u0db9\n49. \u0dba\n50. \u0dbb\n\n\u0d89\u0dc4\u0dad \u0dbd\u0dda\u0d9b\u0db1\u0dba\u0dda \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 50\u0d9a\u0dca \u0dbd\u0dd2\u0dba\u0dcf \u0daf\u0dd3 \u0d87\u0dad."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-4-5@20251001"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 30,
+                "outputTokens": 366,
+                "inputTokensCostNanodollars": "30000",
+                "outputTokensCostNanodollars": "1830000",
+                "totalBackendLatencyMs": "2896"
+              },
+              "id": "synhalees_15_numbers_maths_item-14b0ad7e-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 30,
+            "outputTokens": 366,
+            "inputTokensCostNanodollars": "30000",
+            "outputTokensCostNanodollars": "1830000",
+            "totalBackendLatencyMs": "2896"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_15_004"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_15_numbers_maths_item-Run #4"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_15_numbers_maths_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_15_numbers_maths_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-4-5@20251001"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T12:05:58.000865Z",
+      "endTime": "2026-09-27T12:06:03.317392Z",
+      "conversations": [
+        {
+          "id": "synhalees_15_numbers_maths_item-0d0012a9",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "100 \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd4\n\n**\u0dc3\u0dca\u0dc0\u0dbb\u0dcf\u0d9a\u0dca\u09b7\u0dbb (5):**\n\u0d85, \u0d89, \u0d8b, \u0d91, \u0d94\n\n**\u0dc0\u0dca\u200d\u0dba\u0d82\u0da2\u0db1\u0dcf\u0d9a\u0dca\u0dc2\u0dbb (41):**\n\u0d9a, \u0d9b, \u0d9c, \u0d9d, \u0f44,\n\u0da0, \u0da1, \u0da2, \u0da3, \u0da4,\n\u0da7, \u0da8, \u0da9, \u0daa, \u0dab,\n\u0dad, \u0c25, \u0daf, \u0db0, \u0db1,\n\u0db4, \u0db5, \u0db6, \u0db7, \u0db8,\n\u0dba, \u0dbb, \u0dbd, \u0dc0,\n\u0dc1, \u0dc2, \u0dc3, \u0dc4,\n\u0da9, \u0dac, \u0db3, \u0dc6\n\n**\u0d85\u0dad\u0dd2\u0dbb\u0dda\u0d9a \u0d85\u0d9a\u0dd4\u0dbb\u0dd4:**\n\u0d9e, \u0d9f, \u0da0, \u0da1, \u0da3, \u0da4, \u0da5, \u0da6, \u0da7, \u0da8, \u0da9, \u0daa, \u0dab, \u0dac, \u0dad, \u0dae, \u0daf\n\n\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0dbd\u0dd2\u0db4\u0dd2\u0dba \u0db8\u0dd4\u0dc5\u0dd4\u0db8\u0db1\u0dd2\u0db1\u0dca\u0db8 56 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 \u0d87\u0dad\u0dd4\u0dc5\u0dad\u0dca \u0d9a\u0dbb\u0dba\u0dd2, \u0db1\u0db8\u0dd4\u0dad\u0dca \u0d94\u0db6 \u0d89\u0dbd\u0dca\u0dbd\u0dcf \u0dc3\u0dd2\u0da7\u0dd2\u0db1 100 \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 \u0dc3\u0db3\u0dc4\u0dcf \u0db8\u0dd9\u0db8 \u0dbd\u0dd0\u0dba\u0dd2\u0dc3\u0dca\u0dad\u0dd4\u0dc0 \u0db4\u0dca\u200d\u0dbb\u0db0\u0dcf\u0db1 \u0dc3\u0dc4 \u0dc3\u0dcf\u0db8\u0dcf\u0db1\u0dca\u200d\u0dba \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 \u0d85\u0da9\u0d82\u0d9c\u0dd4 \u0d9a\u0dbb\u0dba\u0dd2."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-4-5@20251001"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 30,
+                "outputTokens": 455,
+                "inputTokensCostNanodollars": "30000",
+                "outputTokensCostNanodollars": "2275000",
+                "totalBackendLatencyMs": "5199"
+              },
+              "id": "synhalees_15_numbers_maths_item-0d0012a9-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 30,
+            "outputTokens": 455,
+            "inputTokensCostNanodollars": "30000",
+            "outputTokensCostNanodollars": "2275000",
+            "totalBackendLatencyMs": "5199"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_15_005"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_15_numbers_maths_item-Run #5"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_15_numbers_maths_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_15_numbers_maths_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-4-5@20251001"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T12:06:03.321921Z",
+      "endTime": "2026-09-27T12:06:09.531806Z",
+      "conversations": [
+        {
+          "id": "synhalees_15_numbers_maths_item-686f4d61",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dbd\u0d9a\u0dca\u0dc2\u0dda \u0d89\u0dbd\u0d9a\u0dca\u0d9a\u0db8\u0dd9\u0db1\u0dca \u0d9a\u0ddc\u0db8\u0dcf \u0daf\u0dcf\u0dbd\u0dcf \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# \u0dbd\u0d9a\u0dca\u0dc2\u0dda \u0d89\u0dbd\u0d9a\u0dca\u0d9a\u0db8\u0dd9\u0db1\u0dca \u0d9a\u0ddc\u0db8\u0dcf \u0daf\u0dcf\u0dbd\u0dcf \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1\n\n\u0db8\u0db8 \u0d8b\u0daf\u0dcf\u0dc4\u0dbb\u0dab \u0d9a\u0dd2\u0dc4\u0dd2\u0db4\u0dba\u0d9a\u0dca \u0daf\u0dd9\u0db1\u0dca\u0db1:\n\n## \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d89\u0dbd\u0d9a\u0dca\u0d9a\u0db8\u0dca\n\n- **1,00,000** - \u0d91\u0d9a \u0dbd\u0d9a\u0dca\u0dc2\u0dba\n- **5,50,000** - \u0db4\u0dc4 \u0dbd\u0d9a\u0dca\u0dc2 \u0db4\u0db1\u0dc4 \u0daf\u0dc4\u0dc3\u0d9a\u0dca\n- **10,25,63,000** - \u0daf\u0dc4 \u0d9a\u0ddd\u0da7\u0dd2 \u0dc0\u0dd2\u0dc3\u0dd2\u0db4\u0dc4 \u0dbd\u0d9a\u0dca\u0dc2 \u0dad\u0dd9sixty \u0dad\u0dd4\u0db1\u0dca \u0daf\u0dc4\u0dc3\u0d9a\u0dca\n- **2,34,56,789** - \u0daf\u0dd9 \u0d9a\u0ddd\u0da7\u0dd2 \u0dad\u0dd2\u0dc3\u0dca \u0dc4\u0dad\u0dbb \u0dbd\u0d9a\u0dca\u0dc2 \u0d85\u0db1\u0dd6\u0dc0\u0d9a\u0dca\u200d\u0dba \u0db4\u0db1\u0dc4 \u0daf\u0dc4\u0dc3\u0d9a\u0dca\n\n## \u0db4\u0ddc\u0daf\u0dd4 \u0dbb\u0dd3\u0dad\u0dd2\u0dba\n\n- \u0daf\u0d9a\u0dd4\u0dab\u0dd4 \u0db4\u0dc3\u0dd2\u0db1\u0dca **\u0d89\u0dad\u0dd2\u0dbb\u0dd2 \u0d9a\u0dbb\u0db1\u0dca\u0db1** - \u0d91\u0d9a\u0dca \u0d89\u0dbd\u0d9a\u0dca\u0d9a\u0db8\n- \u0d89\u0db1\u0dca\u0db4\u0dc3\u0dd4 **\u0d9a\u0ddc\u0db8\u0dcf \u0daf\u0dcf\u0db1\u0dca\u0db1**\n- \u0d89\u0db1\u0dca\u0db4\u0dc3\u0dd4 - **\u0daf\u0dd9 \u0d89\u0dbd\u0d9a\u0dca\u0d9a\u0db8**\n- \u0d89\u0db1\u0dca\u0db4\u0dc3\u0dd4 - **\u0daf\u0dd9 \u0d89\u0dbd\u0d9a\u0dca\u0d9a\u0db8** (\u0db1\u0dd0\u0dc0\u0dad\u0dad\u0dca)\n\n**\u0db4\u0dca\u200d\u0dbb\u0dad\u0dd2\u0d9d\u0da7\u0dd2\u0dad\u0dd2\u0dba:** \u2191 **2, 34, 56, 789**\n\n\u0d9a\u0dd9\u0dc3\u0dda \u0dc4\u0ddd \u0d9a\u0dd2\u0dc3\u0dd2\u0daf\u0dd4 \u0d89\u0dbd\u0d9a\u0dca\u0d9a\u0db8\u0dca \u0dad\u0dd2\u0db6\u0dda \u0daf?"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-4-5@20251001"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 43,
+                "outputTokens": 427,
+                "inputTokensCostNanodollars": "43000",
+                "outputTokensCostNanodollars": "2135000",
+                "totalBackendLatencyMs": "6126"
+              },
+              "id": "synhalees_15_numbers_maths_item-686f4d61-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 43,
+            "outputTokens": 427,
+            "inputTokensCostNanodollars": "43000",
+            "outputTokensCostNanodollars": "2135000",
+            "totalBackendLatencyMs": "6126"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_15_007"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_15_numbers_maths_item-Run #7"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_15_numbers_maths_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_15_numbers_maths_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-4-5@20251001"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T12:06:09.538276Z",
+      "endTime": "2026-09-27T12:06:10.431715Z",
+      "conversations": [
+        {
+          "id": "synhalees_15_numbers_maths_item-c1786acd",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db4\u0dc4\u0da7 \u0dad\u0dd2\u0dc4\u0d9a\u0dca \u0d91\u0d9a\u0dad\u0dd4 \u0d9a\u0dbb\u0dcf\u0db8 \u0d9a\u0dd3\u0dba\u0daf? (\u0d8b\u0dad\u0dca\u0dad\u0dbb\u0dda \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db4\u0dc4 + \u0dad\u0dd2\u0dc4 = \u0db4linds\u0dda\u0dad\u0dd2\u0dc3\n\n**\u0db4linds\u0dda\u0dad\u0dd2\u0dc3** (35)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-4-5@20251001"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 56,
+                "outputTokens": 30,
+                "inputTokensCostNanodollars": "56000",
+                "outputTokensCostNanodollars": "150000",
+                "totalBackendLatencyMs": "809"
+              },
+              "id": "synhalees_15_numbers_maths_item-c1786acd-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 56,
+            "outputTokens": 30,
+            "inputTokensCostNanodollars": "56000",
+            "outputTokensCostNanodollars": "150000",
+            "totalBackendLatencyMs": "809"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_15_008"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_15_numbers_maths_item-Run #8"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_15_numbers_maths_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_15_numbers_maths_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-4-5@20251001"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T12:06:10.436185Z",
+      "endTime": "2026-09-27T12:06:11.359973Z",
+      "conversations": [
+        {
+          "id": "synhalees_15_numbers_maths_item-7d360af7",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db1\u0db8\u0dba \u0db4\u0dc4\u0dd9\u0db1\u0dca \u0dc0\u0dd0\u0da9\u0dd2 \u0d9a\u0dbb\u0dcf\u0db8 \u0d9a\u0dd3\u0dba\u0daf? (\u0d8b\u0dad\u0dca\u0dad\u0dbb\u0dda \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0db1\u0db8\u0dba \u0db4\u0dc4\u0dd9\u0db1\u0dca \u0dc0\u0dd0\u0da9\u0dd2 \u0d9a\u0dbb\u0dcf\u0db8 **\u0daf\u0dc4\u0dba** \u0dbd\u0dd0\u0db6\u0dda.\n\n(5 + 5 = 10)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-4-5@20251001"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 58,
+                "outputTokens": 45,
+                "inputTokensCostNanodollars": "58000",
+                "outputTokensCostNanodollars": "225000",
+                "totalBackendLatencyMs": "836"
+              },
+              "id": "synhalees_15_numbers_maths_item-7d360af7-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 58,
+            "outputTokens": 45,
+            "inputTokensCostNanodollars": "58000",
+            "outputTokensCostNanodollars": "225000",
+            "totalBackendLatencyMs": "836"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_15_009"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_15_numbers_maths_item-Run #9"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_15_numbers_maths_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_15_numbers_maths_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-4-5@20251001"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T12:06:11.364610Z",
+      "endTime": "2026-09-27T12:06:12.481323Z",
+      "conversations": [
+        {
+          "id": "synhalees_15_numbers_maths_item-1c16b2ba",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd3\u0dba\u0dd9\u0db1\u0dca \u0daf\u0dc4\u0dba\u0d9a\u0dca \u0d85\u0da9\u0dd4 \u0d9a\u0dbb\u0dcf\u0db8 \u0d9a\u0dd3\u0dba\u0daf? (\u0d8b\u0dad\u0dca\u0dad\u0dbb\u0dda \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc3\u0dd3\u0dba\u0dd9\u0db1\u0dca \u0daf\u0dc4\u0dba\u0d9a\u0dca \u0d85\u0da9\u0dd4 \u0d9a\u0dbb\u0dcf\u0db8 **\u0d85\u0db1\u0dd4\u0dc0\u0dda** \u0dbd\u0db6\u0dcf \u0d9c\u0db1\u0dd3.\n\n(100 - 10 = 90)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-4-5@20251001"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 60,
+                "outputTokens": 52,
+                "inputTokensCostNanodollars": "60000",
+                "outputTokensCostNanodollars": "260000",
+                "totalBackendLatencyMs": "1022"
+              },
+              "id": "synhalees_15_numbers_maths_item-1c16b2ba-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 60,
+            "outputTokens": 52,
+            "inputTokensCostNanodollars": "60000",
+            "outputTokensCostNanodollars": "260000",
+            "totalBackendLatencyMs": "1022"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_15_010"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_15_numbers_maths_item-Run #10"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_15_numbers_maths_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_15_numbers_maths_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-4-5@20251001"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T12:06:12.486034Z",
+      "endTime": "2026-09-27T12:06:14.879324Z",
+      "conversations": [
+        {
+          "id": "synhalees_15_numbers_maths_item-586516f9",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc4\u0dd0\u0dad\u0dca\u0dad\u0dd1 \u0db4\u0dc4 \u0dc0\u0dd2\u0dc3\u0dd2 \u0db4\u0dc4\u0dd9\u0db1\u0dca \u0db6\u0dd9\u0daf\u0dd4\u0dc0\u0dcf\u0db8 \u0d9a\u0dd3\u0dba\u0daf? (\u0d8b\u0dad\u0dca\u0dad\u0dbb\u0dda \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "\u0dc4\u0dd0\u0dad\u0dca\u0dad\u0dd1 \u0db4\u0dc4 (85) \u0dc0\u0dd2\u0dc3\u0dd2 \u0db4\u0dc4\u0dd9\u0db1\u0dca (25) \u0db6\u0dd9\u0daf\u0dd4\u0dc0\u0dcf\u0db8:\n\n85 \u00f7 25 = **\u0dad\u0dd4\u0db1** (3)\n\n**\u0dad\u0dc4\u0dc0\u0dd4\u0dbb\u0dd4 \u0d9a\u0dd2\u0dbb\u0dd3\u0db8:** 25 \u00d7 3 = 75\n85 - 75 = 10 (\u0d89\u0dad\u0dd2\u0dbb\u0dd2)\n\n\u0d91\u0db6\u0dd0\u0dc0\u0dd2\u0db1\u0dca \u0dc3\u0db8\u0dca\u0db4\u0dd6\u0dbb\u0dca\u0dab \u0d8b\u0dad\u0dca\u0dad\u0dbb\u0dba: **\u0dad\u0dd4\u0db1** \u0d89\u0dad\u0dd2\u0dbb\u0dd2 **\u0daf\u0dc4**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-4-5@20251001"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 68,
+                "outputTokens": 142,
+                "inputTokensCostNanodollars": "68000",
+                "outputTokensCostNanodollars": "710000",
+                "totalBackendLatencyMs": "2299"
+              },
+              "id": "synhalees_15_numbers_maths_item-586516f9-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 68,
+            "outputTokens": 142,
+            "inputTokensCostNanodollars": "68000",
+            "outputTokensCostNanodollars": "710000",
+            "totalBackendLatencyMs": "2299"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_15_011"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_15_numbers_maths_item-Run #11"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_15_numbers_maths_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_15_numbers_maths_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-4-5@20251001"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T12:06:14.883930Z",
+      "endTime": "2026-09-27T12:06:16.142135Z",
+      "conversations": [
+        {
+          "id": "synhalees_15_numbers_maths_item-275f0e65",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "83+33=? (\u0d8b\u0dad\u0dca\u0dad\u0dbb\u0dda \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "83 + 33 = 116\n\n**\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca:**\n\u0d91\u0d9a\u0dc3\u0dd2\u0dba \u0daf\u0dc4\u0dc3\u0dba\n\n\u0dc4\u0ddd\n\n**\u0dc3\u0d82\u0d9b\u0dca\u200d\u0dba\u0dcf \u0dbd\u0dd9\u0dc3:** \u0d67\u0d67\u0d6c"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-4-5@20251001"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 41,
+                "outputTokens": 68,
+                "inputTokensCostNanodollars": "41000",
+                "outputTokensCostNanodollars": "340000",
+                "totalBackendLatencyMs": "1170"
+              },
+              "id": "synhalees_15_numbers_maths_item-275f0e65-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 41,
+            "outputTokens": 68,
+            "inputTokensCostNanodollars": "41000",
+            "outputTokensCostNanodollars": "340000",
+            "totalBackendLatencyMs": "1170"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_15_012"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_15_numbers_maths_item-Run #12"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_15_numbers_maths_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_15_numbers_maths_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-4-5@20251001"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T12:06:16.146680Z",
+      "endTime": "2026-09-27T12:06:17.083983Z",
+      "conversations": [
+        {
+          "id": "synhalees_15_numbers_maths_item-967626c9",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "2*1024=? (\u0d8b\u0dad\u0dca\u0dad\u0dbb\u0dda \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "2 \u00d7 1024 = **2048**\n\n\u0dc3\u0dd2\u0d82\u0dc4\u0dbd\u0dd9\u0db1\u0dca: **\u0daf\u0dd9 \u0dc1\u0dad\u0dca \u0db4\u0db1\u0dc3\u0dca**"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-4-5@20251001"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 42,
+                "outputTokens": 41,
+                "inputTokensCostNanodollars": "42000",
+                "outputTokensCostNanodollars": "205000",
+                "totalBackendLatencyMs": "860"
+              },
+              "id": "synhalees_15_numbers_maths_item-967626c9-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 42,
+            "outputTokens": 41,
+            "inputTokensCostNanodollars": "42000",
+            "outputTokensCostNanodollars": "205000",
+            "totalBackendLatencyMs": "860"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_15_013"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_15_numbers_maths_item-Run #13"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_15_numbers_maths_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_15_numbers_maths_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-4-5@20251001"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T12:06:17.088628Z",
+      "endTime": "2026-09-27T12:06:17.924140Z",
+      "conversations": [
+        {
+          "id": "synhalees_15_numbers_maths_item-cda0a6b3",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "99-43=? (\u0d8b\u0dad\u0dca\u0dad\u0dbb\u0dda \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "99 - 43 = 56\n\n**\u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca:** \u0db4\u0db1\u0dc3\u0dca \u0dc4\u0dba\u0dd2"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-4-5@20251001"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 41,
+                "outputTokens": 36,
+                "inputTokensCostNanodollars": "41000",
+                "outputTokensCostNanodollars": "180000",
+                "totalBackendLatencyMs": "736"
+              },
+              "id": "synhalees_15_numbers_maths_item-cda0a6b3-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 41,
+            "outputTokens": 36,
+            "inputTokensCostNanodollars": "41000",
+            "outputTokensCostNanodollars": "180000",
+            "totalBackendLatencyMs": "736"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_15_014"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_15_numbers_maths_item-Run #14"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_15_numbers_maths_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_15_numbers_maths_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-4-5@20251001"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T12:06:17.928698Z",
+      "endTime": "2026-09-27T12:06:18.489137Z",
+      "conversations": [
+        {
+          "id": "synhalees_15_numbers_maths_item-706443cb",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "44/11=? (\u0d8b\u0dad\u0dca\u0dad\u0dbb\u0dda \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "44 \u00f7 11 = **4** (\u0dc3\u0dad\u0dbb)"
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-4-5@20251001"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 41,
+                "outputTokens": 22,
+                "inputTokensCostNanodollars": "41000",
+                "outputTokensCostNanodollars": "110000",
+                "totalBackendLatencyMs": "450"
+              },
+              "id": "synhalees_15_numbers_maths_item-706443cb-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 41,
+            "outputTokens": 22,
+            "inputTokensCostNanodollars": "41000",
+            "outputTokensCostNanodollars": "110000",
+            "totalBackendLatencyMs": "450"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_15_015"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_15_numbers_maths_item-Run #15"
+    },
+    {
+      "taskVersion": {
+        "versionNumber": 1,
+        "name": "synhalees_15_numbers_maths_item",
+        "description": "Score one item (sub-task; not stored top-level).",
+        "definition": "@kbench.task(name=\"synhalees_15_numbers_maths_item\", store_task=False)\ndef synhalees_item(llm, id: str, prompt: str, ground_truth: str,\n                   eval_type: str, media_path: str = \"\") -> dict:\n    '''Score one item (sub-task; not stored top-level).'''\n    if MODALITY == \"vision\":\n        from kaggle_benchmarks.content_types import images\n        response = llm.prompt(prompt, image=images.from_path(media_path))\n    elif MODALITY == \"audio\":\n        from kaggle_benchmarks.content_types import audios\n        response = llm.prompt(prompt, audio=audios.from_path(media_path))\n    else:\n        response = llm.prompt(prompt)\n\n    judge_passed = None\n    if eval_type == \"llm_judge\":\n        report = kbench.assertions.assess_response_with_judge(\n            criteria=[c.format(ground_truth=ground_truth) for c in _JUDGE_CRITERIA],\n            response_text=response,\n            judge_llm=kbench.judge_llm,\n        )\n        judge_passed = all(r.passed for r in report.results)\n    return {\"id\": id, \"is_correct\": score_response(\n        response, ground_truth, eval_type, judge_passed=judge_passed)}\n"
+      },
+      "modelVersion": {
+        "slug": "anthropic/claude-haiku-4-5@20251001"
+      },
+      "state": "BENCHMARK_TASK_RUN_STATE_COMPLETED",
+      "startTime": "2026-09-27T12:05:59.690834Z",
+      "endTime": "2026-09-27T12:06:18.517489Z",
+      "conversations": [
+        {
+          "id": "synhalees_15_numbers_maths_item-ae1f214a",
+          "requests": [
+            {
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text": "1000 \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd9\u0db1\u0dca \u0dbd\u0dd2\u0dba\u0db1\u0dca\u0db1."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_USER",
+                  "senderName": "User"
+                },
+                {
+                  "parts": [
+                    {
+                      "text": "# \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 1000 \u0dc0\u0dad\u0dcf\u0dc0\u0d9a\u0dca\n\n\u0d89\u0dad\u0dd2\u0db1\u0dca, \u0db8\u0dd9\u0db1\u0dca\u0db1 \u0dc3\u0dd2\u0d82\u0dc4\u0dbd \u0d85\u0d9a\u0dd4\u0dbb\u0dd4 1000 \u0dc0\u0dad\u0dcf\u0dc0\u0d9a\u0dca:\n\n\u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85 \u0d85\n\n**\u0d89\u0dad\u0dd2\u0dbb\u0dd2 \u0d9a\u0dd2\u0dbb\u0dd3\u0db8:**\n\u0d89\u0dc4\u0dad\u0dd2\u0db1\u0dca \u0daf\u0dd0\u0d9a\u0dca\u0dc0\u0dd9\u0db1 \"\u0d85\" \u0d85\u0d9a\u0dd4\u0dbb 1000 \u0dc0\u0dad\u0dcf\u0dc0\u0d9a\u0dca \u0db1\u0dd0\u0dc0\u0dad \u0db1\u0dd0\u0dc0\u0dad \u0dbd\u0dd2\u0dba\u0dcf \u0dad\u0dd2\u0db6\u0dda."
+                    }
+                  ],
+                  "role": "CONTENT_ROLE_ASSISTANT",
+                  "senderName": "anthropic/claude-haiku-4-5@20251001"
+                }
+              ],
+              "metrics": {
+                "inputTokens": 31,
+                "outputTokens": 2037,
+                "inputTokensCostNanodollars": "31000",
+                "outputTokensCostNanodollars": "10185000",
+                "totalBackendLatencyMs": "18759"
+              },
+              "id": "synhalees_15_numbers_maths_item-ae1f214a-req-1"
+            }
+          ],
+          "metrics": {
+            "inputTokens": 31,
+            "outputTokens": 2037,
+            "inputTokensCostNanodollars": "31000",
+            "outputTokensCostNanodollars": "10185000",
+            "totalBackendLatencyMs": "18759"
+          },
+          "modelVersionSlug": "model_version_slug for conversation is DEPRECATED"
+        }
+      ],
+      "results": [
+        {
+          "type": "AGGREGATED",
+          "dictResult": {
+            "is_correct": false,
+            "id": "TXT_15_006"
+          }
+        }
+      ],
+      "pyRunId": "synhalees_15_numbers_maths_item-Run #6"
+    }
+  ],
+  "pyRunId": "synhalees_15_numbers_maths-Run #1"
+}
