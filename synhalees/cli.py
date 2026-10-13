@@ -190,6 +190,142 @@ def pop_force(args):
     return force, rest
 
 
+_STATUS_MODELS_CACHE: dict = {}
+
+
+def kaggle_task_models(task_name):
+    """List model slugs Kaggle knows for one task (via `kaggle b t status`).
+
+    The `-m` download filter is an exact server-side match, so a local name
+    like 'gemini-2.5-flash' silently downloads 0 runs when Kaggle holds
+    'google/gemini-2.5-flash@default' or 'gemini-2.5-flash-default'. This list
+    lets us translate the request to Kaggle's exact name before downloading.
+    Returns [] on any failure (caller then skips resolution, never blocks).
+    """
+    if task_name in _STATUS_MODELS_CACHE:
+        return _STATUS_MODELS_CACHE[task_name]
+    try:
+        env = dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUTF8="1")
+        proc = subprocess.run(
+            [str(kaggle_bin()), "b", "t", "status", task_name],
+            cwd=str(ROOT), env=env, capture_output=True, text=True, timeout=120,
+        )
+    except Exception:
+        return []
+    if proc.returncode:
+        return []
+    models = []
+    for line in (proc.stdout or "").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith(("Task:", "Version:", "Status:",
+                                                "Created:", "Public:", "Task URL:",
+                                                "Model", "─", "View logs:")):
+            continue
+        parts = stripped.split()
+        if parts:
+            models.append(parts[0])
+    _STATUS_MODELS_CACHE[task_name] = models
+    return models
+
+
+def resolve_kaggle_model_names(requested, available):
+    """Map each user-requested `-m` name to Kaggle's exact server name(s).
+
+    Match priority per request: exact hit -> canonical-slug equality ->
+    canonical-prefix expansion (one short name covering dated pins like
+    'claude-opus-5' -> 'claude-opus-5-default' + 'claude-opus-5-5-default').
+    Returns (resolved: list, unmatched: list). Unmatched names are kept
+    verbatim so Kaggle still decides (never silently dropped).
+    """
+    by_canon: dict = {}
+    for avail in available:
+        by_canon.setdefault(canonical_model_slug(avail), []).append(avail)
+    resolved: list = []
+    unmatched: list = []
+    for req in requested:
+        if req in available and req not in resolved:
+            resolved.append(req)
+            continue
+        canon = canonical_model_slug(req)
+        hits = list(by_canon.get(canon, []))
+        # prefix expansion always runs: 'claude-opus-5' should also catch
+        # dated pins like 'claude-opus-5-5-default' (canon 'claude-opus-5-5')
+        for canon_key, names in by_canon.items():
+            if canon_key != canon and canon_key.startswith(canon + "-"):
+                for n in names:
+                    if n not in hits:
+                        hits.append(n)
+        if hits:
+            for h in hits:
+                if h not in resolved:
+                    resolved.append(h)
+            if len(hits) == 1 and hits[0] != req:
+                print(f"  [i] model '{req}' -> Kaggle name '{hits[0]}'")
+            elif len(hits) > 1:
+                print(f"  [i] model '{req}' -> {len(hits)} Kaggle name(s): "
+                      f"{', '.join(hits)}")
+        else:
+            unmatched.append(req)
+            resolved.append(req)
+    if unmatched:
+        print(f"  [!] no Kaggle match for: {', '.join(unmatched)} "
+              f"(run 'kaggle b t status <task>' to list available models)")
+    return resolved, unmatched
+
+
+def rewrite_model_args(extra_args, task_name):
+    """Rewrite `-m` values in download args to Kaggle's exact server names.
+
+    Returns the rebuilt arg list. When the status lookup fails (offline) or
+    no `-m` flags are present, the args pass through untouched. One request
+    may expand to several server names (dated pins), each emitted as its own
+    `-m` flag since the CLI accepts repeats.
+    """
+    if not extra_args:
+        return list(extra_args)
+    wanted = []
+    for i, tok in enumerate(extra_args):
+        if str(tok) in ("-m", "--model") and i + 1 < len(extra_args):
+            wanted.append(str(extra_args[i + 1]))
+    if not wanted:
+        return list(extra_args)
+    available = kaggle_task_models(task_name)
+    if not available:
+        return list(extra_args)
+    # print the friendly mapping once (resolve_* prints the [i] lines)
+    resolved_flat, _ = resolve_kaggle_model_names(wanted, available)
+    # per-request expansion in input order (resolve_* dedups globally, but
+    # each -m occurrence needs its own expansion incl. prefix matches)
+    by_canon: dict = {}
+    for avail in available:
+        by_canon.setdefault(canonical_model_slug(avail), []).append(avail)
+    expansions: list = []
+    for req in wanted:
+        canon = canonical_model_slug(req)
+        hits = [a for a in available if a == req]
+        for ck, names in by_canon.items():
+            if ck == canon or ck.startswith(canon + "-"):
+                for n in names:
+                    if n not in hits:
+                        hits.append(n)
+        expansions.append(hits or [req])
+    out = []
+    k = 0
+    args = list(extra_args)
+    i = 0
+    while i < len(args):
+        if str(args[i]) in ("-m", "--model") and i + 1 < len(args) and k < len(expansions):
+            flag = args[i]
+            for h in expansions[k]:
+                out.extend([flag, h])
+            k += 1
+            i += 2
+        else:
+            out.append(args[i])
+            i += 1
+    return out
+
+
 def load_scorecard(path):
     with open(path, newline="", encoding="utf-8-sig") as fh:
         rows = list(csv.reader(fh))
@@ -370,6 +506,7 @@ def _pull_single_to_slim(name, extra_args=(), slug_override=None):
     """
     temp_dir = KG_RESULTS / ".temp"
     temp_dir.mkdir(parents=True, exist_ok=True)
+    extra_args = rewrite_model_args(list(extra_args), name)
     rc = sh([kaggle_bin(), "b", "t", "download", name, "-o", str(temp_dir), *extra_args])
     if rc:
         return rc
@@ -381,6 +518,11 @@ def _pull_single_to_slim(name, extra_args=(), slug_override=None):
     found = collect_task_results(task_temp)
     if not found:
         print(f"  [i] no parseable results extracted for {name} (runs may have completed with no scores)")
+        has_filter = any(str(t) in ("-m", "--model") for t in extra_args)
+        if has_filter:
+            print(f"  [hint] a -m filter was used but matched nothing: run "
+                  f"'kaggle b t status {name}' to see Kaggle's exact model names, "
+                  f"then retry (short names like 'claude-opus-5' auto-expand now)")
         shutil.rmtree(task_temp, ignore_errors=True)
         try:
             if temp_dir.is_dir() and not any(temp_dir.iterdir()):
