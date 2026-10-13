@@ -293,7 +293,33 @@ def cmd_kaggle_run(a):
 
 
 def cmd_kaggle_status(a):
-    return sh([kaggle_bin(), "b", "t", "status", resolve_task_name(a.task), *a.args])
+    task = getattr(a, "task", None)
+    if task in (None, "all", "coverage", "local"):
+        # Local slim-benchmark coverage dashboard
+        tasks = expand_import_tasks("all")
+        model_tasks = {}
+        for t in tasks:
+            slim_path = KG_RESULTS / f"{t}.slim.csv"
+            if slim_path.is_file():
+                for key in load_slim_rows(slim_path):
+                    m, p, mod = key
+                    if m not in model_tasks:
+                        model_tasks[m] = {"text": 0, "vision": 0, "audio": 0}
+                    if mod in model_tasks[m]:
+                        model_tasks[m][mod] += 1
+        if not model_tasks:
+            print("no benchmark results found in kaggle-results/*.slim.csv")
+            return 0
+        hdr = "%-30s %-16s %-10s %-10s" % ("Model", "Text (of 15)", "Vision", "Audio")
+        print(f"Benchmark Coverage ({len(model_tasks)} model(s) in kaggle-results/):")
+        print(hdr)
+        print("-" * len(hdr))
+        for m, stat in sorted(model_tasks.items()):
+            v_str = "DONE" if stat["vision"] else "-"
+            a_str = "DONE" if stat["audio"] else "-"
+            print("%-30s %2d/15           %-10s %-10s" % (m, stat["text"], v_str, a_str))
+        return 0
+    return sh([kaggle_bin(), "b", "t", "status", resolve_task_name(task), *a.args])
 
 
 def cmd_kaggle_logs(a):
@@ -305,9 +331,87 @@ def cmd_kaggle_publish(a):
 
 
 def _task_is_cached(task_slug):
-    """True when kaggle-results/<task>/ already has at least one *.result.json or *.run.json."""
-    task_dir = KG_RESULTS / task_slug
-    return task_dir.is_dir() and (any(task_dir.rglob("*.result.json")) or any(task_dir.rglob("*.run.json")))
+    """True when task already has a slim CSV with data."""
+    slim_path = KG_RESULTS / f"{task_slug}.slim.csv"
+    return slim_path.is_file() and slim_path.stat().st_size > 50
+
+
+def _pull_single_to_slim(name, extra_args=(), slug_override=None):
+    """Download one task into .temp/, extract scores into slim CSV, clean up.
+
+    Flow: kaggle download → .temp/<task>/ → normalize → collect results
+          → merge into kaggle-results/<task>.slim.csv → verify → rm .temp/<task>/
+    Returns 0 on success, 1 on failure.
+    """
+    temp_dir = KG_RESULTS / ".temp"
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    rc = sh([kaggle_bin(), "b", "t", "download", name, "-o", str(temp_dir), *extra_args])
+    if rc:
+        return rc
+
+    # Normalize model folder names in the temp download
+    task_temp = temp_dir / name
+    _note_normalized(name, normalize_pulled_runs(name, base_dir=temp_dir))
+
+    # Collect scores from the downloaded artifacts
+    found = collect_task_results(task_temp)
+    if not found:
+        print(f"  [!] no parseable results in downloaded artifacts for {name}")
+        # Clean up the temp folder even on failure
+        shutil.rmtree(task_temp, ignore_errors=True)
+        if not any(temp_dir.iterdir()):
+            temp_dir.rmdir()
+        return 1
+
+    # Merge into the slim CSV
+    slim_path = KG_RESULTS / f"{name}.slim.csv"
+    previous = load_slim_rows(slim_path)
+    merged = dict(previous)
+    modality = "vision" if name == "synhalees-vision" else "audio" if name == "synhalees-audio" else "text"
+    pillar = pillar_from_task(name)
+    if name in ("synhalees-vision", "synhalees-audio"):
+        pillar = "__overall__"
+    new_count = 0
+    for model_name in sorted(found):
+        fin, pct, result_path = found[model_name]
+        model = slug_override or model_name
+        date = fin[:10]
+        cost, tokens, latency = kaggle_run_usage(result_path)
+        key = (model, pillar, modality)
+        merged[key] = [model, "kaggle", date, pillar, modality,
+                       f"{round(pct * 100, 1):.1f}", cost, tokens, latency]
+        new_count += 1
+        status = "updated" if key in previous else "new"
+        print(f"  {model:<30} {modality} {round(pct * 100, 1):>6} ({date}) [{status}]")
+
+    # Write the merged slim CSV
+    import io as _io
+    buf = _io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(list(EXT_HEADER))
+    for key in sorted(merged):
+        w.writerow(merged[key])
+    slim_path.parent.mkdir(parents=True, exist_ok=True)
+    slim_path.write_text(buf.getvalue(), encoding="utf-8", newline="")
+
+    # Verify: re-read and confirm row count
+    verify = load_slim_rows(slim_path)
+    if len(verify) < len(merged):
+        print(f"  [!] VERIFY FAIL: wrote {len(merged)} rows but read back {len(verify)}")
+        return 1
+    kept = len(merged) - new_count
+    print(f"  ✓ {slim_path.name}: {len(merged)} row(s) "
+          f"({new_count} from pull, {kept} kept) [{slim_path.stat().st_size} bytes]")
+
+    # Clean up temp download
+    shutil.rmtree(task_temp, ignore_errors=True)
+    # Remove .temp/ itself if empty
+    try:
+        if temp_dir.is_dir() and not any(temp_dir.iterdir()):
+            temp_dir.rmdir()
+    except OSError:
+        pass
+    return 0
 
 
 def cmd_kaggle_pull(a):
@@ -338,18 +442,16 @@ def cmd_kaggle_pull(a):
         for i, f in enumerate(picked, 1):
             name = task_name_for(f)
             if not force and _task_is_cached(name):
-                t_dir = KG_RESULTS / name
-                n = len(list(t_dir.rglob("*.result.json")) + list(t_dir.rglob("*.run.json")))
+                slim_f = KG_RESULTS / f"{name}.slim.csv"
+                n_models = len(load_slim_rows(slim_f))
                 print(f"[{i}/{len(picked)}] skipping {name} "
-                      f"(cached: {n} artifact(s); --force to re-download)")
+                      f"(cached: {n_models} model(s) in {slim_f.name}; --force to re-download)")
                 skipped += 1
                 continue
-            print(f"[{i}/{len(picked)}] pulling {name} -> {KG_RESULTS.relative_to(ROOT)}/")
-            rc = sh([kaggle_bin(), "b", "t", "download", name, "-o", str(KG_RESULTS), *args])
+            print(f"[{i}/{len(picked)}] pulling {name} -> slim CSV")
+            rc = _pull_single_to_slim(name, extra_args=args)
             if rc:
                 failed.append(name)
-            else:
-                _note_normalized(name, normalize_pulled_runs(name))
         pulled = len(picked) - skipped - len(failed)
         parts = []
         if pulled:
@@ -359,7 +461,7 @@ def cmd_kaggle_pull(a):
         if failed:
             parts.append(f"failed {len(failed)}")
             print(f"pull failed for {len(failed)} task(s): {', '.join(failed)}")
-        print(f"{', '.join(parts)} [{'|'.join(modality)}] task(s) -> {KG_RESULTS.relative_to(ROOT)}/")
+        print(f"{', '.join(parts)} [{'|'.join(modality)}] task(s) -> {KG_RESULTS.relative_to(ROOT)}/*.slim.csv")
         if skipped and not force:
             print("hint: --force to re-download cached tasks")
         if sel == {"text"}:
@@ -368,14 +470,12 @@ def cmd_kaggle_pull(a):
         return 1 if failed else 0
     name = resolve_task_name(task)
     if not force and _task_is_cached(name):
-        t_dir = KG_RESULTS / name
-        n = len(list(t_dir.rglob("*.result.json")) + list(t_dir.rglob("*.run.json")))
-        print(f"skipping {name} (cached: {n} artifact(s); --force to re-download)")
+        slim_f = KG_RESULTS / f"{name}.slim.csv"
+        n_models = len(load_slim_rows(slim_f))
+        print(f"skipping {name} (cached: {n_models} model(s) in {slim_f.name}; --force to re-download)")
         return 0
-    rc = sh([kaggle_bin(), "b", "t", "download", name, "-o", str(KG_RESULTS), *args])
-    if not rc:
-        _note_normalized(name, normalize_pulled_runs(name))
-    return rc
+    print(f"pulling {name} -> slim CSV")
+    return _pull_single_to_slim(name, extra_args=args)
 
 
 def _note_normalized(task_slug, count):
@@ -384,8 +484,8 @@ def _note_normalized(task_slug, count):
         print(f"normalized {count} run folder(s) in {task_slug}/ to canonical slugs")
 
 
-def normalize_pulled_runs(task_slug):
-    """Rename Kaggle's run folders under kaggle-results/<task>/ to canonical slugs.
+def normalize_pulled_runs(task_slug, base_dir=None):
+    """Rename Kaggle's run folders under <base_dir>/<task>/ to canonical slugs.
 
     Kaggle names those folders with its own pin marker ('claude-opus-5-default'),
     so the next pull would otherwise drop a legacy folder next to the canonical
@@ -393,7 +493,8 @@ def normalize_pulled_runs(task_slug):
     collide merge their run folders rather than clobbering them. Returns the
     number of folders renamed; safe to run on an already-normal tree.
     """
-    task_dir = KG_RESULTS / task_slug
+    base = base_dir or KG_RESULTS
+    task_dir = base / task_slug
     if not task_dir.is_dir():
         return 0
     renamed = 0
@@ -558,8 +659,8 @@ def expand_import_tasks(arg):
 def cmd_kaggle_import(a):
     """Import one task (auto-pulls when missing), or 'all' tasks (local only).
 
-    'all' never downloads: tasks without local *.result.json are skipped with
-    a pointer to 'synhalees kaggle pull <slug>' instead of pulling them.
+    Checks slim CSVs first (modern path), then raw folders (legacy).
+    'all' never downloads: tasks without local data are skipped.
     """
     key = str(a.task).lower()
     if key in ("all", "text", "vision", "audio"):
@@ -568,11 +669,21 @@ def cmd_kaggle_import(a):
         names = expand_import_tasks(key)
         failed, skipped, done = [], [], 0
         for i, slug in enumerate(names, 1):
+            slim_f = KG_RESULTS / f"{slug}.slim.csv"
             t_dir = KG_RESULTS / slug
-            if not (any(t_dir.rglob("*.result.json")) or any(t_dir.rglob("*.run.json"))):
-                print(f"[{i}/{len(names)}] skipping {slug} (no local artifacts; "
+            has_slim = slim_f.is_file() and slim_f.stat().st_size > 50
+            has_raw = t_dir.is_dir() and (any(t_dir.rglob("*.result.json")) or any(t_dir.rglob("*.run.json")))
+            if not has_slim and not has_raw:
+                print(f"[{i}/{len(names)}] skipping {slug} (no local data; "
                       f"pull first: synhalees kaggle pull {slug})")
                 skipped.append(slug)
+                continue
+            if has_slim and not has_raw:
+                # Slim-only: use slim-import path directly
+                print(f"[{i}/{len(names)}] importing {slug} (from slim CSV)")
+                rc = import_single_slim(slim_f)
+                if rc:
+                    done += 1
                 continue
             print(f"[{i}/{len(names)}] importing {slug}")
             rc = cmd_kaggle_import(argparse.Namespace(
@@ -586,7 +697,7 @@ def cmd_kaggle_import(a):
             return 1
         if not a.dry_run:
             print(f"imported {done} Kaggle task(s)" +
-                  (f"; skipped {len(skipped)} with no local artifacts: " +
+                  (f"; skipped {len(skipped)} with no local data: " +
                    ", ".join(skipped) if skipped else ""))
             if getattr(a, "build", False):
                 return rebuild_and_check()
@@ -811,8 +922,8 @@ def build_parser():
     p.add_argument("task")
     p.add_argument("args", nargs=argparse.REMAINDER, help="extra flags for 'kaggle b t run'")
     p.set_defaults(func=cmd_kaggle_run)
-    p = ks.add_parser("status", help="server-side run status")
-    p.add_argument("task")
+    p = ks.add_parser("status", help="benchmark coverage (default: all) or server-side task status")
+    p.add_argument("task", nargs="?", default="all", help="task slug or 'all' for coverage dashboard (default: all)")
     p.add_argument("args", nargs=argparse.REMAINDER, help="extra flags, e.g. -m <model>")
     p.set_defaults(func=cmd_kaggle_status)
     p = ks.add_parser("logs", help="fetch run logs: synhalees kaggle logs <task> -m <model>")
@@ -834,7 +945,7 @@ def build_parser():
     p.add_argument("file", nargs="?", default="all", help="slim CSV path or 'all' (default: all *.slim.csv in kaggle-results/)")
     p.add_argument("--build", action="store_true", help="auto-rebuild leaderboard data after importing (default: off; run 'synhalees build' when ready)")
     p.set_defaults(func=cmd_kaggle_slim_import)
-    p = ks.add_parser("pull", help="download artifacts -> kaggle-results/ (skips cached tasks; --force to re-download)")
+    p = ks.add_parser("pull", help="download Kaggle artifacts -> .temp/ -> merge into slim CSVs (auto-cleanup)")
     p.add_argument("task", nargs="?", default="all", help="task slug or 'all' (default: all)")
     p.add_argument("--modality", default=None,
                    help="modality filter for 'all': text (default, 15 tasks ~145MB) | "
