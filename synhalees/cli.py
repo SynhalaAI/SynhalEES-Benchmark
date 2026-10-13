@@ -378,15 +378,16 @@ def _pull_single_to_slim(name, extra_args=(), slug_override=None):
     task_temp = temp_dir / name
     _note_normalized(name, normalize_pulled_runs(name, base_dir=temp_dir))
 
-    # Collect scores from the downloaded artifacts
     found = collect_task_results(task_temp)
     if not found:
-        print(f"  [!] no parseable results in downloaded artifacts for {name}")
-        # Clean up the temp folder even on failure
+        print(f"  [i] no parseable results extracted for {name} (runs may have completed with no scores)")
         shutil.rmtree(task_temp, ignore_errors=True)
-        if not any(temp_dir.iterdir()):
-            temp_dir.rmdir()
-        return 1
+        try:
+            if temp_dir.is_dir() and not any(temp_dir.iterdir()):
+                temp_dir.rmdir()
+        except OSError:
+            pass
+        return 0
 
     # Merge into the slim CSV
     slim_path = KG_RESULTS / f"{name}.slim.csv"
@@ -666,9 +667,13 @@ def collect_task_results(task_dir):
                 break
         if score is None:
             # Check if run completed or failed/errored
-            state = data.get("state") or "UNKNOWN"
-            unparsed_warnings.append(f"{f.name}: state={state}, no numericResult found in results")
-            continue
+            state = str(data.get("state") or "UNKNOWN")
+            if "COMPLETED" in state:
+                # Run completed but produced no score (e.g. model unsupported / 0% correct)
+                score = 0.0
+            else:
+                unparsed_warnings.append(f"{f.name}: state={state}, no numericResult found in results")
+                continue
         try:
             pct = float(score)
         except (TypeError, ValueError):
