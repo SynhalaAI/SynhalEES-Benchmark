@@ -305,9 +305,9 @@ def cmd_kaggle_publish(a):
 
 
 def _task_is_cached(task_slug):
-    """True when kaggle-results/<task>/ already has at least one *.result.json."""
+    """True when kaggle-results/<task>/ already has at least one *.result.json or *.run.json."""
     task_dir = KG_RESULTS / task_slug
-    return task_dir.is_dir() and any(task_dir.rglob("*.result.json"))
+    return task_dir.is_dir() and (any(task_dir.rglob("*.result.json")) or any(task_dir.rglob("*.run.json")))
 
 
 def cmd_kaggle_pull(a):
@@ -461,6 +461,81 @@ def kaggle_run_usage(result_path):
     return f"{nanodollars / 1e9:.6f}", str(tokens), str(latency_ms)
 
 
+def collect_task_results(task_dir):
+    """Collect newest scorecard result per model under task_dir.
+
+    Handles two Kaggle artifact layouts:
+      1. Legacy layout: *.result.json with agent_info + verifier_result.rewards.score
+      2. Modern layout: *.run.json with modelVersion.slug + results[...].numericResult.value
+
+    Returns dict mapping canonical model name -> (finished_at, score_pct_float, path_for_usage).
+    Logs warnings if runs fail to parse, alerting users to Kaggle schema drift.
+    """
+    found = {}
+    unparsed_warnings = []
+
+    # Pass 1: *.result.json (legacy)
+    for f in sorted(task_dir.rglob("*.result.json")):
+        try:
+            data = json.loads(f.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as err:
+            unparsed_warnings.append(f"{f.name}: unreadable JSON ({err})")
+            continue
+        info = data.get("agent_info") or {}
+        name = (info.get("model_info") or {}).get("name") or f.parent.parent.name
+        fin = data.get("finished_at") or data.get("started_at") or ""
+        score = ((data.get("verifier_result") or {}).get("rewards") or {}).get("score")
+        try:
+            pct = float(score)
+        except (TypeError, ValueError):
+            unparsed_warnings.append(f"{f.name}: missing/invalid rewards.score ({score!r})")
+            continue
+        cname = canonical_model_slug(name)
+        if cname not in found or fin > found[cname][0]:
+            found[cname] = (fin, pct, f)
+
+    # Pass 2: *.run.json (modern fallback for runs without a sibling result.json)
+    for f in sorted(task_dir.rglob("*.run.json")):
+        if list(f.parent.glob("*.result.json")):
+            continue
+        try:
+            data = json.loads(f.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as err:
+            unparsed_warnings.append(f"{f.name}: unreadable JSON ({err})")
+            continue
+        mv = data.get("modelVersion") or {}
+        name = mv.get("slug") or f.parent.parent.name
+        fin = data.get("endTime") or data.get("startTime") or ""
+        res_list = data.get("results") or []
+        score = None
+        for r in res_list:
+            if isinstance(r, dict) and "numericResult" in r:
+                score = r["numericResult"].get("value")
+                break
+        if score is None:
+            # Check if run completed or failed/errored
+            state = data.get("state") or "UNKNOWN"
+            unparsed_warnings.append(f"{f.name}: state={state}, no numericResult found in results")
+            continue
+        try:
+            pct = float(score)
+        except (TypeError, ValueError):
+            unparsed_warnings.append(f"{f.name}: invalid numericResult value ({score!r})")
+            continue
+        cname = canonical_model_slug(name)
+        if cname not in found or fin > found[cname][0]:
+            found[cname] = (fin, pct, f)
+
+    if unparsed_warnings:
+        print(f"  [!] warning: {len(unparsed_warnings)} run(s) skipped in {task_dir.name}:")
+        for w in unparsed_warnings[:5]:
+            print(f"      - {w}")
+        if len(unparsed_warnings) > 5:
+            print(f"      ... and {len(unparsed_warnings) - 5} more")
+
+    return found
+
+
 def expand_import_tasks(arg):
     """'all' -> all 17 task slugs; 'text'/'vision'/'audio' -> that modality's slugs;
     anything else -> [single resolved slug]. Raises SystemExit on bad input."""
@@ -491,7 +566,8 @@ def cmd_kaggle_import(a):
         names = expand_import_tasks(key)
         failed, skipped, done = [], [], 0
         for i, slug in enumerate(names, 1):
-            if not list((KG_RESULTS / slug).rglob("*.result.json")):
+            t_dir = KG_RESULTS / slug
+            if not (any(t_dir.rglob("*.result.json")) or any(t_dir.rglob("*.run.json"))):
                 print(f"[{i}/{len(names)}] skipping {slug} (no local artifacts; "
                       f"pull first: synhalees kaggle pull {slug})")
                 skipped.append(slug)
@@ -522,42 +598,23 @@ def cmd_kaggle_import(a):
         raise SystemExit(f"{slug} is not an importable text pillar or combined vision/audio task")
     task_dir = KG_RESULTS / slug
 
-    def collect():
-        found = {}
-        for f in sorted(task_dir.rglob("*.result.json")):
-            try:
-                data = json.loads(f.read_text(encoding="utf-8"))
-            except (OSError, ValueError):
-                continue
-            info = data.get("agent_info") or {}
-            name = (info.get("model_info") or {}).get("name") or f.parent.parent.name
-            fin = data.get("finished_at") or ""
-            if name not in found or fin > found[name][0]:
-                found[name] = (fin, data, f)
-        return found
-
-    newest = collect()
+    newest = collect_task_results(task_dir)
     if not newest and not a.no_pull:
         print(f"no local artifacts under {task_dir}; pulling from Kaggle...")
         rc = sh([kaggle_bin(), "b", "t", "download", slug, "-o", str(KG_RESULTS)])
         if rc:
             return rc
         _note_normalized(slug, normalize_pulled_runs(slug))
-        newest = collect()
+        newest = collect_task_results(task_dir)
     if not newest:
-        raise SystemExit(f"no *.result.json under {task_dir} (synhalees kaggle pull {slug})")
+        raise SystemExit(f"no artifacts (*.result.json / *.run.json) under {task_dir} (synhalees kaggle pull {slug})")
     if a.slug and len(newest) > 1:
         raise SystemExit(f"--slug needs exactly one model; found {', '.join(sorted(newest))}")
     planned = []
     for name in sorted(newest):
-        fin, data, result_path = newest[name]
-        score = ((data.get("verifier_result") or {}).get("rewards") or {}).get("score")
-        try:
-            pct = float(score)
-        except (TypeError, ValueError):
-            raise SystemExit(f"{name}: result.json has no numeric rewards.score")
-        model = a.slug or canonical_model_slug(name)
-        date = (fin or data.get("started_at") or "")[:10]
+        fin, pct, result_path = newest[name]
+        model = a.slug or name
+        date = fin[:10]
         modality = "vision" if slug == "synhalees-vision" else "audio" if slug == "synhalees-audio" else "text"
         cost, tokens, latency = kaggle_run_usage(result_path)
         row = [model, "kaggle", date, pillar, modality, f"{round(pct * 100, 1):.1f}",
@@ -603,33 +660,18 @@ def cmd_kaggle_slim_export(a):
     elif pillar is None:
         raise SystemExit(f"{slug} is not an importable text pillar or combined vision/audio task")
     task_dir = KG_RESULTS / slug
-    found = {}
-    for f in sorted(task_dir.rglob("*.result.json")):
-        try:
-            data = json.loads(f.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            continue
-        info = data.get("agent_info") or {}
-        name = (info.get("model_info") or {}).get("name") or f.parent.parent.name
-        fin = data.get("finished_at") or ""
-        if name not in found or fin > found[name][0]:
-            found[name] = (fin, data, f)
+    found = collect_task_results(task_dir)
     if not found:
-        raise SystemExit(f"no *.result.json under {task_dir} (synhalees kaggle pull {slug})")
+        raise SystemExit(f"no artifacts (*.result.json / *.run.json) under {task_dir} (synhalees kaggle pull {slug})")
     out = Path(a.output) if getattr(a, "output", None) else (KG_RESULTS / (slug + ".slim.csv"))
     previous = {} if getattr(a, "replace", False) else load_slim_rows(out)
     merged = dict(previous)
     fresh = set()
     modality = "vision" if slug == "synhalees-vision" else "audio" if slug == "synhalees-audio" else "text"
     for name in sorted(found):
-        fin, data, result_path = found[name]
-        score = ((data.get("verifier_result") or {}).get("rewards") or {}).get("score")
-        try:
-            pct = float(score)
-        except (TypeError, ValueError):
-            raise SystemExit(f"{name}: result.json has no numeric rewards.score")
-        model = a.slug or canonical_model_slug(name)
-        date = (fin or data.get("started_at") or "")[:10]
+        fin, pct, result_path = found[name]
+        model = a.slug or name
+        date = fin[:10]
         cost, tokens, latency = kaggle_run_usage(result_path)
         merged[(model, pillar, modality)] = [model, "kaggle", date, pillar, modality,
                                               f"{round(pct * 100, 1):.1f}", cost, tokens, latency]
