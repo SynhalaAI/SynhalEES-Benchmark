@@ -191,6 +191,37 @@ def pop_force(args):
 
 
 _STATUS_MODELS_CACHE: dict = {}
+_MODELS_CACHE: list | None = None
+
+
+def kaggle_available_models():
+    """List global available model slugs via `kaggle b t models`.
+
+    Returns [] on any failure (caller skips the server section, never blocks).
+    """
+    global _MODELS_CACHE
+    if _MODELS_CACHE is not None:
+        return _MODELS_CACHE
+    try:
+        env = dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUTF8="1")
+        proc = subprocess.run(
+            [str(kaggle_bin()), "b", "t", "models"],
+            cwd=str(ROOT), env=env, capture_output=True, text=True, timeout=60,
+        )
+    except Exception:
+        return []
+    if proc.returncode:
+        return []
+    models = []
+    for line in (proc.stdout or "").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith(("Slug", "Display", "Avail", "---")):
+            continue
+        parts = stripped.split()
+        if parts:
+            models.append(parts[0])
+    _MODELS_CACHE = models
+    return models
 
 
 def kaggle_task_models(task_name):
@@ -222,8 +253,15 @@ def kaggle_task_models(task_name):
                                                 "Model", "─", "View logs:")):
             continue
         parts = stripped.split()
-        if parts:
-            models.append(parts[0])
+        if not parts:
+            continue
+        # Rows are '<model> <Status> <Started> <Ended>'; anything else
+        # (separator, mojibake box-drawing after a bad console encoding)
+        # is not a model name. Require a run-status word in the row.
+        if not any(w in stripped for w in ("Completed", "Running", "Queued",
+                                           "Failed", "Cancelled", "Pending")):
+            continue
+        models.append(parts[0])
     _STATUS_MODELS_CACHE[task_name] = models
     return models
 
@@ -454,6 +492,33 @@ def cmd_kaggle_status(a):
             v_str = "DONE" if stat["vision"] else "-"
             a_str = "DONE" if stat["audio"] else "-"
             print("%-30s %2d/15           %-10s %-10s" % (m, stat["text"], v_str, a_str))
+        # Server-side check: runs completed on Kaggle but not downloaded locally.
+        # kaggle_task_models caches per task; parallelised so 17 status calls stay fast.
+        from concurrent.futures import ThreadPoolExecutor
+        try:
+            with ThreadPoolExecutor(max_workers=8) as pool:
+                server_by_task = dict(zip(tasks, pool.map(kaggle_task_models, tasks)))
+        except Exception:
+            server_by_task = {}
+        # model -> [tasks with a Kaggle run the local slim CSV lacks]
+        missing: dict = {}
+        for t in tasks:
+            slim = KG_RESULTS / f"{t}.slim.csv"
+            local = ({canonical_model_slug(k[0]) for k in load_slim_rows(slim)}
+                     if slim.is_file() else set())
+            for s in server_by_task.get(t) or []:
+                canon = canonical_model_slug(s)
+                if canon and canon not in local:
+                    missing.setdefault(s, []).append(t)
+        if missing:
+            print()
+            print(f"Completed on Kaggle, missing locally ({len(missing)} model(s)):")
+            for s in sorted(missing):
+                ts = missing[s]
+                shown = ", ".join(x.replace('synhalees-', '') for x in ts[:3])
+                more = f", +{len(ts) - 3} more" if len(ts) > 3 else ""
+                print(f"  {s:<30} {len(ts):>2}/{len(tasks)} task(s)  ({shown}{more})")
+            print("hint: synhalees kaggle download all  (pulls only these missing models)")
         return 0
     return sh([kaggle_bin(), "b", "t", "status", resolve_task_name(task), *a.args])
 
@@ -490,9 +555,19 @@ def _task_is_cached(task_slug, requested_models=None):
         for k in load_slim_rows(f):
             all_known_models.add(k[0])
 
-    missing = sorted(all_known_models - existing_models)
+    missing = {m for m in all_known_models if m not in existing_models}
+
+    # Server-side sync: runs completed on Kaggle this slim CSV lacks.
+    # Without this a brand-new model (in no local CSV yet) is never
+    # detected and 'download all' skips the task as fully cached.
+    local_canons = {canonical_model_slug(m) for m in existing_models}
+    for s in kaggle_task_models(task_slug):
+        canon = canonical_model_slug(s)
+        if canon and canon not in local_canons:
+            missing.add(s)
+
     if missing:
-        return False, len(existing_models), missing
+        return False, len(existing_models), sorted(missing)
 
     return True, len(existing_models), []
 
