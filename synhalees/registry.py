@@ -19,23 +19,34 @@ ROOT = Path(__file__).resolve().parent.parent
 MODELS_JSON = Path(__file__).resolve().parent / "models.json"
 
 
-# Kaggle pins a model with an '@' separator ('claude-opus-5@default'), or dashes
-# the pin into the slug itself ('claude-haiku-4-5-20251001'). Both forms carry a
-# version marker that is not part of the model identity, so submissions key on the
-# bare slug and the pin lives in the display name only.
-_VERSION_SUFFIX = re.compile(r"-(?:default|\d{8})$")
+# Kaggle pins a model with an '@' separator ('claude-opus-5@default'), dashes the
+# pin into the slug itself ('claude-haiku-4-5-20251001'), or -- since the newer
+# naming scheme -- appends the release date ('gpt-5.4-2026-03-05'). All three
+# forms carry a version marker that is not part of the model identity, so
+# submissions key on the bare slug and the pin/date lives in the display name
+# only. Dates may be compact ('20251001') or dashed ('2026-03-05').
+_DATE_SUFFIX = r"(?:19|20)\d{2}-?(?:0[1-9]|1[0-2])-?(?:0[1-9]|[12]\d|3[01])"
+_VERSION_SUFFIX = re.compile(rf"-(?:default|{_DATE_SUFFIX})$")
 
 
 def canonical_model_slug(name: str) -> str:
     """'anthropic/claude-opus-5@default' -> 'claude-opus-5'.
 
+    'gpt-5.4-2026-03-05' and 'gpt-5.4-20260305' -> 'gpt-5.4'.
+
     Drops the host prefix, turns Kaggle's '@' into '-', then strips the trailing
-    version marker ('-default' / '-20251001'). Imports, re-imports and the
-    leaderboard therefore all key on one identifier instead of drifting apart
-    into per-pin duplicate scorecards.
+    version marker ('-default', '-20251001', '-2026-03-05'). A pin and a release
+    date can arrive together ('gpt-5.4-2026-03-05-default'), so the strip repeats
+    until the slug stops changing. Imports, re-imports and the leaderboard
+    therefore all key on one identifier instead of drifting apart into per-pin
+    or per-release duplicate scorecards.
     """
     slug = str(name or "").split("/")[-1].replace("@", "-")
-    return _VERSION_SUFFIX.sub("", slug)
+    previous = None
+    while slug and slug != previous:
+        previous = slug
+        slug = _VERSION_SUFFIX.sub("", slug)
+    return slug
 
 
 @dataclass
@@ -178,14 +189,17 @@ class Registry:
     def resolve_submission_path(self, model_slug: str, base_dir: Optional[Path] = None) -> Path:
         """Find existing submission CSV or compute the target hierarchical path.
 
-        Scorecards written before the Kaggle '@' normalization are still named
-        ``claude-opus-5@default.csv``. When a normalized slug resolves to a path
-        whose legacy '@' twin is still on disk, that file is renamed onto the
-        canonical name (and its stale '@' model column rewritten) so a re-import
-        updates that file instead of silently creating a second one.
+        Scorecards written before the Kaggle normalization are still named
+        ``claude-opus-5@default.csv`` or ``gpt-5.4-2026-03-05.csv``. When a
+        canonical slug resolves to a path whose legacy pin/date twin is still on
+        disk, that file is renamed onto the canonical name (and its stale model
+        column rewritten) so a re-import updates that file instead of silently
+        creating a second one.
         """
         target_dir = base_dir or (ROOT / "submissions")
-        clean_slug = model_slug.lower().removesuffix(".csv")
+        # Canonicalize here too: a caller coming from a Kaggle name
+        # ('gpt-5.4-2026-03-05') must land on gpt-5.4.csv, not a dated twin.
+        clean_slug = canonical_model_slug(model_slug).lower().removesuffix(".csv")
 
         matches = list(target_dir.rglob(f"{clean_slug}.csv"))
         if matches:

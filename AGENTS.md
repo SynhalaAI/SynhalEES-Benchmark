@@ -131,13 +131,15 @@ in `STRUCTURE.md` -- no scratch `.txt` / `.log` / `.csv` dumps, ever.
   `--modality 'vision|audio'` pull both without the text tasks (the Colab notebook
   exposes the same `MODALITY` selector, e.g. `MODALITY = 'vision | audio'`).
 - **Scorecards are keyed by the canonical, unpinned model slug.** Kaggle pins a
-  model with `@` (`anthropic/claude-opus-5@default`) or dashes the pin into the
-  slug (`claude-haiku-4-5-20251001`); the `-m` flag and `kaggle b t models` use
-  yet another form. `canonical_model_slug()` (`synhalees/registry.py`) drops the
+  model with `@` (`anthropic/claude-opus-5@default`), dashes the pin into the
+  slug (`claude-haiku-4-5-20251001`), or appends the release date
+  (`gpt-5.4-2026-03-05`); the `-m` flag and `kaggle b t models` use yet another
+  form. `canonical_model_slug()` (`synhalees/registry.py`) drops the
   host prefix, turns `@` into `-`, then strips the trailing `-default` /
-  `-YYYYMMDD` marker, so every slug lands on one identity --
-  `submissions/anthropic/claude/claude-opus-5.csv`, never
-  `claude-opus-5-default.csv`. It is applied on every submit, and
+  `-YYYYMMDD` / `-YYYY-MM-DD` marker (repeating, so
+  `gpt-5.4-2026-03-05-default` also resolves), so every slug lands on one
+  identity -- `submissions/openai/gpt/gpt-5.4.csv`, never
+  `gpt-5.4-2026-03-05.csv`. It is applied on every submit, and
   `Registry.adopt_legacy_scorecards()` renames any pre-fix scorecard (plus its
   model column, CRLF preserved) onto the canonical name so a re-submit updates
   that file instead of creating a duplicate model. It skips the rename when the

@@ -754,9 +754,9 @@ def _note_normalized(task_slug, count):
 def normalize_pulled_runs(task_slug, base_dir=None):
     """Rename Kaggle's run folders under <base_dir>/<task>/ to canonical slugs.
 
-    Kaggle names those folders with its own pin marker ('claude-opus-5-default'),
-    so the next pull would otherwise drop a legacy folder next to the canonical
-    one and duplicate every run. Run ids are unique, so canonical names that
+    Kaggle names those folders with its own pin marker ('claude-opus-5-default')
+    or release date ('gpt-5.4-2026-03-05'), so the next pull would otherwise drop
+    a legacy folder next to the canonical one and duplicate every run. Run ids are unique, so canonical names that
     collide merge their run folders rather than clobbering them. Returns the
     number of folders renamed; safe to run on an already-normal tree.
     """
@@ -1111,7 +1111,15 @@ def load_slim_rows(path):
         if len(row) < len(HEADER):
             continue
         full = list(row)[:len(EXT_HEADER)] + [""] * (len(EXT_HEADER) - len(row))
-        keyed[(full[0], full[3], full[4])] = full
+        # Kaggle now appends a release date to some model names
+        # ('gpt-5.4-2026-03-05'). Key every row on the canonical slug and
+        # rewrite the model column so a later pull/merge normalizes the file
+        # instead of keeping a dated twin beside the canonical model.
+        full[0] = canonical_model_slug(full[0])
+        key = (full[0], full[3], full[4])
+        previous = keyed.get(key)
+        if previous is None or full[2] >= previous[2]:
+            keyed[key] = full
     return keyed
 
 
@@ -1127,8 +1135,9 @@ def import_single_slim(src: Path) -> int:
     for row in rows[1:]:
         if len(row) < 6:
             raise SystemExit(f"{src}: bad row: {row}")
-        model, prov, _date, pillar, modality = row[0], row[1], row[2], row[3], row[4]
-        full = list(row) + [""] * (len(EXT_HEADER) - len(row))
+        model, prov, _date, pillar, modality = canonical_model_slug(row[0]), row[1], row[2], row[3], row[4]
+        full = list(row) + [""] * max(0, len(EXT_HEADER) - len(row))
+        full[0] = model
         path = resolve_submission_path(model, prov)
         keep = []
         if path.is_file():
