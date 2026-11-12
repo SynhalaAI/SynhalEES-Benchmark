@@ -14,7 +14,7 @@
     type: "",              // "" = all types | open | proprietary
     limit: MAX_BARS,       // bars shown when no custom selection
     selected: null,        // null = top-N by metric; else map of picked names
-    featured: "",          // highlighted model name ("" = none) - star in the picker
+    featured: {},          // highlighted model names (multi-select map: name -> true) - stars in the picker
     hover: null            // model under the cursor (Pareto emphasis reset)
   };
 
@@ -242,13 +242,12 @@
 
   /* ---------- drawing ---------- */
 
-  // Featured model (starred inside the chart's own model picker - the old
-  // "No highlight" dropdown was folded into that list - independent of the
-  // head-to-head compare table): its bar gets the SynhalaAI red while every
-  // rival bar is dimmed to a neutral tone -- same emphasis pattern as the
-  // compare table + PNG export.
-  function featuredName() {
-    return st.featured;   // "" = "No highlight"
+  // Highlighted models (starred inside the chart's own model picker - supports
+  // highlighting one or multiple models at once, independent of the head-to-head
+  // compare table): starred bars get the SynhalaAI red while rival bars dim to
+  // a neutral tone -- same emphasis pattern across bars, Pareto and PNG export.
+  function isFeatured(name) {
+    return !!st.featured[name];
   }
 
   // Phone-sized label shortening, used by both views. opts.canvas means this is
@@ -318,8 +317,7 @@
     var textCol = cssVar("--text") || "#eef0f6";
     var mutedCol = cssVar("--muted") || "#9aa1b5";
     var borderCol = cssVar("--border") || "#3a4157";
-    var featured = featuredName();
-    var hasFeatured = rows.some(function (m) { return m.name === featured; });
+    var hasFeatured = rows.some(function (m) { return isFeatured(m.name); });
     var featRed = cssVar("--red-bright") || "#E04545";
 
     if (!rows.length) {
@@ -423,10 +421,10 @@
       var x = padL + slot * i + (slot - barW) / 2;
       var h = (v / yMax) * plotH;
       var y = plotB - h;
-      var isFeat = hasFeatured && m.name === featured;
+      var isFeat = hasFeatured && isFeatured(m.name);
       var col = hasFeatured ? (isFeat ? featRed : mutedCol) : barColor(m.provider);
 
-      // full-height background column behind the featured bar so it is
+      // full-height background column behind each highlighted bar so it is
       // easy to spot at a glance (same pattern as the reference leaderboard)
       if (isFeat) {
         ctx.globalAlpha = document.documentElement.getAttribute("data-theme") !== "light" ? 0.14 : 0.08;
@@ -436,7 +434,7 @@
         ctx.globalAlpha = 1;
       }
 
-      // bar with rounded top (rivals dimmed when a featured model is shown)
+      // bar with rounded top (rivals dimmed when highlighted models are shown)
       ctx.fillStyle = col;
       if (hasFeatured && !isFeat) ctx.globalAlpha = 0.55;
       var r = Math.min(6, barW / 3);
@@ -595,8 +593,7 @@
     var surfaceCol = (opts && opts.bg) || cssVar("--navy-card") || cssVar("--navy") || "#2b3044";
     // model under the cursor keeps full emphasis (PNG exports pass hover: null)
     var hoverNm = opts && "hover" in opts ? opts.hover : st.hover;
-    var featured = featuredName();
-    var hasFeatured = rows.some(function (m) { return m.name === featured; });
+    var hasFeatured = rows.some(function (m) { return isFeatured(m.name); });
 
     if (!rows.length) {
       ctx.fillStyle = mutedCol;
@@ -795,7 +792,7 @@
     var chipR = 9.5;                 // brand-chip radius (was a bare 8px disc)
     rows.forEach(function (m, i) {
       var x = X(usageVal(m)), y = Y(metricOf(m));
-      var isFeat = hasFeatured && m.name === featured;
+      var isFeat = hasFeatured && isFeatured(m.name);
       var opt = mask[i];
       var col = hasFeatured ? (isFeat ? featRed : mutedCol) : barColor(m.provider);
 
@@ -1080,9 +1077,11 @@
       if (st.type === "proprietary") fn.push("Proprietary only");
       if (st.selected) fn.push(Math.min(Object.keys(st.selected).length, MAX_BARS) + " picked");
       if (fn.length) sub += " \u00b7 " + fn.join(" \u00b7 ");
-      var feat = featuredName();
-      if (feat && shown.some(function (m) { return m.name === feat; })) {
-        sub += " \u00b7 Featured: " + feat;
+      var feats = shown
+        .filter(function (m) { return isFeatured(m.name); })
+        .map(function (m) { return m.name; });
+      if (feats.length) {
+        sub += (feats.length === 1 ? " \u00b7 Featured: " : " \u00b7 Highlighted: ") + feats.join(", ");
       }
       var stamp = state.updated || "";
       if (state.demo) stamp = (stamp ? stamp + " \u00b7 " : "") + "DEMO DATA";
@@ -1343,23 +1342,38 @@
     var panel = $("#chart-picker");
     var list = $("#chart-picker-list");
 
-    // star = highlight this model in the chart (replaces the old standalone
-    // "No highlight" dropdown). Single-highlight invariant: starring a new
-    // model moves the highlight; starring the active one clears it.
+    // star = highlight this model in the chart (multi-select: each star toggles
+    // independently so multiple models can be highlighted at once).
+    var unstarBtn = $("#chart-pick-unstar");
     function syncStars() {
+      var any = Object.keys(st.featured).length > 0;
+      if (unstarBtn) unstarBtn.hidden = !any;
       Array.prototype.forEach.call(list.querySelectorAll(".pk-star"), function (s) {
-        var on = s.getAttribute("data-name") === st.featured;
+        var name = s.getAttribute("data-name");
+        var on = isFeatured(name);
         s.setAttribute("aria-pressed", on ? "true" : "false");
-        s.setAttribute("aria-label", on ? "Remove highlight" : "Highlight " + s.getAttribute("data-name"));
+        s.setAttribute("aria-label", on ? "Remove highlight from " + name : "Highlight " + name);
         s.title = on ? "Remove highlight" : "Highlight this model";
       });
     }
 
-    function setFeatured(name) {
-      st.featured = name;
+    function toggleFeatured(name) {
+      if (st.featured[name]) delete st.featured[name];
+      else st.featured[name] = true;
       syncStars();
       hideTip();
       draw();
+    }
+
+    if (unstarBtn) {
+      unstarBtn.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        st.featured = {};
+        syncStars();
+        hideTip();
+        draw();
+      });
     }
 
     var sorted = state.models.slice().sort(function (a, b) { return (b.modalities.text || 0) - (a.modalities.text || 0); });
@@ -1385,7 +1399,7 @@
       star.addEventListener("click", function (e) {
         e.preventDefault();
         e.stopPropagation();
-        setFeatured(st.featured === m.name ? "" : m.name);
+        toggleFeatured(m.name);
       });
       row.appendChild(star);
       list.appendChild(row);
