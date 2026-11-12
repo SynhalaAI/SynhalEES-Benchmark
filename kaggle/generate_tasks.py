@@ -25,7 +25,12 @@ Push everything (after ``kaggle b init -y``)::
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
+
+_ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
 from synhalees import data as syn_data
 
@@ -241,20 +246,18 @@ def parse_args(argv):
     return out_dir, dry
 
 
-def main() -> None:
-    import sys
-
-    out_dir, dry = parse_args(sys.argv[1:])
-    written = []
+def generate(out_dir: Path = OUT_DIR, *, dry_run: bool = False) -> list[Path]:
+    """Generate the 17 Kaggle Benchmarks task files into *out_dir*."""
+    written: list[Path] = []
 
     def emit(name, text):
         """Stage one task file (written only when not a dry run)."""
         path = out_dir / name
         written.append(path)
-        if not dry:
+        if not dry_run:
             path.write_text(text, encoding="utf-8")
 
-    if not dry:
+    if not dry_run:
         out_dir.mkdir(parents=True, exist_ok=True)
 
     for slug in syn_data.list_pillars():
@@ -276,9 +279,16 @@ def main() -> None:
             ),
         )
 
-    verb = "Would write" if dry else "Generated"
-    print(f"{verb} {len(written)} task files in {out_dir}" + (" (dry run)" if dry else ""))
+    verb = "Would write" if dry_run else "Generated"
+    print(f"{verb} {len(written)} task files in {out_dir}" + (" (dry run)" if dry_run else ""))
+    return written
+
+
+def main(argv: list[str] | None = None) -> int:
+    out_dir, dry = parse_args(sys.argv[1:] if argv is None else argv)
+    generate(out_dir, dry_run=dry)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

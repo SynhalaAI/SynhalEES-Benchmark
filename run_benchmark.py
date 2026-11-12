@@ -23,11 +23,8 @@ from pathlib import Path
 _VALID_MODALITIES = ("text", "vision", "audio", "all")
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        prog="synhalees",
-        description="Run the SynhalEES multimodal Sinhala benchmark via LLM APIs.",
-    )
+def add_run_arguments(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+    """Attach all local-benchmark runner flags to *parser*."""
     parser.add_argument(
         "--model",
         required=True,
@@ -70,14 +67,21 @@ def parse_args() -> argparse.Namespace:
         default="runs",
         help="Root directory for per-model run folders (default: runs).",
     )
-    return parser.parse_args()
+    return parser
 
 
-def main() -> int:
-    args = parse_args()
-    from synhalees.runner import SynhalEESBenchmark
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        prog="run_benchmark.py",
+        description="Run the SynhalEES multimodal Sinhala benchmark via LLM APIs.",
+    )
+    add_run_arguments(parser)
+    return parser.parse_args(argv)
 
-    from synhalees.runner import model_slug
+
+def run_from_args(args: argparse.Namespace) -> int:
+    """Execute a local benchmark run from parsed CLI arguments."""
+    from synhalees.runner import SynhalEESBenchmark, model_slug
 
     modalities = (
         ("text", "vision", "audio") if args.modality == "all" else (args.modality,)
@@ -112,9 +116,13 @@ def main() -> int:
         json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     print(f"[SynhalEES] raw results : {checkpoint}")
-    print(f"[SynhalEES] scorecard   : {output}")
+    print(f"[Synhalees] scorecard   : {output}")
     print("[SynhalEES] interrupted? rerun the same command to resume.")
     return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    return run_from_args(parse_args(argv))
 
 
 if __name__ == "__main__":

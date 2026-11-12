@@ -104,6 +104,12 @@ results.save_submission("runs/<model-slug>/submission.csv")
 Installing the benchmark with `pip install -e .` exposes the unified `synhalees` CLI (or `python -m synhalees`). Everything from running evaluations to Kaggle deployment and leaderboard generation is managed through this single tool:
 
 ```bash
+# Explore project status, pillars, models & step-by-step guides
+synhalees status
+synhalees pillars
+synhalees models --provider google
+synhalees guide
+
 # Run evaluations locally
 synhalees run --model gemini:gemini-2.5-flash
 synhalees run --model ollama:llama3.1:8b --pillars 01_buddhist_culture
@@ -123,13 +129,18 @@ synhalees check
 
 | Command | Action | Description |
 |---|---|---|
+| **`synhalees status`** | Project overview | Shows dataset counts, submissions, site sync status, local runs, and Kaggle coverage. |
+| **`synhalees pillars [query]`** | Browse pillars | Lists all 15 pillars with item/media counts and `eval_type` breakdown. |
+| **`synhalees models [query]`** | Browse models | Lists registered providers/models from `models.json` with published/Kaggle status. |
+| **`synhalees guide [topic]`** | Workflow guide | Prints copy-pasteable recipes for `local`, `kaggle`, `colab`, and `site`. |
 | **`synhalees run`** | Run benchmark | Evaluates models locally with crash-safe checkpointing. |
 | **`synhalees compare`** | Compare runs | Generates cross-model scorecards and accuracy matrix at `runs/all_submissions.csv`. |
-| **`synhalees publish <model-slug>`** | Publish run | Resolves taxonomy hierarchy, copies scorecard to `submissions/<vendor>/<family>/`, rebuilds docs, and verifies integrity. |
-| **`synhalees build [--check]`** | Build leaderboard | Re-generates `docs/assets/data/*` from `submissions/` (`--check` validates CI freshness). |
-| **`synhalees logos [--check]`** | Build logo data | Re-generates `docs/assets/logo-data.js` for canvas exports. |
-| **`synhalees check`** | Run all gates | Runs logo check, leaderboard sync check, and Python bytecode compilation in one go. |
-| **`synhalees kaggle <action>`** | Kaggle Benchmarks | Full suite to generate, push, run, and sync tasks with Kaggle. |
+| **`synhalees site <action>`** | Site & leaderboard | Grouped site commands: `publish`, `build`, `logos`, `check` (top-level shortcuts also work). |
+| **`synhalees publish <model-slug>`** | Publish run | Shortcut for `site publish`: copies scorecard to `submissions/<vendor>/<family>/`, rebuilds docs, and verifies. |
+| **`synhalees build [--check]`** | Build leaderboard | Shortcut for `site build`: regenerates `docs/assets/data/*` from `submissions/` (`--check` validates CI freshness). |
+| **`synhalees logos [--check]`** | Build logo data | Shortcut for `site logos`: regenerates `docs/assets/logo-data.js` for canvas exports. |
+| **`synhalees check`** | Run all gates | Shortcut for `site check`: verifies logos, leaderboard sync, dataset schemas, and Python compilation. |
+| **`synhalees kaggle <action>`** | Kaggle Benchmarks | Full suite: `gen`, `push`, `run`, `coverage`, `status`, `logs`, `pull` (`download`), `submit` (`import`), `publish`. |
 
 ---
 

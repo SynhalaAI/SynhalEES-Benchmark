@@ -40,7 +40,9 @@ SynhalEES/
 ├── synhalees/                                 # Core Python Package
 │   ├── __init__.py                            # Public API (data loaders, env helpers, lazy SynhalEESBenchmark)
 │   ├── __main__.py                            # python -m synhalees -> the unified CLI
-│   ├── cli.py                                 # unified CLI: run/compare/build/publish/check/kaggle *
+│   ├── cli.py                                 # unified CLI router: run/compare/status/pillars/models/guide/site/kaggle
+│   ├── cli_ui.py                              # Pure-stdlib ANSI styling, tables, badges & workflow guides
+│   ├── kaggle_ops.py                          # Kaggle Benchmarks ops, slim-CSV sync & artifact parsing
 │   ├── registry.py                            # Model/provider SSOT registry & taxonomy resolver
 │   ├── models.json                            # Provider taxonomy, aliases, display names & color map
 │   ├── data/                                  # Data Loaders & Registry
@@ -114,6 +116,8 @@ SynhalEES/
 ├── submissions/                                 # COMMITTED: published site data source (<vendor>/<family>/<model>.csv)
 │   ├── README.md                                  # scorecard schema + publication rules
 │   └── google/gemini/*.csv                        # per-model published scorecard CSVs
+├── tests/                                     # Pure-stdlib unittest suite
+│   └── test_cli.py                                # CLI routing, backward compatibility, Kaggle & site gates
 ├── .gitignore                                 # runs/, __pycache__, packaging artifacts, lock files
 ├── pyproject.toml                             # pip install -e . packaging
 ├── run_benchmark.py                           # CLI entry point (checkpointed API runner)

@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """Compare every benchmark run under ``runs/`` and build the leaderboard CSV.
 
 Each run lives in its own folder::
@@ -139,10 +139,8 @@ def print_report(runs: list[dict]) -> None:
         print(f"{pretty_model(run['model'])[:29]:<30}{cells}")
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
-    )
+def add_compare_arguments(ap: argparse.ArgumentParser) -> argparse.ArgumentParser:
+    """Attach compare-runs CLI flags to *ap*."""
     ap.add_argument("--runs-dir", type=Path, default=ROOT / "runs",
                     help="Root of per-model run folders (default: runs/).")
     ap.add_argument("--include-broken", action="store_true",
@@ -151,8 +149,11 @@ def main() -> int:
                     help="Combined local CSV for inspection "
                          "(default: <runs-dir>/all_submissions.csv; "
                          "publish via submissions/, not this file).")
-    args = ap.parse_args()
+    return ap
 
+
+def run_compare(args: argparse.Namespace) -> int:
+    """Compare runs under *args.runs_dir*, print matrix, write combined CSV."""
     if not args.runs_dir.is_dir():
         print(f"ERROR: {args.runs_dir} does not exist. Run the benchmark first.",
               file=sys.stderr)
@@ -182,10 +183,17 @@ def main() -> int:
         for run in runs:
             writer.writerows(submission_rows(run))
     print(f"\nwrote {out} ({len(runs)} model(s))")
-    print("next: copy the scorecards you want to publish to")
-    print("      submissions/<model-slug>.csv     # one file per model (see submissions/README.md)")
-    print("      python tools/build_leaderboard.py && python tools/build_leaderboard.py --check")
+    print("next: publish a model with 'synhalees publish <model-slug>' "
+          "(or copy to submissions/<vendor>/<family>/<model-slug>.csv)")
     return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    add_compare_arguments(ap)
+    return run_compare(ap.parse_args(argv))
 
 
 if __name__ == "__main__":

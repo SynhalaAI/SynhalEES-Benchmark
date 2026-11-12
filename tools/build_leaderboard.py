@@ -356,7 +356,7 @@ def write_seo_block(payload: dict) -> None:
         assert anchor2 in html
         html = html.replace(anchor2, "  " + block + chr(10) + anchor2, 1)
     index.write_text(html, encoding="utf-8")
-    print(f"injected JSON-LD into {index} ({len(payload.get("models", []))} models)")
+    print(f"injected JSON-LD into {index} ({len(payload.get('models', []))} models)")
 
 
 def demo() -> dict:
@@ -493,21 +493,23 @@ def default_csvs() -> list[Path]:
     return sorted(SUBMISSIONS_DIR.rglob("*.csv"))
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+def add_build_arguments(ap: argparse.ArgumentParser) -> argparse.ArgumentParser:
+    """Attach leaderboard build CLI flags to *ap*."""
     ap.add_argument("csv", nargs="*", type=Path,
                     help="submission CSVs with model,provider,date,pillar,modality,score "
-                         "(default: submissions/*.csv)")
+                         "(default: submissions/**/*.csv)")
     ap.add_argument("--demo", action="store_true",
                     help="write deterministic DEMO placeholder data")
     ap.add_argument("--check", action="store_true",
                     help="verify the committed docs/assets/data files match the "
                          "sources (no writes; exits 1 on drift)")
-    args = ap.parse_args()
+    return ap
 
+
+def run_build(args: argparse.Namespace) -> int:
+    """Execute leaderboard build or --check from parsed CLI arguments."""
     if args.demo and args.check:
-        ap.error("--demo and --check cannot be combined")
+        raise SystemExit("--demo and --check cannot be combined")
 
     payload = demo() if args.demo else build_real(args.csv or default_csvs())
 
@@ -530,7 +532,7 @@ def main() -> int:
             lb = html_doc.find(tag_open, start)
             if lb == -1:
                 break
-            rb = html_doc.find(tag_close, lb)
+            rb = html_doc.find(LD_CLOSE, lb)
             if rb != -1 and seo_text in html_doc[lb:rb + 9]:
                 ok_ld = True
                 break
@@ -539,7 +541,7 @@ def main() -> int:
             print("[!!] stale JSON-LD in docs/index.html")
             ok = False
         if not ok:
-            print("\nRebuild with: python tools/build_leaderboard.py")
+            print("\nRebuild with: synhalees build  (or python tools/build_leaderboard.py)")
             return 1
         print(f"OK: docs/assets/data in sync "
               f"({len(payload['models'])} models, demo={payload['demo']})")
@@ -551,6 +553,16 @@ def main() -> int:
     write_seo_block(payload)
     print(f"  -> {len(payload['models'])} models, demo={payload['demo']}")
     return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    add_build_arguments(ap)
+    args = ap.parse_args(argv)
+    if args.demo and args.check:
+        ap.error("--demo and --check cannot be combined")
+    return run_build(args)
 
 
 if __name__ == "__main__":

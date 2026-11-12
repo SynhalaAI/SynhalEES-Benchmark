@@ -124,14 +124,15 @@ def build():
     return "\n".join(lines)
 
 
-def main():
-    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+def add_logo_arguments(ap):
     ap.add_argument("--check", action="store_true",
                     help="fail (exit 1) if logo-data.js is stale or missing")
     ap.add_argument("--stdout", action="store_true",
                     help="print the generated file to stdout instead of writing it")
-    args = ap.parse_args()
+    return ap
 
+
+def run_logos(args):
     if args.check:
         if not OUT.exists():
             print("ERROR: %s is missing. Run: python tools/build_logo_data.py" % OUT,
@@ -160,6 +161,12 @@ def main():
     print("wrote %s (%d bytes, %d logos + brand icon)" % (OUT, len(js.encode("utf-8")),
           len(list(LOGOS.glob("*.svg")))))
     return 0
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    add_logo_arguments(ap)
+    return run_logos(ap.parse_args(argv))
 
 
 if __name__ == "__main__":
