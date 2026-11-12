@@ -34,7 +34,8 @@
     ibm: "ibm", watsonx: "ibm",
     perplexity: "perplexity",
     xiaomi: "xiaomi",
-    synhalaai: "synhalaAI"
+    synhalaai: "synhalaAI",
+    xai: "xAI", grok: "xAI"
   };
 
   var PROVIDER_COLORS = {
@@ -50,7 +51,8 @@
     ibm: "#0F62FE",
     perplexity: "#20B8CD",
     xiaomi: "#FF6900",
-    synhalaai: "#E04545"
+    synhalaai: "#E04545",
+    xai: "#78909C"
   };
 
   function providerKey(name) {

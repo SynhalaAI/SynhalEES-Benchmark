@@ -77,7 +77,8 @@
     ibm: "ibm", watsonx: "ibm",
     perplexity: "perplexity",
     xiaomi: "xiaomi",
-    synhalaai: "synhalaAI"
+    synhalaai: "synhalaAI",
+    xai: "xAI", grok: "xAI"
   };
 
   function providerLogoFile(name) {
