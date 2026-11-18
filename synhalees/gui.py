@@ -1963,7 +1963,10 @@ class SynhaleesGUI:
             columns=("slug", "name", "logo", "color", "families", "aliases"),
             height=8,
             selectmode="browse",
+            show="tree headings",
         )
+        self.mgmt_orgs_tree.heading("#0", text="Badge")
+        self.mgmt_orgs_tree.column("#0", width=self._px(58), stretch=False, anchor="center")
         for col, lbl, w in (
             ("slug", "Org Slug", 120),
             ("name", "Display Name", 150),
