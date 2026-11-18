@@ -422,13 +422,14 @@
       var h = (v / yMax) * plotH;
       var y = plotB - h;
       var isFeat = hasFeatured && isFeatured(m.name);
-      var col = hasFeatured ? (isFeat ? featRed : mutedCol) : barColor(m.provider);
+      var featCol = barColor(m.provider) || featRed;
+      var col = hasFeatured ? (isFeat ? featCol : mutedCol) : barColor(m.provider);
 
       // full-height background column behind each highlighted bar so it is
-      // easy to spot at a glance (same pattern as the reference leaderboard)
+      // easy to spot at a glance (using the model's organization/bar color)
       if (isFeat) {
         ctx.globalAlpha = document.documentElement.getAttribute("data-theme") !== "light" ? 0.14 : 0.08;
-        ctx.fillStyle = featRed;
+        ctx.fillStyle = featCol;
         var bandW = Math.min(slot - 2, barW * 1.4);  // hug the bar, not the whole slot
         ctx.fillRect(x + (barW - bandW) / 2, padT, bandW, plotH);
         ctx.globalAlpha = 1;
@@ -474,7 +475,7 @@
       ctx.save();
       ctx.translate(cx + (narrow ? 3 : 4), plotB + logoH + 12);
       ctx.rotate(-Math.PI / 4);
-      ctx.fillStyle = hasFeatured ? (isFeat ? featRed : mutedCol) : textCol;
+      ctx.fillStyle = hasFeatured ? (isFeat ? featCol : mutedCol) : textCol;
       ctx.font = (isFeat ? "700 " : "") + (narrow ? 10 : 11) + "px Inter, sans-serif";
       ctx.textAlign = "right";
       var maxName = narrow ? (narrow === 2 ? 13 : 18) : 22;
@@ -794,7 +795,8 @@
       var x = X(usageVal(m)), y = Y(metricOf(m));
       var isFeat = hasFeatured && isFeatured(m.name);
       var opt = mask[i];
-      var col = hasFeatured ? (isFeat ? featRed : mutedCol) : barColor(m.provider);
+      var featCol = barColor(m.provider) || featRed;
+      var col = hasFeatured ? (isFeat ? featCol : mutedCol) : barColor(m.provider);
 
       // emphasis: a highlighted model outranks the frontier emphasis; with no
       // highlight the frontier leads, so the points that are NOT on it recede
@@ -826,7 +828,7 @@
       // slice the name in half. It only moves beside the point when the slot
       // above is taken by another label, the brand watermark or a plot edge.
       ctx.font = (isFeat ? "700 " : "600 ") + "11px Inter, sans-serif";
-      ctx.fillStyle = hasFeatured ? (isFeat ? featRed : mutedCol) : textCol;
+      ctx.fillStyle = hasFeatured ? (isFeat ? featCol : mutedCol) : textCol;
       ctx.textBaseline = "middle";
       // narrow plots cannot fit 20-character names without the labels piling
       // up, so shorten harder as the canvas narrows (the tooltip keeps the full

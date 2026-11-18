@@ -96,6 +96,29 @@
     return file || null;
   }
 
+  var PROVIDER_COLORS = {
+    google: "#4285F4",
+    openai: "#10A37F",
+    anthropic: "#D97757",
+    meta: "#0082FB",
+    mistralai: "#FF7000",
+    deepseek: "#4D6BFE",
+    alibabacloud: "#FF6A00",
+    amazonwebservices: "#FF9900",
+    microsoft: "#00A4EF",
+    ibm: "#0F62FE",
+    perplexity: "#20B8CD",
+    xiaomi: "#FF6900",
+    synhalaai: "#E04545",
+    xai: "#78909C"
+  };
+
+  function providerColor(name) {
+    var file = providerLogoFile(name);
+    var key = file ? String(file).toLowerCase() : String(name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    return PROVIDER_COLORS[key] || "";
+  }
+
   function providerLogo(name) {
     var file = providerLogoFile(name);
     if (file) {
@@ -391,10 +414,8 @@
     return rows;
   }
 
-  function renderCompare() {
-    var tbl = $("#compare-table");
-    if (!tbl) return;
-    // featured model always leads the table; rivals follow in picker order
+  function buildCompareModelsAndWins() {
+    // first model stays pinned; remaining rivals auto-sort by wins descending
     var models = [];
     var featModel = null;
     state.models.forEach(function (m) { if (m.name === state.featured) featModel = m; });
@@ -403,7 +424,6 @@
       if (n === state.featured) return;
       state.models.forEach(function (m) { if (m.name === n) models.push(m); });
     });
-    tbl.classList.toggle("has-featured", !!featModel);
     var rows = compareTableRows();
     var wins = {}; // honest row-win counts — never altered
 
@@ -420,6 +440,34 @@
         if (r.get(m) === best) wins[m.name]++;
       });
     });
+
+    function byWinsDesc(a, b) {
+      var dw = (wins[b.name] || 0) - (wins[a.name] || 0);
+      if (dw !== 0) return dw;
+      return (b.overall || 0) - (a.overall || 0);
+    }
+
+    if (models.length > 1) {
+      if (featModel) {
+        models = [models[0]].concat(models.slice(1).sort(byWinsDesc));
+      } else {
+        models = models.slice().sort(byWinsDesc);
+      }
+    }
+    return { models: models, rows: rows, wins: wins, featModel: featModel };
+  }
+
+  function renderCompare() {
+    var tbl = $("#compare-table");
+    if (!tbl) return;
+    var cmp = buildCompareModelsAndWins();
+    var models = cmp.models;
+    var rows = cmp.rows;
+    var wins = cmp.wins;
+    tbl.classList.toggle("has-featured", !!cmp.featModel);
+    var featColor = cmp.featModel ? providerColor(cmp.featModel.provider) : "";
+    if (featColor) tbl.style.setProperty("--cmp-feat-color", featColor);
+    else tbl.style.removeProperty("--cmp-feat-color");
 
     var metricCount = 0;
     rows.forEach(function (r) { if (!r.group) metricCount++; });
@@ -480,14 +528,18 @@
     var list = $("#compare-picker-list");
     if (!list) return;
     var cbs = list.querySelectorAll("input[type=checkbox]");
-    var atMax = state.compare.length >= CMP_MAX - 1; // -1: featured model fills the first slot
-    var atMin = state.compare.length <= CMP_MIN - 1;
+    var maxRivals = state.featured ? (CMP_MAX - 1) : CMP_MAX;
+    var atMax = state.compare.length >= maxRivals;
     for (var i = 0; i < cbs.length; i++) {
       if (cbs[i].getAttribute("data-featured") === "1") { cbs[i].disabled = true; continue; }
-      cbs[i].disabled = (atMax && !cbs[i].checked) || (atMin && cbs[i].checked);
+      cbs[i].disabled = atMax && !cbs[i].checked;
     }
     var cnt = $("#compare-count");
-    if (cnt) cnt.textContent = "1 featured \u00b7 " + state.compare.length + " of " + (CMP_MAX - 1) + " rivals";
+    if (cnt) {
+      cnt.textContent = state.featured
+        ? "1 featured \u00b7 " + state.compare.length + " of " + maxRivals + " rivals"
+        : state.compare.length + " of " + maxRivals + " selected";
+    }
   }
 
   function flashCompareLimit() {
@@ -520,26 +572,12 @@
   ];
 
   function exportComparePNG() {
-    // same ordering as the on-screen table: featured model first, then rivals
-    var models = [];
-    state.models.forEach(function (m) { if (m.name === state.featured) models.push(m); });
-    state.compare.forEach(function (n) {
-      if (n === state.featured) return;
-      state.models.forEach(function (m) { if (m.name === n) models.push(m); });
-    });
+    // same ordering as the on-screen table: first model pinned, rivals sorted by wins descending
+    var cmp = buildCompareModelsAndWins();
+    var models = cmp.models;
     if (models.length < 2) return;
-    var rows = compareTableRows();
-
-    // honest row-win counts (identical logic to renderCompare)
-    var wins = {};
-    models.forEach(function (m) { wins[m.name] = 0; });
-    rows.forEach(function (r) {
-      if (r.group) return;
-      var best = -Infinity, n = 0;
-      models.forEach(function (m) { var v = r.get(m); if (v != null) { n++; if (v > best) best = v; } });
-      if (n < 2) return;
-      models.forEach(function (m) { if (r.get(m) === best) wins[m.name]++; });
-    });
+    var rows = cmp.rows;
+    var wins = cmp.wins;
 
     var cs = getComputedStyle(document.documentElement);
     function cv(n, fb) { var v = cs.getPropertyValue(n).trim(); return v || fb; }
@@ -704,8 +742,18 @@
         var feat = m.name === state.featured;
         var isBest = hasBest && v === best;
         if (isBest) {
-          // full-strength red for the featured column, dimmed for rivals
-          ctx.fillStyle = feat ? "rgba(198, 40, 40, .24)" : "rgba(198, 40, 40, .08)";
+          // organization/bar color for the featured column, soft red for rivals
+          var fCol = (feat && cmp.featModel) ? providerColor(cmp.featModel.provider) : "";
+          if (fCol) {
+            var hc = fCol.replace("#", "");
+            if (hc.length === 3) hc = hc[0] + hc[0] + hc[1] + hc[1] + hc[2] + hc[2];
+            var hr = parseInt(hc.slice(0, 2), 16) || 198;
+            var hg = parseInt(hc.slice(2, 4), 16) || 40;
+            var hb = parseInt(hc.slice(4, 6), 16) || 40;
+            ctx.fillStyle = "rgba(" + hr + "," + hg + "," + hb + ",.24)";
+          } else {
+            ctx.fillStyle = feat ? "rgba(198, 40, 40, .24)" : "rgba(198, 40, 40, .08)";
+          }
           ctx.fillRect(cx, ty, colW, rh);
         }
         var weight = r.hero ? 800 : (isBest ? (feat ? 800 : 600) : 600);
@@ -722,7 +770,7 @@
     models.forEach(function (m, i) { if (m.name === state.featured) fci = i; });
     if (fci >= 0) {
       var fx = hx + fci * colW, fh = HEAD_H + bodyH;
-      ctx.fillStyle = C.red;
+      ctx.fillStyle = (cmp.featModel && providerColor(cmp.featModel.provider)) || C.red;
       ctx.fillRect(fx, y, 1.5, fh);
       ctx.fillRect(fx + colW - 1.5, y, 1.5, fh);
       ctx.fillRect(fx, y, colW, 3);
@@ -1087,19 +1135,23 @@
     // same star button the chart picker uses, and one model is starred at a
     // time - starring another moves the pin, exactly like the chart highlight.
     function setFeatured(name) {
-      if (name === state.featured) return;
+      if (name === state.featured) {
+        state.featured = "";
+        buildComparePicker();
+        renderCompare();
+        return;
+      }
       state.featured = name;
       state.compare = state.compare.filter(function (n) { return n !== state.featured; });
-      // top up rivals if the new featured model was one of them
-      for (var i = 0; i < state.models.length && state.compare.length < CMP_MIN - 1; i++) {
-        var nm = state.models[i].name;
-        if (nm !== state.featured && state.compare.indexOf(nm) === -1) state.compare.push(nm);
-      }
       buildComparePicker();
       renderCompare();
     }
     list.innerHTML = "";
-    state.models.forEach(function (m) {
+    var cmp = buildCompareModelsAndWins();
+    var selectedSet = {};
+    cmp.models.forEach(function (m) { selectedSet[m.name] = true; });
+    var ordered = cmp.models.concat(state.models.filter(function (m) { return !selectedSet[m.name]; }));
+    ordered.forEach(function (m) {
       var feat = m.name === state.featured;
       var row = document.createElement("span");
       row.className = "pk-item";
@@ -1116,15 +1168,13 @@
       }
       cb.addEventListener("change", function () {
         if (feat) { cb.checked = true; return; }
-        if (cb.checked && state.compare.length >= CMP_MAX - 1) {
+        var maxRivals = state.featured ? (CMP_MAX - 1) : CMP_MAX;
+        if (cb.checked && state.compare.length >= maxRivals) {
           cb.checked = false; flashCompareLimit(); return;
-        }
-        if (!cb.checked && state.compare.length <= CMP_MIN - 1) {
-          cb.checked = true; flashCompareLimit(); return;
         }
         if (cb.checked) state.compare.push(m.name);
         else state.compare = state.compare.filter(function (n) { return n !== m.name; });
-        updateComparePickerState();
+        buildComparePicker();
         renderCompare();
       });
       lab.appendChild(cb);
