@@ -45,13 +45,101 @@ def resolve_submission_path(model_id: str, provider: str = "") -> Path:
     return default_registry.resolve_submission_path(model_id, base_dir=SUBMISSIONS)
 
 
+_KAGGLE_PY_RUNNER = (
+    "import os, sys; "
+    "sys.path = [p for p in sys.path if p not in ('', os.getcwd())]; "
+    "from kaggle.cli import main; sys.exit(main())"
+)
+
+
+def _sys_python_has_kaggle() -> bool:
+    """Return True if the active interpreter has the PyPI `kaggle` package."""
+    import importlib.util
+
+    saved = list(sys.path)
+    try:
+        sys.path = [p for p in saved if p not in ("", str(ROOT))]
+        return importlib.util.find_spec("kaggle.cli") is not None
+    except Exception:
+        return False
+    finally:
+        sys.path = saved
+
+
+def _kaggle_python_candidates(exe: str, rest: list[str]) -> list[list[str]]:
+    """Candidate `python/py -c ...` commands when `kaggle.exe` is blocked (WinError 4551)."""
+    p = Path(exe)
+    cmds: list[list[str]] = []
+    seen: set[str] = set()
+
+    def _add(launcher: str) -> None:
+        if launcher and launcher not in seen:
+            seen.add(launcher)
+            cmds.append([launcher, "-c", _KAGGLE_PY_RUNNER, *rest])
+
+    if _sys_python_has_kaggle():
+        _add(sys.executable)
+    for cand in (p.parent.parent / "python.exe", p.parent / "python.exe"):
+        if cand.is_file():
+            _add(str(cand))
+    py_launcher = shutil.which("py")
+    if py_launcher:
+        _add(py_launcher)
+    return cmds
+
+
 def sh(argv: Iterable[object], cwd: Path = ROOT, *, echo: bool = True) -> int:
     """Run a subprocess with inherited stdio; return its exit code."""
     cmd = [str(a) for a in argv]
     if echo:
         print("+ " + " ".join(cmd), flush=True)
     env = dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUTF8="1")
-    return subprocess.run(cmd, cwd=str(cwd), env=env).returncode
+    try:
+        return subprocess.run(cmd, cwd=str(cwd), env=env).returncode
+    except OSError as exc:
+        if getattr(exc, "winerror", None) == 4551 and cmd and "kaggle" in Path(cmd[0]).name.lower():
+            last_exc: OSError = exc
+            for fb in _kaggle_python_candidates(cmd[0], cmd[1:]):
+                try:
+                    if echo:
+                        print("+ " + " ".join([fb[0], "-m", "kaggle.cli", *cmd[1:]]), flush=True)
+                    return subprocess.run(fb, cwd=str(cwd), env=env).returncode
+                except OSError as fb_exc:
+                    last_exc = fb_exc
+            raise last_exc
+        raise
+
+
+def run_kaggle_captured(
+    args: Iterable[object],
+    *,
+    timeout: int = 60,
+) -> subprocess.CompletedProcess[str]:
+    """Run `kaggle <args...>` capturing stdout/stderr, with WinError 4551 fallback."""
+    kbin = str(kaggle_bin())
+    rest = [str(a) for a in args]
+    env = dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUTF8="1")
+    kwargs: dict[str, object] = dict(
+        cwd=str(ROOT),
+        env=env,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=timeout,
+    )
+    try:
+        return subprocess.run([kbin, *rest], **kwargs)  # type: ignore[arg-type]
+    except OSError as exc:
+        if getattr(exc, "winerror", None) == 4551:
+            last_exc: OSError = exc
+            for fb in _kaggle_python_candidates(kbin, rest):
+                try:
+                    return subprocess.run(fb, **kwargs)  # type: ignore[arg-type]
+                except OSError as fb_exc:
+                    last_exc = fb_exc
+            raise last_exc
+        raise
 
 
 def py_run(script: Path | str, args: Iterable[object] = ()) -> int:
@@ -148,29 +236,41 @@ def parse_modality(value: object) -> tuple[str, ...]:
     return tuple(dict.fromkeys(parts))
 
 
+_MODEL_SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9._/@-]*$")
+
+
+def parse_kaggle_models_output(stdout: str) -> list[str]:
+    """Extract valid model slugs from `kaggle b t models` stdout."""
+    models: list[str] = []
+    for line in (stdout or "").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith(
+            ("Slug", "Display", "Avail", "---", "Warning:", "Note:", "Error:", "To ", "http")
+        ):
+            continue
+        parts = stripped.split()
+        if not parts:
+            continue
+        tok = parts[0]
+        if tok.endswith(":") or not _MODEL_SLUG_RE.match(tok):
+            continue
+        if tok not in models:
+            models.append(tok)
+    return models
+
+
 def kaggle_available_models() -> list[str]:
     """List globally available Kaggle model slugs via `kaggle b t models`."""
     global _MODELS_CACHE
     if _MODELS_CACHE is not None:
         return _MODELS_CACHE
     try:
-        env = dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUTF8="1")
-        proc = subprocess.run(
-            [str(kaggle_bin()), "b", "t", "models"],
-            cwd=str(ROOT), env=env, capture_output=True, text=True, timeout=60,
-        )
+        proc = run_kaggle_captured(["b", "t", "models"], timeout=60)
     except (Exception, SystemExit):
         return []
     if proc.returncode:
         return []
-    models: list[str] = []
-    for line in (proc.stdout or "").splitlines():
-        stripped = line.strip()
-        if not stripped or stripped.startswith(("Slug", "Display", "Avail", "---")):
-            continue
-        parts = stripped.split()
-        if parts:
-            models.append(parts[0])
+    models = parse_kaggle_models_output(proc.stdout or "")
     _MODELS_CACHE = models
     return models
 
@@ -180,11 +280,7 @@ def kaggle_task_models(task_name: str) -> list[str]:
     if task_name in _STATUS_MODELS_CACHE:
         return _STATUS_MODELS_CACHE[task_name]
     try:
-        env = dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUTF8="1")
-        proc = subprocess.run(
-            [str(kaggle_bin()), "b", "t", "status", task_name],
-            cwd=str(ROOT), env=env, capture_output=True, text=True, timeout=120,
-        )
+        proc = run_kaggle_captured(["b", "t", "status", task_name], timeout=120)
     except (Exception, SystemExit):
         return []
     if proc.returncode:

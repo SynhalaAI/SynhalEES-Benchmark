@@ -569,6 +569,12 @@ def cmd_guide(a: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_gui(a: argparse.Namespace) -> int:
+    from synhalees.gui import launch_gui
+
+    return launch_gui(initial_tab=a.tab)
+
+
 # ---------------------------------------------------------------------------
 # Leaderboard & Static Site (`publish`, `build`, `logos`, `check`, `site *`)
 # ---------------------------------------------------------------------------
@@ -1227,6 +1233,21 @@ def build_parser() -> argparse.ArgumentParser:
         help="workflow topic to display (default: all)",
     )
     p.set_defaults(func=cmd_guide)
+
+    p = sub.add_parser(
+        "gui",
+        parents=[common],
+        formatter_class=SynhaleesHelpFormatter,
+        help="launch the SynhalEES desktop GUI studio (tkinter)",
+        description="Launch the pure-stdlib SynhalEES desktop GUI for local runs, Kaggle sync, and site builds.",
+    )
+    p.add_argument(
+        "--tab",
+        choices=("overview", "kaggle", "run", "explorer", "site"),
+        default="overview",
+        help="initial workflow section to focus (default: overview)",
+    )
+    p.set_defaults(func=cmd_gui)
 
     # 3. Leaderboard & Site (grouped + top-level shortcuts)
     site_parser = sub.add_parser(

@@ -293,6 +293,51 @@ class TestKaggleOperations(unittest.TestCase):
                 target = subs_dir / "google" / "gemini" / "gemini-3.8-flash.csv"
                 self.assertTrue(target.is_file())
 
+    def test_kaggle_winerror_4551_fallback(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            py_root = Path(tmp)
+            scripts_dir = py_root / "Scripts"
+            scripts_dir.mkdir()
+            fake_kaggle = scripts_dir / "kaggle.EXE"
+            fake_kaggle.write_text("", encoding="utf-8")
+            fake_py = py_root / "python.exe"
+            fake_py.write_text("", encoding="utf-8")
+
+            seen_cmds: list[list[str]] = []
+
+            def fake_run(cmd, **_kw):
+                seen_cmds.append([str(x) for x in cmd])
+                if len(seen_cmds) == 1:
+                    err = OSError("blocked")
+                    err.winerror = 4551
+                    raise err
+                return mock.Mock(returncode=0, stdout="grok-4.7\n", stderr="")
+
+            with mock.patch.object(kaggle_ops, "kaggle_bin", return_value=str(fake_kaggle)), \
+                 mock.patch.object(kaggle_ops.subprocess, "run", side_effect=fake_run):
+                proc = kaggle_ops.run_kaggle_captured(["b", "t", "models"])
+            self.assertEqual(proc.returncode, 0)
+            self.assertEqual(len(seen_cmds), 2)
+            self.assertEqual(seen_cmds[0][0], str(fake_kaggle))
+            self.assertEqual(seen_cmds[1][0], str(fake_py))
+            self.assertIn("from kaggle.cli import main", seen_cmds[1][2])
+
+    def test_parse_kaggle_models_filters_warnings(self) -> None:
+        sample = "\n".join([
+            "Warning: Looks like you're using an outdated API Version",
+            "Slug                          Display Name",
+            "----------------------------  ----------------",
+            "gemma-4-26b-a4b-it            Gemma 4 26B",
+            "gemma-4-31b-it                Gemma 4 31B",
+            "gpt-6.2-astra                 GPT-6.2 Astra",
+            "gpt-6.2-sol                   GPT-6.2 Sol",
+        ])
+        parsed = kaggle_ops.parse_kaggle_models_output(sample)
+        self.assertEqual(
+            parsed,
+            ["gemma-4-26b-a4b-it", "gemma-4-31b-it", "gpt-6.2-astra", "gpt-6.2-sol"],
+        )
+
 
 class TestStandaloneScripts(unittest.TestCase):
     def test_direct_script_invocations_still_work(self) -> None:
@@ -310,6 +355,114 @@ class TestStandaloneScripts(unittest.TestCase):
                 text=True,
             )
             self.assertEqual(proc.returncode, 0, f"{script_args} failed: {proc.stderr}")
+
+
+class TestGUI(unittest.TestCase):
+    def test_gui_help_and_builders(self) -> None:
+        from synhalees import gui
+
+        rc, out, _ = _run_cli("gui", "--help")
+        self.assertEqual(rc, 0)
+        self.assertIn("--tab", out)
+
+        run_args = gui.build_run_args(
+            model="gemini:gemini-2.5-flash",
+            judge="openai:gpt-5.4",
+            modality="vision",
+            pillars="01_buddhist_culture",
+            fresh=True,
+        )
+        self.assertEqual(
+            run_args,
+            [
+                "run",
+                "--model", "gemini:gemini-2.5-flash",
+                "--judge", "openai:gpt-5.4",
+                "--modality", "vision",
+                "--pillars", "01_buddhist_culture",
+                "--fresh",
+            ],
+        )
+
+        kg_pull = gui.build_kaggle_args(
+            "pull",
+            task="all",
+            model="grok-4.7",
+            modality="Vision + Audio (~730 MB)",
+            force=True,
+            dry_run=True,
+        )
+        self.assertEqual(
+            kg_pull,
+            ["kaggle", "pull", "all", "-m", "grok-4.7", "--modality", "vision|audio", "--force", "--dry-run"],
+        )
+
+        kg_cov_online = gui.build_kaggle_args("coverage", model="xai")
+        self.assertEqual(kg_cov_online, ["kaggle", "coverage", "--provider", "xai"])
+
+        kg_multi = gui.build_kaggle_args("pull", model="gemma-4-26b-a4b-it, gpt-6.2-sol")
+        self.assertEqual(
+            kg_multi,
+            ["kaggle", "pull", "all", "-m", "gemma-4-26b-a4b-it", "-m", "gpt-6.2-sol"],
+        )
+
+        snap = gui.collect_dashboard_snapshot()
+        self.assertEqual(snap.pillar_count, 15)
+        self.assertGreater(snap.submission_models, 0)
+
+    def test_gui_apply_tokens_isolated(self) -> None:
+        import os
+        from synhalees import gui
+
+        with tempfile.TemporaryDirectory() as tmp:
+            kdir = Path(tmp) / ".kaggle"
+            tfile = Path(tmp) / ".synhalees" / "tokens.json"
+            with mock.patch.dict(os.environ, {}, clear=True):
+                notes = gui.apply_tokens(
+                    kaggle_token='{"username": "synhala", "key": "secret123"}',
+                    save_kaggle_json=True,
+                    api_keys={"GEMINI_API_KEY": "gem-test"},
+                    kaggle_dir=kdir,
+                    tokens_file=tfile,
+                )
+                self.assertEqual(os.environ.get("KAGGLE_USERNAME"), "synhala")
+                self.assertEqual(os.environ.get("KAGGLE_KEY"), "secret123")
+                self.assertEqual(os.environ.get("GEMINI_API_KEY"), "gem-test")
+                self.assertTrue((kdir / "kaggle.json").is_file())
+                self.assertTrue(tfile.is_file())
+                self.assertTrue(any("Saved" in n for n in notes))
+
+                gui.apply_tokens(kaggle_token="KGAT_abc123", tokens_file=tfile)
+                self.assertEqual(os.environ.get("KAGGLE_API_TOKEN"), "KGAT_abc123")
+                self.assertEqual(gui.kaggle_auth_status(), "KAGGLE_API_TOKEN set")
+
+            # Simulate restarting GUI with an empty process env
+            with mock.patch.dict(os.environ, {}, clear=True):
+                loaded = gui.load_saved_tokens(tfile)
+                self.assertGreaterEqual(loaded, 3)
+                self.assertEqual(os.environ.get("KAGGLE_API_TOKEN"), "KGAT_abc123")
+                self.assertEqual(os.environ.get("GEMINI_API_KEY"), "gem-test")
+
+    def test_gui_window_builds_cleanly(self) -> None:
+        import tkinter as tk
+        from synhalees.gui import SynhaleesGUI, _enable_hidpi
+
+        _enable_hidpi()
+        try:
+            root = tk.Tk()
+        except tk.TclError as exc:
+            self.skipTest(f"no display available: {exc}")
+        try:
+            root.withdraw()
+            app = SynhaleesGUI(root, initial_tab="kaggle")
+            root.update_idletasks()
+            self.assertEqual(app._active_page, "kaggle")
+            app.select_page("explorer")
+            self.assertEqual(app._active_page, "explorer")
+            self.assertEqual(len(app.pillars_tree.get_children()), 15)
+            self.assertGreater(len(app.models_tree.get_children()), 0)
+        finally:
+            root.destroy()
 
 
 if __name__ == "__main__":

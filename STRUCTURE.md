@@ -40,8 +40,9 @@ SynhalEES/
 ├── synhalees/                                 # Core Python Package
 │   ├── __init__.py                            # Public API (data loaders, env helpers, lazy SynhalEESBenchmark)
 │   ├── __main__.py                            # python -m synhalees -> the unified CLI
-│   ├── cli.py                                 # unified CLI router: run/compare/status/pillars/models/guide/site/kaggle
+│   ├── cli.py                                 # unified CLI router: run/compare/status/pillars/models/guide/gui/site/kaggle
 │   ├── cli_ui.py                              # Pure-stdlib ANSI styling, tables, badges & workflow guides
+│   ├── gui.py                                 # Pure-stdlib tkinter desktop GUI studio (`synhalees gui`)
 │   ├── kaggle_ops.py                          # Kaggle Benchmarks ops, slim-CSV sync & artifact parsing
 │   ├── registry.py                            # Model/provider SSOT registry & taxonomy resolver
 │   ├── models.json                            # Provider taxonomy, aliases, display names & color map

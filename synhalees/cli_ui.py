@@ -239,6 +239,7 @@ def print_overview(version: str) -> None:
             ("pillars [query]", "List all 15 pillars with item counts & eval types"),
             ("models [query]", "List registered providers/models & published status"),
             ("guide [topic]", "Step-by-step workflow recipes (local/kaggle/colab/site)"),
+            ("gui [--tab ...]", "Launch the SynhalEES desktop GUI studio"),
         ]),
         ("Leaderboard & Static Site  (also under `synhalees site <action>`)", [
             ("site ...", "Grouped site commands: publish | build | logos | check"),

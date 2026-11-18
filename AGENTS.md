@@ -5,6 +5,38 @@ Always read this file before making changes.
 
 ---
 
+## 🧭 Using the `synhalees` CLI (Always Prefer `synhalees` Over Raw Scripts)
+
+All repository inspection, local runs, Kaggle operations, site builds, and verification checks live under the `synhalees` CLI (`synhalees/cli.py`). **Always use `synhalees` commands instead of calling `kaggle b t ...` directly or writing ad-hoc scripts.**
+
+- **Invocation:** run `synhalees <command>`, or `python -m synhalees <command>` when running from a checkout without an editable install (or on Windows if `Scripts/synhalees.exe` is blocked by Application Control).
+- **Inspect & Discover (read-only):**
+  - `synhalees status` — one-screen project summary (dataset, submissions, site sync, local runs, Kaggle slim coverage)
+  - `synhalees pillars [--eval-types] [slug]` — list the 15 pillars or inspect one pillar
+  - `synhalees models [--provider <name>]` — list models registered in `synhalees/models.json` and T/V/A support
+  - `synhalees guide [local|kaggle|colab|site]` — print copy-pasteable workflow recipes
+  - `synhalees help [cmd...]` / `<cmd> --help` — show command-specific help
+- **Evaluate & Compare (local):**
+  - `synhalees run --model <id> ...` — run local benchmark into `runs/<model-slug>/`
+  - `synhalees compare` — aggregate local runs into `runs/all_submissions.csv`
+- **Leaderboard & Static Site (`site` group or top-level shortcuts):**
+  - `synhalees site publish <model-slug>` (`synhalees publish`) — move `runs/<slug>/submission.csv` to `submissions/<vendor>/<family>/<slug>.csv` and rebuild leaderboard
+  - `synhalees site build [--check|--demo]` (`synhalees build`) — rebuild or verify `docs/assets/data/*`
+  - `synhalees site logos [--check]` (`synhalees logos`) — rebuild or verify `docs/assets/logo-data.js`
+  - `synhalees site check` (`synhalees check`) — run all verification gates (logo data, leaderboard data, dataset schemas, Python compile)
+- **Kaggle Benchmarks (`synhalees kaggle <action>`):**
+  - `synhalees kaggle gen [--dry-run]` — regenerate the 17 task scripts in `kaggle/tasks/`
+  - `synhalees kaggle push [task|all]` — upload task scripts to Kaggle
+  - `synhalees kaggle run <task|all> -m <model>` — trigger runs on Kaggle servers
+  - `synhalees kaggle coverage [--no-remote] [--provider <name>]` — check local slim + remote 15/15 Text, Vision, Audio coverage
+  - `synhalees kaggle status <task|all>` / `synhalees kaggle logs <task> -m <model>` — inspect remote status or logs
+  - `synhalees kaggle pull [task|all] [--modality text|vision|audio|all|'vision|audio'] [--force]` (alias: `download`) — pull into `kaggle/results/*.slim.csv`
+  - `synhalees kaggle submit [file|all] [--build]` (alias: `import`) — import `*.slim.csv` into `submissions/` (and rebuild site data with `--build`)
+  - `synhalees kaggle publish <task|all>` — publish task leaderboard on Kaggle.com
+  - *Windows note:* `synhalees kaggle ...` shells out to `kaggle_bin()` (`kaggle.exe`). If an environment Application Control policy blocks `kaggle.exe` (`WinError 4551`), do not attempt to bypass it — report the block and provide the exact `synhalees kaggle ...` command for the user to run.
+
+---
+
 ## 📌 Critical Rule: Keep `STRUCTURE.md` in sync
 
 > **If the project folder structure changes — files added, removed, renamed, moved,
@@ -194,4 +226,5 @@ in `STRUCTURE.md` -- no scratch `.txt` / `.log` / `.csv` dumps, ever.
 - [ ] New models/providers registered in `synhalees/models.json` (taxonomy, display names, colors)
 - [ ] `submissions/**/*.csv` changes regenerate `docs/assets/data/*` (`python tools/build_leaderboard.py --check` passes)
 - [ ] Sinhala text is valid UTF-8 with diacritics preserved
+- [ ] `synhalees check` (and `python -m unittest discover -s tests -v` for CLI/script changes) passes
 - [ ] No new files at the repo root (run outputs -> `runs/`, Kaggle pulls -> `kaggle/results/`)
