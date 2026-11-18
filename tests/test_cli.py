@@ -582,16 +582,70 @@ class TestGUI(unittest.TestCase):
             app = SynhaleesGUI(root, initial_tab="kaggle")
             root.update_idletasks()
             self.assertEqual(app._active_page, "kaggle")
-            app.select_page("explorer")
-            self.assertEqual(app._active_page, "explorer")
+            app.select_page("management")
+            self.assertEqual(app._active_page, "management")
             self.assertEqual(len(app.pillars_tree.get_children()), 15)
             self.assertGreater(len(app.models_tree.get_children()), 0)
+            self.assertGreater(len(app.mgmt_models_tree.get_children()), 0)
+            self.assertGreater(len(app.mgmt_orgs_tree.get_children()), 0)
             app._set_running(True)
             self.assertEqual(app.status_badge.cget("text"), "RUNNING")
             app._set_running(False)
             self.assertEqual(app.status_badge.cget("text"), "IDLE")
         finally:
             root.destroy()
+
+    def test_gui_management_org_and_model_crud_isolated(self) -> None:
+        from synhalees.gui import (
+            delete_model_completely,
+            delete_model_registry_entry,
+            delete_organization_entry,
+            save_model_registry_entries,
+            save_organization_entry,
+        )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            mj = Path(tmp) / "models.json"
+            mj.write_text(json.dumps({"providers": {}, "display_names": {}}), encoding="utf-8")
+
+            save_organization_entry("acme", name="Acme AI", logo="acme", color="blue", aliases=["acme-ai"], models_json_path=mj)
+            save_model_registry_entries(
+                [{"canonical": "acme-1", "display_name": "Acme 1", "org": "acme", "family": "acme", "open_source": True}],
+                models_json_path=mj,
+            )
+            data = json.loads(mj.read_text(encoding="utf-8"))
+            self.assertIn("acme", data["providers"])
+            self.assertEqual(data["display_names"]["acme-1"], "Acme 1")
+
+            self.assertTrue(delete_model_registry_entry("acme-1", models_json_path=mj))
+
+            sub_dir = Path(tmp) / "submissions" / "acme" / "acme"
+            sub_dir.mkdir(parents=True)
+            sub_csv = sub_dir / "acme-2.csv"
+            sub_csv.write_text("model,score\nacme-2,0.5\n", encoding="utf-8")
+            slim_dir = Path(tmp) / "slim"
+            slim_dir.mkdir()
+            slim_csv = slim_dir / "demo.slim.csv"
+            slim_csv.write_text("model,score\nacme-2,0.5\nother-model,0.9\n", encoding="utf-8")
+            save_model_registry_entries(
+                [{"canonical": "acme-2", "display_name": "Acme 2", "org": "acme", "family": "acme", "open_source": True}],
+                models_json_path=mj,
+            )
+            res = delete_model_completely(
+                "acme-2",
+                models_json_path=mj,
+                submissions_dir=Path(tmp) / "submissions",
+                slim_dir=slim_dir,
+            )
+            self.assertEqual(res, {"registry": 1, "submissions": 1, "slim_rows": 1})
+            self.assertFalse(sub_csv.exists())
+            self.assertIn("other-model", slim_csv.read_text(encoding="utf-8"))
+            self.assertNotIn("acme-2", slim_csv.read_text(encoding="utf-8"))
+
+            self.assertTrue(delete_organization_entry("acme", models_json_path=mj))
+            data = json.loads(mj.read_text(encoding="utf-8"))
+            self.assertNotIn("acme-1", data["display_names"])
+            self.assertNotIn("acme", data["providers"])
 
 
 if __name__ == "__main__":

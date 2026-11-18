@@ -1,14 +1,14 @@
 """Pure-stdlib desktop studio for the SynhalEES Benchmark (tkinter / ttk).
 
 Organized around guided, step-by-step workflows with sidebar navigation:
-    - Overview      : project health snapshot & quick launch cards
+    - Overview      : project health snapshot, quick launch cards, 15 pillars & registry
     - Kaggle Sync   : Step 1 Discover -> Step 2 Run -> Step 3 Pull -> Step 4 Submit & Build
     - Local Eval    : Step 1 Configure & Run -> Step 2 Compare -> Step 3 Publish
-    - Explorer      : browse all 15 Pillars (eval counts) & Model Registry
+    - Management    : Model Management & Organization Management (synhalees/models.json)
     - Site & CI     : verification gates, rebuild leaderboard/logos, live preview
 
 Launch via:
-    synhalees gui [--tab overview|run|kaggle|site|explorer]
+    synhalees gui [--tab overview|run|kaggle|management|site]
     python -m synhalees gui
 """
 
@@ -45,7 +45,7 @@ from synhalees.registry import MODELS_JSON, canonical_model_slug, default_regist
 # Pure-Python helpers (testable without opening a Tk window)
 # ---------------------------------------------------------------------------
 
-TAB_KEYS = ("overview", "kaggle", "run", "explorer", "site")
+TAB_KEYS = ("overview", "kaggle", "run", "management", "site")
 
 _MODALITY_FLAG_MAP = {
     "Text only (15 tasks · ~145 MB)": "text",
@@ -308,6 +308,188 @@ def save_model_registry_entries(
     return saved
 
 
+def delete_model_registry_entry(
+    canonical: str,
+    models_json_path: Path | None = None,
+) -> bool:
+    """Remove a canonical model entry from display_names in synhalees/models.json."""
+    canon = canonical.strip()
+    if not canon:
+        return False
+    path = models_json_path or MODELS_JSON
+    data = json.loads(path.read_text(encoding="utf-8"))
+    disp = dict(data.get("display_names") or {})
+    if canon not in disp:
+        return False
+    del disp[canon]
+    data["display_names"] = dict(sorted(disp.items(), key=lambda kv: kv[0].lower()))
+    path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    if path.resolve() == MODELS_JSON.resolve():
+        default_registry.load()
+    return True
+
+
+def delete_model_completely(
+    canonical: str,
+    *,
+    models_json_path: Path | None = None,
+    submissions_dir: Path | None = None,
+    slim_dir: Path | None = None,
+) -> dict[str, int]:
+    """Delete a model from models.json, submissions/, and kaggle/results/*.slim.csv."""
+    import csv
+
+    canon = canonical_model_slug(canonical.strip())
+    if not canon:
+        return {"registry": 0, "submissions": 0, "slim_rows": 0}
+
+    reg_removed = 1 if delete_model_registry_entry(canon, models_json_path=models_json_path) else 0
+
+    sub_root = submissions_dir or (ROOT / "submissions")
+    sub_removed = 0
+    if sub_root.exists():
+        for csv_path in list(sub_root.rglob("*.csv")):
+            if csv_path.stem == canon or canonical_model_slug(csv_path.stem) == canon:
+                csv_path.unlink()
+                sub_removed += 1
+
+    slim_root = slim_dir or (ROOT / "kaggle" / "results")
+    slim_removed = 0
+    if slim_root.exists():
+        for slim_path in sorted(slim_root.glob("*.slim.csv")):
+            raw_text = slim_path.read_text(encoding="utf-8", errors="replace")
+            rows = list(csv.DictReader(raw_text.splitlines()))
+            if not rows:
+                continue
+            fieldnames = list(rows[0].keys())
+            kept: list[dict[str, str]] = []
+            removed_here = 0
+            for r in rows:
+                m = str(r.get("model") or "").strip()
+                if m == canon or (m and canonical_model_slug(m) == canon):
+                    removed_here += 1
+                else:
+                    kept.append(r)
+            if removed_here:
+                with slim_path.open("w", encoding="utf-8", newline="") as fh:
+                    writer = csv.DictWriter(fh, fieldnames=fieldnames)
+                    writer.writeheader()
+                    writer.writerows(kept)
+                slim_removed += removed_here
+
+    return {"registry": reg_removed, "submissions": sub_removed, "slim_rows": slim_removed}
+
+
+def save_organization_entry(
+    slug: str,
+    *,
+    name: str,
+    logo: str = "",
+    color: str = "gray",
+    aliases: list[str] | None = None,
+    models_json_path: Path | None = None,
+) -> None:
+    """Create or update an organization/provider entry in synhalees/models.json."""
+    clean_slug = slug.strip().lower()
+    if not clean_slug or clean_slug in _UNKNOWN_ORG_TOKENS:
+        raise ValueError(f"Invalid organization slug: {slug!r}")
+    clean_name = name.strip() or clean_slug.title()
+    clean_logo = logo.strip() or clean_slug
+    clean_color = color.strip() or "gray"
+    clean_aliases = [a.strip().lower() for a in (aliases or []) if a.strip()]
+    if clean_slug not in clean_aliases:
+        clean_aliases.insert(0, clean_slug)
+
+    path = models_json_path or MODELS_JSON
+    data = json.loads(path.read_text(encoding="utf-8"))
+    providers = dict(data.get("providers") or {})
+    existing = dict(providers.get(clean_slug) or {})
+    providers[clean_slug] = {
+        "name": clean_name,
+        "slug": clean_slug,
+        "logo": clean_logo,
+        "color": clean_color,
+        "aliases": clean_aliases,
+        "families": dict(existing.get("families") or {}),
+    }
+    data["providers"] = providers
+    path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    if path.resolve() == MODELS_JSON.resolve():
+        default_registry.load()
+
+
+def delete_organization_entry(
+    slug: str,
+    models_json_path: Path | None = None,
+) -> bool:
+    """Remove an organization/provider entry from synhalees/models.json."""
+    clean_slug = slug.strip().lower()
+    if not clean_slug:
+        return False
+    path = models_json_path or MODELS_JSON
+    data = json.loads(path.read_text(encoding="utf-8"))
+    providers = dict(data.get("providers") or {})
+    if clean_slug not in providers:
+        return False
+    del providers[clean_slug]
+    data["providers"] = providers
+    path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    if path.resolve() == MODELS_JSON.resolve():
+        default_registry.load()
+    return True
+
+
+def delete_model_completely(
+    canonical: str,
+    *,
+    models_json_path: Path | None = None,
+    submissions_dir: Path | None = None,
+    slim_dir: Path | None = None,
+) -> dict[str, int]:
+    """Delete a model from models.json, submissions/, and kaggle/results/*.slim.csv."""
+    import csv
+
+    canon = canonical_model_slug(canonical.strip())
+    if not canon:
+        return {"registry": 0, "submissions": 0, "slim_rows": 0}
+
+    reg_removed = 1 if delete_model_registry_entry(canon, models_json_path=models_json_path) else 0
+
+    sub_root = submissions_dir or (ROOT / "submissions")
+    sub_removed = 0
+    if sub_root.exists():
+        for csv_path in list(sub_root.rglob("*.csv")):
+            if csv_path.stem == canon or canonical_model_slug(csv_path.stem) == canon:
+                csv_path.unlink()
+                sub_removed += 1
+
+    slim_root = slim_dir or (ROOT / "kaggle" / "results")
+    slim_removed = 0
+    if slim_root.exists():
+        for slim_path in sorted(slim_root.glob("*.slim.csv")):
+            raw_text = slim_path.read_text(encoding="utf-8", errors="replace")
+            rows = list(csv.DictReader(raw_text.splitlines()))
+            if not rows:
+                continue
+            fieldnames = list(rows[0].keys())
+            kept: list[dict[str, str]] = []
+            removed_here = 0
+            for r in rows:
+                m = str(r.get("model") or "").strip()
+                if m == canon or (m and canonical_model_slug(m) == canon):
+                    removed_here += 1
+                else:
+                    kept.append(r)
+            if removed_here:
+                with slim_path.open("w", encoding="utf-8", newline="") as fh:
+                    writer = csv.DictWriter(fh, fieldnames=fieldnames)
+                    writer.writeheader()
+                    writer.writerows(kept)
+                slim_removed += removed_here
+
+    return {"registry": reg_removed, "submissions": sub_removed, "slim_rows": slim_removed}
+
+
 def save_model_display_names(
     entries: dict[str, str],
     models_json_path: Path | None = None,
@@ -554,10 +736,11 @@ class SynhaleesGUI:
 
     def __init__(self, root: Any, *, initial_tab: str = "overview") -> None:
         import tkinter as tk
-        from tkinter import scrolledtext, ttk
+        from tkinter import messagebox, scrolledtext, ttk
 
         self.tk = tk
         self.ttk = ttk
+        self.messagebox = messagebox
         self.root = root
         load_saved_tokens()
         try:
@@ -892,10 +1075,10 @@ class SynhaleesGUI:
         ).pack(fill="x", padx=self._px(16), pady=(self._px(14), self._px(6)))
 
         nav_items = [
-            ("overview", "1. Overview", "Project status & quick actions"),
+            ("overview", "1. Overview", "Status, workflows & explorer"),
             ("kaggle", "2. Kaggle Sync", "Discover, run, pull & import"),
             ("run", "3. Local Eval", "Run API / Ollama & publish"),
-            ("explorer", "4. Explorer", "15 pillars & model registry"),
+            ("management", "4. Management", "Models & organizations"),
             ("site", "5. Site & CI", "Build data, logos & verify"),
         ]
         for key, title, sub in nav_items:
@@ -936,13 +1119,13 @@ class SynhaleesGUI:
         self._pages["overview"] = self._make_scrollable_page("overview")
         self._pages["kaggle"] = self._make_scrollable_page("kaggle")
         self._pages["run"] = self._make_scrollable_page("run")
-        self._pages["explorer"] = self._make_scrollable_page("explorer")
+        self._pages["management"] = self._make_scrollable_page("management")
         self._pages["site"] = self._make_scrollable_page("site")
 
         self._build_overview_page(self._pages["overview"].inner)
         self._build_kaggle_page(self._pages["kaggle"].inner)
         self._build_run_page(self._pages["run"].inner)
-        self._build_explorer_page(self._pages["explorer"].inner)
+        self._build_management_page(self._pages["management"].inner)
         self._build_site_page(self._pages["site"].inner)
 
         # Bottom Live Output Console controls (packed inside console_wrap created above)
@@ -1038,6 +1221,13 @@ class SynhaleesGUI:
             canvas.itemconfigure(win_id, width=e.width)
 
         def _on_wheel(e: Any) -> None:
+            w = getattr(e, "widget", None)
+            if isinstance(w, (ttk.Treeview, tk.Text, tk.Listbox)):
+                try:
+                    if w.yview() != (0.0, 1.0):
+                        return
+                except Exception:
+                    pass
             try:
                 delta = int(-1 * (e.delta / 120)) if e.delta else 0
                 if delta:
@@ -1053,6 +1243,28 @@ class SynhaleesGUI:
         outer.inner = inner  # type: ignore[attr-defined]
         outer._key = key     # type: ignore[attr-defined]
         return outer
+
+    def _make_scrolled_tree(
+        self,
+        parent: Any,
+        *,
+        columns: tuple[str, ...],
+        height: int,
+        selectmode: str = "browse",
+        show: str = "headings",
+        fill: str = "x",
+        expand: bool = False,
+    ) -> Any:
+        """Create a Treeview paired with a vertical inside scrollbar."""
+        tk, ttk = self.tk, self.ttk
+        wrap = tk.Frame(parent, bg=PALETTE["card"])
+        wrap.pack(fill=fill, expand=expand)
+        tree = ttk.Treeview(wrap, columns=columns, show=show, height=height, selectmode=selectmode)
+        sb = ttk.Scrollbar(wrap, orient="vertical", command=tree.yview)
+        tree.configure(yscrollcommand=sb.set)
+        tree.pack(side="left", fill="both", expand=True)
+        sb.pack(side="right", fill="y")
+        return tree
 
     def select_page(self, key: str) -> None:
         if key not in self._pages:
@@ -1211,9 +1423,9 @@ class SynhaleesGUI:
         ).pack(side="left", padx=(0, 8))
         ttk.Button(
             r_loc,
-            text="Explore 15 Pillars & Models",
+            text="Manage Models & Orgs  ->",
             style="Ghost.TButton",
-            command=lambda: self.select_page("explorer"),
+            command=lambda: self.select_page("management"),
         ).pack(side="left", padx=(0, 8))
         ttk.Button(
             r_loc,
@@ -1221,6 +1433,56 @@ class SynhaleesGUI:
             style="Ghost.TButton",
             command=lambda: self.run_cli(["check"]),
         ).pack(side="left")
+
+        # Explorer Content (below workflows): 15 Core Pillars + Registered & Published Models
+        exp_cols = ttk.Frame(parent)
+        exp_cols.pack(fill="both", expand=True)
+        exp_cols.columnconfigure(0, weight=1, uniform="ov_exp")
+        exp_cols.columnconfigure(1, weight=1, uniform="ov_exp")
+        exp_left = ttk.Frame(exp_cols)
+        exp_left.grid(row=0, column=0, sticky="nsew", padx=(0, self._px(10)))
+        exp_right = ttk.Frame(exp_cols)
+        exp_right.grid(row=0, column=1, sticky="nsew")
+
+        p_card = self._step_card(exp_left, "PILLARS", "The 15 Core Pillars", "")
+        self.pillars_tree = self._make_scrolled_tree(
+            p_card,
+            columns=("slug", "text", "vision", "audio"),
+            height=9,
+            fill="both",
+            expand=True,
+        )
+        for col, lbl, w in (
+            ("slug", "Pillar Slug", 220),
+            ("text", "Text", 65),
+            ("vision", "Vision", 65),
+            ("audio", "Audio", 65),
+        ):
+            self.pillars_tree.heading(col, text=lbl)
+            self.pillars_tree.column(col, width=self._px(w), anchor="w" if col == "slug" else "center")
+
+        m_card = self._step_card(exp_right, "REGISTRY", "Registered & Published Models", "")
+        fbar = tk.Frame(m_card, bg=PALETTE["card"])
+        fbar.pack(fill="x", pady=(0, self._px(6)))
+        tk.Label(fbar, text="Filter:", bg=PALETTE["card"], fg=PALETTE["muted"], font=("Segoe UI", 9)).pack(side="left")
+        self.model_search_var = tk.StringVar()
+        self.model_search_var.trace_add("write", lambda *_: self._populate_models_table())
+        ttk.Entry(fbar, textvariable=self.model_search_var, width=26).pack(side="left", padx=(8, 0), fill="x", expand=True)
+
+        self.models_tree = self._make_scrolled_tree(
+            m_card,
+            columns=("model", "provider", "modalities"),
+            height=8,
+            fill="both",
+            expand=True,
+        )
+        for col, lbl, w in (
+            ("model", "Canonical Slug", 210),
+            ("provider", "Provider", 110),
+            ("modalities", "T / V / A", 90),
+        ):
+            self.models_tree.heading(col, text=lbl)
+            self.models_tree.column(col, width=self._px(w), anchor="w" if col != "modalities" else "center")
 
     # ------------------------------------------------------------------ 2. Kaggle Sync
 
@@ -1234,7 +1496,7 @@ class SynhaleesGUI:
 
         self.kg_task_var = tk.StringVar(value="all")
         self.kg_model_var = tk.StringVar(value="")
-        self.kg_mod_label_var = tk.StringVar(value="Text only (15 tasks · ~145 MB)")
+        self.kg_mod_label_var = tk.StringVar(value="All 17 tasks (T+V+A)")
         self.kg_force_var = tk.BooleanVar(value=False)
         self.kg_dry_var = tk.BooleanVar(value=False)
         self.kg_cov_filter_var = tk.StringVar(value="All")
@@ -1327,10 +1589,9 @@ class SynhaleesGUI:
             style="Ghost.TButton",
             command=self._open_edit_models_dialog,
         ).pack(side="right", padx=(0, 6))
-        self.kg_new_tree = ttk.Treeview(
+        self.kg_new_tree = self._make_scrolled_tree(
             self.kg_new_frame,
             columns=("slug", "canonical", "status"),
-            show="headings",
             height=4,
             selectmode="extended",
         )
@@ -1341,7 +1602,6 @@ class SynhaleesGUI:
         ):
             self.kg_new_tree.heading(col, text=lbl)
             self.kg_new_tree.column(col, width=self._px(w), anchor="w" if col != "status" else "center")
-        self.kg_new_tree.pack(fill="x")
         self._bind_toggle_tree(self.kg_new_tree)
         self.kg_new_tree.bind("<<TreeviewSelect>>", self._on_select_new_kaggle_model)
         self.kg_new_tree.bind("<Double-1>", lambda _e: self._open_edit_models_dialog())
@@ -1374,11 +1634,12 @@ class SynhaleesGUI:
         cov_filt.pack(side="right")
         cov_filt.bind("<<ComboboxSelected>>", lambda _e: self._populate_kaggle_table())
 
-        self.kg_tree = ttk.Treeview(
+        self.kg_tree = self._make_scrolled_tree(
             self.kg_cov_card,
             columns=("model", "text", "vision", "audio"),
-            show="headings",
             height=14,
+            fill="both",
+            expand=True,
         )
         for col, lbl, w in (
             ("model", "Model Slug", 165),
@@ -1388,7 +1649,6 @@ class SynhaleesGUI:
         ):
             self.kg_tree.heading(col, text=lbl)
             self.kg_tree.column(col, width=self._px(w), anchor="w" if col == "model" else "center")
-        self.kg_tree.pack(fill="both", expand=True)
         self._bind_toggle_tree(self.kg_tree)
         self.kg_tree.bind("<<TreeviewSelect>>", self._on_select_cov_model)
 
@@ -1431,24 +1691,8 @@ class SynhaleesGUI:
         r2.pack(fill="x")
         ttk.Button(
             r2,
-            text="Pull Results from Kaggle",
-            style="Accent.TButton",
-            command=lambda: self._guard_and_run_kaggle(
-                "pull",
-                build_kaggle_args(
-                    "pull",
-                    task=self.kg_task_var.get(),
-                    model=self.kg_model_var.get(),
-                    modality=self.kg_mod_label_var.get(),
-                    force=self.kg_force_var.get(),
-                    dry_run=self.kg_dry_var.get(),
-                ),
-            ),
-        ).pack(side="left", padx=(0, 8))
-        ttk.Button(
-            r2,
             text="Pull via Google Colab (Slim Only)",
-            style="Ghost.TButton",
+            style="Accent.TButton",
             command=lambda: self._guard_and_run_kaggle(
                 "pull",
                 build_kaggle_args(
@@ -1626,57 +1870,111 @@ class SynhaleesGUI:
         ttk.Checkbutton(prow, text="Dry run", variable=self.pub_dry_var).pack(side="left", padx=(0, 10))
         ttk.Button(prow, text="Publish & Rebuild Site", style="Accent.TButton", command=self._publish_selected_run).pack(side="left")
 
-    # ------------------------------------------------------------------ 4. Explorer
+    # ------------------------------------------------------------------ 4. Management
 
-    def _build_explorer_page(self, parent: Any) -> None:
+    def _build_management_page(self, parent: Any) -> None:
         tk, ttk = self.tk, self.ttk
         self._page_header(
             parent,
-            "Dataset & Model Registry Explorer",
-            "Inspect all 15 Sinhala cultural pillars and all models registered in synhalees/models.json or submissions/.",
+            "Model & Organization Management",
+            "Manage registered models (display names, organizations, families, open-source flags) and organizations in synhalees/models.json.",
         )
 
-        # Pillars Card
-        p_card = self._step_card(parent, "PILLARS", "The 15 Core Pillars", "")
-        self.pillars_tree = ttk.Treeview(
-            p_card,
-            columns=("slug", "text", "vision", "audio"),
-            show="headings",
-            height=7,
+        # Model Management Card
+        m_card = self._step_card(
+            parent,
+            "MODEL MANAGEMENT",
+            "Registered Models",
+            "Add, edit, or remove model registry entries (display_names & taxonomy in synhalees/models.json).",
         )
-        for col, lbl, w in (
-            ("slug", "Pillar Slug", 260),
-            ("text", "Text", 90),
-            ("vision", "Vision", 90),
-            ("audio", "Audio", 90),
-        ):
-            self.pillars_tree.heading(col, text=lbl)
-            self.pillars_tree.column(col, width=self._px(w), anchor="w" if col == "slug" else "center")
-        self.pillars_tree.pack(fill="x")
+        m_bar = tk.Frame(m_card, bg=PALETTE["card"])
+        m_bar.pack(fill="x", pady=(0, self._px(8)))
+        tk.Label(m_bar, text="Filter:", bg=PALETTE["card"], fg=PALETTE["muted"], font=("Segoe UI", 9)).pack(side="left")
+        self.mgmt_model_search_var = tk.StringVar()
+        self.mgmt_model_search_var.trace_add("write", lambda *_: self._populate_mgmt_tables())
+        ttk.Entry(m_bar, textvariable=self.mgmt_model_search_var, width=28).pack(side="left", padx=(8, 12))
+        ttk.Button(
+            m_bar,
+            text="+ Add Model",
+            style="Accent.TButton",
+            command=lambda: self._open_mgmt_model_dialog(edit_selected=False),
+        ).pack(side="left", padx=(0, 8))
+        ttk.Button(
+            m_bar,
+            text="Edit Selected",
+            style="Ghost.TButton",
+            command=lambda: self._open_mgmt_model_dialog(edit_selected=True),
+        ).pack(side="left", padx=(0, 8))
+        ttk.Button(
+            m_bar,
+            text="Delete Selected",
+            style="Ghost.TButton",
+            command=self._delete_selected_mgmt_model,
+        ).pack(side="left")
 
-        # Models Card
-        m_card = self._step_card(parent, "REGISTRY", "Registered & Published Models", "")
-        fbar = tk.Frame(m_card, bg=PALETTE["card"])
-        fbar.pack(fill="x", pady=(0, self._px(6)))
-        tk.Label(fbar, text="Filter by model or vendor:", bg=PALETTE["card"], fg=PALETTE["muted"], font=("Segoe UI", 9)).pack(side="left")
-        self.model_search_var = tk.StringVar()
-        self.model_search_var.trace_add("write", lambda *_: self._populate_models_table())
-        ttk.Entry(fbar, textvariable=self.model_search_var, width=28).pack(side="left", padx=(8, 0))
-
-        self.models_tree = ttk.Treeview(
+        self.mgmt_models_tree = self._make_scrolled_tree(
             m_card,
-            columns=("model", "provider", "modalities"),
-            show="headings",
+            columns=("canonical", "display", "org", "family", "oss", "tva"),
             height=9,
+            selectmode="browse",
         )
         for col, lbl, w in (
-            ("model", "Canonical Slug", 260),
-            ("provider", "Provider", 130),
-            ("modalities", "Published T / V / A", 140),
+            ("canonical", "Canonical Slug", 210),
+            ("display", "Display Name", 210),
+            ("org", "Organization", 110),
+            ("family", "Family", 110),
+            ("oss", "Open Source", 95),
+            ("tva", "T / V / A", 85),
         ):
-            self.models_tree.heading(col, text=lbl)
-            self.models_tree.column(col, width=self._px(w), anchor="w" if col != "modalities" else "center")
-        self.models_tree.pack(fill="x")
+            self.mgmt_models_tree.heading(col, text=lbl)
+            self.mgmt_models_tree.column(col, width=self._px(w), anchor="w" if col not in ("oss", "tva") else "center")
+        self.mgmt_models_tree.bind("<Double-1>", lambda _e: self._open_mgmt_model_dialog(edit_selected=True))
+
+        # Organization Management Card
+        o_card = self._step_card(
+            parent,
+            "ORGANIZATION MANAGEMENT",
+            "Organizations / Providers",
+            "Create, edit, or remove organizations, logos, colors, and aliases in synhalees/models.json.",
+        )
+        o_bar = tk.Frame(o_card, bg=PALETTE["card"])
+        o_bar.pack(fill="x", pady=(0, self._px(8)))
+        ttk.Button(
+            o_bar,
+            text="+ Add Organization",
+            style="Accent.TButton",
+            command=lambda: self._open_mgmt_org_dialog(edit_selected=False),
+        ).pack(side="left", padx=(0, 8))
+        ttk.Button(
+            o_bar,
+            text="Edit Selected",
+            style="Ghost.TButton",
+            command=lambda: self._open_mgmt_org_dialog(edit_selected=True),
+        ).pack(side="left", padx=(0, 8))
+        ttk.Button(
+            o_bar,
+            text="Delete Selected",
+            style="Ghost.TButton",
+            command=self._delete_selected_mgmt_org,
+        ).pack(side="left")
+
+        self.mgmt_orgs_tree = self._make_scrolled_tree(
+            o_card,
+            columns=("slug", "name", "logo", "color", "families", "aliases"),
+            height=8,
+            selectmode="browse",
+        )
+        for col, lbl, w in (
+            ("slug", "Org Slug", 120),
+            ("name", "Display Name", 150),
+            ("logo", "Logo", 110),
+            ("color", "Color", 90),
+            ("families", "Families", 180),
+            ("aliases", "Aliases", 180),
+        ):
+            self.mgmt_orgs_tree.heading(col, text=lbl)
+            self.mgmt_orgs_tree.column(col, width=self._px(w), anchor="w")
+        self.mgmt_orgs_tree.bind("<Double-1>", lambda _e: self._open_mgmt_org_dialog(edit_selected=True))
 
     # ------------------------------------------------------------------ 5. Site & CI
 
@@ -1748,6 +2046,7 @@ class SynhaleesGUI:
 
         self._populate_pillars_table()
         self._populate_models_table()
+        self._populate_mgmt_tables()
         self._populate_kaggle_table()
         self._sync_token_button()
 
@@ -1779,6 +2078,229 @@ class SynhaleesGUI:
             mods = subs.get(m, {}).get("modalities", set())
             tva = "".join(k[0].upper() if k in mods else "-" for k in ("text", "vision", "audio"))
             self.models_tree.insert("", "end", values=(m, prov, tva))
+
+    def _populate_mgmt_tables(self) -> None:
+        if not hasattr(self, "mgmt_models_tree"):
+            return
+        from synhalees.cli import _scan_submissions
+
+        data = json.loads(MODELS_JSON.read_text(encoding="utf-8"))
+        providers = dict(data.get("providers") or {})
+        disp = dict(data.get("display_names") or {})
+        subs = _scan_submissions()
+        q = self.mgmt_model_search_var.get().strip().lower() if hasattr(self, "mgmt_model_search_var") else ""
+
+        self.mgmt_models_tree.delete(*self.mgmt_models_tree.get_children())
+        all_slugs = sorted({*_all_model_slugs(), *disp.keys()}, key=str.lower)
+        for m in all_slugs:
+            dname = str(disp.get(m) or default_registry.get_model_display_name(m))
+            prov, fam, is_oss = default_registry.resolve_taxonomy(m)
+            if q and q not in m.lower() and q not in dname.lower() and q not in prov.lower() and q not in fam.lower():
+                continue
+            mods = subs.get(m, {}).get("modalities", set())
+            tva = "".join(k[0].upper() if k in mods else "-" for k in ("text", "vision", "audio"))
+            self.mgmt_models_tree.insert(
+                "",
+                "end",
+                values=(m, dname, prov, fam, "Yes" if is_oss else "No", tva),
+            )
+
+        self.mgmt_orgs_tree.delete(*self.mgmt_orgs_tree.get_children())
+        for slug in sorted(providers):
+            p = providers[slug]
+            fams = ", ".join(sorted((p.get("families") or {}).keys()))
+            aliases = ", ".join(p.get("aliases") or [])
+            self.mgmt_orgs_tree.insert(
+                "",
+                "end",
+                values=(
+                    slug,
+                    p.get("name", slug),
+                    p.get("logo", slug),
+                    p.get("color", "gray"),
+                    fams,
+                    aliases,
+                ),
+            )
+
+    def _open_mgmt_model_dialog(self, *, edit_selected: bool = False) -> None:
+        tk, ttk = self.tk, self.ttk
+        sel = self.mgmt_models_tree.selection() if edit_selected else ()
+        if edit_selected and not sel:
+            self.messagebox.showinfo("Select Model", "Select a model row first to edit.")
+            return
+        vals = self.mgmt_models_tree.item(sel[0], "values") if sel else ("", "", "", "", "No", "---")
+        init_canon = str(vals[0])
+        init_disp = str(vals[1])
+        init_org = str(vals[2]) if str(vals[2]) not in _UNKNOWN_ORG_TOKENS else ""
+        init_fam = str(vals[3]) if str(vals[3]) not in _UNKNOWN_ORG_TOKENS else ""
+        init_oss = str(vals[4]) == "Yes"
+
+        data = json.loads(MODELS_JSON.read_text(encoding="utf-8"))
+        org_choices = sorted((data.get("providers") or {}).keys())
+
+        dlg = tk.Toplevel(self.root)
+        dlg.title("Edit Model" if edit_selected else "Add Model")
+        dlg.configure(bg=PALETTE["surface"])
+        dlg.transient(self.root)
+        dlg.grab_set()
+        self._center_dialog(dlg, self._px(500), self._px(300))
+
+        wrap = tk.Frame(dlg, bg=PALETTE["surface"], padx=self._px(18), pady=self._px(16))
+        wrap.pack(fill="both", expand=True)
+        wrap.columnconfigure(1, weight=1)
+
+        canon_var = tk.StringVar(value=init_canon)
+        disp_var = tk.StringVar(value=init_disp)
+        org_var = tk.StringVar(value=init_org or (org_choices[0] if org_choices else ""))
+        fam_var = tk.StringVar(value=init_fam)
+        oss_var = tk.BooleanVar(value=init_oss)
+
+        tk.Label(wrap, text="Canonical Slug", bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Segoe UI", 9)).grid(row=0, column=0, sticky="w", pady=6)
+        canon_ent = ttk.Entry(wrap, textvariable=canon_var)
+        canon_ent.grid(row=0, column=1, sticky="ew", padx=(10, 0), pady=6)
+        if edit_selected:
+            canon_ent.configure(state="readonly")
+
+        tk.Label(wrap, text="Display Name", bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Segoe UI", 9)).grid(row=1, column=0, sticky="w", pady=6)
+        ttk.Entry(wrap, textvariable=disp_var).grid(row=1, column=1, sticky="ew", padx=(10, 0), pady=6)
+
+        tk.Label(wrap, text="Organization", bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Segoe UI", 9)).grid(row=2, column=0, sticky="w", pady=6)
+        ttk.Combobox(wrap, textvariable=org_var, values=org_choices, state="readonly").grid(row=2, column=1, sticky="ew", padx=(10, 0), pady=6)
+
+        tk.Label(wrap, text="Family", bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Segoe UI", 9)).grid(row=3, column=0, sticky="w", pady=6)
+        ttk.Entry(wrap, textvariable=fam_var).grid(row=3, column=1, sticky="ew", padx=(10, 0), pady=6)
+
+        ttk.Checkbutton(wrap, text="Open-source / open-weights model", variable=oss_var).grid(row=4, column=1, sticky="w", padx=(10, 0), pady=6)
+
+        btns = tk.Frame(wrap, bg=PALETTE["surface"])
+        btns.grid(row=5, column=0, columnspan=2, sticky="ew", pady=(14, 0))
+
+        def _save() -> None:
+            canon = canonical_model_slug(canon_var.get().strip())
+            if not canon:
+                self.messagebox.showerror("Invalid Model", "Canonical Slug is required.", parent=dlg)
+                return
+            try:
+                save_model_registry_entries([{
+                    "canonical": canon,
+                    "display_name": disp_var.get().strip(),
+                    "org": org_var.get().strip(),
+                    "family": fam_var.get().strip(),
+                    "open_source": oss_var.get(),
+                }])
+            except ValueError as exc:
+                self.messagebox.showerror("Validation Error", str(exc), parent=dlg)
+                return
+            self._append_log(f"[OK] Saved model '{canon}' in synhalees/models.json.\n", "ok")
+            dlg.destroy()
+            self.refresh_all()
+
+        ttk.Button(btns, text="Save Model", style="Accent.TButton", command=_save).pack(side="right", padx=(8, 0))
+        ttk.Button(btns, text="Cancel", style="Ghost.TButton", command=dlg.destroy).pack(side="right")
+
+    def _delete_selected_mgmt_model(self) -> None:
+        sel = self.mgmt_models_tree.selection()
+        if not sel:
+            self.messagebox.showinfo("Select Model", "Select a model row to delete.")
+            return
+        canon = str(self.mgmt_models_tree.item(sel[0], "values")[0])
+        if not self.messagebox.askyesno(
+            "Delete Model",
+            f"Delete '{canon}' from models.json, submissions/, and kaggle/results/*.slim.csv?",
+        ):
+            return
+        res = delete_model_completely(canon)
+        if res["registry"] or res["submissions"] or res["slim_rows"]:
+            self._append_log(
+                f"[OK] Deleted '{canon}' (registry={res['registry']}, submissions={res['submissions']}, slim_rows={res['slim_rows']}).\n",
+                "ok",
+            )
+            self.refresh_all()
+            if res["submissions"] > 0:
+                self.run_cli(["build"])
+        else:
+            self.messagebox.showinfo("Nothing to Delete", f"No files or registry entries found for '{canon}'.")
+
+    def _open_mgmt_org_dialog(self, *, edit_selected: bool = False) -> None:
+        tk, ttk = self.tk, self.ttk
+        sel = self.mgmt_orgs_tree.selection() if edit_selected else ()
+        if edit_selected and not sel:
+            self.messagebox.showinfo("Select Organization", "Select an organization row first to edit.")
+            return
+        vals = self.mgmt_orgs_tree.item(sel[0], "values") if sel else ("", "", "", "gray", "", "")
+
+        data = json.loads(MODELS_JSON.read_text(encoding="utf-8"))
+        color_choices = sorted((data.get("named_colors") or {"gray": "#78909C"}).keys())
+
+        dlg = tk.Toplevel(self.root)
+        dlg.title("Edit Organization" if edit_selected else "Add Organization")
+        dlg.configure(bg=PALETTE["surface"])
+        dlg.transient(self.root)
+        dlg.grab_set()
+        self._center_dialog(dlg, self._px(500), self._px(300))
+
+        wrap = tk.Frame(dlg, bg=PALETTE["surface"], padx=self._px(18), pady=self._px(16))
+        wrap.pack(fill="both", expand=True)
+        wrap.columnconfigure(1, weight=1)
+
+        slug_var = tk.StringVar(value=str(vals[0]))
+        name_var = tk.StringVar(value=str(vals[1]))
+        logo_var = tk.StringVar(value=str(vals[2]))
+        color_var = tk.StringVar(value=str(vals[3]) or "gray")
+        aliases_var = tk.StringVar(value=str(vals[5]))
+
+        tk.Label(wrap, text="Org Slug", bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Segoe UI", 9)).grid(row=0, column=0, sticky="w", pady=6)
+        slug_ent = ttk.Entry(wrap, textvariable=slug_var)
+        slug_ent.grid(row=0, column=1, sticky="ew", padx=(10, 0), pady=6)
+        if edit_selected:
+            slug_ent.configure(state="readonly")
+
+        tk.Label(wrap, text="Display Name", bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Segoe UI", 9)).grid(row=1, column=0, sticky="w", pady=6)
+        ttk.Entry(wrap, textvariable=name_var).grid(row=1, column=1, sticky="ew", padx=(10, 0), pady=6)
+
+        tk.Label(wrap, text="Logo Slug", bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Segoe UI", 9)).grid(row=2, column=0, sticky="w", pady=6)
+        ttk.Entry(wrap, textvariable=logo_var).grid(row=2, column=1, sticky="ew", padx=(10, 0), pady=6)
+
+        tk.Label(wrap, text="Color", bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Segoe UI", 9)).grid(row=3, column=0, sticky="w", pady=6)
+        ttk.Combobox(wrap, textvariable=color_var, values=color_choices, state="readonly").grid(row=3, column=1, sticky="ew", padx=(10, 0), pady=6)
+
+        tk.Label(wrap, text="Aliases (comma-sep)", bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Segoe UI", 9)).grid(row=4, column=0, sticky="w", pady=6)
+        ttk.Entry(wrap, textvariable=aliases_var).grid(row=4, column=1, sticky="ew", padx=(10, 0), pady=6)
+
+        btns = tk.Frame(wrap, bg=PALETTE["surface"])
+        btns.grid(row=5, column=0, columnspan=2, sticky="ew", pady=(14, 0))
+
+        def _save() -> None:
+            try:
+                save_organization_entry(
+                    slug_var.get(),
+                    name=name_var.get(),
+                    logo=logo_var.get(),
+                    color=color_var.get(),
+                    aliases=[a.strip() for a in aliases_var.get().split(",") if a.strip()],
+                )
+            except ValueError as exc:
+                self.messagebox.showerror("Validation Error", str(exc), parent=dlg)
+                return
+            self._append_log(f"[OK] Saved organization '{slug_var.get().strip().lower()}' in synhalees/models.json.\n", "ok")
+            dlg.destroy()
+            self.refresh_all()
+
+        ttk.Button(btns, text="Save Organization", style="Accent.TButton", command=_save).pack(side="right", padx=(8, 0))
+        ttk.Button(btns, text="Cancel", style="Ghost.TButton", command=dlg.destroy).pack(side="right")
+
+    def _delete_selected_mgmt_org(self) -> None:
+        sel = self.mgmt_orgs_tree.selection()
+        if not sel:
+            self.messagebox.showinfo("Select Organization", "Select an organization row to delete.")
+            return
+        slug = str(self.mgmt_orgs_tree.item(sel[0], "values")[0])
+        if not self.messagebox.askyesno("Delete Organization", f"Delete organization '{slug}' from synhalees/models.json?"):
+            return
+        if delete_organization_entry(slug):
+            self._append_log(f"[OK] Removed organization '{slug}' from synhalees/models.json.\n", "ok")
+            self.refresh_all()
 
     def _populate_kaggle_table(self) -> None:
         self.kg_tree.delete(*self.kg_tree.get_children())
@@ -2536,9 +3058,71 @@ class SynhaleesGUI:
                         if not self._console_visible:
                             self._toggle_console()
                     self.refresh_all()
+                    if (
+                        rc == 0
+                        and len(getattr(self, "_last_args", [])) >= 2
+                        and self._last_args[0] == "kaggle"
+                        and self._last_args[1] == "pull"
+                        and "--dry-run" not in self._last_args
+                    ):
+                        self._open_pull_complete_dialog()
         except queue.Empty:
             pass
         self.root.after(70, self._drain_queue)
+
+    def _open_pull_complete_dialog(self) -> None:
+        """Notify the user when Kaggle/Colab pull finishes and offer Step 3 Build."""
+        tk, ttk = self.tk, self.ttk
+        dlg = tk.Toplevel(self.root)
+        dlg.title("Pull Complete")
+        dlg.configure(bg=PALETTE["surface"])
+        dlg.transient(self.root)
+        dlg.grab_set()
+        self._center_dialog(dlg, self._px(480), self._px(195))
+
+        wrap = tk.Frame(dlg, bg=PALETTE["surface"], padx=self._px(18), pady=self._px(16))
+        wrap.pack(fill="both", expand=True)
+
+        tk.Label(
+            wrap,
+            text="Pull Complete — Ready to Build",
+            bg=PALETTE["surface"],
+            fg=PALETTE["ok"],
+            font=("Segoe UI", 12, "bold"),
+        ).pack(anchor="w")
+        tk.Label(
+            wrap,
+            text=(
+                "All selected slim CSVs have been downloaded and merged into kaggle/results/.\n"
+                "You can now run Step 3 to import submissions and rebuild the leaderboard."
+            ),
+            bg=PALETTE["surface"],
+            fg=PALETTE["text"],
+            font=("Segoe UI", 9),
+            justify="left",
+            wraplength=self._px(440),
+        ).pack(anchor="w", pady=(self._px(8), self._px(14)))
+
+        btns = tk.Frame(wrap, bg=PALETTE["surface"])
+        btns.pack(fill="x", side="bottom")
+
+        def _build_now() -> None:
+            dlg.destroy()
+            self._guard_and_run_kaggle(
+                "submit",
+                build_kaggle_args(
+                    "submit",
+                    task=self.kg_task_var.get(),
+                    dry_run=self.kg_dry_var.get(),
+                    build=True,
+                ),
+            )
+
+        ttk.Button(btns, text="Import & Rebuild Site Now", style="Accent.TButton", command=_build_now).pack(
+            side="right", padx=(self._px(8), 0)
+        )
+        ttk.Button(btns, text="Close", style="Ghost.TButton", command=dlg.destroy).pack(side="right")
+        dlg.bind("<Escape>", lambda _e: dlg.destroy())
 
     def _open_colab_auth_dialog(self, auth_url: str) -> None:
         """Prompt for Google Colab OAuth code after auto-opening the browser."""

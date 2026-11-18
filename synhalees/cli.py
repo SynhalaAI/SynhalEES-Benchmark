@@ -1255,7 +1255,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument(
         "--tab",
-        choices=("overview", "kaggle", "run", "explorer", "site"),
+        choices=("overview", "kaggle", "run", "management", "site"),
         default="overview",
         help="initial workflow section to focus (default: overview)",
     )
