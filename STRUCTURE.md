@@ -44,6 +44,8 @@ SynhalEES/
 │   ├── cli_ui.py                              # Pure-stdlib ANSI styling, tables, badges & workflow guides
 │   ├── colab_ops.py                           # Remote Google Colab pull via `google-colab-cli` (no git clone)
 │   ├── gui.py                                 # Pure-stdlib tkinter desktop GUI studio (`synhalees gui`)
+│   ├── gui_dialogs.py                         # Modal scorecard comparison & 15-pillar sample browser dialogs
+│   ├── gui_helpers.py                         # Pure-stdlib GUI backend helpers (SVG rasterizer, inspectors, guards)
 │   ├── kaggle_ops.py                          # Kaggle Benchmarks ops, slim-CSV sync & artifact parsing
 │   ├── registry.py                            # Model/provider SSOT registry & taxonomy resolver
 │   ├── models.json                            # Provider taxonomy, aliases, display names & color map

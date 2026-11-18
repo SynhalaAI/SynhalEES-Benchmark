@@ -30,6 +30,25 @@ from typing import Any, Callable
 
 from synhalees import kaggle_ops
 from synhalees.data import list_pillars, load_pillar
+from synhalees.gui_dialogs import open_pillar_inspector, open_scorecard_inspector
+from synhalees.gui_helpers import (
+    adopt_and_sync_scorecards,
+    collect_local_runs_summary,
+    compare_model_scorecards,
+    delete_organization_family,
+    extract_failed_tasks,
+    find_unregistered_slim_models,
+    inspect_pillar_dataset,
+    install_organization_logo,
+    load_model_scorecard_summary,
+    load_svg_sources_map,
+    parse_eval_item_outcome,
+    parse_progress_line,
+    rasterize_svg_to_grid,
+    render_monogram_grid,
+    save_organization_family,
+    sync_js_provider_logos,
+)
 from synhalees.kaggle_ops import (
     ROOT,
     RUNS,
@@ -387,6 +406,7 @@ def save_organization_entry(
     logo: str = "",
     color: str = "gray",
     aliases: list[str] | None = None,
+    families: dict[str, dict[str, Any]] | None = None,
     models_json_path: Path | None = None,
 ) -> None:
     """Create or update an organization/provider entry in synhalees/models.json."""
@@ -404,18 +424,65 @@ def save_organization_entry(
     data = json.loads(path.read_text(encoding="utf-8"))
     providers = dict(data.get("providers") or {})
     existing = dict(providers.get(clean_slug) or {})
+    norm_fams = dict(existing.get("families") or {})
+    if families is not None:
+        norm_fams = {}
+        for fk, fv in families.items():
+            f_slug = str(fk).strip().lower()
+            if not f_slug or f_slug in _UNKNOWN_ORG_TOKENS:
+                continue
+            pats = [str(p).strip().lower() for p in (fv.get("match_patterns") or []) if str(p).strip()]
+            if f_slug not in pats:
+                pats.insert(0, f_slug)
+            norm_fams[f_slug] = {
+                "name": str(fv.get("name") or f_slug.replace("-", " ").title()).strip(),
+                "open_source": bool(fv.get("open_source", False)),
+                "match_patterns": pats,
+            }
     providers[clean_slug] = {
         "name": clean_name,
         "slug": clean_slug,
         "logo": clean_logo,
         "color": clean_color,
         "aliases": clean_aliases,
-        "families": dict(existing.get("families") or {}),
+        "families": norm_fams,
     }
     data["providers"] = providers
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     if path.resolve() == MODELS_JSON.resolve():
         default_registry.load()
+
+
+def bulk_update_model_registry_entries(
+    canonical_slugs: list[str],
+    *,
+    org: str | None = None,
+    family: str | None = None,
+    open_source: bool | None = None,
+    models_json_path: Path | None = None,
+) -> int:
+    """Bulk-update organization, family, and/or open_source flag for multiple canonical models."""
+    path = models_json_path or MODELS_JSON
+    if path.resolve() == MODELS_JSON.resolve():
+        default_registry.load()
+        reg = default_registry
+    else:
+        from synhalees.registry import Registry
+        reg = Registry(path)
+    entries: list[dict[str, Any]] = []
+    for raw in canonical_slugs:
+        canon = canonical_model_slug(raw.strip())
+        if not canon:
+            continue
+        cur_org, cur_fam, cur_oss = reg.resolve_taxonomy(canon)
+        entries.append({
+            "canonical": canon,
+            "display_name": reg.get_model_display_name(canon),
+            "org": (org.strip().lower() if org else cur_org),
+            "family": (family.strip().lower() if family else cur_fam),
+            "open_source": (bool(open_source) if open_source is not None else cur_oss),
+        })
+    return save_model_registry_entries(entries, models_json_path=path)
 
 
 def delete_organization_entry(
@@ -437,57 +504,6 @@ def delete_organization_entry(
     if path.resolve() == MODELS_JSON.resolve():
         default_registry.load()
     return True
-
-
-def delete_model_completely(
-    canonical: str,
-    *,
-    models_json_path: Path | None = None,
-    submissions_dir: Path | None = None,
-    slim_dir: Path | None = None,
-) -> dict[str, int]:
-    """Delete a model from models.json, submissions/, and kaggle/results/*.slim.csv."""
-    import csv
-
-    canon = canonical_model_slug(canonical.strip())
-    if not canon:
-        return {"registry": 0, "submissions": 0, "slim_rows": 0}
-
-    reg_removed = 1 if delete_model_registry_entry(canon, models_json_path=models_json_path) else 0
-
-    sub_root = submissions_dir or (ROOT / "submissions")
-    sub_removed = 0
-    if sub_root.exists():
-        for csv_path in list(sub_root.rglob("*.csv")):
-            if csv_path.stem == canon or canonical_model_slug(csv_path.stem) == canon:
-                csv_path.unlink()
-                sub_removed += 1
-
-    slim_root = slim_dir or (ROOT / "kaggle" / "results")
-    slim_removed = 0
-    if slim_root.exists():
-        for slim_path in sorted(slim_root.glob("*.slim.csv")):
-            raw_text = slim_path.read_text(encoding="utf-8", errors="replace")
-            rows = list(csv.DictReader(raw_text.splitlines()))
-            if not rows:
-                continue
-            fieldnames = list(rows[0].keys())
-            kept: list[dict[str, str]] = []
-            removed_here = 0
-            for r in rows:
-                m = str(r.get("model") or "").strip()
-                if m == canon or (m and canonical_model_slug(m) == canon):
-                    removed_here += 1
-                else:
-                    kept.append(r)
-            if removed_here:
-                with slim_path.open("w", encoding="utf-8", newline="") as fh:
-                    writer = csv.DictWriter(fh, fieldnames=fieldnames)
-                    writer.writeheader()
-                    writer.writerows(kept)
-                slim_removed += removed_here
-
-    return {"registry": reg_removed, "submissions": sub_removed, "slim_rows": slim_removed}
 
 
 def save_model_display_names(
@@ -736,11 +752,13 @@ class SynhaleesGUI:
 
     def __init__(self, root: Any, *, initial_tab: str = "overview") -> None:
         import tkinter as tk
-        from tkinter import messagebox, scrolledtext, ttk
+        from tkinter import colorchooser, filedialog, messagebox, scrolledtext, ttk
 
         self.tk = tk
         self.ttk = ttk
         self.messagebox = messagebox
+        self.filedialog = filedialog
+        self.colorchooser = colorchooser
         self.root = root
         load_saved_tokens()
         try:
@@ -768,10 +786,16 @@ class SynhaleesGUI:
         self._nav_buttons: dict[str, Any] = {}
         self._pages: dict[str, Any] = {}
         self._console_visible = False
+        self._pipeline_queue: list[tuple[str, list[str]]] = []
+        self._pipeline_on_complete: Callable[[], None] | None = None
+        self._failed_kaggle_tasks: list[str] = []
+        self._eval_done = 0
+        self._eval_pass = 0
 
         self._configure_styles()
         self._build_topbar()
         self._build_shell(scrolledtext)
+        self._bind_shortcuts()
         self.select_page(initial_tab if initial_tab in TAB_KEYS else "overview")
         self.refresh_all()
         self.root.after(70, self._drain_queue)
@@ -872,6 +896,21 @@ class SynhaleesGUI:
             "Ghost.TButton",
             background=[("active", PALETTE["card_hover"]), ("disabled", sb)],
             foreground=[("disabled", muted)],
+        )
+
+        s.configure(
+            "Danger.TButton",
+            background=surf,
+            foreground="#ff7b7b",
+            borderwidth=1,
+            bordercolor="#7f2d2d",
+            padding=[11, 6],
+            font=("Segoe UI", 9),
+        )
+        s.map(
+            "Danger.TButton",
+            background=[("active", acc), ("disabled", sb)],
+            foreground=[("active", "#ffffff"), ("disabled", muted)],
         )
 
         s.configure(
@@ -1128,9 +1167,36 @@ class SynhaleesGUI:
         self._build_management_page(self._pages["management"].inner)
         self._build_site_page(self._pages["site"].inner)
 
+        # Drag-resizable top sash above the Activity Log drawer
+        self.console_sash = tk.Frame(
+            self.console_wrap,
+            bg=PALETTE["border"],
+            height=self._px(4),
+            cursor="sb_v_double_arrow",
+        )
+        self.console_sash.pack(fill="x", side="top")
+
+        def _on_sash_drag(event: Any) -> None:
+            if not self._console_visible:
+                self._toggle_console()
+            root_bottom = self.root.winfo_rooty() + self.root.winfo_height()
+            desired_px = max(
+                self._px(80),
+                min(int(self.root.winfo_height() * 0.65), root_bottom - event.y_root - self._px(40)),
+            )
+            line_px = max(12, self._px(16))
+            new_lines = max(4, min(32, desired_px // line_px))
+            self.console.configure(height=new_lines)
+
+        self.console_sash.bind("<B1-Motion>", _on_sash_drag)
+        self.console_sash.bind("<Enter>", lambda _e: self.console_sash.configure(bg=PALETTE["info"]))
+        self.console_sash.bind("<Leave>", lambda _e: self.console_sash.configure(bg=PALETTE["border"]))
+        self.console_sash.bind("<Double-1>", lambda _e: self._toggle_console())
+
         # Bottom Live Output Console controls (packed inside console_wrap created above)
         self.progress_wrap = tk.Frame(self.console_wrap, bg=PALETTE["surface"])
         self.progress_msg_var = tk.StringVar(value="")
+        self.progress_pct_var = tk.StringVar(value="")
         tk.Label(
             self.progress_wrap,
             textvariable=self.progress_msg_var,
@@ -1145,7 +1211,15 @@ class SynhaleesGUI:
             length=self._px(220),
             style="Horizontal.TProgressbar",
         )
-        self.progress_bar.pack(side="right", padx=(self._px(10), 0))
+        self.progress_bar.pack(side="right", padx=(self._px(8), 0))
+        tk.Label(
+            self.progress_wrap,
+            textvariable=self.progress_pct_var,
+            bg=PALETTE["surface"],
+            fg=PALETTE["info"],
+            font=("Consolas", 9, "bold"),
+            anchor="e",
+        ).pack(side="right", padx=(self._px(8), 0))
 
         self.cbar = tk.Frame(self.console_wrap, bg=PALETTE["surface"])
         cbar = self.cbar
@@ -1170,7 +1244,7 @@ class SynhaleesGUI:
         self.stop_btn = ttk.Button(
             cbar,
             text="Stop",
-            style="Ghost.TButton",
+            style="Danger.TButton",
             command=self.stop_command,
             state="disabled",
         )
@@ -1254,8 +1328,9 @@ class SynhaleesGUI:
         show: str = "headings",
         fill: str = "x",
         expand: bool = False,
+        sortable: bool = True,
     ) -> Any:
-        """Create a Treeview paired with a vertical inside scrollbar."""
+        """Create a Treeview paired with an inside vertical scrollbar, zebra tags, and sorting."""
         tk, ttk = self.tk, self.ttk
         wrap = tk.Frame(parent, bg=PALETTE["card"])
         wrap.pack(fill=fill, expand=expand)
@@ -1264,7 +1339,132 @@ class SynhaleesGUI:
         tree.configure(yscrollcommand=sb.set)
         tree.pack(side="left", fill="both", expand=True)
         sb.pack(side="right", fill="y")
+
+        tree.tag_configure("even", background=PALETTE["console_bg"])
+        tree.tag_configure("odd", background="#141929")
+        tree.tag_configure("ok", foreground=PALETTE["ok"])
+        tree.tag_configure("warn", foreground=PALETTE["warn"])
+        tree.tag_configure("err", foreground=PALETTE["accent"])
+        tree.tag_configure("info", foreground=PALETTE["info"])
+        tree.tag_configure("muted", foreground=PALETTE["muted"])
+        if sortable:
+            self._enable_tree_sorting(tree, columns)
         return tree
+
+    @staticmethod
+    def _sort_key_for_cell(val: Any) -> tuple[int, Any]:
+        s = str(val).strip()
+        m_frac = re.match(r"^(\d+)\s*/\s*(\d+)", s)
+        if m_frac:
+            return (0, (float(m_frac.group(1)), float(m_frac.group(2))))
+        cleaned = s.replace("%", "").replace("$", "").replace(",", "")
+        try:
+            return (0, (float(cleaned), 0.0))
+        except ValueError:
+            return (1, s.lower())
+
+    def _enable_tree_sorting(self, tree: Any, columns: tuple[str, ...]) -> None:
+        tree._sort_col = None
+        tree._sort_desc = False
+        tree._heading_texts = {}
+
+        def _sort_by(col: str) -> None:
+            for c in columns:
+                if c not in tree._heading_texts:
+                    tree._heading_texts[c] = tree.heading(c, "text")
+            items = [i for i in tree.get_children("") if i != "__empty__"]
+            if not items:
+                return
+            desc = (not tree._sort_desc) if tree._sort_col == col else False
+            tree._sort_col = col
+            tree._sort_desc = desc
+            scored = [(self._sort_key_for_cell(tree.set(i, col)), i) for i in items]
+            scored.sort(key=lambda t: t[0], reverse=desc)
+            for idx, (_, iid) in enumerate(scored):
+                tree.move(iid, "", idx)
+                cur_tags = [t for t in tree.item(iid, "tags") if t not in ("even", "odd")]
+                cur_tags.insert(0, "odd" if idx % 2 else "even")
+                tree.item(iid, tags=tuple(cur_tags))
+            for c in columns:
+                base = tree._heading_texts.get(c, c)
+                arrow = (" ▼" if desc else " ▲") if c == col else ""
+                tree.heading(c, text=f"{base}{arrow}")
+
+        for col in columns:
+            tree.heading(col, command=lambda c=col: _sort_by(c))
+
+    def _ensure_tree_empty_state(self, tree: Any, message: str) -> None:
+        if tree.get_children(""):
+            return
+        cols = tree["columns"]
+        vals = (message,) + ("",) * (max(0, len(cols) - 1))
+        tree.insert("", "end", iid="__empty__", values=vals, tags=("even", "muted"))
+
+    def _copy_text_to_clipboard(self, text: str, label: str = "text") -> None:
+        if not text:
+            return
+        self.root.clipboard_clear()
+        self.root.clipboard_append(text)
+        self._append_log(f"[OK] Copied {label} '{text}' to clipboard.\n", "ok")
+
+    def _bind_tree_context_menu(self, tree: Any, actions_fn: Callable[[tuple[str, ...]], list[tuple[str, Callable[[], None]] | None]]) -> None:
+        tk = self.tk
+
+        def _on_right_click(event: Any) -> str | None:
+            row = tree.identify_row(event.y)
+            if not row or row == "__empty__":
+                return None
+            if row not in tree.selection():
+                tree.selection_set(row)
+            vals = tuple(str(v) for v in (tree.item(row, "values") or ()))
+            items = actions_fn(vals)
+            if not items:
+                return None
+            menu = tk.Menu(
+                tree,
+                tearoff=0,
+                bg=PALETTE["card"],
+                fg=PALETTE["text"],
+                activebackground=PALETTE["accent"],
+                activeforeground="#ffffff",
+                relief="flat",
+                bd=1,
+            )
+            for entry in items:
+                if entry is None:
+                    menu.add_separator()
+                else:
+                    lbl, cmd = entry
+                    menu.add_command(label=lbl, command=cmd)
+            try:
+                menu.tk_popup(event.x_root, event.y_root)
+            finally:
+                menu.grab_release()
+            return "break"
+
+        tree.bind("<Button-3>", _on_right_click)
+        tree.bind("<Button-2>", _on_right_click)
+
+    def _focus_active_search(self) -> None:
+        target = {
+            "overview": getattr(self, "model_search_entry", None),
+            "kaggle": getattr(self, "kg_cov_search_entry", None),
+            "management": getattr(self, "mgmt_model_search_entry", None),
+        }.get(self._active_page)
+        if target is not None:
+            target.focus_set()
+            try:
+                target.selection_range(0, "end")
+            except Exception:
+                pass
+
+    def _bind_shortcuts(self) -> None:
+        self.root.bind("<Control-r>", lambda _e: self.refresh_all())
+        self.root.bind("<F5>", lambda _e: self.refresh_all())
+        self.root.bind("<Control-l>", lambda _e: self._toggle_console())
+        self.root.bind("<Control-f>", lambda _e: self._focus_active_search())
+        for idx, key in enumerate(TAB_KEYS, start=1):
+            self.root.bind(f"<Control-Key-{idx}>", lambda _e, k=key: self.select_page(k))
 
     def select_page(self, key: str) -> None:
         if key not in self._pages:
@@ -1300,7 +1500,16 @@ class SynhaleesGUI:
         ttk.Label(parent, text=title, style="PageTitle.TLabel").pack(anchor="w")
         ttk.Label(parent, text=subtitle, style="PageSub.TLabel").pack(anchor="w", pady=(2, self._px(12)))
 
-    def _step_card(self, parent: Any, step_num: str, title: str, hint: str) -> Any:
+    def _step_card(
+        self,
+        parent: Any,
+        step_num: str,
+        title: str,
+        hint: str,
+        *,
+        fill: str = "x",
+        expand: bool = False,
+    ) -> Any:
         tk, ttk = self.tk, self.ttk
         frame = tk.Frame(
             parent,
@@ -1310,16 +1519,17 @@ class SynhaleesGUI:
             padx=self._px(14),
             pady=self._px(12),
         )
-        frame.pack(fill="x", pady=(0, self._px(12)))
+        frame.pack(fill=fill, expand=expand, pady=(0, self._px(12)))
 
         head = tk.Frame(frame, bg=PALETTE["card"])
         head.pack(fill="x", pady=(0, self._px(8)))
         if step_num:
+            is_opt = "OPTIONAL" in step_num.upper()
             tk.Label(
                 head,
                 text=step_num,
-                bg=PALETTE["step_badge"],
-                fg=PALETTE["info"],
+                bg=PALETTE["surface"] if is_opt else PALETTE["step_badge"],
+                fg=PALETTE["muted"] if is_opt else PALETTE["info"],
                 font=("Segoe UI", 8, "bold"),
                 padx=self._px(8),
                 pady=self._px(2),
@@ -1379,59 +1589,72 @@ class SynhaleesGUI:
             ttk.Label(card, textvariable=v_sub, style="CardSub.TLabel").pack(anchor="w")
             self.card_vars[key] = (v_main, v_sub, v_lbl)
 
-        # Workflow Launchpad Cards
+        # Workflow Launchpad Cards (2-column compact row)
+        wf_row = ttk.Frame(parent)
+        wf_row.pack(fill="x", pady=(0, self._px(12)))
+        wf_row.columnconfigure(0, weight=1, uniform="ov_wf")
+        wf_row.columnconfigure(1, weight=1, uniform="ov_wf")
+        wf_left = ttk.Frame(wf_row)
+        wf_left.grid(row=0, column=0, sticky="nsew", padx=(0, self._px(10)))
+        wf_right = ttk.Frame(wf_row)
+        wf_right.grid(row=0, column=1, sticky="nsew")
+
         c_kaggle = self._step_card(
-            parent,
+            wf_left,
             "WORKFLOW A",
-            "Sync New Models from Kaggle Benchmarks",
-            "Inspect what new models ran on Kaggle, pull lightweight *.slim.csv results, import into submissions/, and rebuild the site.",
+            "Sync New Models from Kaggle",
+            "Discover new runs, pull slim CSVs via Colab, import & rebuild.",
+            fill="both",
+            expand=True,
         )
         r_kg = tk.Frame(c_kaggle, bg=PALETTE["card"])
         r_kg.pack(fill="x")
         ttk.Button(
             r_kg,
-            text="Open Kaggle Sync Workflow  ->",
+            text="Kaggle Sync ->",
             style="Accent.TButton",
             command=lambda: self.select_page("kaggle"),
-        ).pack(side="left", padx=(0, 8))
+        ).pack(side="left", padx=(0, 6))
         ttk.Button(
             r_kg,
-            text="Check Missing Server Runs Now",
+            text="One-Click Sync",
             style="Ghost.TButton",
-            command=lambda: self.run_cli(["kaggle", "coverage"]),
-        ).pack(side="left", padx=(0, 8))
+            command=self._start_one_click_kaggle_sync,
+        ).pack(side="left", padx=(0, 6))
         ttk.Button(
             r_kg,
-            text="Discover Kaggle Models",
+            text="Discover Models",
             style="Ghost.TButton",
             command=self._discover_kaggle_models,
         ).pack(side="left")
 
         c_local = self._step_card(
-            parent,
+            wf_right,
             "WORKFLOW B",
-            "Run & Publish Local Model Evaluation (API / Ollama)",
-            "Evaluate a local Ollama or API model checkpoint-safely across pillars/modalities, compare runs, and promote to submissions/.",
+            "Local Eval & Site Management",
+            "Run Ollama/API models locally, manage orgs/models, or verify CI.",
+            fill="both",
+            expand=True,
         )
         r_loc = tk.Frame(c_local, bg=PALETTE["card"])
         r_loc.pack(fill="x")
         ttk.Button(
             r_loc,
-            text="Open Local Eval Workflow  ->",
+            text="Local Eval ->",
             style="Ghost.TButton",
             command=lambda: self.select_page("run"),
-        ).pack(side="left", padx=(0, 8))
+        ).pack(side="left", padx=(0, 6))
         ttk.Button(
             r_loc,
-            text="Manage Models & Orgs  ->",
+            text="Manage Models ->",
             style="Ghost.TButton",
             command=lambda: self.select_page("management"),
-        ).pack(side="left", padx=(0, 8))
+        ).pack(side="left", padx=(0, 6))
         ttk.Button(
             r_loc,
-            text="Verify All Gates (check)",
+            text="Sync & Verify Site",
             style="Ghost.TButton",
-            command=lambda: self.run_cli(["check"]),
+            command=self._sync_and_verify_site,
         ).pack(side="left")
 
         # Explorer Content (below workflows): 15 Core Pillars + Registered & Published Models
@@ -1444,7 +1667,22 @@ class SynhaleesGUI:
         exp_right = ttk.Frame(exp_cols)
         exp_right.grid(row=0, column=1, sticky="nsew")
 
-        p_card = self._step_card(exp_left, "PILLARS", "The 15 Core Pillars", "")
+        p_card = self._step_card(exp_left, "PILLARS", "The 15 Core Pillars", "", fill="both", expand=True)
+        pbar = tk.Frame(p_card, bg=PALETTE["card"])
+        pbar.pack(fill="x", pady=(0, self._px(6)))
+        tk.Label(pbar, text="Filter:", bg=PALETTE["card"], fg=PALETTE["muted"], font=("Segoe UI", 9)).pack(side="left")
+        self.pillar_search_var = tk.StringVar()
+        self.pillar_search_var.trace_add("write", lambda *_: self._populate_pillars_table())
+        p_ent = ttk.Entry(pbar, textvariable=self.pillar_search_var, width=20)
+        p_ent.pack(side="left", padx=(8, 8), fill="x", expand=True)
+        p_ent.bind("<Escape>", lambda _e: self.pillar_search_var.set(""))
+        ttk.Button(
+            pbar,
+            text="Inspect Pillar",
+            style="Ghost.TButton",
+            command=self._open_selected_pillar_inspector,
+        ).pack(side="right")
+
         self.pillars_tree = self._make_scrolled_tree(
             p_card,
             columns=("slug", "text", "vision", "audio"),
@@ -1460,29 +1698,54 @@ class SynhaleesGUI:
         ):
             self.pillars_tree.heading(col, text=lbl)
             self.pillars_tree.column(col, width=self._px(w), anchor="w" if col == "slug" else "center")
+        self.pillars_tree.bind("<Double-1>", lambda _e: self._open_selected_pillar_inspector())
+        self.pillars_tree.bind("<Return>", lambda _e: self._open_selected_pillar_inspector())
 
-        m_card = self._step_card(exp_right, "REGISTRY", "Registered & Published Models", "")
+        m_card = self._step_card(exp_right, "REGISTRY", "Registered & Published Models", "", fill="both", expand=True)
         fbar = tk.Frame(m_card, bg=PALETTE["card"])
         fbar.pack(fill="x", pady=(0, self._px(6)))
         tk.Label(fbar, text="Filter:", bg=PALETTE["card"], fg=PALETTE["muted"], font=("Segoe UI", 9)).pack(side="left")
         self.model_search_var = tk.StringVar()
         self.model_search_var.trace_add("write", lambda *_: self._populate_models_table())
-        ttk.Entry(fbar, textvariable=self.model_search_var, width=26).pack(side="left", padx=(8, 0), fill="x", expand=True)
+        self.model_search_entry = ttk.Entry(fbar, textvariable=self.model_search_var, width=20)
+        self.model_search_entry.pack(side="left", padx=(8, 8), fill="x", expand=True)
+        self.model_search_entry.bind("<Escape>", lambda _e: self.model_search_var.set(""))
+        ttk.Button(
+            fbar,
+            text="Inspect / Compare",
+            style="Ghost.TButton",
+            command=self._open_scorecard_inspector_from_overview,
+        ).pack(side="right")
 
         self.models_tree = self._make_scrolled_tree(
             m_card,
             columns=("model", "provider", "modalities"),
-            height=8,
+            height=9,
+            show="tree headings",
             fill="both",
             expand=True,
         )
+        self.models_tree.heading("#0", text="")
+        self.models_tree.column("#0", width=self._px(30), stretch=False, anchor="center")
         for col, lbl, w in (
-            ("model", "Canonical Slug", 210),
-            ("provider", "Provider", 110),
-            ("modalities", "T / V / A", 90),
+            ("model", "Canonical Slug", 200),
+            ("provider", "Provider", 105),
+            ("modalities", "T / V / A", 85),
         ):
             self.models_tree.heading(col, text=lbl)
             self.models_tree.column(col, width=self._px(w), anchor="w" if col != "modalities" else "center")
+        self.models_tree.bind("<Double-1>", lambda _e: self._open_scorecard_inspector_from_overview())
+        self.models_tree.bind("<Return>", lambda _e: self._open_scorecard_inspector_from_overview())
+        self._bind_tree_context_menu(
+            self.models_tree,
+            lambda vals: [
+                ("Inspect Scorecard / Compare...", lambda: open_scorecard_inspector(self, vals[0])),
+                ("Copy Model Slug", lambda: self._copy_text_to_clipboard(vals[0], "slug")),
+                None,
+                ("Target in Kaggle Sync (-m)", lambda: (self.kg_model_var.set(vals[0]), self.select_page("kaggle"))),
+                ("Manage Models & Orgs ->", lambda: (self.mgmt_model_search_var.set(vals[0]), self.select_page("management"))),
+            ],
+        )
 
     # ------------------------------------------------------------------ 2. Kaggle Sync
 
@@ -1499,7 +1762,9 @@ class SynhaleesGUI:
         self.kg_mod_label_var = tk.StringVar(value="All 17 tasks (T+V+A)")
         self.kg_force_var = tk.BooleanVar(value=False)
         self.kg_dry_var = tk.BooleanVar(value=False)
+        self.kg_auto_build_var = tk.BooleanVar(value=True)
         self.kg_cov_filter_var = tk.StringVar(value="All")
+        self.kg_cov_search_var = tk.StringVar(value="")
 
         # Split Kaggle Sync into 2 columns so Steps 1-4 stay visible without scrolling
         cols = ttk.Frame(parent)
@@ -1523,15 +1788,21 @@ class SynhaleesGUI:
         r1.pack(fill="x", pady=(0, self._px(6)))
         ttk.Button(
             r1,
-            text="Check Missing Runs",
+            text="One-Click Sync",
             style="Accent.TButton",
-            command=lambda: self.run_cli(build_kaggle_args("coverage", model=self.kg_model_var.get())),
+            command=self._start_one_click_kaggle_sync,
         ).pack(side="left", padx=(0, 6))
         ttk.Button(
             r1,
             text="List New Models",
             style="Ghost.TButton",
             command=self._discover_kaggle_models,
+        ).pack(side="left", padx=(0, 6))
+        ttk.Button(
+            r1,
+            text="Check Missing Runs",
+            style="Ghost.TButton",
+            command=lambda: self.run_cli(build_kaggle_args("coverage", model=self.kg_model_var.get())),
         ).pack(side="left", padx=(0, 6))
         ttk.Button(
             r1,
@@ -1605,6 +1876,8 @@ class SynhaleesGUI:
         self._bind_toggle_tree(self.kg_new_tree)
         self.kg_new_tree.bind("<<TreeviewSelect>>", self._on_select_new_kaggle_model)
         self.kg_new_tree.bind("<Double-1>", lambda _e: self._open_edit_models_dialog())
+        self.kg_new_tree.bind("<Return>", lambda _e: self._open_edit_models_dialog())
+        self.kg_new_tree.bind("<Escape>", lambda _e: self._clear_selected_kaggle_models())
 
         self.kg_cov_card = tk.Frame(
             right_col,
@@ -1629,10 +1902,14 @@ class SynhaleesGUI:
             textvariable=self.kg_cov_filter_var,
             values=["All", "Incomplete only", "Complete 15/15 T+V+A"],
             state="readonly",
-            width=20,
+            width=18,
         )
         cov_filt.pack(side="right")
         cov_filt.bind("<<ComboboxSelected>>", lambda _e: self._populate_kaggle_table())
+        self.kg_cov_search_entry = ttk.Entry(self.kg_cov_bar, textvariable=self.kg_cov_search_var, width=14)
+        self.kg_cov_search_entry.pack(side="right", padx=(6, 6))
+        self.kg_cov_search_entry.bind("<Escape>", lambda _e: self.kg_cov_search_var.set(""))
+        self.kg_cov_search_var.trace_add("write", lambda *_: self._populate_kaggle_table())
 
         self.kg_tree = self._make_scrolled_tree(
             self.kg_cov_card,
@@ -1651,16 +1928,24 @@ class SynhaleesGUI:
             self.kg_tree.column(col, width=self._px(w), anchor="w" if col == "model" else "center")
         self._bind_toggle_tree(self.kg_tree)
         self.kg_tree.bind("<<TreeviewSelect>>", self._on_select_cov_model)
+        self._bind_tree_context_menu(
+            self.kg_tree,
+            lambda vals: [
+                ("Inspect Scorecard / Compare...", lambda: open_scorecard_inspector(self, vals[0])),
+                ("Copy Model Slug", lambda: self._copy_text_to_clipboard(vals[0], "slug")),
+                ("Edit in Registry...", lambda: self._open_edit_models_dialog(target_slugs=[vals[0]])),
+            ],
+        )
 
         # STEP 2: Pull Results (in left_col — always visible!)
         s2 = self._step_card(
             left_col,
             "STEP 2",
-            "Download Finished Kaggle Results into *.slim.csv",
-            "Downloads to .temp/, merges scores per (model, pillar, modality), and auto-cleans .temp/.",
+            "Download Finished Kaggle Results via Google Colab (*.slim.csv)",
+            "Runs kaggle pull on Colab, keeps any succeeded tasks, merges scores locally, and auto-cleans .temp/.",
         )
         g2 = tk.Frame(s2, bg=PALETTE["card"])
-        g2.pack(fill="x", pady=(0, self._px(8)))
+        g2.pack(fill="x", pady=(0, self._px(6)))
         g2.columnconfigure(1, weight=1)
         g2.columnconfigure(3, weight=1)
 
@@ -1676,16 +1961,35 @@ class SynhaleesGUI:
             state="readonly",
         ).grid(row=0, column=3, sticky="ew", pady=4)
 
-        f2 = tk.Frame(g2, bg=PALETTE["card"])
-        f2.grid(row=1, column=0, columnspan=4, sticky="ew", pady=(4, 0))
-        ttk.Checkbutton(f2, text="Dry run (preview only)", variable=self.kg_dry_var).pack(side="left", padx=(0, 14))
-        ttk.Checkbutton(f2, text="Force re-download cached", variable=self.kg_force_var).pack(side="left")
+        ttk.Label(g2, text="Target Model (-m)", style="CardText.TLabel").grid(row=1, column=0, sticky="w", padx=(0, 8), pady=4)
+        ttk.Entry(g2, textvariable=self.kg_model_var).grid(row=1, column=1, columnspan=2, sticky="ew", padx=(0, 8), pady=4)
         ttk.Button(
-            f2,
+            g2,
             text="Clear Selection",
             style="Ghost.TButton",
             command=self._clear_selected_kaggle_models,
-        ).pack(side="right")
+        ).grid(row=1, column=3, sticky="e", pady=4)
+
+        f2 = tk.Frame(g2, bg=PALETTE["card"])
+        f2.grid(row=2, column=0, columnspan=4, sticky="ew", pady=(4, 0))
+        ttk.Checkbutton(f2, text="Dry run (preview)", variable=self.kg_dry_var).pack(side="left", padx=(0, 12))
+        ttk.Checkbutton(f2, text="Force re-download", variable=self.kg_force_var).pack(side="left", padx=(0, 12))
+        ttk.Checkbutton(f2, text="Auto-Submit, Rebuild & Check after Pull", variable=self.kg_auto_build_var).pack(side="left")
+
+        self.kg_preview_var = tk.StringVar()
+        for var in (self.kg_task_var, self.kg_model_var, self.kg_mod_label_var, self.kg_force_var, self.kg_dry_var):
+            var.trace_add("write", lambda *_: self._update_kg_preview())
+        self._update_kg_preview()
+        kg_prev = tk.Frame(s2, bg=PALETTE["console_bg"], padx=self._px(10), pady=self._px(6))
+        kg_prev.pack(fill="x", pady=(0, self._px(8)))
+        tk.Label(
+            kg_prev,
+            textvariable=self.kg_preview_var,
+            bg=PALETTE["console_bg"],
+            fg=PALETTE["info"],
+            font=("Consolas", 8),
+            anchor="w",
+        ).pack(fill="x")
 
         r2 = tk.Frame(s2, bg=PALETTE["card"])
         r2.pack(fill="x")
@@ -1693,19 +1997,14 @@ class SynhaleesGUI:
             r2,
             text="Pull via Google Colab (Slim Only)",
             style="Accent.TButton",
-            command=lambda: self._guard_and_run_kaggle(
-                "pull",
-                build_kaggle_args(
-                    "pull",
-                    task=self.kg_task_var.get(),
-                    model=self.kg_model_var.get(),
-                    modality=self.kg_mod_label_var.get(),
-                    force=self.kg_force_var.get(),
-                    dry_run=self.kg_dry_var.get(),
-                    colab=True,
-                ),
-            ),
-        ).pack(side="left")
+            command=self._start_kaggle_pull,
+        ).pack(side="left", padx=(0, 8))
+        self.kg_retry_btn = ttk.Button(
+            r2,
+            text="Retry Failed Tasks",
+            style="Ghost.TButton",
+            command=self._retry_failed_kaggle_tasks,
+        )
 
         # STEP 3: Submit & Rebuild Site
         s3 = self._step_card(
@@ -1790,6 +2089,7 @@ class SynhaleesGUI:
         self.run_modality_var = tk.StringVar(value="text")
         self.run_pillars_var = tk.StringVar(value="all")
         self.run_fresh_var = tk.BooleanVar(value=False)
+        self.run_auto_publish_var = tk.BooleanVar(value=False)
 
         s1 = self._step_card(
             parent,
@@ -1819,9 +2119,16 @@ class SynhaleesGUI:
         ttk.Label(form, text="Pillars", style="CardText.TLabel").grid(row=1, column=2, sticky="w", padx=(0, 8), pady=5)
         ttk.Combobox(form, textvariable=self.run_pillars_var, values=["all", *list_pillars()]).grid(row=1, column=3, sticky="ew", pady=5)
 
-        ttk.Checkbutton(form, text="Fresh run (discard prior checkpoint)", variable=self.run_fresh_var).grid(
-            row=2, column=1, sticky="w", pady=(4, 0)
+        chk_row = tk.Frame(form, bg=PALETTE["card"])
+        chk_row.grid(row=2, column=1, columnspan=3, sticky="w", pady=(4, 0))
+        ttk.Checkbutton(chk_row, text="Fresh run (discard prior checkpoint)", variable=self.run_fresh_var).pack(
+            side="left", padx=(0, 16)
         )
+        ttk.Checkbutton(
+            chk_row,
+            text="Auto-publish & rebuild site on finish (0 errors)",
+            variable=self.run_auto_publish_var,
+        ).pack(side="left")
 
         self.run_preview_var = tk.StringVar()
         for var in (self.run_model_var, self.run_judge_var, self.run_modality_var, self.run_pillars_var, self.run_fresh_var):
@@ -1843,16 +2150,43 @@ class SynhaleesGUI:
         r1.pack(fill="x")
         ttk.Button(r1, text="Start Local Run", style="Accent.TButton", command=self._start_local_run).pack(side="left")
 
-        # STEP 2: Compare
+        # STEP 2: Local Runs Status & Compare
         s2 = self._step_card(
             parent,
             "STEP 2",
-            "Compare Completed Local Runs",
-            "Aggregates runs/*/submission.csv into runs/all_submissions.csv and prints a pillar comparison matrix.",
+            "Local Runs Status & Comparison",
+            "Inspect completed or partial checkpoints in runs/*/, resume an interrupted run, or build runs/all_submissions.csv.",
         )
-        ttk.Button(s2, text="Compare Local Runs (compare)", style="Ghost.TButton", command=lambda: self.run_cli(["compare"])).pack(
-            anchor="w"
+        self.local_runs_tree = self._make_scrolled_tree(
+            s2,
+            columns=("slug", "items", "errors", "overall", "status"),
+            height=5,
+            fill="x",
         )
+        for col, lbl, w in (
+            ("slug", "Run Slug", 220),
+            ("items", "Items", 80),
+            ("errors", "Errors", 80),
+            ("overall", "Score", 90),
+            ("status", "Status", 140),
+        ):
+            self.local_runs_tree.heading(col, text=lbl)
+            self.local_runs_tree.column(col, width=self._px(w), anchor="w" if col == "slug" else "center")
+        self.local_runs_tree.bind("<<TreeviewSelect>>", self._on_select_local_run)
+        s2_btns = tk.Frame(s2, bg=PALETTE["card"])
+        s2_btns.pack(fill="x", pady=(self._px(8), 0))
+        ttk.Button(s2_btns, text="Resume Selected Run", style="Ghost.TButton", command=self._resume_selected_local_run).pack(
+            side="left", padx=(0, 8)
+        )
+        ttk.Button(s2_btns, text="Compare Local Runs (compare)", style="Ghost.TButton", command=lambda: self.run_cli(["compare"])).pack(
+            side="left", padx=(0, 8)
+        )
+        ttk.Button(
+            s2_btns,
+            text="Inspect Run Scorecard",
+            style="Ghost.TButton",
+            command=lambda: open_scorecard_inspector(self, self.pub_slug_var.get().strip()),
+        ).pack(side="left")
 
         # STEP 3: Publish
         s3 = self._step_card(
@@ -1868,6 +2202,12 @@ class SynhaleesGUI:
         self.pub_combo.pack(side="left", fill="x", expand=True, padx=(0, 8))
         self.pub_dry_var = tk.BooleanVar(value=False)
         ttk.Checkbutton(prow, text="Dry run", variable=self.pub_dry_var).pack(side="left", padx=(0, 10))
+        ttk.Button(
+            prow,
+            text="Inspect",
+            style="Ghost.TButton",
+            command=lambda: open_scorecard_inspector(self, self.pub_slug_var.get().strip()),
+        ).pack(side="left", padx=(0, 8))
         ttk.Button(prow, text="Publish & Rebuild Site", style="Accent.TButton", command=self._publish_selected_run).pack(side="left")
 
     # ------------------------------------------------------------------ 4. Management
@@ -1877,107 +2217,198 @@ class SynhaleesGUI:
         self._page_header(
             parent,
             "Model & Organization Management",
-            "Manage registered models (display names, organizations, families, open-source flags) and organizations in synhalees/models.json.",
+            "Side-by-side workspace: manage models, bulk-edit taxonomy, adopt scorecards, and configure org logos & families.",
         )
 
-        # Model Management Card
+        cols = ttk.Frame(parent)
+        cols.pack(fill="both", expand=True)
+        cols.columnconfigure(0, weight=3)
+        cols.columnconfigure(1, weight=2)
+        left_m = ttk.Frame(cols)
+        left_m.grid(row=0, column=0, sticky="nsew", padx=(0, self._px(10)))
+        right_o = ttk.Frame(cols)
+        right_o.grid(row=0, column=1, sticky="nsew")
+
+        # Model Management Card (Left)
         m_card = self._step_card(
-            parent,
+            left_m,
             "MODEL MANAGEMENT",
             "Registered Models",
-            "Add, edit, or remove model registry entries (display_names & taxonomy in synhalees/models.json).",
+            "Ctrl/Shift-click for bulk edits · Double-click to edit · Right-click for quick actions.",
+            fill="both",
+            expand=True,
         )
         m_bar = tk.Frame(m_card, bg=PALETTE["card"])
-        m_bar.pack(fill="x", pady=(0, self._px(8)))
+        m_bar.pack(fill="x", pady=(0, self._px(6)))
         tk.Label(m_bar, text="Filter:", bg=PALETTE["card"], fg=PALETTE["muted"], font=("Segoe UI", 9)).pack(side="left")
         self.mgmt_model_search_var = tk.StringVar()
         self.mgmt_model_search_var.trace_add("write", lambda *_: self._populate_mgmt_tables())
-        ttk.Entry(m_bar, textvariable=self.mgmt_model_search_var, width=28).pack(side="left", padx=(8, 12))
+        self.mgmt_model_search_entry = ttk.Entry(m_bar, textvariable=self.mgmt_model_search_var, width=22)
+        self.mgmt_model_search_entry.pack(side="left", padx=(8, 8), fill="x", expand=True)
+        self.mgmt_model_search_entry.bind("<Escape>", lambda _e: self.mgmt_model_search_var.set(""))
+        self.mgmt_model_count_var = tk.StringVar(value="0")
+        tk.Label(m_bar, textvariable=self.mgmt_model_count_var, bg=PALETTE["card"], fg=PALETTE["info"], font=("Segoe UI", 8, "bold")).pack(
+            side="right"
+        )
+
+        m_btns = tk.Frame(m_card, bg=PALETTE["card"])
+        m_btns.pack(fill="x", pady=(0, self._px(8)))
         ttk.Button(
-            m_bar,
-            text="+ Add Model",
+            m_btns,
+            text="+ Add",
             style="Accent.TButton",
             command=lambda: self._open_mgmt_model_dialog(edit_selected=False),
-        ).pack(side="left", padx=(0, 8))
+        ).pack(side="left", padx=(0, 6))
         ttk.Button(
-            m_bar,
-            text="Edit Selected",
+            m_btns,
+            text="Edit",
             style="Ghost.TButton",
             command=lambda: self._open_mgmt_model_dialog(edit_selected=True),
-        ).pack(side="left", padx=(0, 8))
+        ).pack(side="left", padx=(0, 6))
         ttk.Button(
-            m_bar,
-            text="Delete Selected",
+            m_btns,
+            text="Bulk Edit…",
             style="Ghost.TButton",
+            command=self._open_bulk_edit_models_dialog,
+        ).pack(side="left", padx=(0, 6))
+        ttk.Button(
+            m_btns,
+            text="Inspect",
+            style="Ghost.TButton",
+            command=self._open_scorecard_inspector_from_mgmt,
+        ).pack(side="left", padx=(0, 6))
+        ttk.Button(
+            m_btns,
+            text="Adopt & Sync",
+            style="Ghost.TButton",
+            command=self._run_adopt_and_sync_scorecards,
+        ).pack(side="left", padx=(0, 6))
+        ttk.Button(
+            m_btns,
+            text="Delete",
+            style="Danger.TButton",
             command=self._delete_selected_mgmt_model,
-        ).pack(side="left")
+        ).pack(side="right")
 
         self.mgmt_models_tree = self._make_scrolled_tree(
             m_card,
             columns=("canonical", "display", "org", "family", "oss", "tva"),
-            height=9,
-            selectmode="browse",
+            height=15,
+            selectmode="extended",
+            show="tree headings",
+            fill="both",
+            expand=True,
         )
+        self.mgmt_models_tree.heading("#0", text="")
+        self.mgmt_models_tree.column("#0", width=self._px(28), stretch=False, anchor="center")
         for col, lbl, w in (
-            ("canonical", "Canonical Slug", 210),
-            ("display", "Display Name", 210),
-            ("org", "Organization", 110),
-            ("family", "Family", 110),
-            ("oss", "Open Source", 95),
-            ("tva", "T / V / A", 85),
+            ("canonical", "Canonical Slug", 160),
+            ("display", "Display Name", 155),
+            ("org", "Org", 80),
+            ("family", "Family", 80),
+            ("oss", "OSS", 55),
+            ("tva", "TVA", 55),
         ):
             self.mgmt_models_tree.heading(col, text=lbl)
             self.mgmt_models_tree.column(col, width=self._px(w), anchor="w" if col not in ("oss", "tva") else "center")
+        self._bind_toggle_tree(self.mgmt_models_tree)
         self.mgmt_models_tree.bind("<Double-1>", lambda _e: self._open_mgmt_model_dialog(edit_selected=True))
-
-        # Organization Management Card
-        o_card = self._step_card(
-            parent,
-            "ORGANIZATION MANAGEMENT",
-            "Organizations / Providers",
-            "Create, edit, or remove organizations, logos, colors, and aliases in synhalees/models.json.",
+        self.mgmt_models_tree.bind("<Return>", lambda _e: self._open_mgmt_model_dialog(edit_selected=True))
+        self.mgmt_models_tree.bind("<Delete>", lambda _e: self._delete_selected_mgmt_model())
+        self.mgmt_models_tree.bind("<Control-c>", lambda _e: self._copy_tree_selection(self.mgmt_models_tree, 0, "slug"))
+        self._bind_tree_context_menu(
+            self.mgmt_models_tree,
+            lambda vals: [
+                ("Edit Model… (Enter)", lambda: self._open_mgmt_model_dialog(edit_selected=True)),
+                ("Bulk Edit Selected…", self._open_bulk_edit_models_dialog),
+                ("Inspect Scorecard / Compare…", lambda: open_scorecard_inspector(self, vals[0])),
+                None,
+                ("Copy Canonical Slug (Ctrl+C)", lambda: self._copy_text_to_clipboard(vals[0], "slug")),
+                ("Filter by Organization", lambda: self.mgmt_model_search_var.set(vals[2])),
+                ("Target in Kaggle Sync (-m)", lambda: (self.kg_model_var.set(vals[0]), self.select_page("kaggle"))),
+                None,
+                ("Delete Selected… (Del)", self._delete_selected_mgmt_model),
+            ],
         )
+
+        # Organization Management Card (Right)
+        o_card = self._step_card(
+            right_o,
+            "ORGANIZATION MANAGEMENT",
+            "Organizations & Families",
+            "Logos (SVG/PNG), brand colors, aliases & family taxonomy.",
+            fill="both",
+            expand=True,
+        )
+        o_filt = tk.Frame(o_card, bg=PALETTE["card"])
+        o_filt.pack(fill="x", pady=(0, self._px(6)))
+        tk.Label(o_filt, text="Filter:", bg=PALETTE["card"], fg=PALETTE["muted"], font=("Segoe UI", 9)).pack(side="left")
+        self.mgmt_org_search_var = tk.StringVar()
+        self.mgmt_org_search_var.trace_add("write", lambda *_: self._populate_mgmt_tables())
+        o_ent = ttk.Entry(o_filt, textvariable=self.mgmt_org_search_var, width=18)
+        o_ent.pack(side="left", padx=(8, 8), fill="x", expand=True)
+        o_ent.bind("<Escape>", lambda _e: self.mgmt_org_search_var.set(""))
+        self.mgmt_org_count_var = tk.StringVar(value="0")
+        tk.Label(o_filt, textvariable=self.mgmt_org_count_var, bg=PALETTE["card"], fg=PALETTE["info"], font=("Segoe UI", 8, "bold")).pack(
+            side="right"
+        )
+
         o_bar = tk.Frame(o_card, bg=PALETTE["card"])
         o_bar.pack(fill="x", pady=(0, self._px(8)))
         ttk.Button(
             o_bar,
-            text="+ Add Organization",
+            text="+ Add Org",
             style="Accent.TButton",
             command=lambda: self._open_mgmt_org_dialog(edit_selected=False),
-        ).pack(side="left", padx=(0, 8))
+        ).pack(side="left", padx=(0, 6))
         ttk.Button(
             o_bar,
-            text="Edit Selected",
+            text="Edit / Families",
             style="Ghost.TButton",
             command=lambda: self._open_mgmt_org_dialog(edit_selected=True),
-        ).pack(side="left", padx=(0, 8))
+        ).pack(side="left", padx=(0, 6))
         ttk.Button(
             o_bar,
-            text="Delete Selected",
-            style="Ghost.TButton",
+            text="Delete",
+            style="Danger.TButton",
             command=self._delete_selected_mgmt_org,
-        ).pack(side="left")
+        ).pack(side="right")
 
         self.mgmt_orgs_tree = self._make_scrolled_tree(
             o_card,
             columns=("slug", "name", "logo", "color", "families", "aliases"),
-            height=8,
+            height=15,
             selectmode="browse",
             show="tree headings",
+            fill="both",
+            expand=True,
         )
         self.mgmt_orgs_tree.heading("#0", text="Badge")
-        self.mgmt_orgs_tree.column("#0", width=self._px(58), stretch=False, anchor="center")
+        self.mgmt_orgs_tree.column("#0", width=self._px(54), stretch=False, anchor="center")
         for col, lbl, w in (
-            ("slug", "Org Slug", 120),
-            ("name", "Display Name", 150),
-            ("logo", "Logo", 110),
-            ("color", "Color", 90),
-            ("families", "Families", 180),
-            ("aliases", "Aliases", 180),
+            ("slug", "Slug", 85),
+            ("name", "Name", 105),
+            ("logo", "Logo", 80),
+            ("color", "Color", 80),
+            ("families", "Families", 110),
+            ("aliases", "Aliases", 110),
         ):
             self.mgmt_orgs_tree.heading(col, text=lbl)
             self.mgmt_orgs_tree.column(col, width=self._px(w), anchor="w")
         self.mgmt_orgs_tree.bind("<Double-1>", lambda _e: self._open_mgmt_org_dialog(edit_selected=True))
+        self.mgmt_orgs_tree.bind("<Return>", lambda _e: self._open_mgmt_org_dialog(edit_selected=True))
+        self.mgmt_orgs_tree.bind("<Delete>", lambda _e: self._delete_selected_mgmt_org())
+        self.mgmt_orgs_tree.bind("<Control-c>", lambda _e: self._copy_tree_selection(self.mgmt_orgs_tree, 0, "org"))
+        self._bind_tree_context_menu(
+            self.mgmt_orgs_tree,
+            lambda vals: [
+                ("Edit Org / Families… (Enter)", lambda: self._open_mgmt_org_dialog(edit_selected=True)),
+                ("Filter Models by This Org", lambda: self.mgmt_model_search_var.set(vals[0])),
+                ("Copy Org Slug (Ctrl+C)", lambda: self._copy_text_to_clipboard(vals[0], "org")),
+                None,
+                ("Delete Organization… (Del)", self._delete_selected_mgmt_org),
+            ],
+        )
 
     # ------------------------------------------------------------------ 5. Site & CI
 
@@ -1986,15 +2417,51 @@ class SynhaleesGUI:
         self._page_header(
             parent,
             "Static Site & Verification Gates",
-            "Keep docs/assets/data/* and docs/assets/logo-data.js in sync with submissions/ and run CI checks before committing.",
+            "Regenerate docs/assets/logo-data.js & docs/assets/data/* and verify all 4 CI gates before committing.",
         )
+
+        gates_row = ttk.Frame(parent)
+        gates_row.pack(fill="x", pady=(0, self._px(12)))
+        for col in range(4):
+            gates_row.columnconfigure(col, weight=1, uniform="ci_gates")
+
+        self.site_gate_cards: dict[str, tuple[Any, Any, Any]] = {}
+        for idx, (gkey, gtitle) in enumerate((
+            ("logos", "1. LOGO-DATA.JS"),
+            ("data", "2. LEADERBOARD DATA"),
+            ("schemas", "3. 15 PILLAR SCHEMAS"),
+            ("compile", "4. PYTHON COMPILE"),
+        )):
+            card = tk.Frame(
+                gates_row,
+                bg=PALETTE["card"],
+                highlightthickness=1,
+                highlightbackground=PALETTE["border"],
+                padx=self._px(12),
+                pady=self._px(10),
+            )
+            card.grid(row=0, column=idx, sticky="nsew", padx=(0 if idx == 0 else self._px(8), 0))
+            ttk.Label(card, text=gtitle, style="CardTitle.TLabel").pack(anchor="w")
+            v_state = tk.StringVar(value="—")
+            v_detail = tk.StringVar(value="")
+            lbl = tk.Label(
+                card,
+                textvariable=v_state,
+                bg=PALETTE["card"],
+                fg=PALETTE["text"],
+                font=("Segoe UI", 12, "bold"),
+                anchor="w",
+            )
+            lbl.pack(anchor="w", pady=(4, 2))
+            ttk.Label(card, textvariable=v_detail, style="CardSub.TLabel").pack(anchor="w")
+            self.site_gate_cards[gkey] = (v_state, v_detail, lbl)
 
         self.site_sync_detail_var = tk.StringVar(value="")
         c1 = self._step_card(
             parent,
-            "STEP 1",
-            "Run Pre-Commit Verification Gates",
-            "Checks logo-data.js checksum, leaderboard JSON sync, all 15 dataset CSV schemas, and Python syntax compilation.",
+            "STEP 1 · PIPELINE",
+            "Regenerate & Verify All Static Site Gates",
+            "Chains `site logos` -> `site build` -> `synhalees check` in order so all generated assets stay synced.",
         )
         tk.Label(
             c1,
@@ -2003,15 +2470,24 @@ class SynhaleesGUI:
             fg=PALETTE["info"],
             font=("Segoe UI", 9, "bold"),
         ).pack(anchor="w", pady=(0, self._px(8)))
-        ttk.Button(c1, text="Run All Checks (synhalees check)", style="Accent.TButton", command=lambda: self.run_cli(["check"])).pack(
-            anchor="w"
+        r1 = tk.Frame(c1, bg=PALETTE["card"])
+        r1.pack(fill="x")
+        ttk.Button(
+            r1,
+            text="Sync & Verify All (Logos -> Build -> Check)",
+            style="Accent.TButton",
+            command=self._sync_and_verify_site,
+        ).pack(side="left", padx=(0, 8))
+        ttk.Button(r1, text="Run Checks Only (check)", style="Ghost.TButton", command=lambda: self.run_cli(["check"])).pack(
+            side="left", padx=(0, 8)
         )
+        ttk.Button(r1, text="Preview docs/index.html", style="Ghost.TButton", command=self._open_leaderboard).pack(side="left")
 
         c2 = self._step_card(
             parent,
-            "STEP 2",
-            "Regenerate Generated Site Files",
-            "Never hand-edit docs/assets/data/* or docs/assets/logo-data.js — regenerate them directly here.",
+            "STEP 2 · INDIVIDUAL",
+            "Granular Site Rebuild Actions",
+            "Never hand-edit docs/assets/data/* or docs/assets/logo-data.js — regenerate individual artifacts here.",
         )
         r2 = tk.Frame(c2, bg=PALETTE["card"])
         r2.pack(fill="x")
@@ -2019,9 +2495,8 @@ class SynhaleesGUI:
             side="left", padx=(0, 8)
         )
         ttk.Button(r2, text="Rebuild Logo Data (site logos)", style="Ghost.TButton", command=lambda: self.run_cli(["site", "logos"])).pack(
-            side="left", padx=(0, 8)
+            side="left"
         )
-        ttk.Button(r2, text="Preview docs/index.html", style="Ghost.TButton", command=self._open_leaderboard).pack(side="left")
 
     # ------------------------------------------------------------------ Data refresh
 
@@ -2042,16 +2517,42 @@ class SynhaleesGUI:
         self.site_sync_detail_var.set(
             f"Current Sync: logo-data.js={'OK' if snap.logos_ok else 'STALE'}  |  docs/assets/data={'OK' if snap.site_data_ok else 'STALE'}"
         )
+        self._update_site_gate_cards(snap)
 
         self.pub_combo["values"] = snap.local_runs
-        if snap.local_runs and not self.pub_slug_var.get():
+        if snap.local_runs and (not self.pub_slug_var.get() or self.pub_slug_var.get() not in snap.local_runs):
             self.pub_slug_var.set(snap.local_runs[0])
 
         self._populate_pillars_table()
         self._populate_models_table()
         self._populate_mgmt_tables()
+        self._populate_local_runs_table()
         self._populate_kaggle_table()
         self._sync_token_button()
+
+    def _update_site_gate_cards(self, snap: DashboardSnapshot) -> None:
+        if not hasattr(self, "site_gate_cards"):
+            return
+        updates = {
+            "logos": ("PASS" if snap.logos_ok else "STALE", "checksum verified" if snap.logos_ok else "run site logos", PALETTE["ok"] if snap.logos_ok else PALETTE["warn"]),
+            "data": ("PASS" if snap.site_data_ok else "STALE", f"{snap.submission_models} models" if snap.site_data_ok else "run site build", PALETTE["ok"] if snap.site_data_ok else PALETTE["warn"]),
+            "schemas": ("READY", f"T:{snap.text_items} V:{snap.vision_items} A:{snap.audio_items}", PALETTE["info"]),
+            "compile": ("READY", "synhalees + tools", PALETTE["info"]),
+        }
+        for key, (st, det, col) in updates.items():
+            v_st, v_det, lbl = self.site_gate_cards[key]
+            v_st.set(st)
+            v_det.set(det)
+            lbl.configure(fg=col)
+
+    def _set_site_gate(self, key: str, state: str, detail: str, color: str) -> None:
+        if not hasattr(self, "site_gate_cards") or key not in self.site_gate_cards:
+            return
+        v_st, v_det, lbl = self.site_gate_cards[key]
+        v_st.set(state)
+        if detail:
+            v_det.set(detail)
+        lbl.configure(fg=color)
 
     def _sync_token_button(self) -> None:
         if not hasattr(self, "kg_token_btn"):
@@ -2064,9 +2565,16 @@ class SynhaleesGUI:
 
     def _populate_pillars_table(self) -> None:
         self.pillars_tree.delete(*self.pillars_tree.get_children())
+        q = self.pillar_search_var.get().strip().lower() if hasattr(self, "pillar_search_var") else ""
+        idx = 0
         for p in list_pillars():
+            if q and q not in p.lower():
+                continue
             pd = load_pillar(p, strict=False)
-            self.pillars_tree.insert("", "end", values=(p, len(pd.text), len(pd.vision), len(pd.audio)))
+            stripe = "odd" if idx % 2 else "even"
+            self.pillars_tree.insert("", "end", tags=(stripe,), values=(p, len(pd.text), len(pd.vision), len(pd.audio)))
+            idx += 1
+        self._ensure_tree_empty_state(self.pillars_tree, "No matching pillars")
 
     def _populate_models_table(self) -> None:
         from synhalees.cli import _scan_submissions
@@ -2074,13 +2582,42 @@ class SynhaleesGUI:
         self.models_tree.delete(*self.models_tree.get_children())
         subs = _scan_submissions()
         q = self.model_search_var.get().strip().lower() if hasattr(self, "model_search_var") else ""
+        data = json.loads(MODELS_JSON.read_text(encoding="utf-8"))
+        providers = dict(data.get("providers") or {})
+        named_colors = dict(data.get("named_colors") or {})
+        idx = 0
         for m in _all_model_slugs():
             prov = default_registry.resolve_taxonomy(m)[0]
             if q and q not in m.lower() and q not in prov.lower():
                 continue
             mods = subs.get(m, {}).get("modalities", set())
             tva = "".join(k[0].upper() if k in mods else "-" for k in ("text", "vision", "audio"))
-            self.models_tree.insert("", "end", values=(m, prov, tva))
+            p_meta = providers.get(prov, {})
+            logo_slug = str(p_meta.get("logo") or prov or "org")
+            cname = str(p_meta.get("color") or "gray")
+            hex_color = str(named_colors.get(cname, cname if cname.startswith("#") else "#78909C"))
+            icon = self._get_org_logo_only_icon(logo_slug, hex_color)
+            stripe = "odd" if idx % 2 else "even"
+            tags = (stripe, "warn") if prov in _UNKNOWN_ORG_TOKENS else (stripe,)
+            self.models_tree.insert("", "end", text="", image=icon, tags=tags, values=(m, prov, tva))
+            idx += 1
+        self._ensure_tree_empty_state(self.models_tree, "No matching models — press Esc to clear")
+
+    def _populate_local_runs_table(self) -> None:
+        if not hasattr(self, "local_runs_tree"):
+            return
+        self.local_runs_tree.delete(*self.local_runs_tree.get_children())
+        rows = collect_local_runs_summary()
+        for idx, r in enumerate(rows):
+            stripe = "odd" if idx % 2 else "even"
+            tag = "ok" if r["has_csv"] else "warn"
+            self.local_runs_tree.insert(
+                "",
+                "end",
+                tags=(stripe, tag),
+                values=(r["slug"], r["items"], r["errors"], r["overall"], r["status"]),
+            )
+        self._ensure_tree_empty_state(self.local_runs_tree, "No local runs found under runs/")
 
     def _populate_mgmt_tables(self) -> None:
         if not hasattr(self, "mgmt_models_tree"):
@@ -2089,12 +2626,16 @@ class SynhaleesGUI:
 
         data = json.loads(MODELS_JSON.read_text(encoding="utf-8"))
         providers = dict(data.get("providers") or {})
+        named_colors = dict(data.get("named_colors") or {})
         disp = dict(data.get("display_names") or {})
         subs = _scan_submissions()
         q = self.mgmt_model_search_var.get().strip().lower() if hasattr(self, "mgmt_model_search_var") else ""
 
+        self._org_icons: dict[tuple[str, str], Any] = {}
+        self._org_small_icons: dict[tuple[str, str], Any] = {}
         self.mgmt_models_tree.delete(*self.mgmt_models_tree.get_children())
         all_slugs = sorted({*_all_model_slugs(), *disp.keys()}, key=str.lower)
+        shown_m = 0
         for m in all_slugs:
             dname = str(disp.get(m) or default_registry.get_model_display_name(m))
             prov, fam, is_oss = default_registry.resolve_taxonomy(m)
@@ -2102,37 +2643,61 @@ class SynhaleesGUI:
                 continue
             mods = subs.get(m, {}).get("modalities", set())
             tva = "".join(k[0].upper() if k in mods else "-" for k in ("text", "vision", "audio"))
+            p_meta = providers.get(prov, {})
+            logo_slug = str(p_meta.get("logo") or prov or "org")
+            cname = str(p_meta.get("color") or "gray")
+            hex_color = str(named_colors.get(cname, cname if cname.startswith("#") else "#78909C"))
+            icon = self._get_org_logo_only_icon(logo_slug, hex_color)
+            stripe = "odd" if shown_m % 2 else "even"
+            needs_reg = m not in disp or prov in _UNKNOWN_ORG_TOKENS or fam in _UNKNOWN_ORG_TOKENS
+            tags = (stripe, "warn") if needs_reg else (stripe,)
             self.mgmt_models_tree.insert(
                 "",
                 "end",
+                text="",
+                image=icon,
+                tags=tags,
                 values=(m, dname, prov, fam, "Yes" if is_oss else "No", tva),
             )
+            shown_m += 1
+        self._ensure_tree_empty_state(self.mgmt_models_tree, "No matching models — press Esc to clear")
+        if hasattr(self, "mgmt_model_count_var"):
+            self.mgmt_model_count_var.set(f"{shown_m}/{len(all_slugs)}")
 
-        named_colors = dict(data.get("named_colors") or {})
-        self._org_icons: dict[tuple[str, str], Any] = {}
+        oq = self.mgmt_org_search_var.get().strip().lower() if hasattr(self, "mgmt_org_search_var") else ""
         self.mgmt_orgs_tree.delete(*self.mgmt_orgs_tree.get_children())
+        shown_o = 0
         for slug in sorted(providers):
             p = providers[slug]
+            name = str(p.get("name", slug))
             fams = ", ".join(sorted((p.get("families") or {}).keys()))
             aliases = ", ".join(p.get("aliases") or [])
+            if oq and oq not in slug.lower() and oq not in name.lower() and oq not in fams.lower() and oq not in aliases.lower():
+                continue
             logo_slug = str(p.get("logo", slug) or slug)
             color_name = str(p.get("color", "gray") or "gray")
             hex_color = str(named_colors.get(color_name, color_name if color_name.startswith("#") else "#78909C"))
             icon = self._make_org_preview_icon(logo_slug, hex_color)
+            stripe = "odd" if shown_o % 2 else "even"
             self.mgmt_orgs_tree.insert(
                 "",
                 "end",
                 text="",
                 image=icon,
-                values=(
-                    slug,
-                    p.get("name", slug),
-                    logo_slug,
-                    color_name,
-                    fams,
-                    aliases,
-                ),
+                tags=(stripe,),
+                values=(slug, name, logo_slug, color_name, fams, aliases),
             )
+            shown_o += 1
+        self._ensure_tree_empty_state(self.mgmt_orgs_tree, "No matching organizations")
+        if hasattr(self, "mgmt_org_count_var"):
+            self.mgmt_org_count_var.set(f"{shown_o}/{len(providers)}")
+
+    def _invalidate_icon_caches(self) -> None:
+        for attr in ("_logo_png_cache", "_logo_svg_cache"):
+            if hasattr(self, attr):
+                delattr(self, attr)
+        self._org_icons = {}
+        self._org_small_icons = {}
 
     def _load_logo_png_b64(self) -> dict[str, str]:
         if hasattr(self, "_logo_png_cache"):
@@ -2140,56 +2705,146 @@ class SynhaleesGUI:
         cache: dict[str, str] = {}
         js_path = ROOT / "docs" / "assets" / "logo-data.js"
         if js_path.exists():
-            import re
-
             text = js_path.read_text(encoding="utf-8", errors="replace")
             for m in re.finditer(r'"([^"]+)":\s*"data:image/png;base64,([^"]+)"', text):
                 cache[m.group(1)] = m.group(2)
+            brand_m = re.search(r'SYNHALEES_BRAND_ICON\s*=\s*"data:image/png;base64,([^"]+)"', text)
+            if brand_m:
+                cache["synhalaAI"] = brand_m.group(1)
+                cache["synhalaai"] = brand_m.group(1)
+        icon_png = ROOT / "docs" / "assets" / "icon.png"
+        if "synhalaAI" not in cache and icon_png.is_file():
+            import base64
+            b64 = base64.b64encode(icon_png.read_bytes()).decode("ascii")
+            cache["synhalaAI"] = b64
+            cache["synhalaai"] = b64
         self._logo_png_cache = cache
         return cache
 
-    def _make_org_preview_icon(self, logo_slug: str, hex_color: str) -> Any:
-        key = (logo_slug, hex_color)
-        if key in self._org_icons:
-            return self._org_icons[key]
-        tk = self.tk
-        badge = tk.PhotoImage(master=self.root, width=38, height=16)
+    def _load_logo_svg_map(self) -> dict[str, str]:
+        if hasattr(self, "_logo_svg_cache"):
+            return self._logo_svg_cache
+        self._logo_svg_cache = load_svg_sources_map(ROOT)
+        return self._logo_svg_cache
 
-        # Left 16x16: actual PNG logo if embedded in logo-data.js, else colored icon tile
+    def _draw_logo_16x16_into(self, target_img: Any, ox: int, oy: int, logo_slug: str, hex_color: str) -> None:
+        """Render Tier 1 PNG -> Tier 2 pure-stdlib SVG -> Tier 3 monogram into a 16x16 slot."""
+        tk = self.tk
+        # Tier 1: PNG from logo-data.js / icon.png (with luminance-aware tile & block averaging)
         png_b64 = self._load_logo_png_b64().get(logo_slug)
-        drew_png = False
         if png_b64:
             try:
                 raw = tk.PhotoImage(master=self.root, data=png_b64)
-                step = max(1, max(raw.width(), raw.height()) // 16)
-                small = raw.subsample(step, step) if step > 1 else raw
-                w = min(16, small.width())
-                h = min(16, small.height())
-                ox = (16 - w) // 2
-                oy = (16 - h) // 2
-                badge.put("#FFFFFF", to=(0, 0, 16, 16))
-                for y in range(h):
-                    for x in range(w):
-                        if not small.transparency_get(x, y):
-                            r, g, b = small.get(x, y)
-                            badge.put(f"#{r:02x}{g:02x}{b:02x}", to=(ox + x, oy + y))
-                drew_png = True
+                rw, rh = max(1, raw.width()), max(1, raw.height())
+                # Detect foreground luminance to choose contrasting tile background (e.g. white xAI logo)
+                lum_vals: list[float] = []
+                sample_step = max(1, max(rw, rh) // 16)
+                for sy in range(0, rh, sample_step):
+                    for sx in range(0, rw, sample_step):
+                        if not raw.transparency_get(sx, sy):
+                            r, g, b = raw.get(sx, sy)
+                            lum_vals.append(0.299 * r + 0.587 * g + 0.114 * b)
+                avg_lum = (sum(lum_vals) / len(lum_vals)) if lum_vals else 0.0
+                bg_tile = "#1e293b" if avg_lum > 185 else "#f8fafc"
+                br, bg_c, bb = int(bg_tile[1:3], 16), int(bg_tile[3:5], 16), int(bg_tile[5:7], 16)
+                target_img.put(bg_tile, to=(ox, oy, ox + 16, oy + 16))
+                scale_x = rw / 16.0
+                scale_y = rh / 16.0
+                for dy in range(16):
+                    y0 = int(dy * scale_y)
+                    y1 = max(y0 + 1, min(rh, int((dy + 1) * scale_y)))
+                    for dx in range(16):
+                        x0 = int(dx * scale_x)
+                        x1 = max(x0 + 1, min(rw, int((dx + 1) * scale_x)))
+                        rs = gs = bs = tot = opq = 0
+                        for py in range(y0, y1):
+                            for px in range(x0, x1):
+                                tot += 1
+                                if not raw.transparency_get(px, py):
+                                    r, g, b = raw.get(px, py)
+                                    rs += r
+                                    gs += g
+                                    bs += b
+                                    opq += 1
+                        if opq:
+                            alpha = opq / tot
+                            r_f = round((rs / opq) * alpha + br * (1.0 - alpha))
+                            g_f = round((gs / opq) * alpha + bg_c * (1.0 - alpha))
+                            b_f = round((bs / opq) * alpha + bb * (1.0 - alpha))
+                            target_img.put(f"#{r_f:02x}{g_f:02x}{b_f:02x}", to=(ox + dx, oy + dy))
+                return
             except Exception:
-                drew_png = False
-        if not drew_png:
-            badge.put("#334155", to=(0, 0, 16, 16))
-            badge.put(hex_color, to=(1, 1, 15, 15))
-            badge.put("#FFFFFF", to=(6, 6, 10, 10))
+                pass
 
-        # Right 14x14: actual color swatch
+        # Tier 2: Pure-stdlib 24x24 SVG path rasterizer
+        svg_txt = self._load_logo_svg_map().get(logo_slug, "")
+        if svg_txt:
+            grid = rasterize_svg_to_grid(svg_txt, size=16, fg_fallback=hex_color)
+            if grid is not None:
+                for gy, row_cols in enumerate(grid):
+                    target_img.put("{" + " ".join(row_cols) + "}", to=(ox, oy + gy))
+                return
+
+        # Tier 3: Crisp 5x7 monogram glyph on brand-colored tile
+        mgrid = render_monogram_grid(logo_slug[:1] or "?", hex_color, size=16)
+        for gy, row_cols in enumerate(mgrid):
+            target_img.put("{" + " ".join(row_cols) + "}", to=(ox, oy + gy))
+
+    def _get_org_logo_only_icon(self, logo_slug: str, hex_color: str) -> Any:
+        if not hasattr(self, "_org_small_icons"):
+            self._org_small_icons = {}
+        key = (logo_slug, hex_color)
+        if key in self._org_small_icons:
+            return self._org_small_icons[key]
+        img = self.tk.PhotoImage(master=self.root, width=16, height=16)
+        self._draw_logo_16x16_into(img, 0, 0, logo_slug, hex_color)
+        self._org_small_icons[key] = img
+        return img
+
+    def _make_org_preview_icon(self, logo_slug: str, hex_color: str) -> Any:
+        if not hasattr(self, "_org_icons"):
+            self._org_icons = {}
+        key = (logo_slug, hex_color)
+        if key in self._org_icons:
+            return self._org_icons[key]
+        badge = self.tk.PhotoImage(master=self.root, width=38, height=16)
+        self._draw_logo_16x16_into(badge, 0, 0, logo_slug, hex_color)
         badge.put("#475569", to=(22, 1, 36, 15))
         badge.put(hex_color, to=(23, 2, 35, 14))
         self._org_icons[key] = badge
         return badge
 
+    def _copy_tree_selection(self, tree: Any, col_idx: int, label: str) -> None:
+        sel = tree.selection()
+        if not sel or sel[0] == "__empty__":
+            return
+        vals = tree.item(sel[0], "values")
+        if vals and len(vals) > col_idx:
+            self._copy_text_to_clipboard(str(vals[col_idx]), label)
+
+    def _open_selected_pillar_inspector(self) -> None:
+        sel = self.pillars_tree.selection()
+        if sel and sel[0] != "__empty__":
+            vals = self.pillars_tree.item(sel[0], "values")
+            if vals:
+                open_pillar_inspector(self, str(vals[0]))
+                return
+        open_pillar_inspector(self, None)
+
+    def _open_scorecard_inspector_from_overview(self) -> None:
+        sel = self.models_tree.selection()
+        slug = str(self.models_tree.item(sel[0], "values")[0]) if (sel and sel[0] != "__empty__") else ""
+        open_scorecard_inspector(self, slug)
+
+    def _open_scorecard_inspector_from_mgmt(self) -> None:
+        sel = [i for i in self.mgmt_models_tree.selection() if i != "__empty__"]
+        slug_a = str(self.mgmt_models_tree.item(sel[0], "values")[0]) if sel else ""
+        slug_b = str(self.mgmt_models_tree.item(sel[1], "values")[0]) if len(sel) >= 2 else ""
+        open_scorecard_inspector(self, slug_a, slug_b)
+
     def _open_mgmt_model_dialog(self, *, edit_selected: bool = False) -> None:
         tk, ttk = self.tk, self.ttk
-        sel = self.mgmt_models_tree.selection() if edit_selected else ()
+        sel = [i for i in self.mgmt_models_tree.selection() if i != "__empty__"] if edit_selected else []
         if edit_selected and not sel:
             self.messagebox.showinfo("Select Model", "Select a model row first to edit.")
             return
@@ -2201,7 +2856,8 @@ class SynhaleesGUI:
         init_oss = str(vals[4]) == "Yes"
 
         data = json.loads(MODELS_JSON.read_text(encoding="utf-8"))
-        org_choices = sorted((data.get("providers") or {}).keys())
+        providers = dict(data.get("providers") or {})
+        org_choices = sorted(providers.keys())
 
         dlg = tk.Toplevel(self.root)
         dlg.title("Edit Model" if edit_selected else "Add Model")
@@ -2230,10 +2886,24 @@ class SynhaleesGUI:
         ttk.Entry(wrap, textvariable=disp_var).grid(row=1, column=1, sticky="ew", padx=(10, 0), pady=6)
 
         tk.Label(wrap, text="Organization", bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Segoe UI", 9)).grid(row=2, column=0, sticky="w", pady=6)
-        ttk.Combobox(wrap, textvariable=org_var, values=org_choices, state="readonly").grid(row=2, column=1, sticky="ew", padx=(10, 0), pady=6)
+        org_cb = ttk.Combobox(wrap, textvariable=org_var, values=org_choices, state="readonly")
+        org_cb.grid(row=2, column=1, sticky="ew", padx=(10, 0), pady=6)
 
         tk.Label(wrap, text="Family", bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Segoe UI", 9)).grid(row=3, column=0, sticky="w", pady=6)
-        ttk.Entry(wrap, textvariable=fam_var).grid(row=3, column=1, sticky="ew", padx=(10, 0), pady=6)
+        fam_cb = ttk.Combobox(wrap, textvariable=fam_var, values=sorted((providers.get(org_var.get(), {}).get("families") or {}).keys()))
+        fam_cb.grid(row=3, column=1, sticky="ew", padx=(10, 0), pady=6)
+
+        def _on_org_picked(_e: Any = None) -> None:
+            o = org_var.get().strip().lower()
+            fams = sorted((providers.get(o, {}).get("families") or {}).keys())
+            fam_cb["values"] = fams
+            if fams and fam_var.get().strip() not in fams:
+                fam_var.set(fams[0])
+            fobj = (providers.get(o, {}).get("families") or {}).get(fam_var.get().strip())
+            if isinstance(fobj, dict):
+                oss_var.set(bool(fobj.get("open_source", False)))
+
+        org_cb.bind("<<ComboboxSelected>>", _on_org_picked)
 
         ttk.Checkbutton(wrap, text="Open-source / open-weights model", variable=oss_var).grid(row=4, column=1, sticky="w", padx=(10, 0), pady=6)
 
@@ -2262,133 +2932,379 @@ class SynhaleesGUI:
 
         ttk.Button(btns, text="Save Model", style="Accent.TButton", command=_save).pack(side="right", padx=(8, 0))
         ttk.Button(btns, text="Cancel", style="Ghost.TButton", command=dlg.destroy).pack(side="right")
+        dlg.bind("<Escape>", lambda _e: dlg.destroy())
+        dlg.bind("<Return>", lambda _e: _save())
+
+    def _open_bulk_edit_models_dialog(self) -> None:
+        tk, ttk = self.tk, self.ttk
+        sel = [i for i in self.mgmt_models_tree.selection() if i != "__empty__"]
+        if not sel:
+            self.messagebox.showinfo("Select Models", "Select one or more models first (Ctrl/Shift-click) to bulk edit.")
+            return
+        slugs = [str(self.mgmt_models_tree.item(i, "values")[0]) for i in sel]
+        data = json.loads(MODELS_JSON.read_text(encoding="utf-8"))
+        providers = dict(data.get("providers") or {})
+        org_choices = ["(Keep current)", *sorted(providers.keys())]
+
+        dlg = tk.Toplevel(self.root)
+        dlg.title(f"Bulk Edit {len(slugs)} Model(s)")
+        dlg.configure(bg=PALETTE["surface"])
+        dlg.transient(self.root)
+        dlg.grab_set()
+        self._center_dialog(dlg, self._px(480), self._px(270))
+
+        wrap = tk.Frame(dlg, bg=PALETTE["surface"], padx=self._px(18), pady=self._px(16))
+        wrap.pack(fill="both", expand=True)
+        wrap.columnconfigure(1, weight=1)
+
+        tk.Label(
+            wrap,
+            text=f"Updating {len(slugs)} model(s): {', '.join(slugs[:4])}{'…' if len(slugs) > 4 else ''}",
+            bg=PALETTE["surface"],
+            fg=PALETTE["info"],
+            font=("Segoe UI", 9, "bold"),
+        ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 10))
+
+        org_var = tk.StringVar(value="(Keep current)")
+        fam_var = tk.StringVar(value="")
+        oss_var = tk.StringVar(value="(Keep current)")
+
+        tk.Label(wrap, text="Organization", bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Segoe UI", 9)).grid(row=1, column=0, sticky="w", pady=6)
+        org_cb = ttk.Combobox(wrap, textvariable=org_var, values=org_choices, state="readonly")
+        org_cb.grid(row=1, column=1, sticky="ew", padx=(10, 0), pady=6)
+
+        tk.Label(wrap, text="Family (blank=keep)", bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Segoe UI", 9)).grid(row=2, column=0, sticky="w", pady=6)
+        fam_cb = ttk.Combobox(wrap, textvariable=fam_var, values=[])
+        fam_cb.grid(row=2, column=1, sticky="ew", padx=(10, 0), pady=6)
+
+        def _on_org(_e: Any = None) -> None:
+            o = org_var.get()
+            fam_cb["values"] = sorted((providers.get(o, {}).get("families") or {}).keys()) if o in providers else []
+
+        org_cb.bind("<<ComboboxSelected>>", _on_org)
+
+        tk.Label(wrap, text="Open Source", bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Segoe UI", 9)).grid(row=3, column=0, sticky="w", pady=6)
+        ttk.Combobox(
+            wrap,
+            textvariable=oss_var,
+            values=["(Keep current)", "Yes (Open Source)", "No (Proprietary)"],
+            state="readonly",
+        ).grid(row=3, column=1, sticky="ew", padx=(10, 0), pady=6)
+
+        btns = tk.Frame(wrap, bg=PALETTE["surface"])
+        btns.grid(row=4, column=0, columnspan=2, sticky="ew", pady=(14, 0))
+
+        def _apply() -> None:
+            o_val = None if org_var.get() == "(Keep current)" else org_var.get().strip().lower()
+            f_val = fam_var.get().strip().lower() or None
+            oss_choice = oss_var.get()
+            oss_val = True if oss_choice.startswith("Yes") else (False if oss_choice.startswith("No") else None)
+            try:
+                cnt = bulk_update_model_registry_entries(slugs, org=o_val, family=f_val, open_source=oss_val)
+            except ValueError as exc:
+                self.messagebox.showerror("Validation Error", str(exc), parent=dlg)
+                return
+            self._append_log(f"[OK] Bulk-updated {cnt} model(s) in synhalees/models.json.\n", "ok")
+            dlg.destroy()
+            self.refresh_all()
+
+        ttk.Button(btns, text=f"Apply to {len(slugs)} Model(s)", style="Accent.TButton", command=_apply).pack(side="right", padx=(8, 0))
+        ttk.Button(btns, text="Cancel", style="Ghost.TButton", command=dlg.destroy).pack(side="right")
+        dlg.bind("<Escape>", lambda _e: dlg.destroy())
+
+    def _run_adopt_and_sync_scorecards(self) -> None:
+        res = adopt_and_sync_scorecards()
+        adopted = res["adopted"]
+        relocated = res["relocated"]
+        for item in adopted:
+            self._append_log(f"[OK] Adopted legacy scorecard: {item}\n", "ok")
+        for item in relocated:
+            self._append_log(f"[OK] Relocated taxonomy CSV: {item}\n", "ok")
+        if not adopted and not relocated:
+            self._append_log("[OK] All submissions/ scorecards already use canonical names and folders.\n", "ok")
+            self.messagebox.showinfo("Adopt & Sync", "All scorecards already match canonical slugs and folders.")
+            return
+        self.refresh_all()
+        if self.messagebox.askyesno(
+            "Rebuild Leaderboard?",
+            f"Adopted {len(adopted)} and relocated {len(relocated)} scorecard(s).\nRebuild docs/assets/data/* now?",
+        ):
+            self.run_cli(["site", "build"])
 
     def _delete_selected_mgmt_model(self) -> None:
-        sel = self.mgmt_models_tree.selection()
+        sel = [i for i in self.mgmt_models_tree.selection() if i != "__empty__"]
         if not sel:
             self.messagebox.showinfo("Select Model", "Select a model row to delete.")
             return
-        canon = str(self.mgmt_models_tree.item(sel[0], "values")[0])
-        if not self.messagebox.askyesno(
-            "Delete Model",
-            f"Delete '{canon}' from models.json, submissions/, and kaggle/results/*.slim.csv?",
-        ):
+        canons = [str(self.mgmt_models_tree.item(i, "values")[0]) for i in sel]
+        prompt = (
+            f"Delete '{canons[0]}' from models.json, submissions/, and kaggle/results/*.slim.csv?"
+            if len(canons) == 1
+            else f"Delete {len(canons)} selected models from models.json, submissions/, and kaggle/results/*.slim.csv?"
+        )
+        if not self.messagebox.askyesno("Delete Model", prompt):
             return
-        res = delete_model_completely(canon)
-        if res["registry"] or res["submissions"] or res["slim_rows"]:
+        tot_reg = tot_sub = tot_slim = 0
+        for canon in canons:
+            res = delete_model_completely(canon)
+            tot_reg += res["registry"]
+            tot_sub += res["submissions"]
+            tot_slim += res["slim_rows"]
+        if tot_reg or tot_sub or tot_slim:
             self._append_log(
-                f"[OK] Deleted '{canon}' (registry={res['registry']}, submissions={res['submissions']}, slim_rows={res['slim_rows']}).\n",
+                f"[OK] Deleted {len(canons)} model(s) (registry={tot_reg}, submissions={tot_sub}, slim_rows={tot_slim}).\n",
                 "ok",
             )
             self.refresh_all()
-            if res["submissions"] > 0:
+            if tot_sub > 0:
                 self.run_cli(["build"])
         else:
-            self.messagebox.showinfo("Nothing to Delete", f"No files or registry entries found for '{canon}'.")
+            self.messagebox.showinfo("Nothing to Delete", "No files or registry entries found for the selected model(s).")
 
     def _open_mgmt_org_dialog(self, *, edit_selected: bool = False) -> None:
         tk, ttk = self.tk, self.ttk
-        sel = self.mgmt_orgs_tree.selection() if edit_selected else ()
+        sel = [i for i in self.mgmt_orgs_tree.selection() if i != "__empty__"] if edit_selected else []
         if edit_selected and not sel:
             self.messagebox.showinfo("Select Organization", "Select an organization row first to edit.")
             return
         vals = self.mgmt_orgs_tree.item(sel[0], "values") if sel else ("", "", "", "gray", "", "")
 
         data = json.loads(MODELS_JSON.read_text(encoding="utf-8"))
+        providers = dict(data.get("providers") or {})
         named_colors = dict(data.get("named_colors") or {"gray": "#78909C"})
         color_choices = sorted(named_colors.keys())
+        svg_choices = sorted(p.stem for p in (ROOT / "docs" / "assets" / "logos").glob("*.svg")) if (ROOT / "docs" / "assets" / "logos").is_dir() else []
+
+        org_slug_init = str(vals[0])
+        families_draft: dict[str, dict[str, Any]] = dict((providers.get(org_slug_init) or {}).get("families") or {})
+        picked_svg: list[Path | None] = [None]
 
         dlg = tk.Toplevel(self.root)
-        dlg.title("Edit Organization" if edit_selected else "Add Organization")
+        dlg.title("Edit Organization & Families" if edit_selected else "Add Organization")
         dlg.configure(bg=PALETTE["surface"])
         dlg.transient(self.root)
         dlg.grab_set()
-        self._center_dialog(dlg, self._px(520), self._px(310))
+        self._center_dialog(dlg, self._px(690), self._px(580))
 
-        wrap = tk.Frame(dlg, bg=PALETTE["surface"], padx=self._px(18), pady=self._px(16))
+        wrap = tk.Frame(dlg, bg=PALETTE["surface"], padx=self._px(18), pady=self._px(14))
         wrap.pack(fill="both", expand=True)
         wrap.columnconfigure(1, weight=1)
 
-        slug_var = tk.StringVar(value=str(vals[0]))
+        slug_var = tk.StringVar(value=org_slug_init)
         name_var = tk.StringVar(value=str(vals[1]))
         logo_var = tk.StringVar(value=str(vals[2]))
         color_var = tk.StringVar(value=str(vals[3]) or "gray")
         aliases_var = tk.StringVar(value=str(vals[5]))
 
-        tk.Label(wrap, text="Org Slug", bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Segoe UI", 9)).grid(row=0, column=0, sticky="w", pady=6)
+        tk.Label(wrap, text="Org Slug", bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Segoe UI", 9)).grid(row=0, column=0, sticky="w", pady=5)
         slug_ent = ttk.Entry(wrap, textvariable=slug_var)
-        slug_ent.grid(row=0, column=1, sticky="ew", padx=(10, 0), pady=6)
+        slug_ent.grid(row=0, column=1, sticky="ew", padx=(10, 0), pady=5)
         if edit_selected:
             slug_ent.configure(state="readonly")
 
-        tk.Label(wrap, text="Display Name", bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Segoe UI", 9)).grid(row=1, column=0, sticky="w", pady=6)
-        ttk.Entry(wrap, textvariable=name_var).grid(row=1, column=1, sticky="ew", padx=(10, 0), pady=6)
+        tk.Label(wrap, text="Display Name", bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Segoe UI", 9)).grid(row=1, column=0, sticky="w", pady=5)
+        ttk.Entry(wrap, textvariable=name_var).grid(row=1, column=1, sticky="ew", padx=(10, 0), pady=5)
 
-        tk.Label(wrap, text="Logo Slug", bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Segoe UI", 9)).grid(row=2, column=0, sticky="w", pady=6)
+        tk.Label(wrap, text="Logo Slug / SVG", bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Segoe UI", 9)).grid(row=2, column=0, sticky="w", pady=5)
         logo_row = tk.Frame(wrap, bg=PALETTE["surface"])
-        logo_row.grid(row=2, column=1, sticky="ew", padx=(10, 0), pady=6)
+        logo_row.grid(row=2, column=1, sticky="ew", padx=(10, 0), pady=5)
         logo_row.columnconfigure(0, weight=1)
-        ttk.Entry(logo_row, textvariable=logo_var).grid(row=0, column=0, sticky="ew")
-        logo_preview_lbl = tk.Label(logo_row, bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Segoe UI", 8))
-        logo_preview_lbl.grid(row=0, column=1, padx=(8, 0))
+        ttk.Combobox(logo_row, textvariable=logo_var, values=svg_choices).grid(row=0, column=0, sticky="ew")
 
-        tk.Label(wrap, text="Color", bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Segoe UI", 9)).grid(row=3, column=0, sticky="w", pady=6)
+        def _browse_svg() -> None:
+            chosen = self.filedialog.askopenfilename(
+                parent=dlg,
+                title="Select Organization SVG Logo",
+                filetypes=[("SVG Vector Files", "*.svg"), ("All files", "*.*")],
+            )
+            if not chosen:
+                return
+            p = Path(chosen)
+            picked_svg[0] = p
+            if not logo_var.get().strip():
+                logo_var.set(slug_var.get().strip().lower() or p.stem.lower())
+            _sync_org_previews()
+
+        ttk.Button(logo_row, text="Browse .svg…", style="Ghost.TButton", command=_browse_svg).grid(row=0, column=1, padx=(8, 4))
+        logo_preview_lbl = tk.Label(logo_row, bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Segoe UI", 8))
+        logo_preview_lbl.grid(row=0, column=2, padx=(4, 0))
+
+        tk.Label(wrap, text="Color", bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Segoe UI", 9)).grid(row=3, column=0, sticky="w", pady=5)
         color_row = tk.Frame(wrap, bg=PALETTE["surface"])
-        color_row.grid(row=3, column=1, sticky="ew", padx=(10, 0), pady=6)
+        color_row.grid(row=3, column=1, sticky="ew", padx=(10, 0), pady=5)
         color_row.columnconfigure(0, weight=1)
-        ttk.Combobox(color_row, textvariable=color_var, values=color_choices, state="readonly").grid(row=0, column=0, sticky="ew")
+        ttk.Combobox(color_row, textvariable=color_var, values=color_choices).grid(row=0, column=0, sticky="ew")
         swatch_box = tk.Frame(color_row, width=self._px(24), height=self._px(20), bg="#78909C", highlightthickness=1, highlightbackground=PALETTE["border"])
         swatch_box.grid(row=0, column=1, padx=(8, 4))
         swatch_hex_lbl = tk.Label(color_row, text="#78909C", bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Consolas", 9))
-        swatch_hex_lbl.grid(row=0, column=2)
+        swatch_hex_lbl.grid(row=0, column=2, padx=(0, 6))
+
+        def _pick_custom_color() -> None:
+            cur_h = swatch_hex_lbl.cget("text")
+            _, hx = self.colorchooser.askcolor(color=cur_h, parent=dlg, title="Choose Brand Color")
+            if hx:
+                color_var.set(hx)
+
+        ttk.Button(color_row, text="Custom…", style="Ghost.TButton", command=_pick_custom_color).grid(row=0, column=3)
+
+        # 14-color clickable swatch strip
+        palette_strip = tk.Frame(wrap, bg=PALETTE["surface"])
+        palette_strip.grid(row=4, column=1, sticky="w", padx=(10, 0), pady=(0, 6))
+        for cname, hx in named_colors.items():
+            chip = tk.Frame(
+                palette_strip,
+                width=self._px(18),
+                height=self._px(16),
+                bg=hx,
+                highlightthickness=1,
+                highlightbackground=PALETTE["border"],
+                cursor="hand2",
+            )
+            chip.pack(side="left", padx=(0, 4))
+            chip.bind("<Button-1>", lambda _e, c=cname: color_var.set(c))
 
         def _sync_org_previews(*_args: Any) -> None:
             cname = color_var.get().strip()
             hcol = str(named_colors.get(cname, cname if cname.startswith("#") else "#78909C"))
             swatch_box.configure(bg=hcol)
             swatch_hex_lbl.configure(text=hcol)
-            lslug = logo_var.get().strip()
-            svg_exists = bool(lslug and (ROOT / "docs" / "assets" / "logos" / f"{lslug}.svg").exists())
-            icon = self._make_org_preview_icon(lslug or slug_var.get().strip() or "org", hcol)
-            logo_preview_lbl.configure(
-                image=icon,
-                compound="left",
-                text=f" {'OK' if svg_exists else 'no .svg'}",
-                fg=PALETTE["ok"] if svg_exists else PALETTE["warn"],
-            )
+            lslug = logo_var.get().strip() or slug_var.get().strip() or "org"
+            svg_exists = bool((ROOT / "docs" / "assets" / "logos" / f"{lslug}.svg").exists())
+            if picked_svg[0] is not None:
+                badge_txt = f" staged: {picked_svg[0].name}"
+                badge_fg = PALETTE["info"]
+            elif svg_exists:
+                badge_txt = " SVG OK"
+                badge_fg = PALETTE["ok"]
+            else:
+                badge_txt = " monogram"
+                badge_fg = PALETTE["warn"]
+            icon = self._make_org_preview_icon(lslug, hcol)
+            logo_preview_lbl.configure(image=icon, compound="left", text=badge_txt, fg=badge_fg)
             logo_preview_lbl._icon_ref = icon
 
         color_var.trace_add("write", _sync_org_previews)
         logo_var.trace_add("write", _sync_org_previews)
         _sync_org_previews()
 
-        tk.Label(wrap, text="Aliases (comma-sep)", bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Segoe UI", 9)).grid(row=4, column=0, sticky="w", pady=6)
-        ttk.Entry(wrap, textvariable=aliases_var).grid(row=4, column=1, sticky="ew", padx=(10, 0), pady=6)
+        tk.Label(wrap, text="Aliases (comma-sep)", bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Segoe UI", 9)).grid(row=5, column=0, sticky="w", pady=5)
+        ttk.Entry(wrap, textvariable=aliases_var).grid(row=5, column=1, sticky="ew", padx=(10, 0), pady=5)
+
+        # Embedded Model Families (Taxonomy & Match Patterns) Editor
+        fam_card = tk.Frame(wrap, bg=PALETTE["card"], padx=self._px(10), pady=self._px(8), highlightthickness=1, highlightbackground=PALETTE["border"])
+        fam_card.grid(row=6, column=0, columnspan=2, sticky="nsew", pady=(8, 6))
+        wrap.rowconfigure(6, weight=1)
+        tk.Label(fam_card, text="Model Families (Taxonomy & Match Patterns)", bg=PALETTE["card"], fg=PALETTE["text"], font=("Segoe UI", 9, "bold")).pack(
+            anchor="w", pady=(0, self._px(4))
+        )
+        fam_tree = self._make_scrolled_tree(fam_card, columns=("slug", "name", "oss", "patterns"), height=4, fill="both", expand=True)
+        for col, lbl, w in (("slug", "Family Slug", 110), ("name", "Display Name", 130), ("oss", "OSS", 55), ("patterns", "Match Patterns", 230)):
+            fam_tree.heading(col, text=lbl)
+            fam_tree.column(col, width=self._px(w), anchor="w" if col != "oss" else "center")
+
+        f_edit = tk.Frame(fam_card, bg=PALETTE["card"])
+        f_edit.pack(fill="x", pady=(self._px(6), 0))
+        f_slug_v, f_name_v, f_pat_v, f_oss_v = tk.StringVar(), tk.StringVar(), tk.StringVar(), tk.BooleanVar(value=False)
+        ttk.Entry(f_edit, textvariable=f_slug_v, width=12).pack(side="left", padx=(0, 4))
+        ttk.Entry(f_edit, textvariable=f_name_v, width=14).pack(side="left", padx=(0, 4))
+        ttk.Entry(f_edit, textvariable=f_pat_v, width=22).pack(side="left", fill="x", expand=True, padx=(0, 6))
+        ttk.Checkbutton(f_edit, text="OSS", variable=f_oss_v).pack(side="left", padx=(0, 6))
+
+        def _reload_fams() -> None:
+            fam_tree.delete(*fam_tree.get_children())
+            for idx, fk in enumerate(sorted(families_draft)):
+                fv = families_draft[fk]
+                fam_tree.insert(
+                    "",
+                    "end",
+                    tags=("odd" if idx % 2 else "even",),
+                    values=(fk, fv.get("name", fk), "Yes" if fv.get("open_source") else "No", ", ".join(fv.get("match_patterns") or [])),
+                )
+
+        def _on_fam_select(_e: Any = None) -> None:
+            fsel = fam_tree.selection()
+            if not fsel:
+                return
+            fv = fam_tree.item(fsel[0], "values")
+            f_slug_v.set(fv[0])
+            f_name_v.set(fv[1])
+            f_oss_v.set(fv[2] == "Yes")
+            f_pat_v.set(fv[3])
+
+        def _upsert_fam() -> None:
+            fk = f_slug_v.get().strip().lower()
+            if not fk or fk in _UNKNOWN_ORG_TOKENS:
+                self.messagebox.showerror("Invalid Family", "Enter a valid lowercase family slug.", parent=dlg)
+                return
+            pats = [p.strip().lower() for p in f_pat_v.get().split(",") if p.strip()]
+            if fk not in pats:
+                pats.insert(0, fk)
+            families_draft[fk] = {
+                "name": f_name_v.get().strip() or fk.replace("-", " ").title(),
+                "open_source": bool(f_oss_v.get()),
+                "match_patterns": pats,
+            }
+            _reload_fams()
+
+        def _remove_fam() -> None:
+            fk = f_slug_v.get().strip().lower()
+            if fk in families_draft:
+                del families_draft[fk]
+                f_slug_v.set("")
+                f_name_v.set("")
+                f_pat_v.set("")
+                _reload_fams()
+
+        fam_tree.bind("<<TreeviewSelect>>", _on_fam_select)
+        ttk.Button(f_edit, text="Add/Update", style="Ghost.TButton", command=_upsert_fam).pack(side="left", padx=(0, 4))
+        ttk.Button(f_edit, text="Remove", style="Danger.TButton", command=_remove_fam).pack(side="left")
+        _reload_fams()
 
         btns = tk.Frame(wrap, bg=PALETTE["surface"])
-        btns.grid(row=5, column=0, columnspan=2, sticky="ew", pady=(14, 0))
+        btns.grid(row=7, column=0, columnspan=2, sticky="ew", pady=(10, 0))
 
         def _save() -> None:
+            oslug = slug_var.get().strip().lower()
+            lslug = (logo_var.get().strip() or oslug)
+            alias_list = [a.strip() for a in aliases_var.get().split(",") if a.strip()]
+            cname = color_var.get().strip() or "gray"
+            hcol = str(named_colors.get(cname, cname if cname.startswith("#") else "#78909C"))
             try:
                 save_organization_entry(
-                    slug_var.get(),
+                    oslug,
                     name=name_var.get(),
-                    logo=logo_var.get(),
-                    color=color_var.get(),
-                    aliases=[a.strip() for a in aliases_var.get().split(",") if a.strip()],
+                    logo=lslug,
+                    color=cname,
+                    aliases=alias_list,
+                    families=families_draft,
                 )
+                if picked_svg[0] is not None:
+                    res = install_organization_logo(
+                        lslug,
+                        picked_svg[0],
+                        org_slug=oslug,
+                        aliases=alias_list,
+                        color_hex=hcol,
+                        rebuild_logo_data=True,
+                    )
+                    self._invalidate_icon_caches()
+                    self._append_log(
+                        f"[OK] Installed {res['svg_path'].name} & rebuilt logo-data.js.\n",
+                        "ok",
+                    )
             except ValueError as exc:
                 self.messagebox.showerror("Validation Error", str(exc), parent=dlg)
                 return
-            self._append_log(f"[OK] Saved organization '{slug_var.get().strip().lower()}' in synhalees/models.json.\n", "ok")
+            self._append_log(f"[OK] Saved organization '{oslug}' in synhalees/models.json.\n", "ok")
             dlg.destroy()
             self.refresh_all()
 
         ttk.Button(btns, text="Save Organization", style="Accent.TButton", command=_save).pack(side="right", padx=(8, 0))
         ttk.Button(btns, text="Cancel", style="Ghost.TButton", command=dlg.destroy).pack(side="right")
+        dlg.bind("<Escape>", lambda _e: dlg.destroy())
 
     def _delete_selected_mgmt_org(self) -> None:
-        sel = self.mgmt_orgs_tree.selection()
+        sel = [i for i in self.mgmt_orgs_tree.selection() if i != "__empty__"]
         if not sel:
             self.messagebox.showinfo("Select Organization", "Select an organization row to delete.")
             return
@@ -2402,20 +3318,27 @@ class SynhaleesGUI:
     def _populate_kaggle_table(self) -> None:
         self.kg_tree.delete(*self.kg_tree.get_children())
         mode = self.kg_cov_filter_var.get() if hasattr(self, "kg_cov_filter_var") else "All"
+        q = self.kg_cov_search_var.get().strip().lower() if hasattr(self, "kg_cov_search_var") else ""
         try:
             model_tasks, _, _ = gather_coverage(check_remote=False)
         except Exception:
             model_tasks = {}
+        idx = 0
         for m in sorted(model_tasks):
+            if q and q not in m.lower():
+                continue
             st = model_tasks[m]
             is_complete = st["text"] >= 15 and st["vision"] > 0 and st["audio"] > 0
             if mode == "Incomplete only" and is_complete:
                 continue
             if mode == "Complete 15/15 T+V+A" and not is_complete:
                 continue
+            stripe = "odd" if idx % 2 else "even"
+            status_tag = "ok" if is_complete else ("warn" if (st["text"] or st["vision"] or st["audio"]) else "muted")
             self.kg_tree.insert(
                 "",
                 "end",
+                tags=(stripe, status_tag),
                 values=(
                     m,
                     f"{st['text']}/15",
@@ -2423,8 +3346,107 @@ class SynhaleesGUI:
                     "DONE" if st["audio"] > 0 else "missing",
                 ),
             )
+            idx += 1
+        self._ensure_tree_empty_state(self.kg_tree, "No matching slim coverage models")
 
     # ------------------------------------------------------------------ Actions
+
+    def _update_kg_preview(self) -> None:
+        if not hasattr(self, "kg_preview_var"):
+            return
+        args = build_kaggle_args(
+            "pull",
+            task=self.kg_task_var.get(),
+            model=self.kg_model_var.get(),
+            modality=self.kg_mod_label_var.get(),
+            force=self.kg_force_var.get(),
+            dry_run=self.kg_dry_var.get(),
+            colab=True,
+        )
+        self.kg_preview_var.set(format_cmd_preview(args))
+
+    def _start_kaggle_pull(self) -> None:
+        self._guard_and_run_kaggle(
+            "pull",
+            build_kaggle_args(
+                "pull",
+                task=self.kg_task_var.get(),
+                model=self.kg_model_var.get(),
+                modality=self.kg_mod_label_var.get(),
+                force=self.kg_force_var.get(),
+                dry_run=self.kg_dry_var.get(),
+                colab=True,
+            ),
+        )
+
+    def _retry_failed_kaggle_tasks(self) -> None:
+        failed = list(getattr(self, "_failed_kaggle_tasks", []))
+        if not failed:
+            return
+        steps: list[tuple[str, list[str]]] = [
+            (
+                f"Retry {idx}/{len(failed)}: {t}",
+                build_kaggle_args(
+                    "pull",
+                    task=t,
+                    model=self.kg_model_var.get(),
+                    force=True,
+                    colab=True,
+                ),
+            )
+            for idx, t in enumerate(failed, start=1)
+        ]
+        if self.kg_auto_build_var.get():
+            steps.append(("Importing & rebuilding site...", build_kaggle_args("submit", task="all", build=True)))
+            steps.append(("Verifying CI gates...", ["check"]))
+        self._failed_kaggle_tasks = []
+        if hasattr(self, "kg_retry_btn"):
+            self.kg_retry_btn.pack_forget()
+        self.run_pipeline(steps)
+
+    def _start_one_click_kaggle_sync(self) -> None:
+        """Seamless Discover -> (Register if needed) -> Pull -> Submit -> Build -> Check."""
+        self.select_page("kaggle")
+        self._discover_kaggle_models(
+            on_done=lambda: self.root.after(50, self._start_kaggle_pull)
+        )
+
+    def _sync_and_verify_site(self) -> None:
+        """Chain `site logos` -> `site build` -> `check` into one seamless pipeline."""
+        self._set_site_gate("logos", "RUNNING", "rebuilding...", PALETTE["warn"])
+        self._set_site_gate("data", "QUEUED", "waiting...", PALETTE["muted"])
+        self._set_site_gate("schemas", "QUEUED", "waiting...", PALETTE["muted"])
+        self._set_site_gate("compile", "QUEUED", "waiting...", PALETTE["muted"])
+        self.run_pipeline([
+            ("Step 1/3 · Rebuilding provider logos (site logos)...", ["site", "logos"]),
+            ("Step 2/3 · Rebuilding leaderboard data (site build)...", ["site", "build"]),
+            ("Step 3/3 · Verifying all 4 CI gates (check)...", ["check"]),
+        ])
+
+    def _on_select_local_run(self, _e: Any = None) -> None:
+        sel = self.local_runs_tree.selection()
+        if not sel or sel[0] == "__empty__":
+            return
+        vals = self.local_runs_tree.item(sel[0], "values")
+        if vals and vals[0] in self.pub_combo["values"]:
+            self.pub_slug_var.set(str(vals[0]))
+
+    def _resume_selected_local_run(self) -> None:
+        sel = self.local_runs_tree.selection()
+        if not sel or sel[0] == "__empty__":
+            self.messagebox.showinfo("Select Run", "Select a local run in Step 2 first.")
+            return
+        slug = str(self.local_runs_tree.item(sel[0], "values")[0])
+        meta_path = RUNS / slug / "meta.json"
+        if meta_path.is_file():
+            try:
+                meta = json.loads(meta_path.read_text(encoding="utf-8"))
+                if meta.get("spec"):
+                    self.run_model_var.set(str(meta["spec"]))
+            except Exception:
+                pass
+        self.run_fresh_var.set(False)
+        self._start_local_run()
 
     def _update_run_preview(self) -> None:
         args = build_run_args(
@@ -2436,15 +3458,46 @@ class SynhaleesGUI:
         )
         self.run_preview_var.set(format_cmd_preview(args))
 
+    def _ensure_kaggle_auth(self, then_call: Callable[[], None]) -> bool:
+        if kaggle_auth_status() != "Not configured":
+            return True
+        self._open_tokens_dialog(
+            reason="Kaggle credentials (KAGGLE_API_TOKEN or kaggle.json) are required to continue.",
+            on_saved=then_call,
+        )
+        return False
+
+    def _ensure_local_api_key(self, model_spec: str, judge_spec: str, then_call: Callable[[], None]) -> bool:
+        key_map = {
+            "gemini": "GEMINI_API_KEY",
+            "openai": "OPENAI_API_KEY",
+            "anthropic": "ANTHROPIC_API_KEY",
+            "openrouter": "OPENROUTER_API_KEY",
+        }
+        for spec in (model_spec, judge_spec):
+            prov = spec.split(":", 1)[0].strip().lower() if ":" in spec else ""
+            env_var = key_map.get(prov)
+            if env_var and not os.environ.get(env_var, "").strip():
+                self._open_tokens_dialog(
+                    reason=f"{env_var} is required before running '{spec}'.",
+                    on_saved=then_call,
+                )
+                return False
+        return True
+
     def _start_local_run(self) -> None:
-        if not self.run_model_var.get().strip():
+        mspec = self.run_model_var.get().strip()
+        jspec = self.run_judge_var.get().strip()
+        if not mspec:
             self._append_log("[ERR] Please enter a model spec (e.g. ollama:llama3.1:8b).\n", "err")
+            return
+        if not self._ensure_local_api_key(mspec, jspec, self._start_local_run):
             return
         self._start_worker_if_free(
             lambda: self.run_cli(
                 build_run_args(
-                    model=self.run_model_var.get(),
-                    judge=self.run_judge_var.get(),
+                    model=mspec,
+                    judge=jspec,
                     modality=self.run_modality_var.get(),
                     pillars=self.run_pillars_var.get(),
                     fresh=self.run_fresh_var.get(),
@@ -2463,6 +3516,14 @@ class SynhaleesGUI:
         args = ["site", "publish", slug]
         if self.pub_dry_var.get():
             args.append("--dry-run")
+        unreg = find_unregistered_models([slug])
+        if unreg and not self.pub_dry_var.get():
+            self._open_edit_models_dialog(
+                only_slugs=set(unreg),
+                target_slugs=unreg,
+                on_saved=lambda: self.run_cli(args),
+            )
+            return
         self.run_cli(args)
 
     def _open_leaderboard(self) -> None:
@@ -2473,7 +3534,12 @@ class SynhaleesGUI:
         else:
             self._append_log(f"[ERR] Missing {index_html}\n", "err")
 
-    def _open_tokens_dialog(self) -> None:
+    def _open_tokens_dialog(
+        self,
+        *,
+        reason: str = "",
+        on_saved: Callable[[], None] | None = None,
+    ) -> None:
         """Open a modal dialog to configure Kaggle tokens & Local Eval API keys."""
         tk, ttk = self.tk, self.ttk
         dlg = tk.Toplevel(self.root)
@@ -2481,7 +3547,7 @@ class SynhaleesGUI:
         dlg.configure(bg=PALETTE["surface"])
         dlg.transient(self.root)
         dlg.grab_set()
-        w, h = self._px(540), self._px(490)
+        w, h = self._px(540), self._px(500)
         dlg.minsize(self._px(460), self._px(430))
         self._center_dialog(dlg, w, h)
 
@@ -2495,11 +3561,12 @@ class SynhaleesGUI:
             fg=PALETTE["text"],
             font=("Segoe UI", 12, "bold"),
         ).pack(anchor="w")
+        sub_txt = reason or f"Kaggle Auth: {kaggle_auth_status()}  ·  Paste KAGGLE_API_TOKEN (KGAT_...) or kaggle.json"
         tk.Label(
             wrap,
-            text=f"Kaggle Auth: {kaggle_auth_status()}  ·  Paste KAGGLE_API_TOKEN (KGAT_...) or kaggle.json",
+            text=sub_txt,
             bg=PALETTE["surface"],
-            fg=PALETTE["info"],
+            fg=PALETTE["warn"] if reason else PALETTE["info"],
             font=("Segoe UI", 9),
         ).pack(anchor="w", pady=(2, self._px(10)))
 
@@ -2585,6 +3652,8 @@ class SynhaleesGUI:
                 self._append_log("[WARN] No tokens saved.\n", "warn")
             self._sync_token_button()
             dlg.destroy()
+            if on_saved is not None:
+                self.root.after(10, on_saved)
 
         def _clear_kaggle_token() -> None:
             k_tok_var.set("")
@@ -2607,9 +3676,13 @@ class SynhaleesGUI:
         ttk.Button(btns, text="Clear Kaggle", style="Ghost.TButton", command=_clear_kaggle_token).pack(
             side="right", padx=(0, 8)
         )
-        ttk.Button(btns, text="Save Tokens", style="Accent.TButton", command=_save_and_close).pack(
-            side="right", padx=(0, 8)
-        )
+        ttk.Button(
+            btns,
+            text="Save & Continue ->" if on_saved else "Save Tokens",
+            style="Accent.TButton",
+            command=_save_and_close,
+        ).pack(side="right", padx=(0, 8))
+        dlg.bind("<Escape>", lambda _e: dlg.destroy())
 
     def _center_dialog(self, dlg: Any, w: int, h: int) -> None:
         """Center a modal dialog on the main Studio window."""
@@ -2623,41 +3696,68 @@ class SynhaleesGUI:
         dlg.geometry(f"{w}x{h}+{x}+{y}")
 
     def _guard_and_run_kaggle(self, action: str, cli_args: list[str]) -> None:
-        """Block proceeding to Step 2/3/4 if selected/new models lack valid org/name/OSS."""
+        """Validate auth & model registration before proceeding, auto-resuming on save."""
+        if action in ("pull", "run", "publish", "logs") and "--dry-run" not in cli_args:
+            if not self._ensure_kaggle_auth(lambda: self._guard_and_run_kaggle(action, cli_args)):
+                return
         if action in ("pull", "submit", "run", "publish"):
             selected = [m.strip() for m in re.split(r"[,\s]+", self.kg_model_var.get().strip()) if m.strip()]
             if action == "run" and not selected:
                 self.kg_discover_status_var.set("Select a model on the right before running on Kaggle.")
                 self._append_log("[WARN] Select a model on the right before running on Kaggle.\n", "warn")
                 return
-            check_list = selected
+            check_list = list(selected)
             if not check_list and hasattr(self, "kg_new_tree"):
                 check_list = [
                     str(self.kg_new_tree.item(i, "values")[0])
                     for i in self.kg_new_tree.get_children()
-                    if self.kg_new_tree.item(i, "values")
+                    if self.kg_new_tree.item(i, "values") and i != "__empty__"
                 ]
             unreg = find_unregistered_models(check_list)
+            if action == "submit":
+                for slim_unreg in find_unregistered_slim_models(self.kg_task_var.get()):
+                    if slim_unreg not in unreg:
+                        unreg.append(slim_unreg)
             if unreg:
                 msg = f"Complete Canonical, Organization & Open Source for: {', '.join(unreg)}"
                 self.kg_discover_status_var.set(msg)
                 self._append_log(f"[WARN] {msg}\n", "warn")
-                self._open_edit_models_dialog(only_slugs=set(unreg))
+                self._open_edit_models_dialog(
+                    only_slugs=set(unreg),
+                    target_slugs=unreg,
+                    on_saved=lambda: self._guard_and_run_kaggle(action, cli_args),
+                )
                 return
         self.run_cli(cli_args)
 
-    def _open_edit_models_dialog(self, *, only_slugs: set[str] | None = None) -> None:
-        """Centered dialog to edit Canonical, Display Name, Org (+ New Org), Family & OSS."""
+    def _open_edit_models_dialog(
+        self,
+        *,
+        only_slugs: set[str] | None = None,
+        target_slugs: list[str] | None = None,
+        on_saved: Callable[[], None] | None = None,
+    ) -> None:
+        """Centered dialog to edit Canonical, Display Name, Org (+ New Org + SVG), Family & OSS."""
         tk, ttk = self.tk, self.ttk
-        sel = self.kg_new_tree.selection() or self.kg_new_tree.get_children()
-        if only_slugs:
-            matched = [
-                i for i in self.kg_new_tree.get_children()
-                if canonical_model_slug(str(self.kg_new_tree.item(i, "values")[0])) in only_slugs
-            ]
-            if matched:
-                sel = tuple(matched)
-        if not sel:
+        row_specs: list[tuple[Any | None, str, str]] = []
+        if target_slugs:
+            for s in target_slugs:
+                row_specs.append((None, s, canonical_model_slug(s)))
+        else:
+            sel = [i for i in (self.kg_new_tree.selection() or self.kg_new_tree.get_children()) if i != "__empty__"]
+            if only_slugs:
+                matched = [
+                    i for i in self.kg_new_tree.get_children()
+                    if i != "__empty__" and canonical_model_slug(str(self.kg_new_tree.item(i, "values")[0])) in only_slugs
+                ]
+                if matched:
+                    sel = matched
+            for item_id in sel:
+                vals = self.kg_new_tree.item(item_id, "values")
+                if vals:
+                    row_specs.append((item_id, str(vals[0]), str(vals[1])))
+
+        if not row_specs:
             self._append_log("[WARN] No models to edit. Click 'List New Models' first.\n", "warn")
             return
 
@@ -2666,9 +3766,9 @@ class SynhaleesGUI:
         dlg.configure(bg=PALETTE["surface"])
         dlg.transient(self.root)
         dlg.grab_set()
-        w = self._px(940)
-        h = min(self._px(220 + len(sel) * 44), self._px(580))
-        dlg.minsize(self._px(780), self._px(270))
+        w = self._px(950)
+        h = min(self._px(240 + len(row_specs) * 44), self._px(590))
+        dlg.minsize(self._px(780), self._px(280))
         self._center_dialog(dlg, w, h)
 
         wrap = tk.Frame(dlg, bg=PALETTE["surface"], padx=self._px(16), pady=self._px(12))
@@ -2684,7 +3784,18 @@ class SynhaleesGUI:
             font=("Segoe UI", 11, "bold"),
         ).pack(side="left")
 
+        if on_saved is not None:
+            tk.Label(
+                wrap,
+                text="Registration required before continuing — verify Organization, Family & License, then click 'Save & Continue ->'.",
+                bg=PALETTE["surface"],
+                fg=PALETTE["warn"],
+                font=("Segoe UI", 9),
+                anchor="w",
+            ).pack(fill="x", pady=(2, 0))
+
         new_orgs_pending: dict[str, dict[str, str]] = {}
+        new_org_svgs: dict[str, Path] = {}
         org_choices = sorted(default_registry.providers.keys())
 
         def _families_for(org_slug: str) -> list[str]:
@@ -2712,16 +3823,19 @@ class SynhaleesGUI:
         rows_data: list[tuple[Any, str, Any, Any, Any, Any, Any]] = []
         org_combos: list[Any] = []
 
-        for idx, item_id in enumerate(sel, start=1):
-            vals = self.kg_new_tree.item(item_id, "values")
-            if not vals:
-                continue
-            raw_slug = str(vals[0])
-            cur_canon = str(vals[1])
+        for idx, (item_id, raw_slug, cur_canon) in enumerate(row_specs, start=1):
             cur_disp = default_registry.get_model_display_name(cur_canon)
             v_slug, f_slug, is_oss = default_registry.resolve_taxonomy(cur_canon)
             init_org = "" if v_slug in _UNKNOWN_ORG_TOKENS else v_slug
+            if not init_org and "/" in raw_slug:
+                hint_p = default_registry.resolve_provider(raw_slug.partition("/")[0])
+                if hint_p not in _UNKNOWN_ORG_TOKENS:
+                    init_org = hint_p
             init_fam = "" if f_slug in _UNKNOWN_ORG_TOKENS else f_slug
+            if not init_fam and "-" in cur_canon:
+                lead = cur_canon.split("-", 1)[0].strip().lower()
+                if lead.isalpha():
+                    init_fam = lead
 
             tk.Label(
                 grid,
@@ -2768,7 +3882,7 @@ class SynhaleesGUI:
             sub.configure(bg=PALETTE["surface"])
             sub.transient(dlg)
             sub.grab_set()
-            self._center_dialog(sub, self._px(420), self._px(250))
+            self._center_dialog(sub, self._px(460), self._px(290))
             swrap = tk.Frame(sub, bg=PALETTE["surface"], padx=self._px(16), pady=self._px(14))
             swrap.pack(fill="both", expand=True)
             swrap.columnconfigure(1, weight=1)
@@ -2776,6 +3890,8 @@ class SynhaleesGUI:
             slug_v = tk.StringVar()
             name_v = tk.StringVar()
             col_v = tk.StringVar(value="blue")
+            svg_lbl_v = tk.StringVar(value="(optional)")
+            picked_svg: list[Path | None] = [None]
             serr_v = tk.StringVar()
 
             for r_i, (lbl, var, choices) in enumerate((
@@ -2793,8 +3909,27 @@ class SynhaleesGUI:
                 else:
                     ttk.Entry(swrap, textvariable=var).grid(row=r_i, column=1, sticky="ew", pady=5)
 
+            tk.Label(swrap, text="SVG Logo (opt)", bg=PALETTE["surface"], fg=PALETTE["text"], font=("Segoe UI", 9)).grid(
+                row=3, column=0, sticky="w", padx=(0, 10), pady=5
+            )
+            svg_row = tk.Frame(swrap, bg=PALETTE["surface"])
+            svg_row.grid(row=3, column=1, sticky="ew", pady=5)
+
+            def _pick_new_svg() -> None:
+                p = self.filedialog.askopenfilename(
+                    parent=sub, title="Select SVG Logo", filetypes=[("SVG", "*.svg")]
+                )
+                if p:
+                    picked_svg[0] = Path(p)
+                    svg_lbl_v.set(Path(p).name)
+
+            ttk.Button(svg_row, text="Browse .svg…", style="Ghost.TButton", command=_pick_new_svg).pack(side="left")
+            tk.Label(svg_row, textvariable=svg_lbl_v, bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Segoe UI", 8)).pack(
+                side="left", padx=(8, 0)
+            )
+
             tk.Label(swrap, textvariable=serr_v, bg=PALETTE["surface"], fg=PALETTE["accent"], font=("Segoe UI", 9)).grid(
-                row=3, column=0, columnspan=2, sticky="w", pady=(4, 6)
+                row=4, column=0, columnspan=2, sticky="w", pady=(4, 6)
             )
 
             def _add_org() -> None:
@@ -2807,6 +3942,8 @@ class SynhaleesGUI:
                     serr_v.set("Enter a Display Name (e.g. Cohere).")
                     return
                 new_orgs_pending[oslug] = {"name": oname, "logo": oslug, "color": col_v.get() or "gray"}
+                if picked_svg[0] is not None:
+                    new_org_svgs[oslug] = picked_svg[0]
                 if oslug not in org_choices:
                     org_choices.append(oslug)
                     org_choices.sort()
@@ -2818,7 +3955,7 @@ class SynhaleesGUI:
                 sub.destroy()
 
             sbtns = tk.Frame(swrap, bg=PALETTE["surface"])
-            sbtns.grid(row=4, column=0, columnspan=2, sticky="e")
+            sbtns.grid(row=5, column=0, columnspan=2, sticky="e")
             ttk.Button(sbtns, text="Cancel", style="Ghost.TButton", command=sub.destroy).pack(side="right")
             ttk.Button(sbtns, text="Create Org", style="Accent.TButton", command=_add_org).pack(side="right", padx=(0, 8))
 
@@ -2844,23 +3981,40 @@ class SynhaleesGUI:
                 })
             try:
                 saved = save_model_registry_entries(entries, new_orgs=new_orgs_pending)
+                for oslug, svg_path in new_org_svgs.items():
+                    meta = new_orgs_pending.get(oslug, {})
+                    install_organization_logo(
+                        oslug,
+                        svg_path,
+                        org_slug=oslug,
+                        color_hex=default_registry.resolve_color_hex(oslug),
+                        rebuild_logo_data=True,
+                    )
+                    self._invalidate_icon_caches()
             except ValueError as exc:
                 err_var.set(str(exc))
                 return
 
             for (item_id, raw_slug, c_var, *_), ent in zip(rows_data, entries):
-                self.kg_new_tree.item(item_id, values=(raw_slug, ent["canonical"], "Registered"))
+                if item_id is not None and self.kg_new_tree.exists(item_id):
+                    self.kg_new_tree.item(item_id, tags=("even", "ok"), values=(raw_slug, ent["canonical"], "Registered"))
 
             if saved:
                 self._append_log(f"[OK] Saved {saved} model(s) to synhalees/models.json\n", "ok")
                 self.kg_discover_status_var.set(f"Saved {saved} model(s) to synhalees/models.json.")
                 self.refresh_all()
             dlg.destroy()
+            if on_saved is not None:
+                self.root.after(10, on_saved)
 
         ttk.Button(btns, text="Cancel", style="Ghost.TButton", command=dlg.destroy).pack(side="right")
-        ttk.Button(btns, text="Save to models.json", style="Accent.TButton", command=_save_models).pack(
-            side="right", padx=(0, 8)
-        )
+        ttk.Button(
+            btns,
+            text="Save & Continue ->" if on_saved else "Save to models.json",
+            style="Accent.TButton",
+            command=_save_models,
+        ).pack(side="right", padx=(0, 8))
+        dlg.bind("<Escape>", lambda _e: dlg.destroy())
 
     def _bind_toggle_tree(self, tree: Any) -> None:
         """Allow clicking the single selected row again (without Ctrl) to deselect it."""
@@ -2930,14 +4084,18 @@ class SynhaleesGUI:
     def _on_select_cov_model(self, _event: Any = None) -> None:
         self._sync_kaggle_selection(self.kg_tree, self.kg_new_tree)
 
-    def _discover_kaggle_models(self) -> None:
+    def _discover_kaggle_models(self, *, on_done: Callable[[], None] | None = None) -> None:
         """Query `kaggle b t models` in background and display new models in Step 1."""
+        if not self._ensure_kaggle_auth(lambda: self._discover_kaggle_models(on_done=on_done)):
+            return
         with self._proc_lock:
             if self._proc is not None and self._proc.poll() is None:
                 self._append_log("[WARN] A command is already running. Stop it first.\n", "warn")
                 return
 
         self.select_page("kaggle")
+        self._discover_on_done = on_done
+        self._last_args = ["kaggle", "models"]
         self._last_cmd_text = "kaggle b t models"
         self.kg_discover_status_var.set("Querying Kaggle servers (`kaggle b t models`)...")
         self.cmd_label_var.set("kaggle b t models (new vs local)")
@@ -2994,14 +4152,41 @@ class SynhaleesGUI:
 
     # ------------------------------------------------------------------ Subprocess runner
 
-    def run_cli(self, args: list[str]) -> None:
+    def run_pipeline(
+        self,
+        steps: list[tuple[str, list[str]]],
+        *,
+        on_complete: Callable[[], None] | None = None,
+    ) -> None:
+        """Run multiple CLI subcommands sequentially with shared pipeline progress."""
+        clean_steps = [(msg, list(cmd)) for msg, cmd in steps if cmd]
+        if not clean_steps:
+            return
+        msg, first_args = clean_steps[0]
+        self._pipeline_queue = clean_steps[1:]
+        self._pipeline_on_complete = on_complete
+        self._append_log(f"[PIPELINE] {msg}\n", "cmd")
+        self.run_cli(first_args, _keep_pipeline=True)
+
+    def run_cli(self, args: list[str], *, _keep_pipeline: bool = False) -> None:
         with self._proc_lock:
             if self._proc is not None and self._proc.poll() is None:
                 self._append_log("[WARN] A command is already running. Stop it first.\n", "warn")
                 return
 
+        if not _keep_pipeline:
+            self._pipeline_queue = []
+            self._pipeline_on_complete = None
+
         self._last_args = list(args)
         self._last_err_line = ""
+        self._eval_done = 0
+        self._eval_pass = 0
+        if len(args) >= 2 and args[:2] == ["kaggle", "pull"]:
+            self._failed_kaggle_tasks = []
+            if hasattr(self, "kg_retry_btn") and self.kg_retry_btn.winfo_ismapped():
+                self.kg_retry_btn.pack_forget()
+
         preview = format_cmd_preview(args)
         self._last_cmd_text = preview
         self.cmd_label_var.set(preview)
@@ -3047,6 +4232,8 @@ class SynhaleesGUI:
         threading.Thread(target=worker, daemon=True).start()
 
     def stop_command(self) -> None:
+        self._pipeline_queue = []
+        self._pipeline_on_complete = None
         with self._proc_lock:
             proc = self._proc
         if proc is not None and proc.poll() is None:
@@ -3075,13 +4262,16 @@ class SynhaleesGUI:
             self.stop_btn.configure(state="normal")
             self._set_workflow_buttons_state("disabled")
             self.progress_msg_var.set("Running... please wait until this step finishes.")
+            self.progress_pct_var.set("")
             if not self.progress_wrap.winfo_ismapped():
                 self.progress_wrap.pack(fill="x", padx=self._px(12), pady=(self._px(6), 0), before=self.cbar)
+            self.progress_bar.configure(mode="indeterminate", maximum=100.0, value=0.0)
             self.progress_bar.start(12)
         else:
             self.status_badge.configure(text="IDLE", bg=PALETTE["card"], fg=PALETTE["ok"])
             self.stop_btn.configure(state="disabled")
             self.progress_bar.stop()
+            self.progress_pct_var.set("")
             self.progress_wrap.pack_forget()
             self._set_workflow_buttons_state("normal")
 
@@ -3101,6 +4291,50 @@ class SynhaleesGUI:
                     clean_line = str(payload).strip()
                     if clean_line and self.progress_wrap.winfo_ismapped():
                         self.progress_msg_var.set(clean_line[:110])
+                        ev = parse_eval_item_outcome(clean_line)
+                        if ev:
+                            done_n, total_n, passed = ev
+                            self._eval_done += 1
+                            if passed:
+                                self._eval_pass += 1
+                            pct = min(100.0, (done_n / total_n) * 100.0)
+                            acc = (self._eval_pass / max(1, self._eval_done)) * 100.0
+                            if str(self.progress_bar.cget("mode")) != "determinate":
+                                self.progress_bar.stop()
+                                self.progress_bar.configure(mode="determinate", maximum=100.0)
+                            self.progress_bar["value"] = pct
+                            self.progress_pct_var.set(f"{done_n}/{total_n} ({pct:.0f}%) · Acc {acc:.1f}%")
+                            self.status_badge.configure(text=f"RUNNING {pct:.0f}%")
+                        else:
+                            prog = parse_progress_line(clean_line)
+                            if prog:
+                                done_n, total_n, pct, _ = prog
+                                if str(self.progress_bar.cget("mode")) != "determinate":
+                                    self.progress_bar.stop()
+                                    self.progress_bar.configure(mode="determinate", maximum=100.0)
+                                self.progress_bar["value"] = pct
+                                self.progress_pct_var.set(f"{done_n}/{total_n} ({pct:.0f}%)")
+                                self.status_badge.configure(text=f"RUNNING {pct:.0f}%")
+
+                    if "logo-data.js fresh" in clean_line:
+                        ok_g = clean_line.startswith("[OK]") or clean_line.startswith("OK:")
+                        self._set_site_gate("logos", "PASS" if ok_g else "FAIL", "checksum verified" if ok_g else "stale checksum", PALETTE["ok"] if ok_g else PALETTE["accent"])
+                    elif "docs/assets/data in sync" in clean_line:
+                        ok_g = clean_line.startswith("[OK]") or clean_line.startswith("OK:")
+                        self._set_site_gate("data", "PASS" if ok_g else "FAIL", "in sync" if ok_g else "stale data", PALETTE["ok"] if ok_g else PALETTE["accent"])
+                    elif "dataset schemas valid" in clean_line:
+                        ok_g = clean_line.startswith("[OK]") or clean_line.startswith("OK:")
+                        self._set_site_gate("schemas", "PASS" if ok_g else "FAIL", "15 pillars valid" if ok_g else "schema error", PALETTE["ok"] if ok_g else PALETTE["accent"])
+                    elif "python compiles" in clean_line:
+                        ok_g = clean_line.startswith("[OK]") or clean_line.startswith("OK:")
+                        self._set_site_gate("compile", "PASS" if ok_g else "FAIL", "syntax OK" if ok_g else "compile error", PALETTE["ok"] if ok_g else PALETTE["accent"])
+
+                    failed_now = extract_failed_tasks(clean_line)
+                    if failed_now:
+                        for ft in failed_now:
+                            if ft not in self._failed_kaggle_tasks:
+                                self._failed_kaggle_tasks.append(ft)
+
                     if clean_line and (
                         "[ERR]" in clean_line
                         or "Error:" in clean_line
@@ -3127,8 +4361,10 @@ class SynhaleesGUI:
                     total_avail, pending = payload
                     self.kg_new_tree.delete(*self.kg_new_tree.get_children())
                     if pending:
-                        for raw, canon, st_lbl in pending:
-                            self.kg_new_tree.insert("", "end", values=(raw, canon, st_lbl))
+                        for idx, (raw, canon, st_lbl) in enumerate(pending):
+                            stripe = "odd" if idx % 2 else "even"
+                            st_tag = "warn" if ("Unregistered" in st_lbl or "Partial" in st_lbl) else "info"
+                            self.kg_new_tree.insert("", "end", tags=(stripe, st_tag), values=(raw, canon, st_lbl))
                         self.kg_new_frame.pack(fill="x", pady=(0, self._px(10)), before=self.kg_cov_card)
                         self._select_all_new_kaggle_models()
                         self.kg_discover_status_var.set(
@@ -3155,17 +4391,122 @@ class SynhaleesGUI:
                         if not self._console_visible:
                             self._toggle_console()
                     self.refresh_all()
+
+                    if rc != 0:
+                        self._pipeline_queue = []
+                        self._pipeline_on_complete = None
+                        self._discover_on_done = None
+                        if self._failed_kaggle_tasks and hasattr(self, "kg_retry_btn"):
+                            self.kg_retry_btn.configure(text=f"Retry {len(self._failed_kaggle_tasks)} Failed Task(s)")
+                            if not self.kg_retry_btn.winfo_ismapped():
+                                self.kg_retry_btn.pack(side="left")
+                        continue
+
+                    if self._last_args == ["kaggle", "models"] and getattr(self, "_discover_on_done", None) is not None:
+                        cb = self._discover_on_done
+                        self._discover_on_done = None
+                        if self.kg_new_tree.get_children():
+                            cb()
+                        continue
+
+                    if self._pipeline_queue:
+                        nxt_msg, nxt_args = self._pipeline_queue.pop(0)
+                        self._append_log(f"[PIPELINE] {nxt_msg}\n", "cmd")
+                        self.run_cli(nxt_args, _keep_pipeline=True)
+                        continue
+
+                    if self._pipeline_on_complete is not None:
+                        done_cb = self._pipeline_on_complete
+                        self._pipeline_on_complete = None
+                        done_cb()
+
                     if (
-                        rc == 0
-                        and len(getattr(self, "_last_args", [])) >= 2
-                        and self._last_args[0] == "kaggle"
-                        and self._last_args[1] == "pull"
+                        len(getattr(self, "_last_args", [])) >= 2
+                        and self._last_args[:2] == ["kaggle", "pull"]
                         and "--dry-run" not in self._last_args
                     ):
-                        self._open_pull_complete_dialog()
+                        if getattr(self, "kg_auto_build_var", None) and self.kg_auto_build_var.get():
+                            submit_args = build_kaggle_args("submit", task=self.kg_task_var.get(), build=True)
+                            unreg = find_unregistered_slim_models(self.kg_task_var.get())
+                            if unreg:
+                                self._guard_and_run_kaggle("submit", submit_args)
+                            else:
+                                self.run_pipeline([
+                                    ("Auto-Build 1/2 · Importing slim CSVs & rebuilding leaderboard...", submit_args),
+                                    ("Auto-Build 2/2 · Verifying all 4 CI gates...", ["check"]),
+                                ])
+                        else:
+                            self._open_pull_complete_dialog()
+                    elif (
+                        len(getattr(self, "_last_args", [])) >= 1
+                        and self._last_args[0] == "run"
+                        and "--dry-run" not in self._last_args
+                    ):
+                        finished_slug = self._extract_finished_run_slug(self._last_args)
+                        if finished_slug and finished_slug in self.pub_combo["values"]:
+                            self.pub_slug_var.set(finished_slug)
+                        if getattr(self, "run_auto_publish_var", None) and self.run_auto_publish_var.get() and finished_slug:
+                            self._publish_selected_run()
+                        elif finished_slug:
+                            self._open_run_complete_dialog(finished_slug)
         except queue.Empty:
             pass
         self.root.after(70, self._drain_queue)
+
+    @staticmethod
+    def _extract_finished_run_slug(args: list[str]) -> str:
+        from synhalees.runner import model_slug
+
+        for idx, tok in enumerate(args):
+            if tok == "--model" and idx + 1 < len(args):
+                return model_slug(args[idx + 1])
+            if tok.startswith("--model="):
+                return model_slug(tok.split("=", 1)[1])
+        return ""
+
+    def _open_run_complete_dialog(self, slug: str) -> None:
+        """Notify when a local evaluation completes and offer Publish or Compare."""
+        tk, ttk = self.tk, self.ttk
+        meta_path = RUNS / slug / "meta.json"
+        summary_txt = f"Run '{slug}' finished."
+        if meta_path.is_file():
+            try:
+                meta = json.loads(meta_path.read_text(encoding="utf-8"))
+                ov = meta.get("overall")
+                ov_s = f"{float(ov):.1f}%" if ov is not None else "—"
+                summary_txt = f"Model: {meta.get('spec', slug)}\nItems: {meta.get('items', '—')}  ·  Errors: {meta.get('errors', 0)}  ·  Overall: {ov_s}"
+            except Exception:
+                pass
+
+        dlg = tk.Toplevel(self.root)
+        dlg.title("Local Evaluation Complete")
+        dlg.configure(bg=PALETTE["surface"])
+        dlg.transient(self.root)
+        dlg.grab_set()
+        self._center_dialog(dlg, self._px(490), self._px(210))
+
+        wrap = tk.Frame(dlg, bg=PALETTE["surface"], padx=self._px(18), pady=self._px(16))
+        wrap.pack(fill="both", expand=True)
+        tk.Label(wrap, text="Local Run Complete", bg=PALETTE["surface"], fg=PALETTE["ok"], font=("Segoe UI", 12, "bold")).pack(anchor="w")
+        tk.Label(wrap, text=summary_txt, bg=PALETTE["surface"], fg=PALETTE["text"], font=("Segoe UI", 9), justify="left").pack(
+            anchor="w", pady=(self._px(8), self._px(14))
+        )
+        btns = tk.Frame(wrap, bg=PALETTE["surface"])
+        btns.pack(fill="x", side="bottom")
+        ttk.Button(
+            btns,
+            text="Publish & Rebuild Site Now",
+            style="Accent.TButton",
+            command=lambda: (dlg.destroy(), self._publish_selected_run()),
+        ).pack(side="right", padx=(self._px(8), 0))
+        ttk.Button(
+            btns,
+            text="Compare All Runs",
+            style="Ghost.TButton",
+            command=lambda: (dlg.destroy(), self.run_cli(["compare"])),
+        ).pack(side="right", padx=(self._px(8), 0))
+        ttk.Button(btns, text="Close", style="Ghost.TButton", command=dlg.destroy).pack(side="right")
+        dlg.bind("<Escape>", lambda _e: dlg.destroy())
 
     def _open_pull_complete_dialog(self) -> None:
         """Notify the user when Kaggle/Colab pull finishes and offer Step 3 Build."""

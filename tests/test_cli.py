@@ -588,6 +588,10 @@ class TestGUI(unittest.TestCase):
             self.assertGreater(len(app.models_tree.get_children()), 0)
             self.assertGreater(len(app.mgmt_models_tree.get_children()), 0)
             self.assertGreater(len(app.mgmt_orgs_tree.get_children()), 0)
+            self.assertEqual(len(app.site_gate_cards), 4)
+            # Verify 3-tier logo icon renderer (PNG + SVG + monogram)
+            self.assertIsNotNone(app._make_org_preview_icon("openai", "#10A37F"))
+            self.assertIsNotNone(app._make_org_preview_icon("nonexistent-org", "#4285F4"))
             app._set_running(True)
             self.assertEqual(app.status_badge.cget("text"), "RUNNING")
             app._set_running(False)
@@ -597,11 +601,14 @@ class TestGUI(unittest.TestCase):
 
     def test_gui_management_org_and_model_crud_isolated(self) -> None:
         from synhalees.gui import (
+            bulk_update_model_registry_entries,
             delete_model_completely,
             delete_model_registry_entry,
             delete_organization_entry,
+            delete_organization_family,
             save_model_registry_entries,
             save_organization_entry,
+            save_organization_family,
         )
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -609,13 +616,20 @@ class TestGUI(unittest.TestCase):
             mj.write_text(json.dumps({"providers": {}, "display_names": {}}), encoding="utf-8")
 
             save_organization_entry("acme", name="Acme AI", logo="acme", color="blue", aliases=["acme-ai"], models_json_path=mj)
+            save_organization_family("acme", "acme-pro", name="Acme Pro", open_source=False, match_patterns=["acme-pro"], models_json_path=mj)
             save_model_registry_entries(
-                [{"canonical": "acme-1", "display_name": "Acme 1", "org": "acme", "family": "acme", "open_source": True}],
+                [{"canonical": "acme-1", "display_name": "Acme 1", "org": "acme", "family": "acme-pro", "open_source": True}],
                 models_json_path=mj,
+            )
+            self.assertEqual(
+                bulk_update_model_registry_entries(["acme-1"], open_source=False, models_json_path=mj),
+                1,
             )
             data = json.loads(mj.read_text(encoding="utf-8"))
             self.assertIn("acme", data["providers"])
             self.assertEqual(data["display_names"]["acme-1"], "Acme 1")
+            self.assertFalse(data["providers"]["acme"]["families"]["acme-pro"]["open_source"])
+            self.assertTrue(delete_organization_family("acme", "acme-pro", models_json_path=mj))
 
             self.assertTrue(delete_model_registry_entry("acme-1", models_json_path=mj))
 
@@ -646,6 +660,71 @@ class TestGUI(unittest.TestCase):
             data = json.loads(mj.read_text(encoding="utf-8"))
             self.assertNotIn("acme-1", data["display_names"])
             self.assertNotIn("acme", data["providers"])
+
+    def test_gui_helpers_progress_svg_logo_scorecard_and_pillar_inspector(self) -> None:
+        from synhalees.gui_helpers import (
+            compare_model_scorecards,
+            extract_failed_tasks,
+            inspect_pillar_dataset,
+            install_organization_logo,
+            load_model_scorecard_summary,
+            parse_eval_item_outcome,
+            parse_progress_line,
+            rasterize_svg_to_grid,
+            render_monogram_grid,
+        )
+
+        prog = parse_progress_line("[7/17] downloading synhalees-07-figurative-sinhala -> slim CSV")
+        self.assertIsNotNone(prog)
+        assert prog is not None
+        self.assertEqual(prog[:2], (7, 17))
+        self.assertEqual(parse_eval_item_outcome("[12/225] 01_buddhist_culture/text/T012 PASS"), (12, 225, True))
+        self.assertEqual(
+            extract_failed_tasks("download failed for 2 task(s): synhalees-audio, synhalees-vision"),
+            ["synhalees-audio", "synhalees-vision"],
+        )
+
+        # SVG rasterizer & monogram fallback
+        openai_svg = Path(ROOT / "docs" / "assets" / "logos" / "openai.svg").read_text(encoding="utf-8")
+        grid = rasterize_svg_to_grid(openai_svg, size=16)
+        self.assertIsNotNone(grid)
+        assert grid is not None
+        self.assertEqual(len(grid), 16)
+        self.assertGreater(len({px for row in grid for px in row}), 1)
+        mgrid = render_monogram_grid("C", "#4285F4", size=16)
+        self.assertEqual(len(mgrid), 16)
+
+        # Isolated SVG logo installer & JS map sync
+        with tempfile.TemporaryDirectory() as tmp:
+            troot = Path(tmp)
+            assets = troot / "docs" / "assets"
+            assets.mkdir(parents=True)
+            (assets / "chart.js").write_text('  var PROVIDER_LOGOS = {\n    google: "google",\n  };\n  var PROVIDER_COLORS = {\n    google: "#4285F4",\n  };\n', encoding="utf-8")
+            (assets / "app.js").write_text('  var PROVIDER_LOGOS = {\n    google: "google",\n  };\n', encoding="utf-8")
+            src_svg = troot / "cohere.svg"
+            src_svg.write_text('<svg viewBox="0 0 24 24"><path d="M2 2h20v20H2z"/></svg>', encoding="utf-8")
+            out = install_organization_logo(
+                "cohere",
+                src_svg,
+                org_slug="cohere",
+                aliases=["cohere-ai"],
+                color_hex="#20B8CD",
+                root_dir=troot,
+                rebuild_logo_data=False,
+            )
+            self.assertTrue(out["svg_path"].is_file())
+            self.assertIn('cohere: "cohere"', (assets / "chart.js").read_text(encoding="utf-8"))
+            self.assertIn('cohereai: "cohere"', (assets / "app.js").read_text(encoding="utf-8"))
+
+        # Read-only pillar inspector & model scorecard summary
+        rep = inspect_pillar_dataset("01_buddhist_culture")
+        self.assertEqual(rep.slug, "01_buddhist_culture")
+        self.assertGreater(rep.text_count, 0)
+        sc = load_model_scorecard_summary("gemini-4-argon")
+        self.assertEqual(sc.canonical, "gemini-4-argon")
+        self.assertIsNotNone(sc.modalities["text"])
+        cmp = compare_model_scorecards("gemini-4-argon", "gemini-4-argon", modality="text")
+        self.assertEqual(len(cmp["rows"]), 15)
 
 
 if __name__ == "__main__":

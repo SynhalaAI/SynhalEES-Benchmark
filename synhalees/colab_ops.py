@@ -232,8 +232,6 @@ hb.start()
 rc = proc.wait()
 stop_hb.set()
 rt.join(timeout=5)
-if rc != 0:
-    raise RuntimeError(f"synhalees kaggle pull failed inside Colab (exit {{rc}})")
 
 out_tar = Path("/content/synhalees_slim_out.tar.gz")
 with tarfile.open(out_tar, "w:gz") as tf:
@@ -242,7 +240,9 @@ with tarfile.open(out_tar, "w:gz") as tf:
         for slim in sorted(res_dir.glob("*.slim.csv")):
             tf.add(slim, arcname=slim.name)
 
-print(f"[OK] Packed slim archive: {{out_tar}} ({{out_tar.stat().st_size}} bytes)")
+print(f"[OK] Packed slim archive: {{out_tar}} ({{out_tar.stat().st_size}} bytes)", flush=True)
+if rc != 0:
+    raise RuntimeError(f"synhalees kaggle pull failed inside Colab (exit {{rc}})")
 '''
 
 
@@ -340,18 +340,19 @@ def pull_via_colab(
                 if rc != 0:
                     return rc
 
-            rc = _colab_sh([cbin, "exec", "--timeout", "600", "-f", str(runner_path)])
-            if rc != 0:
-                return rc
+            exec_rc = _colab_sh([cbin, "exec", "--timeout", "600", "-f", str(runner_path)])
 
             out_archive = tmp_path / "synhalees_slim_out.tar.gz"
-            rc = _colab_sh([cbin, "download", "/content/synhalees_slim_out.tar.gz", str(out_archive)])
-            if rc != 0:
-                return rc
-
-            extracted = extract_slim_archive(out_archive, KG_RESULTS)
-            print(f"[OK] Synced {len(extracted)} slim CSV(s) from Colab into {KG_RESULTS}")
-            print("[next] Run `synhalees kaggle submit all --build` to update submissions/ & site data.")
+            dl_rc = _colab_sh([cbin, "download", "/content/synhalees_slim_out.tar.gz", str(out_archive)])
+            if dl_rc == 0 and out_archive.is_file():
+                extracted = extract_slim_archive(out_archive, KG_RESULTS)
+                print(f"[OK] Synced {len(extracted)} slim CSV(s) from Colab into {KG_RESULTS}")
+                if exec_rc == 0:
+                    print("[next] Run `synhalees kaggle submit all --build` to update submissions/ & site data.")
+            if exec_rc != 0:
+                return exec_rc
+            if dl_rc != 0:
+                return dl_rc
             return 0
         finally:
             if not keep_session:
