@@ -752,13 +752,12 @@ class SynhaleesGUI:
 
     def __init__(self, root: Any, *, initial_tab: str = "overview") -> None:
         import tkinter as tk
-        from tkinter import colorchooser, filedialog, messagebox, scrolledtext, ttk
+        from tkinter import filedialog, messagebox, scrolledtext, ttk
 
         self.tk = tk
         self.ttk = ttk
         self.messagebox = messagebox
         self.filedialog = filedialog
-        self.colorchooser = colorchooser
         self.root = root
         load_saved_tokens()
         try:
@@ -3133,41 +3132,37 @@ class SynhaleesGUI:
         color_row = tk.Frame(wrap, bg=PALETTE["surface"])
         color_row.grid(row=3, column=1, sticky="ew", padx=(10, 0), pady=5)
         color_row.columnconfigure(0, weight=1)
-        ttk.Combobox(color_row, textvariable=color_var, values=color_choices).grid(row=0, column=0, sticky="ew")
+        ttk.Combobox(color_row, textvariable=color_var, values=color_choices, state="readonly").grid(row=0, column=0, sticky="ew")
         swatch_box = tk.Frame(color_row, width=self._px(24), height=self._px(20), bg="#78909C", highlightthickness=1, highlightbackground=PALETTE["border"])
         swatch_box.grid(row=0, column=1, padx=(8, 4))
         swatch_hex_lbl = tk.Label(color_row, text="#78909C", bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Consolas", 9))
-        swatch_hex_lbl.grid(row=0, column=2, padx=(0, 6))
+        swatch_hex_lbl.grid(row=0, column=2)
 
-        def _pick_custom_color() -> None:
-            cur_h = swatch_hex_lbl.cget("text")
-            _, hx = self.colorchooser.askcolor(color=cur_h, parent=dlg, title="Choose Brand Color")
-            if hx:
-                color_var.set(hx)
-
-        ttk.Button(color_row, text="Custom…", style="Ghost.TButton", command=_pick_custom_color).grid(row=0, column=3)
-
-        # 14-color clickable swatch strip
+        # Curated 24-color site-harmonized swatch grid (no custom hex mismatch)
         palette_strip = tk.Frame(wrap, bg=PALETTE["surface"])
         palette_strip.grid(row=4, column=1, sticky="w", padx=(10, 0), pady=(0, 6))
-        for cname, hx in named_colors.items():
+        swatch_chips: dict[str, Any] = {}
+        for c_idx, (cname, hx) in enumerate(named_colors.items()):
             chip = tk.Frame(
                 palette_strip,
-                width=self._px(18),
-                height=self._px(16),
+                width=self._px(20),
+                height=self._px(18),
                 bg=hx,
-                highlightthickness=1,
+                highlightthickness=2,
                 highlightbackground=PALETTE["border"],
                 cursor="hand2",
             )
-            chip.pack(side="left", padx=(0, 4))
+            chip.grid(row=c_idx // 12, column=c_idx % 12, padx=(0, 4), pady=(0, 4))
             chip.bind("<Button-1>", lambda _e, c=cname: color_var.set(c))
+            swatch_chips[cname] = chip
 
         def _sync_org_previews(*_args: Any) -> None:
             cname = color_var.get().strip()
-            hcol = str(named_colors.get(cname, cname if cname.startswith("#") else "#78909C"))
+            hcol = str(named_colors.get(cname, named_colors.get("gray", "#78909C")))
             swatch_box.configure(bg=hcol)
             swatch_hex_lbl.configure(text=hcol)
+            for sc_name, chip in swatch_chips.items():
+                chip.configure(highlightbackground="#ffffff" if sc_name == cname else PALETTE["border"])
             lslug = logo_var.get().strip() or slug_var.get().strip() or "org"
             svg_exists = bool((ROOT / "docs" / "assets" / "logos" / f"{lslug}.svg").exists())
             if picked_svg[0] is not None:
