@@ -42,6 +42,7 @@ SynhalEES/
 │   ├── __main__.py                            # python -m synhalees -> the unified CLI
 │   ├── cli.py                                 # unified CLI router: run/compare/status/pillars/models/guide/gui/site/kaggle
 │   ├── cli_ui.py                              # Pure-stdlib ANSI styling, tables, badges & workflow guides
+│   ├── colab_ops.py                           # Remote Google Colab pull via `google-colab-cli` (no git clone)
 │   ├── gui.py                                 # Pure-stdlib tkinter desktop GUI studio (`synhalees gui`)
 │   ├── kaggle_ops.py                          # Kaggle Benchmarks ops, slim-CSV sync & artifact parsing
 │   ├── registry.py                            # Model/provider SSOT registry & taxonomy resolver

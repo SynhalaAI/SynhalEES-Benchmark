@@ -816,6 +816,18 @@ def cmd_kaggle_pull(a: argparse.Namespace, extra: list[str] | None = None) -> in
         raise SystemExit("drop -o: artifacts always go to kaggle/results/ (repo hygiene)")
 
     models_req = list(getattr(a, "model", None) or [])
+    if getattr(a, "colab", False):
+        from synhalees.colab_ops import pull_via_colab
+
+        return pull_via_colab(
+            task=task or "all",
+            modality=cli_mod,
+            force=force,
+            models=models_req,
+            extra=fwd_extra,
+            dry_run=dry_run,
+            keep_session=bool(getattr(a, "keep_colab", False)),
+        )
     requested_models = {canonical_model_slug(m) for m in models_req}
     base_model_flags = _model_flags(models_req) + fwd_extra
 
@@ -1359,6 +1371,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--force", action="store_true", default=False, help="re-download even if cached locally")
     p.add_argument("-m", "--model", action="append", default=[], help="target model slug(s) (auto-expands dated pins)")
     p.add_argument("--dry-run", action="store_true", help="preview cached vs downloadable tasks without network calls")
+    p.add_argument(
+        "--colab",
+        action="store_true",
+        help="run heavy download inside Google Colab (google-colab-cli) using live local code & fetch only *.slim.csv",
+    )
+    p.add_argument("--keep-colab", action="store_true", help="keep the Colab VM running after --colab pull")
     p.set_defaults(func=cmd_kaggle_pull, _allow_extra=True)
 
     p = ks.add_parser(

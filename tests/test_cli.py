@@ -338,6 +338,40 @@ class TestKaggleOperations(unittest.TestCase):
             ["gemma-4-26b-a4b-it", "gemma-4-31b-it", "gpt-6.2-astra", "gpt-6.2-sol"],
         )
 
+    def test_colab_bundle_dry_run_and_extract(self) -> None:
+        import tarfile
+        from synhalees import colab_ops
+
+        rc, out, _ = _run_cli(
+            "kaggle", "pull", "all", "--colab", "--modality", "vision|audio", "-m", "gpt-6.2-sol", "--dry-run"
+        )
+        self.assertEqual(rc, 0)
+        self.assertIn("no git clone", out)
+        self.assertIn("--modality vision|audio -m gpt-6.2-sol", out)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            tar_path, count = colab_ops.build_colab_bundle(tmp_path / "bundle.tar.gz")
+            self.assertGreater(count, 20)
+            with tarfile.open(tar_path, "r:gz") as tf:
+                names = tf.getnames()
+            self.assertIn("synhalees/cli.py", names)
+            self.assertIn("synhalees/kaggle_ops.py", names)
+            self.assertFalse(any("__pycache__" in n or n.startswith("benchmark_data/") for n in names))
+
+            slim_tar = tmp_path / "slim.tar.gz"
+            sample = tmp_path / "demo.slim.csv"
+            sample.write_text("model,provider\ngpt-6.2-sol,kaggle\n", encoding="utf-8")
+            evil = tmp_path / "ignore.txt"
+            evil.write_text("nope", encoding="utf-8")
+            with tarfile.open(slim_tar, "w:gz") as tf:
+                tf.add(sample, arcname="demo.slim.csv")
+                tf.add(evil, arcname="ignore.txt")
+            out_dir = tmp_path / "results"
+            extracted = colab_ops.extract_slim_archive(slim_tar, out_dir)
+            self.assertEqual([p.name for p in extracted], ["demo.slim.csv"])
+            self.assertFalse((out_dir / "ignore.txt").exists())
+
 
 class TestStandaloneScripts(unittest.TestCase):
     def test_direct_script_invocations_still_work(self) -> None:
@@ -400,10 +434,10 @@ class TestGUI(unittest.TestCase):
         kg_cov_online = gui.build_kaggle_args("coverage", model="xai")
         self.assertEqual(kg_cov_online, ["kaggle", "coverage", "--provider", "xai"])
 
-        kg_multi = gui.build_kaggle_args("pull", model="gemma-4-26b-a4b-it, gpt-6.2-sol")
+        kg_multi = gui.build_kaggle_args("pull", model="gemma-4-26b-a4b-it, gpt-6.2-sol", colab=True)
         self.assertEqual(
             kg_multi,
-            ["kaggle", "pull", "all", "-m", "gemma-4-26b-a4b-it", "-m", "gpt-6.2-sol"],
+            ["kaggle", "pull", "all", "-m", "gemma-4-26b-a4b-it", "-m", "gpt-6.2-sol", "--colab"],
         )
 
         snap = gui.collect_dashboard_snapshot()

@@ -169,6 +169,7 @@ def build_kaggle_args(
     dry_run: bool = False,
     build: bool = False,
     no_remote: bool = False,
+    colab: bool = False,
 ) -> list[str]:
     """Build `synhalees kaggle <action> ...` CLI arguments from form values."""
     act = action.strip().lower()
@@ -198,6 +199,8 @@ def build_kaggle_args(
         args.extend(["--modality", resolved_mod])
     if act == "pull" and force:
         args.append("--force")
+    if act == "pull" and colab:
+        args.append("--colab")
     if act in ("pull", "submit") and dry_run:
         args.append("--dry-run")
     if act == "submit" and build:
@@ -1203,6 +1206,22 @@ class SynhaleesGUI:
                 )
             ),
         ).pack(side="left", padx=(0, 8))
+        ttk.Button(
+            r2,
+            text="Pull via Google Colab (Slim Only)",
+            style="Ghost.TButton",
+            command=lambda: self.run_cli(
+                build_kaggle_args(
+                    "pull",
+                    task=self.kg_task_var.get(),
+                    model=self.kg_model_var.get(),
+                    modality=self.kg_mod_label_var.get(),
+                    force=self.kg_force_var.get(),
+                    dry_run=self.kg_dry_var.get(),
+                    colab=True,
+                )
+            ),
+        ).pack(side="left")
 
         # STEP 3: Submit & Rebuild Site
         s3 = self._step_card(
