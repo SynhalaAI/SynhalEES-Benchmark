@@ -2108,23 +2108,84 @@ class SynhaleesGUI:
                 values=(m, dname, prov, fam, "Yes" if is_oss else "No", tva),
             )
 
+        named_colors = dict(data.get("named_colors") or {})
+        self._org_icons: dict[tuple[str, str], Any] = {}
         self.mgmt_orgs_tree.delete(*self.mgmt_orgs_tree.get_children())
         for slug in sorted(providers):
             p = providers[slug]
             fams = ", ".join(sorted((p.get("families") or {}).keys()))
             aliases = ", ".join(p.get("aliases") or [])
+            logo_slug = str(p.get("logo", slug) or slug)
+            color_name = str(p.get("color", "gray") or "gray")
+            hex_color = str(named_colors.get(color_name, color_name if color_name.startswith("#") else "#78909C"))
+            icon = self._make_org_preview_icon(logo_slug, hex_color)
             self.mgmt_orgs_tree.insert(
                 "",
                 "end",
+                text="",
+                image=icon,
                 values=(
                     slug,
                     p.get("name", slug),
-                    p.get("logo", slug),
-                    p.get("color", "gray"),
+                    logo_slug,
+                    color_name,
                     fams,
                     aliases,
                 ),
             )
+
+    def _load_logo_png_b64(self) -> dict[str, str]:
+        if hasattr(self, "_logo_png_cache"):
+            return self._logo_png_cache
+        cache: dict[str, str] = {}
+        js_path = ROOT / "docs" / "assets" / "logo-data.js"
+        if js_path.exists():
+            import re
+
+            text = js_path.read_text(encoding="utf-8", errors="replace")
+            for m in re.finditer(r'"([^"]+)":\s*"data:image/png;base64,([^"]+)"', text):
+                cache[m.group(1)] = m.group(2)
+        self._logo_png_cache = cache
+        return cache
+
+    def _make_org_preview_icon(self, logo_slug: str, hex_color: str) -> Any:
+        key = (logo_slug, hex_color)
+        if key in self._org_icons:
+            return self._org_icons[key]
+        tk = self.tk
+        badge = tk.PhotoImage(master=self.root, width=38, height=16)
+
+        # Left 16x16: actual PNG logo if embedded in logo-data.js, else colored icon tile
+        png_b64 = self._load_logo_png_b64().get(logo_slug)
+        drew_png = False
+        if png_b64:
+            try:
+                raw = tk.PhotoImage(master=self.root, data=png_b64)
+                step = max(1, max(raw.width(), raw.height()) // 16)
+                small = raw.subsample(step, step) if step > 1 else raw
+                w = min(16, small.width())
+                h = min(16, small.height())
+                ox = (16 - w) // 2
+                oy = (16 - h) // 2
+                badge.put("#FFFFFF", to=(0, 0, 16, 16))
+                for y in range(h):
+                    for x in range(w):
+                        if not small.transparency_get(x, y):
+                            r, g, b = small.get(x, y)
+                            badge.put(f"#{r:02x}{g:02x}{b:02x}", to=(ox + x, oy + y))
+                drew_png = True
+            except Exception:
+                drew_png = False
+        if not drew_png:
+            badge.put("#334155", to=(0, 0, 16, 16))
+            badge.put(hex_color, to=(1, 1, 15, 15))
+            badge.put("#FFFFFF", to=(6, 6, 10, 10))
+
+        # Right 14x14: actual color swatch
+        badge.put("#475569", to=(22, 1, 36, 15))
+        badge.put(hex_color, to=(23, 2, 35, 14))
+        self._org_icons[key] = badge
+        return badge
 
     def _open_mgmt_model_dialog(self, *, edit_selected: bool = False) -> None:
         tk, ttk = self.tk, self.ttk
@@ -2234,14 +2295,15 @@ class SynhaleesGUI:
         vals = self.mgmt_orgs_tree.item(sel[0], "values") if sel else ("", "", "", "gray", "", "")
 
         data = json.loads(MODELS_JSON.read_text(encoding="utf-8"))
-        color_choices = sorted((data.get("named_colors") or {"gray": "#78909C"}).keys())
+        named_colors = dict(data.get("named_colors") or {"gray": "#78909C"})
+        color_choices = sorted(named_colors.keys())
 
         dlg = tk.Toplevel(self.root)
         dlg.title("Edit Organization" if edit_selected else "Add Organization")
         dlg.configure(bg=PALETTE["surface"])
         dlg.transient(self.root)
         dlg.grab_set()
-        self._center_dialog(dlg, self._px(500), self._px(300))
+        self._center_dialog(dlg, self._px(520), self._px(310))
 
         wrap = tk.Frame(dlg, bg=PALETTE["surface"], padx=self._px(18), pady=self._px(16))
         wrap.pack(fill="both", expand=True)
@@ -2263,10 +2325,42 @@ class SynhaleesGUI:
         ttk.Entry(wrap, textvariable=name_var).grid(row=1, column=1, sticky="ew", padx=(10, 0), pady=6)
 
         tk.Label(wrap, text="Logo Slug", bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Segoe UI", 9)).grid(row=2, column=0, sticky="w", pady=6)
-        ttk.Entry(wrap, textvariable=logo_var).grid(row=2, column=1, sticky="ew", padx=(10, 0), pady=6)
+        logo_row = tk.Frame(wrap, bg=PALETTE["surface"])
+        logo_row.grid(row=2, column=1, sticky="ew", padx=(10, 0), pady=6)
+        logo_row.columnconfigure(0, weight=1)
+        ttk.Entry(logo_row, textvariable=logo_var).grid(row=0, column=0, sticky="ew")
+        logo_preview_lbl = tk.Label(logo_row, bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Segoe UI", 8))
+        logo_preview_lbl.grid(row=0, column=1, padx=(8, 0))
 
         tk.Label(wrap, text="Color", bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Segoe UI", 9)).grid(row=3, column=0, sticky="w", pady=6)
-        ttk.Combobox(wrap, textvariable=color_var, values=color_choices, state="readonly").grid(row=3, column=1, sticky="ew", padx=(10, 0), pady=6)
+        color_row = tk.Frame(wrap, bg=PALETTE["surface"])
+        color_row.grid(row=3, column=1, sticky="ew", padx=(10, 0), pady=6)
+        color_row.columnconfigure(0, weight=1)
+        ttk.Combobox(color_row, textvariable=color_var, values=color_choices, state="readonly").grid(row=0, column=0, sticky="ew")
+        swatch_box = tk.Frame(color_row, width=self._px(24), height=self._px(20), bg="#78909C", highlightthickness=1, highlightbackground=PALETTE["border"])
+        swatch_box.grid(row=0, column=1, padx=(8, 4))
+        swatch_hex_lbl = tk.Label(color_row, text="#78909C", bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Consolas", 9))
+        swatch_hex_lbl.grid(row=0, column=2)
+
+        def _sync_org_previews(*_args: Any) -> None:
+            cname = color_var.get().strip()
+            hcol = str(named_colors.get(cname, cname if cname.startswith("#") else "#78909C"))
+            swatch_box.configure(bg=hcol)
+            swatch_hex_lbl.configure(text=hcol)
+            lslug = logo_var.get().strip()
+            svg_exists = bool(lslug and (ROOT / "docs" / "assets" / "logos" / f"{lslug}.svg").exists())
+            icon = self._make_org_preview_icon(lslug or slug_var.get().strip() or "org", hcol)
+            logo_preview_lbl.configure(
+                image=icon,
+                compound="left",
+                text=f" {'OK' if svg_exists else 'no .svg'}",
+                fg=PALETTE["ok"] if svg_exists else PALETTE["warn"],
+            )
+            logo_preview_lbl._icon_ref = icon
+
+        color_var.trace_add("write", _sync_org_previews)
+        logo_var.trace_add("write", _sync_org_previews)
+        _sync_org_previews()
 
         tk.Label(wrap, text="Aliases (comma-sep)", bg=PALETTE["surface"], fg=PALETTE["muted"], font=("Segoe UI", 9)).grid(row=4, column=0, sticky="w", pady=6)
         ttk.Entry(wrap, textvariable=aliases_var).grid(row=4, column=1, sticky="ew", padx=(10, 0), pady=6)
