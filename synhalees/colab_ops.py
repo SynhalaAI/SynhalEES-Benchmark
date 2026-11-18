@@ -40,13 +40,72 @@ def colab_bin() -> str:
     )
 
 
+_COLAB_PY_RUNNER = (
+    "import importlib.metadata, sys; "
+    "eps = importlib.metadata.entry_points(group='console_scripts', name='colab'); "
+    "ep = next(iter(eps)); "
+    "sys.exit(ep.load()())"
+)
+
+
+def _sys_python_has_colab() -> bool:
+    """Return True if the active interpreter exposes the `colab` console script."""
+    import importlib.metadata
+
+    try:
+        return bool(list(importlib.metadata.entry_points(group="console_scripts", name="colab")))
+    except Exception:
+        return False
+
+
+def _colab_python_candidates(exe: str, rest: list[str]) -> list[list[str]]:
+    """Candidate `python/py -c ...` commands when `colab.exe` is blocked (WinError 4551)."""
+    p = Path(exe)
+    cmds: list[list[str]] = []
+    seen: set[str] = set()
+
+    def _add(launcher: str) -> None:
+        if launcher and launcher not in seen:
+            seen.add(launcher)
+            cmds.append([launcher, "-c", _COLAB_PY_RUNNER, *rest])
+
+    if _sys_python_has_colab():
+        _add(sys.executable)
+    for cand in (p.parent.parent / "python.exe", p.parent / "python.exe"):
+        if cand.is_file():
+            _add(str(cand))
+    py_launcher = shutil.which("py")
+    if py_launcher:
+        _add(py_launcher)
+    return cmds
+
+
 def _colab_sh(argv: Iterable[object], *, echo: bool = True) -> int:
-    """Run a `colab` CLI command with inherited stdio."""
+    """Run a `colab` CLI command, bypassing blocked pip .exe shims on Windows."""
     cmd = [str(a) for a in argv]
+    env = dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUTF8="1")
+    if os.name == "nt" and cmd and "colab" in Path(cmd[0]).name.lower() and _sys_python_has_colab():
+        py_cmd = [sys.executable, "-c", _COLAB_PY_RUNNER, *cmd[1:]]
+        if echo:
+            print("+ " + " ".join([sys.executable, "(colab)", *cmd[1:]]), flush=True)
+        return subprocess.run(py_cmd, cwd=str(ROOT), env=env).returncode
+
     if echo:
         print("+ " + " ".join(cmd), flush=True)
-    env = dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUTF8="1")
-    return subprocess.run(cmd, cwd=str(ROOT), env=env).returncode
+    try:
+        return subprocess.run(cmd, cwd=str(ROOT), env=env).returncode
+    except OSError as exc:
+        if getattr(exc, "winerror", None) == 4551 and cmd and "colab" in Path(cmd[0]).name.lower():
+            last_exc: OSError = exc
+            for fb in _colab_python_candidates(cmd[0], cmd[1:]):
+                try:
+                    if echo:
+                        print("+ " + " ".join([fb[0], "(colab)", *cmd[1:]]), flush=True)
+                    return subprocess.run(fb, cwd=str(ROOT), env=env).returncode
+                except OSError as fb_exc:
+                    last_exc = fb_exc
+            raise last_exc
+        raise
 
 
 def build_colab_bundle(out_tar: Path) -> tuple[Path, int]:
@@ -107,7 +166,10 @@ if WORK.exists():
 WORK.mkdir(parents=True, exist_ok=True)
 
 with tarfile.open("/content/synhalees_bundle.tar.gz", "r:gz") as tf:
-    tf.extractall(WORK)
+    try:
+        tf.extractall(WORK, filter="data")
+    except TypeError:
+        tf.extractall(WORK)
 
 {env_block}
 
@@ -123,13 +185,55 @@ if {bool(has_kaggle_json)!r}:
         except Exception:
             pass
 
-subprocess.run([sys.executable, "-m", "pip", "install", "-q", "kaggle"], check=True)
+pip_res = subprocess.run(
+    [sys.executable, "-m", "pip", "install", "-q", "-U", "kaggle"],
+    capture_output=True, text=True,
+)
+if pip_res.returncode != 0:
+    print(pip_res.stdout or "")
+    print(pip_res.stderr or "")
+    raise RuntimeError(f"pip install kaggle failed (exit {{pip_res.returncode}})")
+
+import threading
 
 cmd = [sys.executable, "-m", "synhalees", "--no-color", *{pull_args!r}]
 print("+ " + " ".join(cmd), flush=True)
-rc = subprocess.run(cmd, cwd=str(WORK)).returncode
+env = dict(os.environ, PYTHONUNBUFFERED="1", PYTHONIOENCODING="utf-8", PYTHONUTF8="1")
+proc = subprocess.Popen(
+    cmd,
+    cwd=str(WORK),
+    env=env,
+    stdout=subprocess.PIPE,
+    stderr=subprocess.STDOUT,
+    text=True,
+    encoding="utf-8",
+    errors="replace",
+)
+stop_hb = threading.Event()
+last_out = [0.0]
+
+def _reader() -> None:
+    import time
+    assert proc.stdout is not None
+    for line in proc.stdout:
+        last_out[0] = time.monotonic()
+        print(line, end="", flush=True)
+
+def _heartbeat() -> None:
+    import time
+    while not stop_hb.wait(15):
+        if time.monotonic() - last_out[0] >= 14:
+            print("[colab] still downloading/processing...", flush=True)
+
+rt = threading.Thread(target=_reader, daemon=True)
+hb = threading.Thread(target=_heartbeat, daemon=True)
+rt.start()
+hb.start()
+rc = proc.wait()
+stop_hb.set()
+rt.join(timeout=5)
 if rc != 0:
-    raise SystemExit(rc)
+    raise RuntimeError(f"synhalees kaggle pull failed inside Colab (exit {{rc}})")
 
 out_tar = Path("/content/synhalees_slim_out.tar.gz")
 with tarfile.open(out_tar, "w:gz") as tf:
@@ -236,7 +340,7 @@ def pull_via_colab(
                 if rc != 0:
                     return rc
 
-            rc = _colab_sh([cbin, "exec", "-f", str(runner_path)])
+            rc = _colab_sh([cbin, "exec", "--timeout", "600", "-f", str(runner_path)])
             if rc != 0:
                 return rc
 

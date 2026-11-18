@@ -38,7 +38,7 @@ from synhalees.kaggle_ops import (
     parse_kaggle_models_output,
     run_kaggle_captured,
 )
-from synhalees.registry import canonical_model_slug, default_registry
+from synhalees.registry import MODELS_JSON, canonical_model_slug, default_registry
 
 
 # ---------------------------------------------------------------------------
@@ -211,6 +211,145 @@ def build_kaggle_args(
 def format_cmd_preview(args: list[str]) -> str:
     """Format a human-readable `synhalees ...` preview string."""
     return "synhalees " + " ".join(shlex.quote(a) for a in args)
+
+
+_UNKNOWN_ORG_TOKENS = {"", "other", "unknown", "none", "-"}
+
+
+def find_unregistered_models(models: list[str] | tuple[str, ...]) -> list[str]:
+    """Return canonical slugs missing a display_name or valid provider/family taxonomy."""
+    missing: list[str] = []
+    for raw in models:
+        canon = canonical_model_slug(raw)
+        if not canon:
+            continue
+        vendor, fam, _ = default_registry.resolve_taxonomy(canon)
+        if (
+            canon not in default_registry.display_names
+            or vendor.lower() in _UNKNOWN_ORG_TOKENS
+            or fam.lower() in _UNKNOWN_ORG_TOKENS
+        ):
+            if canon not in missing:
+                missing.append(canon)
+    return missing
+
+
+def save_model_registry_entries(
+    entries: list[dict[str, Any]],
+    *,
+    new_orgs: dict[str, dict[str, str]] | None = None,
+    models_json_path: Path | None = None,
+) -> int:
+    """Validate and persist model display_names, orgs, families & open_source flags."""
+    path = models_json_path or MODELS_JSON
+    data = json.loads(path.read_text(encoding="utf-8"))
+    providers = dict(data.get("providers") or {})
+    disp = dict(data.get("display_names") or {})
+
+    for org_slug, meta in (new_orgs or {}).items():
+        clean_org = org_slug.strip().lower()
+        if not clean_org or clean_org in _UNKNOWN_ORG_TOKENS:
+            raise ValueError(f"Invalid organization slug: {org_slug!r}")
+        if clean_org not in providers:
+            providers[clean_org] = {
+                "name": meta.get("name", clean_org.title()).strip() or clean_org.title(),
+                "slug": clean_org,
+                "logo": meta.get("logo", clean_org).strip() or clean_org,
+                "color": meta.get("color", "gray").strip() or "gray",
+                "aliases": [clean_org],
+                "families": {},
+            }
+
+    saved = 0
+    for item in entries:
+        canon = str(item.get("canonical") or "").strip()
+        dname = str(item.get("display_name") or "").strip()
+        org = str(item.get("org") or "").strip().lower()
+        fam = str(item.get("family") or "").strip().lower()
+        oss = bool(item.get("open_source", False))
+
+        if not canon or not dname:
+            raise ValueError("Canonical Slug and Display Name are required for every model.")
+        if org in _UNKNOWN_ORG_TOKENS:
+            raise ValueError(f"Select or create a valid Organization for '{canon}'.")
+        if fam in _UNKNOWN_ORG_TOKENS:
+            raise ValueError(f"Select or enter a valid Family for '{canon}'.")
+        if org not in providers:
+            raise ValueError(f"Organization '{org}' does not exist yet — create it with '+ New Org'.")
+
+        prov_obj = providers[org]
+        fams = dict(prov_obj.get("families") or {})
+        fam_entry = dict(fams.get(fam) or {
+            "name": fam.replace("-", " ").title(),
+            "open_source": oss,
+            "match_patterns": [fam],
+        })
+        fam_entry["open_source"] = oss
+        patterns = list(fam_entry.get("match_patterns") or [])
+        c_low = canon.lower()
+        if not any(p.lower() in c_low for p in patterns):
+            patterns.append(c_low)
+        fam_entry["match_patterns"] = patterns
+        fams[fam] = fam_entry
+        prov_obj["families"] = fams
+        providers[org] = prov_obj
+
+        disp[canon] = dname
+        saved += 1
+
+    if not saved:
+        return 0
+
+    data["providers"] = providers
+    data["display_names"] = dict(sorted(disp.items(), key=lambda kv: kv[0].lower()))
+    path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    if path.resolve() == MODELS_JSON.resolve():
+        default_registry.load()
+    return saved
+
+
+def save_model_display_names(
+    entries: dict[str, str],
+    models_json_path: Path | None = None,
+) -> int:
+    """Register or update canonical -> display_name entries in synhalees/models.json."""
+    clean = {k.strip(): v.strip() for k, v in entries.items() if k.strip() and v.strip()}
+    if not clean:
+        return 0
+    path = models_json_path or MODELS_JSON
+    data = json.loads(path.read_text(encoding="utf-8"))
+    disp = dict(data.get("display_names") or {})
+    disp.update(clean)
+    data["display_names"] = dict(sorted(disp.items(), key=lambda kv: kv[0].lower()))
+    path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    if path.resolve() == MODELS_JSON.resolve():
+        default_registry.load()
+    return len(clean)
+
+
+def classify_pending_kaggle_models(
+    avail: list[str],
+    kg_cov: dict[str, dict[str, int]],
+    subs: dict[str, Any],
+) -> list[tuple[str, str, str]]:
+    """Return `(raw_slug, canonical, status)` for Kaggle models not yet 15T+V+A complete."""
+    pending: list[tuple[str, str, str]] = []
+    for raw in avail:
+        canon = canonical_model_slug(raw)
+        cov = kg_cov.get(canon)
+        is_full_cov = bool(cov and cov.get("text", 0) >= 15 and cov.get("vision", 0) > 0 and cov.get("audio", 0) > 0)
+        if is_full_cov:
+            continue
+        if find_unregistered_models([canon]):
+            status = "Unregistered"
+        elif cov:
+            status = f"Partial ({cov.get('text', 0)}T/{'V' if cov.get('vision', 0) else '-'}V/{'A' if cov.get('audio', 0) else '-'}A)"
+        elif canon in subs:
+            status = "In Submissions"
+        else:
+            status = "Ready to Pull"
+        pending.append((raw, canon, status))
+    return pending
 
 
 TOKENS_FILE = Path.home() / ".synhalees" / "tokens.json"
@@ -441,6 +580,7 @@ class SynhaleesGUI:
         self._proc_lock = threading.Lock()
         self._log_queue: queue.Queue[tuple[str, Any]] = queue.Queue()
         self._last_args: list[str] = ["status"]
+        self._last_cmd_text: str = "synhalees status"
         self._active_page = "overview"
         self._nav_buttons: dict[str, Any] = {}
         self._pages: dict[str, Any] = {}
@@ -455,6 +595,38 @@ class SynhaleesGUI:
 
     def _px(self, value: int) -> int:
         return max(1, round(value * self._scale))
+
+    def _build_checkbutton_icons(self) -> tuple[Any, Any, Any]:
+        """Render crisp DPI-scaled unchecked/hover/checkmark PhotoImages (no clam 'X')."""
+        tk = self.tk
+        sz = max(14, self._px(15))
+
+        def _make_box(fill: str, border: str, checked: bool) -> Any:
+            img = tk.PhotoImage(master=self.root, width=sz, height=sz)
+            img.put(fill, to=(0, 0, sz, sz))
+            # 1px crisp border
+            img.put(border, to=(0, 0, sz, 1))
+            img.put(border, to=(0, sz - 1, sz, sz))
+            img.put(border, to=(0, 0, 1, sz))
+            img.put(border, to=(sz - 1, 0, sz, sz))
+            if checked:
+                # Draw a crisp 2px white checkmark (✓) normalized to [0..1]
+                pts = (
+                    (0.22, 0.52), (0.30, 0.60), (0.38, 0.68), (0.43, 0.72),
+                    (0.49, 0.63), (0.56, 0.53), (0.63, 0.43), (0.71, 0.33), (0.78, 0.25),
+                )
+                r = max(1, sz // 14)
+                for nx, ny in pts:
+                    cx = round(nx * (sz - 1))
+                    cy = round(ny * (sz - 1))
+                    img.put("#ffffff", to=(max(2, cx - r), max(2, cy - r), min(sz - 2, cx + r + 1), min(sz - 2, cy + r + 1)))
+            return img
+
+        return (
+            _make_box(PALETTE["console_bg"], PALETTE["border"], False),
+            _make_box(PALETTE["console_bg"], PALETTE["info"], False),
+            _make_box(PALETTE["accent"], PALETTE["accent"], True),
+        )
 
     def _configure_styles(self) -> None:
         s = self.ttk.Style(self.root)
@@ -545,6 +717,45 @@ class SynhaleesGUI:
         )
         s.configure("TCheckbutton", background=card, foreground=fg, font=("Segoe UI", 9))
         s.map("TCheckbutton", background=[("active", card)], foreground=[("active", "#ffffff")])
+        s.configure("Surface.TCheckbutton", background=surf, foreground=fg, font=("Segoe UI", 9))
+        s.map("Surface.TCheckbutton", background=[("active", surf)], foreground=[("active", "#ffffff")])
+
+        self._cb_off, self._cb_hover, self._cb_on = self._build_checkbutton_icons()
+        try:
+            s.element_create(
+                "SynhalEES.Checkbutton.indicator",
+                "image",
+                self._cb_off,
+                ("selected", "active", self._cb_on),
+                ("selected", self._cb_on),
+                ("active", self._cb_hover),
+                sticky="w",
+                padding=(0, 0, self._px(6), 0),
+            )
+        except Exception:
+            pass
+        cb_layout = [(
+            "Checkbutton.padding",
+            {
+                "sticky": "nswe",
+                "children": [
+                    ("SynhalEES.Checkbutton.indicator", {"side": "left", "sticky": ""}),
+                    (
+                        "Checkbutton.focus",
+                        {
+                            "side": "left",
+                            "sticky": "w",
+                            "children": [("Checkbutton.label", {"sticky": "nswe"})],
+                        },
+                    ),
+                ],
+            },
+        )]
+        for cb_style in ("TCheckbutton", "Surface.TCheckbutton"):
+            try:
+                s.layout(cb_style, cb_layout)
+            except Exception:
+                pass
 
         s.configure(
             "TScrollbar",
@@ -577,6 +788,15 @@ class SynhaleesGUI:
             foreground=[("active", "#ffffff")],
         )
         s.map("Treeview", background=[("selected", "#354066")], foreground=[("selected", "#ffffff")])
+        s.configure(
+            "Horizontal.TProgressbar",
+            troughcolor=PALETTE["console_bg"],
+            background=acc,
+            bordercolor=bdr,
+            lightcolor=acc,
+            darkcolor=acc,
+            thickness=self._px(6),
+        )
 
     # ------------------------------------------------------------------ layout
 
@@ -726,8 +946,26 @@ class SynhaleesGUI:
         self._build_site_page(self._pages["site"].inner)
 
         # Bottom Live Output Console controls (packed inside console_wrap created above)
+        self.progress_wrap = tk.Frame(self.console_wrap, bg=PALETTE["surface"])
+        self.progress_msg_var = tk.StringVar(value="")
+        tk.Label(
+            self.progress_wrap,
+            textvariable=self.progress_msg_var,
+            bg=PALETTE["surface"],
+            fg=PALETTE["warn"],
+            font=("Segoe UI", 9, "bold"),
+            anchor="w",
+        ).pack(side="left", fill="x", expand=True)
+        self.progress_bar = ttk.Progressbar(
+            self.progress_wrap,
+            mode="indeterminate",
+            length=self._px(220),
+            style="Horizontal.TProgressbar",
+        )
+        self.progress_bar.pack(side="right", padx=(self._px(10), 0))
 
-        cbar = tk.Frame(self.console_wrap, bg=PALETTE["surface"])
+        self.cbar = tk.Frame(self.console_wrap, bg=PALETTE["surface"])
+        cbar = self.cbar
         cbar.pack(fill="x", padx=self._px(12), pady=self._px(6))
         tk.Label(
             cbar,
@@ -1083,6 +1321,12 @@ class SynhaleesGUI:
             style="Ghost.TButton",
             command=self._select_all_new_kaggle_models,
         ).pack(side="right")
+        ttk.Button(
+            new_hdr,
+            text="Edit Names",
+            style="Ghost.TButton",
+            command=self._open_edit_models_dialog,
+        ).pack(side="right", padx=(0, 6))
         self.kg_new_tree = ttk.Treeview(
             self.kg_new_frame,
             columns=("slug", "canonical", "status"),
@@ -1100,6 +1344,7 @@ class SynhaleesGUI:
         self.kg_new_tree.pack(fill="x")
         self._bind_toggle_tree(self.kg_new_tree)
         self.kg_new_tree.bind("<<TreeviewSelect>>", self._on_select_new_kaggle_model)
+        self.kg_new_tree.bind("<Double-1>", lambda _e: self._open_edit_models_dialog())
 
         self.kg_cov_card = tk.Frame(
             right_col,
@@ -1171,23 +1416,16 @@ class SynhaleesGUI:
             state="readonly",
         ).grid(row=0, column=3, sticky="ew", pady=4)
 
-        ttk.Label(g2, text="Model Filter (-m)", style="CardText.TLabel").grid(row=1, column=0, sticky="w", padx=(0, 8), pady=4)
-        mf_wrap = tk.Frame(g2, bg=PALETTE["card"])
-        mf_wrap.grid(row=1, column=1, sticky="ew", padx=(0, 14), pady=4)
-        ttk.Combobox(mf_wrap, textvariable=self.kg_model_var, values=["", *_all_model_slugs()]).pack(
-            side="left", fill="x", expand=True
-        )
-        ttk.Button(
-            mf_wrap,
-            text="Clear",
-            style="Ghost.TButton",
-            command=self._clear_selected_kaggle_models,
-        ).pack(side="left", padx=(4, 0))
-
         f2 = tk.Frame(g2, bg=PALETTE["card"])
-        f2.grid(row=1, column=2, columnspan=2, sticky="w", pady=4)
+        f2.grid(row=1, column=0, columnspan=4, sticky="ew", pady=(4, 0))
         ttk.Checkbutton(f2, text="Dry run (preview only)", variable=self.kg_dry_var).pack(side="left", padx=(0, 14))
         ttk.Checkbutton(f2, text="Force re-download cached", variable=self.kg_force_var).pack(side="left")
+        ttk.Button(
+            f2,
+            text="Clear Selection",
+            style="Ghost.TButton",
+            command=self._clear_selected_kaggle_models,
+        ).pack(side="right")
 
         r2 = tk.Frame(s2, bg=PALETTE["card"])
         r2.pack(fill="x")
@@ -1195,7 +1433,8 @@ class SynhaleesGUI:
             r2,
             text="Pull Results from Kaggle",
             style="Accent.TButton",
-            command=lambda: self.run_cli(
+            command=lambda: self._guard_and_run_kaggle(
+                "pull",
                 build_kaggle_args(
                     "pull",
                     task=self.kg_task_var.get(),
@@ -1203,14 +1442,15 @@ class SynhaleesGUI:
                     modality=self.kg_mod_label_var.get(),
                     force=self.kg_force_var.get(),
                     dry_run=self.kg_dry_var.get(),
-                )
+                ),
             ),
         ).pack(side="left", padx=(0, 8))
         ttk.Button(
             r2,
             text="Pull via Google Colab (Slim Only)",
             style="Ghost.TButton",
-            command=lambda: self.run_cli(
+            command=lambda: self._guard_and_run_kaggle(
+                "pull",
                 build_kaggle_args(
                     "pull",
                     task=self.kg_task_var.get(),
@@ -1219,7 +1459,7 @@ class SynhaleesGUI:
                     force=self.kg_force_var.get(),
                     dry_run=self.kg_dry_var.get(),
                     colab=True,
-                )
+                ),
             ),
         ).pack(side="left")
 
@@ -1236,13 +1476,14 @@ class SynhaleesGUI:
             r3,
             text="Import & Rebuild Site (submit --build)",
             style="Accent.TButton",
-            command=lambda: self.run_cli(
+            command=lambda: self._guard_and_run_kaggle(
+                "submit",
                 build_kaggle_args(
                     "submit",
                     task=self.kg_task_var.get(),
                     dry_run=self.kg_dry_var.get(),
                     build=True,
-                )
+                ),
             ),
         ).pack(side="left", padx=(0, 8))
         ttk.Button(
@@ -1278,13 +1519,14 @@ class SynhaleesGUI:
                 r4,
                 text=label,
                 style="Ghost.TButton",
-                command=lambda a=act: self.run_cli(
+                command=lambda a=act: self._guard_and_run_kaggle(
+                    a,
                     build_kaggle_args(
                         a,
                         task=self.kg_task_var.get(),
                         model=self.kg_model_var.get(),
                         dry_run=self.kg_dry_var.get(),
-                    )
+                    ),
                 ),
             ).pack(side="left", padx=(0, 8))
 
@@ -1621,8 +1863,8 @@ class SynhaleesGUI:
         dlg.transient(self.root)
         dlg.grab_set()
         w, h = self._px(540), self._px(490)
-        dlg.geometry(f"{w}x{h}")
         dlg.minsize(self._px(460), self._px(430))
+        self._center_dialog(dlg, w, h)
 
         wrap = tk.Frame(dlg, bg=PALETTE["surface"], padx=self._px(18), pady=self._px(14))
         wrap.pack(fill="both", expand=True)
@@ -1695,16 +1937,12 @@ class SynhaleesGUI:
 
         btns = tk.Frame(wrap, bg=PALETTE["surface"])
         btns.pack(fill="x")
-        tk.Checkbutton(
+        ttk.Checkbutton(
             btns,
             text="Show tokens",
             variable=show_var,
             command=_toggle_show,
-            bg=PALETTE["surface"],
-            fg=PALETTE["text"],
-            selectcolor=PALETTE["console_bg"],
-            activebackground=PALETTE["surface"],
-            activeforeground=PALETTE["text"],
+            style="Surface.TCheckbutton",
         ).pack(side="left")
 
         def _save_and_close() -> None:
@@ -1729,8 +1967,279 @@ class SynhaleesGUI:
             self._sync_token_button()
             dlg.destroy()
 
+        def _clear_kaggle_token() -> None:
+            k_tok_var.set("")
+            k_user_var.set("")
+            k_key_var.set("")
+            os.environ.pop("KAGGLE_API_TOKEN", None)
+            os.environ.pop("KAGGLE_USERNAME", None)
+            os.environ.pop("KAGGLE_KEY", None)
+            apply_tokens(
+                kaggle_token="",
+                kaggle_username="",
+                kaggle_key="",
+                api_keys={k: v.get() for k, v in api_vars.items()},
+            )
+            self._sync_token_button()
+            self._append_log("[OK] Cleared saved Kaggle token overrides (will use ~/.kaggle/kaggle.json if present).\n", "ok")
+            dlg.destroy()
+
         ttk.Button(btns, text="Cancel", style="Ghost.TButton", command=dlg.destroy).pack(side="right")
+        ttk.Button(btns, text="Clear Kaggle", style="Ghost.TButton", command=_clear_kaggle_token).pack(
+            side="right", padx=(0, 8)
+        )
         ttk.Button(btns, text="Save Tokens", style="Accent.TButton", command=_save_and_close).pack(
+            side="right", padx=(0, 8)
+        )
+
+    def _center_dialog(self, dlg: Any, w: int, h: int) -> None:
+        """Center a modal dialog on the main Studio window."""
+        self.root.update_idletasks()
+        rx = self.root.winfo_rootx()
+        ry = self.root.winfo_rooty()
+        rw = max(self.root.winfo_width(), w)
+        rh = max(self.root.winfo_height(), h)
+        x = max(0, rx + (rw - w) // 2)
+        y = max(0, ry + (rh - h) // 2)
+        dlg.geometry(f"{w}x{h}+{x}+{y}")
+
+    def _guard_and_run_kaggle(self, action: str, cli_args: list[str]) -> None:
+        """Block proceeding to Step 2/3/4 if selected/new models lack valid org/name/OSS."""
+        if action in ("pull", "submit", "run", "publish"):
+            selected = [m.strip() for m in re.split(r"[,\s]+", self.kg_model_var.get().strip()) if m.strip()]
+            if action == "run" and not selected:
+                self.kg_discover_status_var.set("Select a model on the right before running on Kaggle.")
+                self._append_log("[WARN] Select a model on the right before running on Kaggle.\n", "warn")
+                return
+            check_list = selected
+            if not check_list and hasattr(self, "kg_new_tree"):
+                check_list = [
+                    str(self.kg_new_tree.item(i, "values")[0])
+                    for i in self.kg_new_tree.get_children()
+                    if self.kg_new_tree.item(i, "values")
+                ]
+            unreg = find_unregistered_models(check_list)
+            if unreg:
+                msg = f"Complete Canonical, Organization & Open Source for: {', '.join(unreg)}"
+                self.kg_discover_status_var.set(msg)
+                self._append_log(f"[WARN] {msg}\n", "warn")
+                self._open_edit_models_dialog(only_slugs=set(unreg))
+                return
+        self.run_cli(cli_args)
+
+    def _open_edit_models_dialog(self, *, only_slugs: set[str] | None = None) -> None:
+        """Centered dialog to edit Canonical, Display Name, Org (+ New Org), Family & OSS."""
+        tk, ttk = self.tk, self.ttk
+        sel = self.kg_new_tree.selection() or self.kg_new_tree.get_children()
+        if only_slugs:
+            matched = [
+                i for i in self.kg_new_tree.get_children()
+                if canonical_model_slug(str(self.kg_new_tree.item(i, "values")[0])) in only_slugs
+            ]
+            if matched:
+                sel = tuple(matched)
+        if not sel:
+            self._append_log("[WARN] No models to edit. Click 'List New Models' first.\n", "warn")
+            return
+
+        dlg = tk.Toplevel(self.root)
+        dlg.title("Edit Canonical, Organization & License")
+        dlg.configure(bg=PALETTE["surface"])
+        dlg.transient(self.root)
+        dlg.grab_set()
+        w = self._px(940)
+        h = min(self._px(220 + len(sel) * 44), self._px(580))
+        dlg.minsize(self._px(780), self._px(270))
+        self._center_dialog(dlg, w, h)
+
+        wrap = tk.Frame(dlg, bg=PALETTE["surface"], padx=self._px(16), pady=self._px(12))
+        wrap.pack(fill="both", expand=True)
+
+        head_row = tk.Frame(wrap, bg=PALETTE["surface"])
+        head_row.pack(fill="x")
+        tk.Label(
+            head_row,
+            text="Register / Edit Models in synhalees/models.json",
+            bg=PALETTE["surface"],
+            fg=PALETTE["text"],
+            font=("Segoe UI", 11, "bold"),
+        ).pack(side="left")
+
+        new_orgs_pending: dict[str, dict[str, str]] = {}
+        org_choices = sorted(default_registry.providers.keys())
+
+        def _families_for(org_slug: str) -> list[str]:
+            p = default_registry.providers.get(org_slug.strip().lower())
+            return sorted(p.families.keys()) if p else []
+
+        grid = tk.Frame(wrap, bg=PALETTE["card"], padx=self._px(12), pady=self._px(10))
+        grid.pack(fill="both", expand=True, pady=(self._px(6), self._px(8)))
+        grid.columnconfigure(1, weight=2)
+        grid.columnconfigure(2, weight=2)
+        grid.columnconfigure(3, weight=1)
+        grid.columnconfigure(4, weight=1)
+
+        for col_i, hdr in enumerate(
+            ("Kaggle Slug", "Canonical Slug", "Display Name", "Organization", "Family", "Open Source")
+        ):
+            tk.Label(
+                grid,
+                text=hdr,
+                bg=PALETTE["card"],
+                fg=PALETTE["muted"],
+                font=("Segoe UI", 8, "bold"),
+            ).grid(row=0, column=col_i, sticky="w", padx=(0, 8), pady=(0, 6))
+
+        rows_data: list[tuple[Any, str, Any, Any, Any, Any, Any]] = []
+        org_combos: list[Any] = []
+
+        for idx, item_id in enumerate(sel, start=1):
+            vals = self.kg_new_tree.item(item_id, "values")
+            if not vals:
+                continue
+            raw_slug = str(vals[0])
+            cur_canon = str(vals[1])
+            cur_disp = default_registry.get_model_display_name(cur_canon)
+            v_slug, f_slug, is_oss = default_registry.resolve_taxonomy(cur_canon)
+            init_org = "" if v_slug in _UNKNOWN_ORG_TOKENS else v_slug
+            init_fam = "" if f_slug in _UNKNOWN_ORG_TOKENS else f_slug
+
+            tk.Label(
+                grid,
+                text=raw_slug,
+                bg=PALETTE["card"],
+                fg=PALETTE["text"],
+                font=("Consolas", 9),
+            ).grid(row=idx, column=0, sticky="w", padx=(0, 8), pady=4)
+
+            canon_var = tk.StringVar(value=cur_canon)
+            disp_var = tk.StringVar(value=cur_disp)
+            org_var = tk.StringVar(value=init_org)
+            fam_var = tk.StringVar(value=init_fam)
+            oss_var = tk.BooleanVar(value=bool(is_oss))
+
+            ttk.Entry(grid, textvariable=canon_var).grid(row=idx, column=1, sticky="ew", padx=(0, 8), pady=4)
+            ttk.Entry(grid, textvariable=disp_var).grid(row=idx, column=2, sticky="ew", padx=(0, 8), pady=4)
+
+            org_cb = ttk.Combobox(grid, textvariable=org_var, values=org_choices, width=14)
+            org_cb.grid(row=idx, column=3, sticky="ew", padx=(0, 8), pady=4)
+            org_combos.append(org_cb)
+
+            fam_cb = ttk.Combobox(grid, textvariable=fam_var, values=_families_for(init_org), width=14)
+            fam_cb.grid(row=idx, column=4, sticky="ew", padx=(0, 8), pady=4)
+
+            def _on_org_change(_e: Any = None, ov: Any = org_var, fcb: Any = fam_cb, fv: Any = fam_var, osv: Any = oss_var) -> None:
+                o = ov.get().strip().lower()
+                fams = _families_for(o)
+                fcb["values"] = fams
+                if fams and fv.get().strip() not in fams:
+                    fv.set(fams[0])
+                p = default_registry.providers.get(o)
+                if p and fv.get().strip() in p.families:
+                    osv.set(p.families[fv.get().strip()].open_source)
+
+            org_cb.bind("<<ComboboxSelected>>", _on_org_change)
+
+            ttk.Checkbutton(grid, text="OSS", variable=oss_var).grid(row=idx, column=5, sticky="w", pady=4)
+            rows_data.append((item_id, raw_slug, canon_var, disp_var, org_var, fam_var, oss_var))
+
+        def _create_new_org() -> None:
+            sub = tk.Toplevel(dlg)
+            sub.title("Create Organization")
+            sub.configure(bg=PALETTE["surface"])
+            sub.transient(dlg)
+            sub.grab_set()
+            self._center_dialog(sub, self._px(420), self._px(250))
+            swrap = tk.Frame(sub, bg=PALETTE["surface"], padx=self._px(16), pady=self._px(14))
+            swrap.pack(fill="both", expand=True)
+            swrap.columnconfigure(1, weight=1)
+
+            slug_v = tk.StringVar()
+            name_v = tk.StringVar()
+            col_v = tk.StringVar(value="blue")
+            serr_v = tk.StringVar()
+
+            for r_i, (lbl, var, choices) in enumerate((
+                ("Org Slug (lowercase)", slug_v, None),
+                ("Display Name", name_v, None),
+                ("Brand Color", col_v, sorted(default_registry.named_colors.keys())),
+            )):
+                tk.Label(swrap, text=lbl, bg=PALETTE["surface"], fg=PALETTE["text"], font=("Segoe UI", 9)).grid(
+                    row=r_i, column=0, sticky="w", padx=(0, 10), pady=5
+                )
+                if choices:
+                    ttk.Combobox(swrap, textvariable=var, values=choices, state="readonly").grid(
+                        row=r_i, column=1, sticky="ew", pady=5
+                    )
+                else:
+                    ttk.Entry(swrap, textvariable=var).grid(row=r_i, column=1, sticky="ew", pady=5)
+
+            tk.Label(swrap, textvariable=serr_v, bg=PALETTE["surface"], fg=PALETTE["accent"], font=("Segoe UI", 9)).grid(
+                row=3, column=0, columnspan=2, sticky="w", pady=(4, 6)
+            )
+
+            def _add_org() -> None:
+                oslug = slug_v.get().strip().lower()
+                oname = name_v.get().strip()
+                if not oslug or oslug in _UNKNOWN_ORG_TOKENS or not re.fullmatch(r"[a-z0-9][a-z0-9_-]*", oslug):
+                    serr_v.set("Enter a valid lowercase slug (e.g. cohere, mistralai).")
+                    return
+                if not oname:
+                    serr_v.set("Enter a Display Name (e.g. Cohere).")
+                    return
+                new_orgs_pending[oslug] = {"name": oname, "logo": oslug, "color": col_v.get() or "gray"}
+                if oslug not in org_choices:
+                    org_choices.append(oslug)
+                    org_choices.sort()
+                for cb in org_combos:
+                    cb["values"] = org_choices
+                for _, _, _, _, ov, _, _ in rows_data:
+                    if not ov.get().strip():
+                        ov.set(oslug)
+                sub.destroy()
+
+            sbtns = tk.Frame(swrap, bg=PALETTE["surface"])
+            sbtns.grid(row=4, column=0, columnspan=2, sticky="e")
+            ttk.Button(sbtns, text="Cancel", style="Ghost.TButton", command=sub.destroy).pack(side="right")
+            ttk.Button(sbtns, text="Create Org", style="Accent.TButton", command=_add_org).pack(side="right", padx=(0, 8))
+
+        ttk.Button(head_row, text="+ New Org", style="Ghost.TButton", command=_create_new_org).pack(side="right")
+
+        err_var = tk.StringVar()
+        tk.Label(wrap, textvariable=err_var, bg=PALETTE["surface"], fg=PALETTE["accent"], font=("Segoe UI", 9, "bold")).pack(
+            anchor="w", pady=(0, self._px(6))
+        )
+
+        btns = tk.Frame(wrap, bg=PALETTE["surface"])
+        btns.pack(fill="x")
+
+        def _save_models() -> None:
+            entries: list[dict[str, Any]] = []
+            for item_id, raw_slug, c_var, d_var, o_var, f_var, oss_var in rows_data:
+                entries.append({
+                    "canonical": c_var.get().strip(),
+                    "display_name": d_var.get().strip(),
+                    "org": o_var.get().strip().lower(),
+                    "family": f_var.get().strip().lower(),
+                    "open_source": bool(oss_var.get()),
+                })
+            try:
+                saved = save_model_registry_entries(entries, new_orgs=new_orgs_pending)
+            except ValueError as exc:
+                err_var.set(str(exc))
+                return
+
+            for (item_id, raw_slug, c_var, *_), ent in zip(rows_data, entries):
+                self.kg_new_tree.item(item_id, values=(raw_slug, ent["canonical"], "Registered"))
+
+            if saved:
+                self._append_log(f"[OK] Saved {saved} model(s) to synhalees/models.json\n", "ok")
+                self.kg_discover_status_var.set(f"Saved {saved} model(s) to synhalees/models.json.")
+                self.refresh_all()
+            dlg.destroy()
+
+        ttk.Button(btns, text="Cancel", style="Ghost.TButton", command=dlg.destroy).pack(side="right")
+        ttk.Button(btns, text="Save to models.json", style="Accent.TButton", command=_save_models).pack(
             side="right", padx=(0, 8)
         )
 
@@ -1810,36 +2319,47 @@ class SynhaleesGUI:
                 return
 
         self.select_page("kaggle")
+        self._last_cmd_text = "kaggle b t models"
         self.kg_discover_status_var.set("Querying Kaggle servers (`kaggle b t models`)...")
         self.cmd_label_var.set("kaggle b t models (new vs local)")
         self._append_log("\n$ kaggle b t models  # comparing against local models\n", "cmd")
         self._set_running(True)
 
-        known = set(_all_model_slugs())
+        from synhalees.cli import _scan_submissions
+
+        try:
+            kg_cov, _, _ = gather_coverage(check_remote=False)
+        except Exception:
+            kg_cov = {}
+        subs = _scan_submissions()
 
         def worker() -> None:
             rc = 0
             try:
                 proc = run_kaggle_captured(["b", "t", "models"], timeout=60)
                 if proc.returncode != 0:
-                    err_txt = (proc.stderr or proc.stdout or f"exit code {proc.returncode}").strip()
-                    self._log_queue.put(("line", f"[ERR] `kaggle b t models` failed: {err_txt}\n"))
-                    self._log_queue.put(("discover_err", f"Failed: {err_txt[:90]}"))
-                    if "401" in err_txt or "auth" in err_txt.lower() or "token" in err_txt.lower():
-                        self._log_queue.put(("line", "[HINT] Click 'Set Kaggle Token' to enter KAGGLE_API_TOKEN.\n"))
+                    parts = [s.strip() for s in (proc.stderr or "", proc.stdout or "") if s and s.strip()]
+                    exe_used = Path(proc.args[0]).name if getattr(proc, "args", None) else "kaggle"
+                    detail = "\n".join(parts) if parts else (
+                        f"exit code {proc.returncode} from {exe_used} (auth: {kaggle_auth_status()})"
+                    )
+                    self._log_queue.put(("line", f"[ERR] `kaggle b t models` failed: {detail}\n"))
+                    self._log_queue.put(("discover_err", f"Failed: {detail.splitlines()[0][:90]}"))
+                    if "401" in detail or "auth" in detail.lower() or "token" in detail.lower() or not parts:
+                        self._log_queue.put(("line", "[HINT] Check internet/VPN or click 'Tokens & Keys' to verify KAGGLE_API_TOKEN.\n"))
                     rc = proc.returncode or 1
                 else:
                     avail = parse_kaggle_models_output(proc.stdout or "")
-                    new_models = [m for m in avail if canonical_model_slug(m) not in known]
+                    pending = classify_pending_kaggle_models(avail, kg_cov, subs)
                     self._log_queue.put((
                         "line",
-                        f"Found {len(avail)} model(s) on Kaggle; {len(new_models)} not yet local:\n",
+                        f"Found {len(avail)} model(s) on Kaggle; {len(pending)} pending/incomplete:\n",
                     ))
-                    for m in new_models:
-                        self._log_queue.put(("line", f"  [NEW] {m}  -> canonical: {canonical_model_slug(m)}\n"))
-                    if not new_models:
-                        self._log_queue.put(("line", "[OK] All Kaggle platform models are already known locally.\n"))
-                    self._log_queue.put(("discovered", (len(avail), new_models)))
+                    for raw, canon, st_lbl in pending:
+                        self._log_queue.put(("line", f"  [NEW] {raw}  -> canonical: {canon} ({st_lbl})\n"))
+                    if not pending:
+                        self._log_queue.put(("line", "[OK] All Kaggle platform models already have full 15T+V+A coverage.\n"))
+                    self._log_queue.put(("discovered", (len(avail), pending)))
             except OSError as exc:
                 self._log_queue.put(("line", f"[ERR] Failed to launch kaggle: {exc}\n"))
                 self._log_queue.put(("discover_err", f"Launch error: {exc}"))
@@ -1862,7 +2382,9 @@ class SynhaleesGUI:
                 return
 
         self._last_args = list(args)
+        self._last_err_line = ""
         preview = format_cmd_preview(args)
+        self._last_cmd_text = preview
         self.cmd_label_var.set(preview)
         self._append_log(f"\n$ {preview}\n", "cmd")
         self._set_running(True)
@@ -1877,11 +2399,13 @@ class SynhaleesGUI:
 
         def worker() -> None:
             rc = 1
+            use_pipe_stdin = "--colab" in args
             try:
                 proc = subprocess.Popen(
                     cmd,
                     cwd=str(ROOT),
                     env=env,
+                    stdin=subprocess.PIPE if use_pipe_stdin else subprocess.DEVNULL,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
                     text=True,
@@ -1913,13 +2437,34 @@ class SynhaleesGUI:
             except Exception:
                 proc.kill()
 
+    def _set_workflow_buttons_state(self, state: str) -> None:
+        """Enable or disable all step/action buttons across pages while a job runs."""
+        def _walk(widget: Any) -> None:
+            for child in widget.winfo_children():
+                if isinstance(child, self.ttk.Button):
+                    try:
+                        child.configure(state=state)
+                    except Exception:
+                        pass
+                _walk(child)
+
+        _walk(self.content_host)
+
     def _set_running(self, running: bool) -> None:
         if running:
             self.status_badge.configure(text="RUNNING", bg=PALETTE["accent"], fg="#ffffff")
             self.stop_btn.configure(state="normal")
+            self._set_workflow_buttons_state("disabled")
+            self.progress_msg_var.set("Running... please wait until this step finishes.")
+            if not self.progress_wrap.winfo_ismapped():
+                self.progress_wrap.pack(fill="x", padx=self._px(12), pady=(self._px(6), 0), before=self.cbar)
+            self.progress_bar.start(12)
         else:
             self.status_badge.configure(text="IDLE", bg=PALETTE["card"], fg=PALETTE["ok"])
             self.stop_btn.configure(state="disabled")
+            self.progress_bar.stop()
+            self.progress_wrap.pack_forget()
+            self._set_workflow_buttons_state("normal")
 
     def _drain_queue(self) -> None:
         try:
@@ -1934,6 +2479,24 @@ class SynhaleesGUI:
                     elif "[ERR]" in payload or "[FAIL]" in payload or "Traceback" in payload:
                         tag = "err"
                     self._append_log(payload, tag)
+                    clean_line = str(payload).strip()
+                    if clean_line and self.progress_wrap.winfo_ismapped():
+                        self.progress_msg_var.set(clean_line[:110])
+                    if clean_line and (
+                        "[ERR]" in clean_line
+                        or "Error:" in clean_line
+                        or "Exception:" in clean_line
+                        or clean_line.startswith(("OSError:", "TimeoutError:", "SystemExit:"))
+                    ):
+                        self._last_err_line = clean_line[:110]
+                    auth_m = re.search(r"https://accounts\.google\.com/o/oauth2/auth\S+", payload)
+                    if auth_m:
+                        auth_url = auth_m.group(0)
+                        if getattr(self, "_last_auth_url", None) != auth_url:
+                            self._last_auth_url = auth_url
+                            webbrowser.open(auth_url)
+                            self._append_log("[OK] Opened Google Colab login URL in your web browser.\n", "ok")
+                            self._open_colab_auth_dialog(auth_url)
                     if "WinError 4551" in payload:
                         self._append_log(
                             "[HINT] Windows Application Control blocked kaggle.exe / Python313. "
@@ -1942,33 +2505,109 @@ class SynhaleesGUI:
                             "warn",
                         )
                 elif kind == "discovered":
-                    total_avail, new_models = payload
+                    total_avail, pending = payload
                     self.kg_new_tree.delete(*self.kg_new_tree.get_children())
-                    if new_models:
-                        for m in new_models:
-                            self.kg_new_tree.insert("", "end", values=(m, canonical_model_slug(m), "NEW on Kaggle"))
+                    if pending:
+                        for raw, canon, st_lbl in pending:
+                            self.kg_new_tree.insert("", "end", values=(raw, canon, st_lbl))
                         self.kg_new_frame.pack(fill="x", pady=(0, self._px(10)), before=self.kg_cov_card)
+                        self._select_all_new_kaggle_models()
                         self.kg_discover_status_var.set(
-                            f"Found {len(new_models)} new model(s) out of {total_avail} on Kaggle (click a row to select)."
+                            f"Found {len(pending)} pending/incomplete model(s) out of {total_avail} on Kaggle — all selected."
                         )
                     else:
                         self.kg_new_frame.pack_forget()
                         self.kg_discover_status_var.set(
-                            f"Checked {total_avail} Kaggle models — all are already known locally."
+                            f"Checked {total_avail} Kaggle models — all have full 15T+V+A coverage."
                         )
                 elif kind == "discover_err":
                     self.kg_discover_status_var.set(str(payload))
                 elif kind == "done":
+                    self._last_auth_url = None
                     rc = int(payload)
                     self._set_running(False)
                     if rc == 0:
                         self._append_log("[OK] Finished (exit 0).\n", "ok")
+                        self.cmd_label_var.set(f"{self._last_cmd_text}  [OK · next steps ready]")
                     else:
                         self._append_log(f"[ERR] Exited with code {rc}.\n", "err")
+                        summary = getattr(self, "_last_err_line", "") or f"exit code {rc}"
+                        self.cmd_label_var.set(f"[ERR] {summary}")
+                        if not self._console_visible:
+                            self._toggle_console()
                     self.refresh_all()
         except queue.Empty:
             pass
         self.root.after(70, self._drain_queue)
+
+    def _open_colab_auth_dialog(self, auth_url: str) -> None:
+        """Prompt for Google Colab OAuth code after auto-opening the browser."""
+        tk, ttk = self.tk, self.ttk
+        dlg = tk.Toplevel(self.root)
+        dlg.title("Google Colab Authorization")
+        dlg.configure(bg=PALETTE["surface"])
+        dlg.transient(self.root)
+        dlg.grab_set()
+        self._center_dialog(dlg, self._px(500), self._px(210))
+
+        wrap = tk.Frame(dlg, bg=PALETTE["surface"], padx=self._px(16), pady=self._px(14))
+        wrap.pack(fill="both", expand=True)
+
+        tk.Label(
+            wrap,
+            text="Authorize Google Colab CLI",
+            bg=PALETTE["surface"],
+            fg=PALETTE["text"],
+            font=("Segoe UI", 11, "bold"),
+        ).pack(anchor="w")
+        tk.Label(
+            wrap,
+            text="Browser opened automatically. Approve access, then paste the authorization code below:",
+            bg=PALETTE["surface"],
+            fg=PALETTE["muted"],
+            font=("Segoe UI", 9),
+            wraplength=self._px(460),
+            justify="left",
+        ).pack(anchor="w", pady=(3, self._px(10)))
+
+        code_var = tk.StringVar()
+        ent = ttk.Entry(wrap, textvariable=code_var)
+        ent.pack(fill="x", pady=(0, self._px(12)))
+        ent.focus_set()
+
+        def _submit(_e: Any = None) -> None:
+            code = code_var.get().strip()
+            if not code:
+                return
+            with self._proc_lock:
+                proc = self._proc
+            if proc is not None and proc.stdin is not None:
+                try:
+                    proc.stdin.write(code + "\n")
+                    proc.stdin.flush()
+                    self._append_log("[OK] Sent authorization code to colab-cli.\n", "ok")
+                except Exception as exc:
+                    self._append_log(f"[ERR] Failed to send auth code: {exc}\n", "err")
+            dlg.destroy()
+
+        def _cancel() -> None:
+            with self._proc_lock:
+                proc = self._proc
+            if proc is not None and proc.stdin is not None:
+                try:
+                    proc.stdin.close()
+                except Exception:
+                    pass
+            dlg.destroy()
+
+        ent.bind("<Return>", _submit)
+        btns = tk.Frame(wrap, bg=PALETTE["surface"])
+        btns.pack(fill="x")
+        ttk.Button(btns, text="Re-open Browser", style="Ghost.TButton", command=lambda: webbrowser.open(auth_url)).pack(
+            side="left"
+        )
+        ttk.Button(btns, text="Cancel", style="Ghost.TButton", command=_cancel).pack(side="right")
+        ttk.Button(btns, text="Submit Code", style="Accent.TButton", command=_submit).pack(side="right", padx=(0, 8))
 
     def _append_log(self, text: str, tag: str | None = None) -> None:
         self.console.configure(state="normal")
@@ -1985,7 +2624,7 @@ class SynhaleesGUI:
         self.console.configure(state="disabled")
 
     def _copy_last_cmd(self) -> None:
-        preview = format_cmd_preview(self._last_args)
+        preview = self._last_cmd_text or format_cmd_preview(self._last_args)
         self.root.clipboard_clear()
         self.root.clipboard_append(preview)
         self._append_log(f"[OK] Copied to clipboard: {preview}\n", "muted")

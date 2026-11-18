@@ -47,7 +47,8 @@ def resolve_submission_path(model_id: str, provider: str = "") -> Path:
 
 _KAGGLE_PY_RUNNER = (
     "import os, sys; "
-    "sys.path = [p for p in sys.path if p not in ('', os.getcwd())]; "
+    "cwd_n = os.path.normcase(os.path.abspath(os.getcwd())); "
+    "sys.path = [p for p in sys.path if p and os.path.normcase(os.path.abspath(p)) != cwd_n]; "
     "from kaggle.cli import main; sys.exit(main())"
 )
 
@@ -57,8 +58,12 @@ def _sys_python_has_kaggle() -> bool:
     import importlib.util
 
     saved = list(sys.path)
+    root_n = os.path.normcase(os.path.abspath(str(ROOT)))
     try:
-        sys.path = [p for p in saved if p not in ("", str(ROOT))]
+        sys.path = [
+            p for p in saved
+            if p and os.path.normcase(os.path.abspath(p)) != root_n
+        ]
         return importlib.util.find_spec("kaggle.cli") is not None
     except Exception:
         return False
@@ -91,9 +96,15 @@ def _kaggle_python_candidates(exe: str, rest: list[str]) -> list[list[str]]:
 def sh(argv: Iterable[object], cwd: Path = ROOT, *, echo: bool = True) -> int:
     """Run a subprocess with inherited stdio; return its exit code."""
     cmd = [str(a) for a in argv]
+    env = dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUTF8="1")
+    if os.name == "nt" and cmd and "kaggle" in Path(cmd[0]).name.lower() and _sys_python_has_kaggle():
+        py_cmd = [sys.executable, "-c", _KAGGLE_PY_RUNNER, *cmd[1:]]
+        if echo:
+            print("+ " + " ".join([sys.executable, "-m", "kaggle.cli", *cmd[1:]]), flush=True)
+        return subprocess.run(py_cmd, cwd=str(cwd), env=env).returncode
+
     if echo:
         print("+ " + " ".join(cmd), flush=True)
-    env = dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUTF8="1")
     try:
         return subprocess.run(cmd, cwd=str(cwd), env=env).returncode
     except OSError as exc:
@@ -115,31 +126,41 @@ def run_kaggle_captured(
     *,
     timeout: int = 60,
 ) -> subprocess.CompletedProcess[str]:
-    """Run `kaggle <args...>` capturing stdout/stderr, with WinError 4551 fallback."""
-    kbin = str(kaggle_bin())
+    """Run `kaggle <args...>` capturing stdout/stderr, avoiding broken pip .exe shims."""
     rest = [str(a) for a in args]
     env = dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUTF8="1")
     kwargs: dict[str, object] = dict(
         cwd=str(ROOT),
         env=env,
+        stdin=subprocess.DEVNULL,
         capture_output=True,
         text=True,
         encoding="utf-8",
         errors="replace",
         timeout=timeout,
     )
+    if os.name == "nt" and _sys_python_has_kaggle():
+        return subprocess.run([sys.executable, "-c", _KAGGLE_PY_RUNNER, *rest], **kwargs)  # type: ignore[arg-type]
+
+    kbin = str(kaggle_bin())
     try:
-        return subprocess.run([kbin, *rest], **kwargs)  # type: ignore[arg-type]
+        proc = subprocess.run([kbin, *rest], **kwargs)  # type: ignore[arg-type]
+        combined = (proc.stderr or "") + (proc.stdout or "")
+        if proc.returncode == 0 or "Fatal error in launcher" not in combined:
+            return proc
     except OSError as exc:
-        if getattr(exc, "winerror", None) == 4551:
-            last_exc: OSError = exc
-            for fb in _kaggle_python_candidates(kbin, rest):
-                try:
-                    return subprocess.run(fb, **kwargs)  # type: ignore[arg-type]
-                except OSError as fb_exc:
-                    last_exc = fb_exc
-            raise last_exc
-        raise
+        if getattr(exc, "winerror", None) != 4551:
+            raise
+
+    last_exc: OSError | None = None
+    for fb in _kaggle_python_candidates(kbin, rest):
+        try:
+            return subprocess.run(fb, **kwargs)  # type: ignore[arg-type]
+        except OSError as fb_exc:
+            last_exc = fb_exc
+    if last_exc is not None:
+        raise last_exc
+    raise SystemExit("kaggle launcher failed and no working Python fallback was found")
 
 
 def py_run(script: Path | str, args: Iterable[object] = ()) -> int:

@@ -314,6 +314,7 @@ class TestKaggleOperations(unittest.TestCase):
                 return mock.Mock(returncode=0, stdout="grok-4.7\n", stderr="")
 
             with mock.patch.object(kaggle_ops, "kaggle_bin", return_value=str(fake_kaggle)), \
+                 mock.patch.object(kaggle_ops, "_sys_python_has_kaggle", return_value=False), \
                  mock.patch.object(kaggle_ops.subprocess, "run", side_effect=fake_run):
                 proc = kaggle_ops.run_kaggle_captured(["b", "t", "models"])
             self.assertEqual(proc.returncode, 0)
@@ -321,6 +322,22 @@ class TestKaggleOperations(unittest.TestCase):
             self.assertEqual(seen_cmds[0][0], str(fake_kaggle))
             self.assertEqual(seen_cmds[1][0], str(fake_py))
             self.assertIn("from kaggle.cli import main", seen_cmds[1][2])
+
+            seen_cmds.clear()
+
+            def fake_broken_launcher(cmd, **_kw):
+                seen_cmds.append([str(x) for x in cmd])
+                if len(seen_cmds) == 1:
+                    return mock.Mock(returncode=103, stdout="", stderr="Fatal error in launcher: Unable to create process")
+                return mock.Mock(returncode=0, stdout="gpt-6.2-sol\n", stderr="")
+
+            with mock.patch.object(kaggle_ops, "kaggle_bin", return_value=str(fake_kaggle)), \
+                 mock.patch.object(kaggle_ops, "_sys_python_has_kaggle", return_value=False), \
+                 mock.patch.object(kaggle_ops.subprocess, "run", side_effect=fake_broken_launcher):
+                proc2 = kaggle_ops.run_kaggle_captured(["b", "t", "models"])
+            self.assertEqual(proc2.returncode, 0)
+            self.assertEqual(len(seen_cmds), 2)
+            self.assertEqual(seen_cmds[1][0], str(fake_py))
 
     def test_parse_kaggle_models_filters_warnings(self) -> None:
         sample = "\n".join([
@@ -348,6 +365,10 @@ class TestKaggleOperations(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertIn("no git clone", out)
         self.assertIn("--modality vision|audio -m gpt-6.2-sol", out)
+        runner_src = colab_ops.build_colab_runner_script(["kaggle", "pull", "all"])
+        compile(runner_src, "<colab>", "exec")
+        self.assertIn("stdout=subprocess.PIPE", runner_src)
+        self.assertIn('"-U", "kaggle"', runner_src)
 
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
@@ -371,6 +392,29 @@ class TestKaggleOperations(unittest.TestCase):
             extracted = colab_ops.extract_slim_archive(slim_tar, out_dir)
             self.assertEqual([p.name for p in extracted], ["demo.slim.csv"])
             self.assertFalse((out_dir / "ignore.txt").exists())
+
+            seen_colab: list[list[str]] = []
+
+            def fake_colab_run(cmd, **_kw):
+                seen_colab.append([str(x) for x in cmd])
+                if len(seen_colab) == 1:
+                    err = OSError("blocked")
+                    err.winerror = 4551
+                    raise err
+                return mock.Mock(returncode=0)
+
+            scripts = tmp_path / "Scripts"
+            scripts.mkdir()
+            fake_colab = scripts / "colab.exe"
+            fake_colab.write_text("", encoding="utf-8")
+            fake_py = tmp_path / "python.exe"
+            fake_py.write_text("", encoding="utf-8")
+            with mock.patch.object(colab_ops, "_sys_python_has_colab", return_value=False), \
+                 mock.patch.object(colab_ops.subprocess, "run", side_effect=fake_colab_run):
+                rc_c = colab_ops._colab_sh([str(fake_colab), "new"], echo=False)
+            self.assertEqual(rc_c, 0)
+            self.assertEqual(seen_colab[1][0], str(fake_py))
+            self.assertIn("entry_points(group='console_scripts', name='colab')", seen_colab[1][2])
 
 
 class TestStandaloneScripts(unittest.TestCase):
@@ -477,6 +521,53 @@ class TestGUI(unittest.TestCase):
                 self.assertEqual(os.environ.get("KAGGLE_API_TOKEN"), "KGAT_abc123")
                 self.assertEqual(os.environ.get("GEMINI_API_KEY"), "gem-test")
 
+    def test_gui_save_model_display_names_isolated(self) -> None:
+        import json
+        from synhalees import gui
+
+        with tempfile.TemporaryDirectory() as tmp:
+            mj = Path(tmp) / "models.json"
+            mj.write_text(json.dumps({"display_names": {"gpt-6-sol": "GPT 6 Sol"}}), encoding="utf-8")
+            n = gui.save_model_display_names(
+                {"gpt-6.2-sol": "GPT 6.2 Sol", "gemma-4-31b-it": "Gemma 4 31B"},
+                models_json_path=mj,
+            )
+            self.assertEqual(n, 2)
+            saved = json.loads(mj.read_text(encoding="utf-8"))
+            self.assertEqual(saved["display_names"]["gpt-6.2-sol"], "GPT 6.2 Sol")
+            self.assertEqual(saved["display_names"]["gemma-4-31b-it"], "Gemma 4 31B")
+            self.assertEqual(saved["display_names"]["gpt-6-sol"], "GPT 6 Sol")
+
+            with self.assertRaises(ValueError):
+                gui.save_model_registry_entries(
+                    [{"canonical": "x-1", "display_name": "X 1", "org": "other", "family": "x", "open_source": True}],
+                    models_json_path=mj,
+                )
+
+            n2 = gui.save_model_registry_entries(
+                [{"canonical": "command-a", "display_name": "Command A", "org": "cohere", "family": "command", "open_source": False}],
+                new_orgs={"cohere": {"name": "Cohere", "logo": "cohere", "color": "teal"}},
+                models_json_path=mj,
+            )
+            self.assertEqual(n2, 1)
+            saved2 = json.loads(mj.read_text(encoding="utf-8"))
+            self.assertIn("cohere", saved2["providers"])
+            self.assertEqual(saved2["display_names"]["command-a"], "Command A")
+            self.assertIn("command-a", gui.find_unregistered_models(["command-a", "gemini-2.5-flash"]))
+
+            pending = gui.classify_pending_kaggle_models(
+                ["gemini-2.5-flash", "gpt-6-sol", "brand-new-model"],
+                {"gemini-2.5-flash": {"text": 15, "vision": 1, "audio": 1}},
+                {},
+            )
+            self.assertEqual(
+                pending,
+                [
+                    ("gpt-6-sol", "gpt-6-sol", "Ready to Pull"),
+                    ("brand-new-model", "brand-new-model", "Unregistered"),
+                ],
+            )
+
     def test_gui_window_builds_cleanly(self) -> None:
         import tkinter as tk
         from synhalees.gui import SynhaleesGUI, _enable_hidpi
@@ -495,6 +586,10 @@ class TestGUI(unittest.TestCase):
             self.assertEqual(app._active_page, "explorer")
             self.assertEqual(len(app.pillars_tree.get_children()), 15)
             self.assertGreater(len(app.models_tree.get_children()), 0)
+            app._set_running(True)
+            self.assertEqual(app.status_badge.cget("text"), "RUNNING")
+            app._set_running(False)
+            self.assertEqual(app.status_badge.cget("text"), "IDLE")
         finally:
             root.destroy()
 
