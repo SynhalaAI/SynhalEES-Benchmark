@@ -13,7 +13,7 @@ Everything here is pure stdlib so it can be unit-tested offline.
 from __future__ import annotations
 
 import json
-import re
+import textwrap
 
 #: Maximum Word Error Rate tolerated for a ``wer`` row to pass.
 WER_THRESHOLD = 0.3
@@ -52,43 +52,103 @@ def word_error_rate(reference: str, hypothesis: str) -> float:
     return _levenshtein(ref_tokens, hyp_tokens) / len(ref_tokens)
 
 
-_JUDGE_TEMPLATE = """You are grading an answer from a Sinhala-language cultural benchmark.
-
-Question asked to the model:
-{prompt}
-
-Reference answer (ground truth):
-{ground_truth}
-
-Model answer to grade:
-{response}
-
-Criteria:
-1. The model answer conveys the same meaning as the reference answer (wording may differ).
-2. It reads like a native Sri Lankan Sinhala speaker wrote it, not a translated machine.
-
-Reply with ONLY a JSON object, no markdown fences:
-{{"passed": true or false, "reason": "one short sentence"}}"""
+_JUDGE_CRITERIA = (
+    "The response conveys the same meaning as the reference answer: "
+    "'{ground_truth}'. Wording may differ; the meaning must match.",
+    "The response reads like a native Sri Lankan Sinhala speaker wrote it -- "
+    "natural register and idiom, not translated-sounding English.",
+)
 
 
-def build_judge_prompt(prompt: str, response: str, ground_truth: str) -> str:
-    """Prompt sent to the judge model for ``llm_judge`` rows."""
-    return _JUDGE_TEMPLATE.format(
-        prompt=prompt, response=response, ground_truth=ground_truth
+def build_classification_prompt(prompt: str, choices: str) -> str:
+    """Apply the same single-label instruction used by Kaggle tasks."""
+    if not choices:
+        return prompt
+    return (
+        f"Choose exactly one label from [{choices}]. "
+        f"Reply with only the label. {prompt}"
     )
 
 
+def _judge_criteria(ground_truth: str) -> tuple[str, ...]:
+    return tuple(
+        criterion.format(ground_truth=ground_truth)
+        for criterion in _JUDGE_CRITERIA
+    )
+
+
+def build_judge_prompt(response: str, ground_truth: str) -> str:
+    """Build the same criteria-based assessment prompt used by Kaggle."""
+    criteria = _judge_criteria(ground_truth)
+    formatted_criteria = "\n".join(
+        f"{index}. {criterion}" for index, criterion in enumerate(criteria, start=1)
+    )
+    schema = json.dumps(
+        {
+            "results": [
+                {
+                    "criterion": "<criterion>",
+                    "passed": True,
+                    "reason": "<brief explanation>",
+                    "confidence": 0,
+                }
+            ]
+        },
+        indent=2,
+    )
+    template = """\
+You are an impartial and strict technical evaluator.
+
+### Task
+Verify if the **Generated Response** complies strictly with the **Criteria**.
+
+### Input Data
+**Generated Response:**
+{response}
+
+**Criteria:**
+{formatted_criteria}
+
+### Evaluation Protocol
+1. Analyze the response against the criteria.
+2. Be strict. If the text is ambiguous, the check fails.
+3. Output one result per criterion in the requested JSON structure.
+
+Return only valid JSON with this structure:
+{schema}
+The results must be in the same order as the criteria. confidence must be an integer.
+"""
+    return textwrap.dedent(template).format(
+        response=response,
+        formatted_criteria=formatted_criteria,
+        schema=schema,
+    ).strip()
+
+
 def parse_judge_verdict(text: str) -> tuple[bool, str]:
-    """Parse the judge reply into (passed, reason); lenient on formatting."""
-    match = re.search(r"\{.*\}", text, flags=re.DOTALL)
-    if match:
-        try:
-            payload = json.loads(match.group(0))
-            return bool(payload.get("passed")), str(payload.get("reason", ""))
-        except (ValueError, AttributeError):
-            pass
-    lowered = text.lower()
-    return "true" in lowered and "passed" in lowered, text.strip()[:200]
+    """Parse Kaggle's per-criterion assessment report into an all-pass verdict."""
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError:
+        return False, "Judge response was not valid assessment JSON"
+    if not isinstance(payload, dict):
+        return False, "Judge response was not an assessment object"
+    results = payload.get("results")
+    if not isinstance(results, list) or len(results) != len(_JUDGE_CRITERIA):
+        return False, "Judge response must contain one result per criterion"
+    for result in results:
+        if (
+            not isinstance(result, dict)
+            or not isinstance(result.get("criterion"), str)
+            or type(result.get("passed")) is not bool
+            or not isinstance(result.get("reason"), str)
+            or type(result.get("confidence")) is not int
+        ):
+            return False, "Judge response did not match the assessment schema"
+    return (
+        all(result["passed"] for result in results),
+        "; ".join(result["reason"] for result in results)[:200],
+    )
 
 
 def score_response(
@@ -121,6 +181,7 @@ def score_response(
 
 __all__ = [
     "WER_THRESHOLD",
+    "build_classification_prompt",
     "build_judge_prompt",
     "parse_judge_verdict",
     "score_response",

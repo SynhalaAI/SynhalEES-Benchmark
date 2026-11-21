@@ -141,9 +141,15 @@ Data is scored using one of 4 dedicated evaluation engines specified in the `eva
 | `eval_type` | Description | Used For | Scored By |
 |---|---|---|---|
 | `exact_match` | Absolute factual correctness | MCQs, historical facts, entity names | Exact string / option match (0 or 1) |
-| `llm_judge` | Subjective naturalness & empathy | Slang, conversational empathy, metaphors | Multi-criteria Judge Rubric (1 to 5) |
+| `llm_judge` | Subjective naturalness & empathy | Slang, conversational empathy, metaphors | Kaggle judge criteria; both must pass (0 or 1) |
 | `wer` | Word Error Rate & transcription accuracy | Speech-to-Text (ASR) and OCR reading | Normalized Levenshtein edit distance |
-| `classification`| Categorical intent disambiguation | Banter vs. Abuse, Acoustic tone | Precision, Recall, F1 / Accuracy |
+| `classification`| Categorical intent disambiguation | Banter vs. Abuse, Acoustic tone | Normalized ground-truth label containment (0 or 1) |
+
+The local runner uses the same deterministic scoring rules as the Kaggle
+tasks. Classification inputs receive the same single-label instruction and
+task-scoped, sorted label options. Judge inputs use the same two criteria and
+pass only when both criteria pass; the local judge model can still differ from
+Kaggle's judge model, so judge-based results may vary.
 
 ---
 

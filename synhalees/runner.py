@@ -28,6 +28,7 @@ from typing import Any, Iterable, Iterator
 
 from . import data as _data
 from .evaluators import (
+    build_classification_prompt,
     build_judge_prompt,
     parse_judge_verdict,
     score_response,
@@ -93,6 +94,30 @@ def iter_items(
                         "prompt": it.question, "ground_truth": it.ground_truth,
                         "eval_type": it.eval_type, "media_path": str(it.audio_path),
                     }
+
+
+def add_kaggle_classification_prompts(
+    rows: Iterable[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Apply Kaggle's task-scoped single-label instruction to classification rows."""
+    prepared = [dict(row) for row in rows]
+    choices_by_scope: dict[tuple[str, str | None], set[str]] = {}
+    for row in prepared:
+        if row["eval_type"] != "classification":
+            continue
+        modality = row["modality"]
+        scope = (modality, row["pillar"] if modality == "text" else None)
+        choices_by_scope.setdefault(scope, set()).add(row["ground_truth"])
+
+    for row in prepared:
+        if row["eval_type"] != "classification":
+            continue
+        modality = row["modality"]
+        scope = (modality, row["pillar"] if modality == "text" else None)
+        choices = " / ".join(sorted(choices_by_scope[scope]))
+        row["prompt"] = build_classification_prompt(row["prompt"], choices)
+    return prepared
+
 
 class CheckpointStore:
     """Append-only JSONL checkpoint; the backbone of crash-safe resume.
@@ -283,7 +308,7 @@ class SynhalEESBenchmark:
         judge_reason = ""
         if row["eval_type"] == "llm_judge":
             verdict = self.judge_model.complete(
-                build_judge_prompt(row["prompt"], response, row["ground_truth"])
+                build_judge_prompt(response, row["ground_truth"])
             )
             judge_passed, judge_reason = parse_judge_verdict(verdict)
 
@@ -299,8 +324,11 @@ class SynhalEESBenchmark:
 
     def run(self, *, progress: bool = True) -> BenchmarkResults:
         """Evaluate every pending row; resume skips checkpointed ones."""
+        rows = add_kaggle_classification_prompts(
+            iter_items(self.pillars, self.modalities, self.data_root)
+        )
         pending = [
-            row for row in iter_items(self.pillars, self.modalities, self.data_root)
+            row for row in rows
             if not self.store.done(
                 item_key(row["pillar"], row["modality"], row["id"])
             )

@@ -1144,5 +1144,76 @@ class _ProbeHandler(BaseHTTPRequestHandler):
         pass
 
 
+class TestKaggleScoringParity(unittest.TestCase):
+    def test_classification_prompts_match_kaggle_task_scopes(self) -> None:
+        from synhalees.runner import add_kaggle_classification_prompts
+
+        rows = [
+            {
+                "pillar": "p1", "modality": "text", "eval_type": "classification",
+                "ground_truth": "Zulu", "prompt": "Classify this.",
+            },
+            {
+                "pillar": "p1", "modality": "text", "eval_type": "classification",
+                "ground_truth": "Alpha", "prompt": "Classify this too.",
+            },
+            {
+                "pillar": "p2", "modality": "text", "eval_type": "classification",
+                "ground_truth": "Beta", "prompt": "Another pillar.",
+            },
+            {
+                "pillar": "p1", "modality": "vision", "eval_type": "classification",
+                "ground_truth": "Zulu", "prompt": "Look and choose.",
+            },
+            {
+                "pillar": "p2", "modality": "vision", "eval_type": "classification",
+                "ground_truth": "Alpha", "prompt": "Look and choose.",
+            },
+        ]
+
+        prepared = add_kaggle_classification_prompts(rows)
+        self.assertEqual(
+            prepared[0]["prompt"],
+            "Choose exactly one label from [Alpha / Zulu]. "
+            "Reply with only the label. Classify this.",
+        )
+        self.assertIn("[Beta]", prepared[2]["prompt"])
+        self.assertIn("[Alpha / Zulu]", prepared[3]["prompt"])
+        self.assertEqual(rows[0]["prompt"], "Classify this.")
+
+    def test_judge_prompt_and_parser_use_kaggle_criteria_report(self) -> None:
+        from synhalees.evaluators import build_judge_prompt, parse_judge_verdict
+
+        prompt = build_judge_prompt("Model answer", "Reference")
+        self.assertIn("impartial and strict technical evaluator", prompt)
+        self.assertIn("same meaning as the reference answer: 'Reference'", prompt)
+        self.assertIn("native Sri Lankan Sinhala speaker", prompt)
+        self.assertNotIn("Question asked to the model", prompt)
+
+        report = {
+            "results": [
+                {
+                    "criterion": "meaning",
+                    "passed": True,
+                    "reason": "Meaning matches.",
+                    "confidence": 95,
+                },
+                {
+                    "criterion": "naturalness",
+                    "passed": True,
+                    "reason": "Natural Sinhala.",
+                    "confidence": 90,
+                },
+            ]
+        }
+        self.assertEqual(
+            parse_judge_verdict(json.dumps(report)),
+            (True, "Meaning matches.; Natural Sinhala."),
+        )
+        report["results"][1]["passed"] = False
+        self.assertFalse(parse_judge_verdict(json.dumps(report))[0])
+        self.assertFalse(parse_judge_verdict('{"passed": true}')[0])
+
+
 if __name__ == "__main__":
     unittest.main()
