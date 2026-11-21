@@ -217,6 +217,10 @@ class SynhalEESBenchmark:
             ``"openai:gpt-4o"``) or a ready :class:`BaseModel` instance.
         judge_model: model used to grade ``llm_judge`` rows; ``None`` reuses
             ``model`` (self-judging).
+        base_url: override the chat-completions base URL (self-hosted
+            OpenAI-compatible server, e.g. a Colab/vLLM tunnel). Only applied to
+            the model spec and to a judge spec from the same provider prefix.
+        api_key: key for ``base_url`` (self-hosted servers often ignore it).
         checkpoint: JSONL checkpoint path (default ``runs/checkpoint.jsonl``);
             ``None`` disables persistence. Rerunning the same command resumes
             where the previous run stopped; ``fresh=True`` restarts.
@@ -232,11 +236,29 @@ class SynhalEESBenchmark:
         data_root: str | None = None,
         checkpoint: str | Path | None = "runs/checkpoint.jsonl",
         fresh: bool = False,
+        base_url: str | None = None,
+        api_key: str | None = None,
     ) -> None:
         self.model_spec = model if isinstance(model, str) else None
-        self.model = get_model(model) if isinstance(model, str) else model
+        endpoint: dict[str, str] = {}
+        if base_url:
+            endpoint["base_url"] = base_url
+        if api_key:
+            endpoint["api_key"] = api_key
+        self.model = (
+            get_model(model, **endpoint) if isinstance(model, str) else model
+        )
+        judge_endpoint = (
+            endpoint
+            if isinstance(judge_model, str)
+            and isinstance(model, str)
+            and judge_model.partition(":")[0] == model.partition(":")[0]
+            else {}
+        )
         self.judge_model = (
-            get_model(judge_model) if isinstance(judge_model, str) else judge_model
+            get_model(judge_model, **judge_endpoint)
+            if isinstance(judge_model, str)
+            else judge_model
         ) or self.model
         self.modalities = tuple(modalities)
         self.pillars = list(pillars) if pillars else _data.list_pillars(data_root)

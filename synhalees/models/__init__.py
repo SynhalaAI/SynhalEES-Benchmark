@@ -1,4 +1,4 @@
-"""Model adapters: talk to chat-LLM APIs with zero third-party dependencies.
+"""Model adapters for chat-LLM APIs, using stdlib HTTP and verified HTTPS.
 
 - :class:`OpenAIModel`   -- any OpenAI-compatible Chat Completions endpoint
   (OpenAI, OpenRouter, Together, vLLM, and Gemini via its OpenAI-compatible
@@ -12,6 +12,11 @@ Use :func:`get_model` with a spec string like ``"ollama:llama3.1:8b"``,
 ``"openai:gpt-4o"`` or ``"anthropic:claude-sonnet-4-5"``. Ollama needs no key
 (local server); OpenRouter uses ``OPENROUTER_API_KEY``.
 
+Any other provider prefix is treated as a self-hosted OpenAI-compatible server
+and needs ``base_url=`` (e.g. a Colab + vLLM tunnel:
+``get_model("colab:qwen2.5-7b-instruct", base_url="https://xxx.trycloudflare.com/v1")``).
+Such endpoints default the key to ``SYNHALEES_API_KEY`` or a placeholder.
+
 API keys come from environment variables (``OPENAI_API_KEY``,
 ``ANTHROPIC_API_KEY``) unless passed explicitly.
 """
@@ -24,8 +29,9 @@ import mimetypes
 import os
 import time
 import urllib.error
-import urllib.request
 from pathlib import Path
+
+from synhalees.http import open_url
 
 
 class APIModelError(RuntimeError):
@@ -66,7 +72,7 @@ def _post_json(url: str, headers: dict, payload: dict, *, timeout: int,
             headers={"Content-Type": "application/json", **headers},
         )
         try:
-            with urllib.request.urlopen(request, timeout=timeout) as resp:
+            with open_url(request, timeout=timeout) as resp:
                 return json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
             last_error = exc
@@ -299,7 +305,14 @@ def get_model(spec: str, **kwargs) -> BaseModel:
                 f"Unknown provider {provider!r}; pass base_url= for a custom "
                 "OpenAI-compatible endpoint."
             )
-        return OpenAIModel(model, base_url=base_url, **kwargs)
+        # Self-hosted endpoints (Colab + vLLM, llama.cpp, LM Studio) usually
+        # ignore the bearer token, but the HTTP client still needs one.
+        api_key = (
+            kwargs.pop("api_key", None)
+            or os.environ.get("SYNHALEES_API_KEY")
+            or "local"
+        )
+        return OpenAIModel(model, base_url=base_url, api_key=api_key, **kwargs)
     return factory(model, **kwargs)
 
 

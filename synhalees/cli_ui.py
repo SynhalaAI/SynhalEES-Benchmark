@@ -280,6 +280,10 @@ _GUIDE_SECTIONS: dict[str, tuple[str, list[tuple[str, str]]]] = {
             ("1. Pick a model & run locally (resumes automatically on interruption)",
              "synhalees run --model gemini:gemini-2.5-flash\n"
              "  # or local Ollama: synhalees run --model ollama:llama3.1:8b --pillars 01_buddhist_culture"),
+            ("1b. Self-hosted endpoint (Colab + vLLM / llama.cpp / LM Studio)",
+             "synhalees run --model colab:qwen2.5-7b-instruct \\\n"
+             "      --base-url https://xxxx.trycloudflare.com/v1 --api-key <key>\n"
+             "  # env fallback: SYNHALEES_BASE_URL / SYNHALEES_API_KEY"),
             ("2. Compare local runs under runs/ and inspect the pillar matrix",
              "synhalees compare"),
             ("3. Promote a finished run to submissions/ & rebuild the leaderboard",

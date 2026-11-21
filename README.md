@@ -67,8 +67,8 @@ Folder slug (`benchmark_data/<slug>/`) is the canonical ID — display title is 
 
 ## ⚡ Quickstart (API-driven, no GPU needed)
 
-SynhalEES talks **directly to chat-LLM APIs** -- pure-stdlib HTTP, zero third-party
-dependencies, with crash-safe checkpointing built in.
+SynhalEES talks **directly to chat-LLM APIs** -- stdlib HTTP with `certifi` CA
+roots for verified HTTPS, and crash-safe checkpointing built in.
 
 ### 1. Install
 ```bash
@@ -85,6 +85,7 @@ pip install -e .
 | Gemini | `gemini:gemini-2.5-flash` | `GEMINI_API_KEY` |
 | OpenAI | `openai:gpt-4o` | `OPENAI_API_KEY` |
 | Anthropic (no audio) | `anthropic:claude-sonnet-4-5` | `ANTHROPIC_API_KEY` |
+| Any OpenAI-compatible server (Colab + vLLM, llama.cpp, LM Studio) | `colab:qwen2.5-7b-instruct` + `--base-url https://xxxx.trycloudflare.com/v1` | `--api-key` / `SYNHALEES_API_KEY` (optional) |
 
 ### 3. Run from Python
 ```python
@@ -98,6 +99,16 @@ benchmark = SynhalEESBenchmark(
 results = benchmark.run()
 results.print_scorecard()
 results.save_submission("runs/<model-slug>/submission.csv")
+```
+
+Self-hosted endpoints work through the same constructor:
+
+```python
+benchmark = SynhalEESBenchmark(
+    "colab:qwen2.5-7b-instruct",
+    base_url="https://xxxx.trycloudflare.com/v1",
+    api_key="local",                       # optional; servers usually ignore it
+)
 ```
 
 ### 4. Unified All-In-One CLI (`synhalees`)
@@ -115,6 +126,10 @@ synhalees run --model gemini:gemini-2.5-flash
 synhalees run --model ollama:llama3.1:8b --pillars 01_buddhist_culture
 synhalees run --model openrouter:openai/gpt-4o-mini --modality text
 
+# Self-hosted OpenAI-compatible endpoint (e.g. vLLM on a Colab GPU + cloudflared)
+synhalees run --model colab:qwen2.5-7b-instruct \
+    --base-url https://xxxx.trycloudflare.com/v1 --api-key <key>
+
 # Compare runs & view accuracy matrix across models
 synhalees compare
 
@@ -124,6 +139,20 @@ synhalees publish gemini-2.5-flash
 # Verify all repository checks & CI gates locally
 synhalees check
 ```
+
+Any provider prefix that is not `openai`/`openrouter`/`gemini`/`ollama`/`anthropic`
+is treated as a self-hosted OpenAI-compatible server, so it needs `--base-url`
+(or the `SYNHALEES_BASE_URL` env var). The key is optional for local servers
+(`--api-key`, else `SYNHALEES_API_KEY`, else a placeholder), and the run folder
+stays keyed by the model spec (`runs/colab-qwen2.5-7b-instruct/`).
+
+In the GUI, test the provider/endpoint connection first; the Model spec selector
+then contains only model IDs advertised by that endpoint and selects the first one.
+The provider, Base URL, and entered key are saved locally when you test the
+connection. Judge providers are shown only for API keys saved in **Tokens & Keys**
+Settings; selecting one loads that provider's available judge models. Step 2
+also estimates judge calls from the selected pillars/modalities (one per
+`llm_judge` row; checkpoints and failed model calls may reduce the actual count).
 
 #### CLI Command Reference
 

@@ -1,4 +1,4 @@
-"""Pure-stdlib helper modules for the SynhalEES Desktop Studio (`synhalees/gui.py`).
+"""Headless-safe helper modules for the SynhalEES Desktop Studio (`synhalees/gui.py`).
 
 All functions here avoid importing tkinter so they can be unit-tested cleanly
 in headless environments:
@@ -20,13 +20,16 @@ import json
 import math
 import re
 import shutil
+import time
+import urllib.error
 import urllib.parse
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from synhalees import kaggle_ops
 from synhalees.data import load_pillar
+from synhalees.http import open_url
 from synhalees.kaggle_ops import KG_RESULTS, ROOT, RUNS, load_slim_rows
 from synhalees.registry import MODELS_JSON, canonical_model_slug, default_registry
 
@@ -106,6 +109,241 @@ def extract_failed_tasks(line: str) -> list[str]:
     if not m:
         return []
     return [t.strip() for t in m.group(1).split(",") if t.strip()]
+
+
+# ---------------------------------------------------------------------------
+# 1b. Endpoint connection probe (GUI "Test Connection" button)
+# ---------------------------------------------------------------------------
+
+_PROVIDER_BASE_URLS = {
+    "openai": "https://api.openai.com/v1",
+    "openrouter": "https://openrouter.ai/api/v1",
+    "ollama": "http://localhost:11434/v1",
+}
+_PROVIDER_KEY_ENVS = {
+    "openai": ("OPENAI_API_KEY",),
+    "openrouter": ("OPENROUTER_API_KEY",),
+    "gemini": ("GEMINI_API_KEY", "GOOGLE_API_KEY"),
+    "anthropic": ("ANTHROPIC_API_KEY",),
+}
+_AUTH_HINT = "Check the API key (--api-key / SYNHALEES_API_KEY) and that the server is still running."
+
+
+@dataclass
+class EndpointProbe:
+    """Outcome of :func:`probe_endpoint` (shown in the GUI log + status label)."""
+
+    ok: bool
+    target: str
+    detail: str
+    latency_ms: int = 0
+    status: int | None = None
+    models: list[str] = field(default_factory=list)
+    hint: str = ""
+
+    def summary(self) -> str:
+        head = f"{self.target} ({self.latency_ms} ms)" if self.ok else f"{self.target} unreachable"
+        if self.status:
+            head += f" [HTTP {self.status}]"
+        return f"{head} — {self.detail}"
+
+
+def _env_api_key(provider: str) -> str:
+    import os
+
+    for var in _PROVIDER_KEY_ENVS.get(provider, ()):
+        value = os.environ.get(var, "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _http_json(
+    url: str,
+    headers: dict[str, str],
+    *,
+    timeout: float,
+    method: str = "GET",
+    payload: dict[str, Any] | None = None,
+) -> tuple[int | None, Any, str]:
+    """Return ``(status, json_payload, error_text)`` without raising."""
+    data = json.dumps(payload).encode("utf-8") if payload is not None else None
+    request = urllib.request.Request(
+        url,
+        data=data,
+        method=method,
+        headers={"Content-Type": "application/json", **headers},
+    )
+    try:
+        with open_url(request, timeout=timeout) as resp:
+            raw = resp.read().decode("utf-8", errors="replace")
+            return int(resp.status), (json.loads(raw) if raw.strip() else {}), ""
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace").strip()[:200]
+        return exc.code, None, body or f"HTTP {exc.code}"
+    except (urllib.error.URLError, TimeoutError, OSError) as exc:
+        reason = getattr(exc, "reason", exc)
+        return None, None, str(reason)[:200]
+    except ValueError as exc:  # malformed JSON
+        return None, None, f"invalid JSON response: {exc}"[:200]
+
+
+def _openai_models(base: str, headers: dict[str, str], timeout: float) -> tuple[int | None, list[str], str]:
+    status, payload, err = _http_json(f"{base}/models", headers, timeout=timeout)
+    models: list[str] = []
+    if status == 200 and isinstance(payload, dict):
+        for entry in payload.get("data") or []:
+            if isinstance(entry, dict) and entry.get("id"):
+                models.append(str(entry["id"]))
+    return status, models, err
+
+
+def _chat_probe(base: str, headers: dict[str, str], timeout: float) -> tuple[int | None, str]:
+    status, _body, err = _http_json(
+        f"{base}/chat/completions", headers, timeout=timeout, method="POST", payload={}
+    )
+    return status, err
+
+
+def _friendly_error(err: str) -> str:
+    """Turn a socket/HTTP error into something actionable, keeping the raw cause."""
+    raw = " ".join((err or "").split())
+    low = raw.lower()
+    friendly = ""
+    if "getaddrinfo" in low or "no such host" in low or "nodename" in low or "name or service" in low:
+        friendly = "DNS lookup failed — check the host name in the Base URL"
+    elif "refused" in low or "10061" in low:
+        friendly = "connection refused — server not running or wrong port"
+    elif "timed out" in low or "timeout" in low:
+        friendly = "timed out — server/tunnel did not answer"
+    elif "certificate_verify_failed" in low or "unable to get local issuer certificate" in low:
+        friendly = (
+            "TLS certificate is not trusted — refresh the Python/OS CA certificates "
+            "or check VPN/proxy TLS inspection"
+        )
+    elif "certificate" in low or "ssl" in low:
+        friendly = "TLS error — check the https URL / tunnel certificate"
+    elif "unreachable" in low:
+        friendly = "network unreachable — check the tunnel URL and your connection"
+    if not friendly:
+        return raw
+    # Keep the raw reason: the friendly line alone is not debuggable.
+    return f"{friendly} · {raw[:120]}" if raw else friendly
+
+
+def _probe_openai_compatible(
+    base: str, key: str, timeout: float, started: float
+) -> EndpointProbe:
+    headers = {"Authorization": f"Bearer {key}"} if key else {}
+    status, models, err = _openai_models(base, headers, timeout)
+    latency = int((time.perf_counter() - started) * 1000)
+    if status == 200:
+        detail = f"{len(models)} model(s) advertised" if models else "endpoint reachable"
+        return EndpointProbe(True, f"{base}/models", detail, latency, status, models)
+    if status in (401, 403):
+        return EndpointProbe(
+            False, f"{base}/models", "authentication rejected", latency, status, hint=_AUTH_HINT
+        )
+
+    # Validate that chat completions responds without selecting a model or
+    # starting generation. HTTP 400/422 is expected for an empty request body.
+    chat_status, chat_err = _chat_probe(base, headers, timeout)
+    latency = int((time.perf_counter() - started) * 1000)
+    if chat_status in (200, 400, 422):
+        detail = (
+            "endpoint reachable (model-free check; inference not tested)"
+            if chat_status != 200
+            else "chat endpoint answered without a model"
+        )
+        hint = "The endpoint is reachable. Select a model only when starting a benchmark run." if chat_status != 200 else ""
+        return EndpointProbe(
+            True,
+            f"{base}/chat/completions",
+            detail,
+            latency,
+            chat_status,
+            hint=hint,
+        )
+    if chat_status in (401, 403):
+        return EndpointProbe(
+            False, f"{base}/chat/completions", "authentication rejected", latency, chat_status, hint=_AUTH_HINT
+        )
+    detail = _friendly_error(chat_err or err or "connection refused")
+    if chat_status == 404:
+        detail = "no /models or /chat/completions here — does the Base URL end with /v1?"
+    elif status and status != 404:
+        detail = f"/models -> HTTP {status}; chat -> {detail}"
+    hint = ""
+    if chat_status == 404:
+        hint = f"Checked {base}/models and {base}/chat/completions. For vLLM/llama.cpp the base is usually http://host:port/v1."
+    return EndpointProbe(
+        False, f"{base}/chat/completions", detail[:220], latency, chat_status or status, hint=hint
+    )
+
+
+def probe_endpoint(
+    *,
+    provider: str = "",
+    base_url: str = "",
+    api_key: str = "",
+    timeout: float = 8.0,
+) -> EndpointProbe:
+    """Check whether an LLM endpoint answers, without spending real tokens.
+
+    OpenAI-compatible servers (Colab + vLLM, llama.cpp, LM Studio, Ollama,
+    OpenRouter, OpenAI) are probed via ``GET /models`` and fall back to a
+    model-free validation request. Gemini/Anthropic are probed through their
+    native model-listing endpoints. Never raises.
+    """
+    provider = (provider or "").strip().lower()
+    base = (base_url or "").strip().rstrip("/")
+    key = (api_key or "").strip() or _env_api_key(provider)
+    started = time.perf_counter()
+
+    try:
+        if base:
+            return _probe_openai_compatible(base, key, timeout, started)
+        if provider in _PROVIDER_BASE_URLS:
+            return _probe_openai_compatible(_PROVIDER_BASE_URLS[provider], key, timeout, started)
+        if provider == "gemini":
+            if not key:
+                return EndpointProbe(False, "gemini", "no GEMINI_API_KEY set", hint="Set GEMINI_API_KEY (free key: aistudio.google.com/apikey).")
+            status, payload, err = _http_json(
+                f"https://generativelanguage.googleapis.com/v1beta/models?key={urllib.parse.quote(key)}",
+                {},
+                timeout=timeout,
+            )
+            models = [
+                str(m.get("name", "")).removeprefix("models/")
+                for m in (payload or {}).get("models", [])
+                if isinstance(m, dict)
+            ] if isinstance(payload, dict) else []
+            latency = int((time.perf_counter() - started) * 1000)
+            if status == 200:
+                return EndpointProbe(True, "generativelanguage.googleapis.com", f"{len(models)} model(s) listed", latency, status, models)
+            return EndpointProbe(False, "generativelanguage.googleapis.com", (err or "request failed")[:220], latency, status, hint=_AUTH_HINT)
+        if provider == "anthropic":
+            if not key:
+                return EndpointProbe(False, "api.anthropic.com", "no ANTHROPIC_API_KEY set", hint="Set ANTHROPIC_API_KEY.")
+            status, payload, err = _http_json(
+                "https://api.anthropic.com/v1/models",
+                {"x-api-key": key, "anthropic-version": "2023-06-01"},
+                timeout=timeout,
+            )
+            models = [
+                str(m.get("id")) for m in (payload or {}).get("data", []) if isinstance(m, dict)
+            ] if isinstance(payload, dict) else []
+            latency = int((time.perf_counter() - started) * 1000)
+            if status == 200:
+                return EndpointProbe(True, "api.anthropic.com", f"{len(models)} model(s) listed", latency, status, models)
+            return EndpointProbe(False, "api.anthropic.com", (err or "request failed")[:220], latency, status, hint=_AUTH_HINT)
+        return EndpointProbe(
+            False,
+            "(no base URL)",
+            "Set a Base URL (e.g. https://xxxx.trycloudflare.com/v1) or pick a known provider.",
+        )
+    except Exception as exc:  # a probe must never break the GUI loop
+        return EndpointProbe(False, base or provider or "endpoint", f"probe failed: {exc}"[:220])
 
 
 def find_unregistered_slim_models(

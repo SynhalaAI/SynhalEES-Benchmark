@@ -32,6 +32,7 @@ from synhalees import kaggle_ops
 from synhalees.data import list_pillars, load_pillar
 from synhalees.gui_dialogs import open_pillar_inspector, open_scorecard_inspector
 from synhalees.gui_helpers import (
+    EndpointProbe,
     adopt_and_sync_scorecards,
     collect_local_runs_summary,
     compare_model_scorecards,
@@ -44,6 +45,7 @@ from synhalees.gui_helpers import (
     load_svg_sources_map,
     parse_eval_item_outcome,
     parse_progress_line,
+    probe_endpoint,
     rasterize_svg_to_grid,
     render_monogram_grid,
     save_organization_family,
@@ -164,11 +166,17 @@ def build_run_args(
     modality: str = "text",
     pillars: str = "",
     fresh: bool = False,
+    base_url: str = "",
+    api_key: str = "",
 ) -> list[str]:
     """Build `synhalees run ...` CLI arguments from form values."""
     args = ["run", "--model", model.strip()]
     if judge.strip():
         args.extend(["--judge", judge.strip()])
+    if base_url.strip():
+        args.extend(["--base-url", base_url.strip()])
+    if api_key.strip():
+        args.extend(["--api-key", api_key.strip()])
     if modality and modality != "text":
         args.extend(["--modality", modality])
     if pillars.strip() and pillars.strip().lower() != "all":
@@ -176,6 +184,16 @@ def build_run_args(
     if fresh:
         args.append("--fresh")
     return args
+
+
+def count_judge_calls(pillars: list[str], modalities: list[str]) -> int:
+    """Count runnable ``llm_judge`` rows using the same iterator as benchmark runs."""
+    from synhalees.runner import iter_items
+
+    return sum(
+        1 for row in iter_items(pillars, modalities)
+        if row["eval_type"] == "llm_judge"
+    )
 
 
 def build_kaggle_args(
@@ -227,9 +245,20 @@ def build_kaggle_args(
     return args
 
 
+def _shorten(text: str, limit: int) -> str:
+    """Trim a UI status string to *limit* characters with an ellipsis."""
+    clean = " ".join(str(text).split())
+    return clean if len(clean) <= limit else clean[: limit - 1].rstrip() + "…"
+
+
 def format_cmd_preview(args: list[str]) -> str:
-    """Format a human-readable `synhalees ...` preview string."""
-    return "synhalees " + " ".join(shlex.quote(a) for a in args)
+    """Format a human-readable `synhalees ...` preview string.
+
+    ``--api-key`` values are masked so a self-hosted endpoint key never lands
+    in the GUI console log (which users copy into bug reports).
+    """
+    text = "synhalees " + " ".join(shlex.quote(a) for a in args)
+    return re.sub(r"(--api-key\s+)\S+", r"\1***", text)
 
 
 _UNKNOWN_ORG_TOKENS = {"", "other", "unknown", "none", "-"}
@@ -551,6 +580,30 @@ def classify_pending_kaggle_models(
 
 
 TOKENS_FILE = Path.home() / ".synhalees" / "tokens.json"
+_API_KEY_ENV_BY_PROVIDER = {
+    "openai": "OPENAI_API_KEY",
+    "openrouter": "OPENROUTER_API_KEY",
+    "gemini": "GEMINI_API_KEY",
+    "anthropic": "ANTHROPIC_API_KEY",
+}
+
+
+def saved_judge_providers(tokens_file: Path | None = None) -> list[str]:
+    """Return providers whose API keys were saved in the local Tokens & Keys settings."""
+    path = tokens_file or TOKENS_FILE
+    if not path.is_file():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"Could not read saved API keys from {path}: {exc}") from exc
+    if not isinstance(data, dict):
+        raise RuntimeError(f"Saved API keys in {path} must be a JSON object.")
+    return [
+        provider
+        for provider, env_name in _API_KEY_ENV_BY_PROVIDER.items()
+        if isinstance(data.get(env_name), str) and data[env_name].strip()
+    ]
 
 
 def load_saved_tokens(tokens_file: Path | None = None, *, overwrite: bool = False) -> int:
@@ -599,7 +652,7 @@ def apply_tokens(
     persist: bool = True,
     tokens_file: Path | None = None,
 ) -> list[str]:
-    """Apply Kaggle and API tokens to os.environ and persist them to ~/.synhalees/tokens.json.
+    """Apply credentials and endpoint settings to os.environ and persist them locally.
 
     Supports pasting either a raw `KAGGLE_API_TOKEN` (e.g. `KGAT_...`) or a full
     `{"username": "...", "key": "..."}` JSON snippet into *kaggle_token*.
@@ -779,8 +832,8 @@ class SynhaleesGUI:
         self._proc: subprocess.Popen[str] | None = None
         self._proc_lock = threading.Lock()
         self._log_queue: queue.Queue[tuple[str, Any]] = queue.Queue()
-        self._last_args: list[str] = ["status"]
-        self._last_cmd_text: str = "synhalees status"
+        self._last_args: list[str] = []
+        self._last_cmd_text: str = ""
         self._active_page = "overview"
         self._nav_buttons: dict[str, Any] = {}
         self._pages: dict[str, Any] = {}
@@ -1231,7 +1284,7 @@ class SynhaleesGUI:
             font=("Segoe UI", 8, "bold"),
         ).pack(side="left")
 
-        self.cmd_label_var = tk.StringVar(value="synhalees status")
+        self.cmd_label_var = tk.StringVar(value="Ready — no command yet")
         tk.Label(
             cbar,
             textvariable=self.cmd_label_var,
@@ -1249,7 +1302,7 @@ class SynhaleesGUI:
         )
         self.stop_btn.pack(side="right", padx=(6, 0))
         ttk.Button(cbar, text="Clear", style="Ghost.TButton", command=self._clear_log).pack(side="right", padx=(6, 0))
-        ttk.Button(cbar, text="Copy Cmd", style="Ghost.TButton", command=self._copy_last_cmd).pack(side="right", padx=(6, 0))
+        ttk.Button(cbar, text="Copy Log", style="Ghost.TButton", command=self._copy_log).pack(side="right", padx=(6, 0))
         self.toggle_log_btn = ttk.Button(cbar, text="Show Log", style="Ghost.TButton", command=self._toggle_console)
         self.toggle_log_btn.pack(side="right")
 
@@ -2082,30 +2135,102 @@ class SynhaleesGUI:
             "Run crash-safe evaluations locally into runs/<model-slug>/, compare across runs, and promote finished runs.",
         )
 
-        model_specs = [f"{default_registry.resolve_taxonomy(m)[0]}:{m}" for m in _all_model_slugs()]
-        self.run_model_var = tk.StringVar(value="ollama:llama3.1:8b")
+        saved_provider = os.environ.get("SYNHALEES_PROVIDER", "colab").strip().lower() or "colab"
+        api_key_env = _API_KEY_ENV_BY_PROVIDER.get(saved_provider, "SYNHALEES_API_KEY")
+        self.run_provider_var = tk.StringVar(value=saved_provider)
+        self.run_model_var = tk.StringVar(value="")
         self.run_judge_var = tk.StringVar(value="")
+        self.run_judge_provider_var = tk.StringVar(value="")
         self.run_modality_var = tk.StringVar(value="text")
         self.run_pillars_var = tk.StringVar(value="all")
         self.run_fresh_var = tk.BooleanVar(value=False)
         self.run_auto_publish_var = tk.BooleanVar(value=False)
+        self.run_base_url_var = tk.StringVar(value=os.environ.get("SYNHALEES_BASE_URL", ""))
+        self.run_api_key_var = tk.StringVar(value=os.environ.get(api_key_env, ""))
+        self.run_judge_status_var = tk.StringVar(value="")
+        self.run_judge_count_var = tk.StringVar(value="")
+        self._run_connection_ready = False
+        self._run_model_specs: list[str] = []
 
         s1 = self._step_card(
             parent,
             "STEP 1",
-            "Configure & Start Local Benchmark Run",
-            "Results checkpoint automatically per item so interrupted runs resume cleanly unless 'Fresh run' is checked.",
+            "Connect to Model Server",
+            "Choose a provider prefix, enter its Base URL/API key if needed, then test the connection. "
+            "The model selector is populated only from advertised models; connection settings are saved locally when tested.",
         )
         form = tk.Frame(s1, bg=PALETTE["card"])
+        form.pack(fill="x", pady=(0, self._px(10)))
+        form.columnconfigure(1, weight=1)
+        ttk.Label(form, text="Provider prefix", style="CardText.TLabel").grid(row=0, column=0, sticky="w", padx=(0, 8), pady=5)
+        self.run_provider_entry = ttk.Combobox(
+            form,
+            textvariable=self.run_provider_var,
+            values=["colab", "openai", "openrouter", "ollama", "gemini", "anthropic"],
+        )
+        self.run_provider_entry.grid(row=0, column=1, sticky="ew", pady=5)
+        self.run_provider_entry.bind("<<ComboboxSelected>>", self._on_run_provider_selected)
+
+        ttk.Label(form, text="Base URL (opt)", style="CardText.TLabel").grid(row=1, column=0, sticky="w", padx=(0, 8), pady=5)
+        self.run_base_url_entry = ttk.Entry(form, textvariable=self.run_base_url_var)
+        self.run_base_url_entry.grid(row=1, column=1, sticky="ew", pady=5)
+
+        ttk.Label(form, text="API key (opt)", style="CardText.TLabel").grid(row=2, column=0, sticky="w", padx=(0, 8), pady=5)
+        self.run_api_key_entry = ttk.Entry(form, textvariable=self.run_api_key_var, show="*")
+        self.run_api_key_entry.grid(row=2, column=1, sticky="ew", pady=5)
+        self._run_connection_inputs = (
+            self.run_provider_entry,
+            self.run_base_url_entry,
+            self.run_api_key_entry,
+        )
+
+        connection_row = tk.Frame(s1, bg=PALETTE["card"])
+        connection_row.pack(fill="x")
+        self.run_probe_btn = ttk.Button(
+            connection_row, text="Test Connection", style="Accent.TButton", command=self._test_local_connection
+        )
+        self.run_probe_btn.pack(side="left")
+        self.run_probe_var = tk.StringVar(value="")
+        self.run_probe_label = tk.Label(
+            connection_row,
+            textvariable=self.run_probe_var,
+            bg=PALETTE["card"],
+            fg=PALETTE["muted"],
+            font=("Segoe UI", 9),
+            anchor="w",
+        )
+        self.run_probe_label.pack(side="left", padx=(10, 0))
+
+        # STEP 2: Select only a model ID reported by the tested endpoint.
+        s2 = self._step_card(
+            parent,
+            "STEP 2",
+            "Select Model & Configure Benchmark Run",
+            "Models are loaded after a successful connection test. Results checkpoint per item; "
+            "judge providers require an API key saved in Settings. Enable 'Fresh run' to discard a prior checkpoint.",
+        )
+        form = tk.Frame(s2, bg=PALETTE["card"])
         form.pack(fill="x", pady=(0, self._px(10)))
         form.columnconfigure(1, weight=1)
         form.columnconfigure(3, weight=1)
 
         ttk.Label(form, text="Model spec", style="CardText.TLabel").grid(row=0, column=0, sticky="w", padx=(0, 8), pady=5)
-        ttk.Combobox(form, textvariable=self.run_model_var, values=model_specs).grid(row=0, column=1, sticky="ew", padx=(0, 14), pady=5)
+        self.run_model_combo = ttk.Combobox(
+            form, textvariable=self.run_model_var, values=(), state="disabled"
+        )
+        self.run_model_combo.grid(row=0, column=1, sticky="ew", padx=(0, 14), pady=5)
 
-        ttk.Label(form, text="Judge spec (opt)", style="CardText.TLabel").grid(row=0, column=2, sticky="w", padx=(0, 8), pady=5)
-        ttk.Combobox(form, textvariable=self.run_judge_var, values=["", *model_specs]).grid(row=0, column=3, sticky="ew", pady=5)
+        ttk.Label(form, text="Judge provider", style="CardText.TLabel").grid(row=0, column=2, sticky="w", padx=(0, 8), pady=5)
+        self.run_judge_provider_combo = ttk.Combobox(
+            form,
+            textvariable=self.run_judge_provider_var,
+            values=(),
+            state="disabled",
+        )
+        self.run_judge_provider_combo.grid(row=0, column=3, sticky="ew", pady=5)
+        self.run_judge_provider_combo.bind(
+            "<<ComboboxSelected>>", self._on_judge_provider_selected
+        )
 
         ttk.Label(form, text="Modality", style="CardText.TLabel").grid(row=1, column=0, sticky="w", padx=(0, 8), pady=5)
         ttk.Combobox(
@@ -2118,8 +2243,37 @@ class SynhaleesGUI:
         ttk.Label(form, text="Pillars", style="CardText.TLabel").grid(row=1, column=2, sticky="w", padx=(0, 8), pady=5)
         ttk.Combobox(form, textvariable=self.run_pillars_var, values=["all", *list_pillars()]).grid(row=1, column=3, sticky="ew", pady=5)
 
+        ttk.Label(form, text="Judge model (opt)", style="CardText.TLabel").grid(row=2, column=0, sticky="w", padx=(0, 8), pady=5)
+        self.run_judge_model_combo = ttk.Combobox(
+            form,
+            textvariable=self.run_judge_var,
+            values=(),
+            state="disabled",
+        )
+        self.run_judge_model_combo.grid(row=2, column=1, columnspan=3, sticky="ew", pady=5)
+
+        ttk.Label(
+            form,
+            textvariable=self.run_judge_status_var,
+            style="Muted.TLabel",
+            wraplength=self._px(600),
+        ).grid(row=3, column=0, columnspan=3, sticky="w", pady=4)
+        ttk.Button(
+            form,
+            text="API Key Settings",
+            style="Ghost.TButton",
+            command=self._open_tokens_dialog,
+        ).grid(row=3, column=3, sticky="e", pady=4)
+
+        ttk.Label(
+            form,
+            textvariable=self.run_judge_count_var,
+            style="Muted.TLabel",
+            wraplength=self._px(900),
+        ).grid(row=4, column=0, columnspan=4, sticky="w", pady=4)
+
         chk_row = tk.Frame(form, bg=PALETTE["card"])
-        chk_row.grid(row=2, column=1, columnspan=3, sticky="w", pady=(4, 0))
+        chk_row.grid(row=5, column=0, columnspan=4, sticky="w", pady=(4, 0))
         ttk.Checkbutton(chk_row, text="Fresh run (discard prior checkpoint)", variable=self.run_fresh_var).pack(
             side="left", padx=(0, 16)
         )
@@ -2130,11 +2284,23 @@ class SynhaleesGUI:
         ).pack(side="left")
 
         self.run_preview_var = tk.StringVar()
-        for var in (self.run_model_var, self.run_judge_var, self.run_modality_var, self.run_pillars_var, self.run_fresh_var):
+        for var in (
+            self.run_model_var,
+            self.run_judge_var,
+            self.run_modality_var,
+            self.run_pillars_var,
+            self.run_fresh_var,
+        ):
             var.trace_add("write", lambda *_: self._update_run_preview())
+        for var in (self.run_provider_var, self.run_base_url_var, self.run_api_key_var):
+            var.trace_add("write", lambda *_: self._on_run_connection_input_changed())
+        for var in (self.run_modality_var, self.run_pillars_var):
+            var.trace_add("write", lambda *_: self._update_judge_call_estimate())
         self._update_run_preview()
+        self._update_judge_call_estimate()
+        self._refresh_judge_providers()
 
-        prev = tk.Frame(s1, bg=PALETTE["console_bg"], padx=self._px(10), pady=self._px(7))
+        prev = tk.Frame(s2, bg=PALETTE["console_bg"], padx=self._px(10), pady=self._px(7))
         prev.pack(fill="x", pady=(0, self._px(10)))
         tk.Label(
             prev,
@@ -2145,19 +2311,22 @@ class SynhaleesGUI:
             anchor="w",
         ).pack(fill="x")
 
-        r1 = tk.Frame(s1, bg=PALETTE["card"])
+        r1 = tk.Frame(s2, bg=PALETTE["card"])
         r1.pack(fill="x")
-        ttk.Button(r1, text="Start Local Run", style="Accent.TButton", command=self._start_local_run).pack(side="left")
+        self.run_start_btn = ttk.Button(
+            r1, text="Start Local Run", style="Accent.TButton", command=self._start_local_run, state="disabled"
+        )
+        self.run_start_btn.pack(side="left")
 
-        # STEP 2: Local Runs Status & Compare
-        s2 = self._step_card(
+        # STEP 3: Local Runs Status & Compare
+        s3 = self._step_card(
             parent,
-            "STEP 2",
+            "STEP 3",
             "Local Runs Status & Comparison",
             "Inspect completed or partial checkpoints in runs/*/, resume an interrupted run, or build runs/all_submissions.csv.",
         )
         self.local_runs_tree = self._make_scrolled_tree(
-            s2,
+            s3,
             columns=("slug", "items", "errors", "overall", "status"),
             height=5,
             fill="x",
@@ -2172,29 +2341,29 @@ class SynhaleesGUI:
             self.local_runs_tree.heading(col, text=lbl)
             self.local_runs_tree.column(col, width=self._px(w), anchor="w" if col == "slug" else "center")
         self.local_runs_tree.bind("<<TreeviewSelect>>", self._on_select_local_run)
-        s2_btns = tk.Frame(s2, bg=PALETTE["card"])
-        s2_btns.pack(fill="x", pady=(self._px(8), 0))
-        ttk.Button(s2_btns, text="Resume Selected Run", style="Ghost.TButton", command=self._resume_selected_local_run).pack(
+        s3_btns = tk.Frame(s3, bg=PALETTE["card"])
+        s3_btns.pack(fill="x", pady=(self._px(8), 0))
+        ttk.Button(s3_btns, text="Resume Selected Run", style="Ghost.TButton", command=self._resume_selected_local_run).pack(
             side="left", padx=(0, 8)
         )
-        ttk.Button(s2_btns, text="Compare Local Runs (compare)", style="Ghost.TButton", command=lambda: self.run_cli(["compare"])).pack(
+        ttk.Button(s3_btns, text="Compare Local Runs (compare)", style="Ghost.TButton", command=lambda: self.run_cli(["compare"])).pack(
             side="left", padx=(0, 8)
         )
         ttk.Button(
-            s2_btns,
+            s3_btns,
             text="Inspect Run Scorecard",
             style="Ghost.TButton",
             command=lambda: open_scorecard_inspector(self, self.pub_slug_var.get().strip()),
         ).pack(side="left")
 
-        # STEP 3: Publish
-        s3 = self._step_card(
+        # STEP 4: Publish
+        s4 = self._step_card(
             parent,
-            "STEP 3",
+            "STEP 4",
             "Promote Finished Run to submissions/ & Rebuild Site",
             "Copies runs/<slug>/submission.csv into submissions/<vendor>/<family>/<slug>.csv and rebuilds docs/assets/data/.",
         )
-        prow = tk.Frame(s3, bg=PALETTE["card"])
+        prow = tk.Frame(s4, bg=PALETTE["card"])
         prow.pack(fill="x")
         self.pub_slug_var = tk.StringVar(value="")
         self.pub_combo = ttk.Combobox(prow, textvariable=self.pub_slug_var, values=[])
@@ -3429,19 +3598,53 @@ class SynhaleesGUI:
     def _resume_selected_local_run(self) -> None:
         sel = self.local_runs_tree.selection()
         if not sel or sel[0] == "__empty__":
-            self.messagebox.showinfo("Select Run", "Select a local run in Step 2 first.")
+            self.messagebox.showinfo("Select Run", "Select a local run in Step 3 first.")
             return
         slug = str(self.local_runs_tree.item(sel[0], "values")[0])
         meta_path = RUNS / slug / "meta.json"
+        saved_spec = ""
+        saved_base_url = ""
         if meta_path.is_file():
             try:
                 meta = json.loads(meta_path.read_text(encoding="utf-8"))
-                if meta.get("spec"):
-                    self.run_model_var.set(str(meta["spec"]))
+                saved_spec = str(meta.get("spec") or "")
+                saved_base_url = str(meta.get("base_url") or "")
             except Exception:
                 pass
+        if not self._run_connection_ready:
+            if saved_spec:
+                provider = saved_spec.partition(":")[0] if ":" in saved_spec else "openai"
+                self.run_provider_var.set(provider)
+            self.run_base_url_var.set(saved_base_url)
+            self.run_model_var.set("")
+            self.run_fresh_var.set(False)
+            self._append_log(
+                "[HINT] Test the saved endpoint, select its advertised model, then resume the run.\n",
+                "warn",
+            )
+            return
+        if saved_spec not in self._run_model_specs:
+            self._append_log(
+                "[ERR] The saved model is not advertised by the tested endpoint. Test the correct endpoint before resuming.\n",
+                "err",
+            )
+            return
+        self.run_model_var.set(saved_spec)
         self.run_fresh_var.set(False)
         self._start_local_run()
+
+    def _clear_run_model_selection(self) -> None:
+        self._run_connection_ready = False
+        self._run_model_specs = []
+        self.run_model_combo.configure(values=(), state="disabled")
+        self.run_model_var.set("")
+        self.run_start_btn.configure(state="disabled")
+
+    def _on_run_connection_input_changed(self) -> None:
+        self._clear_run_model_selection()
+        self.run_probe_var.set("Connection details changed — test again")
+        self.run_probe_label.configure(fg=PALETTE["muted"])
+        self._update_run_preview()
 
     def _update_run_preview(self) -> None:
         args = build_run_args(
@@ -3450,8 +3653,122 @@ class SynhaleesGUI:
             modality=self.run_modality_var.get(),
             pillars=self.run_pillars_var.get(),
             fresh=self.run_fresh_var.get(),
+            base_url=self.run_base_url_var.get(),
+            api_key=self.run_api_key_var.get(),
         )
         self.run_preview_var.set(format_cmd_preview(args))
+
+    def _update_judge_call_estimate(self) -> None:
+        selected = self.run_pillars_var.get().strip()
+        pillars = (
+            list_pillars()
+            if not selected or selected.lower() == "all"
+            else [pillar.strip() for pillar in selected.split(",") if pillar.strip()]
+        )
+        known = set(list_pillars())
+        unknown = [pillar for pillar in pillars if pillar not in known]
+        if unknown:
+            self.run_judge_count_var.set(
+                f"Judge-call estimate unavailable: unknown pillar(s): {', '.join(unknown)}"
+            )
+            return
+        modality = self.run_modality_var.get().strip().lower()
+        modalities = ("text", "vision", "audio") if modality == "all" else (modality,)
+        try:
+            count = count_judge_calls(pillars, list(modalities))
+        except (OSError, ValueError) as exc:
+            self.run_judge_count_var.set(f"Could not estimate judge calls: {exc}")
+            return
+        self.run_judge_count_var.set(
+            f"Estimated judge API calls: {count} "
+            "(one per llm_judge row; resumes or model failures can reduce the actual count)"
+        )
+
+    def _on_run_provider_selected(self, _event: Any = None) -> None:
+        provider = self.run_provider_var.get().strip().lower()
+        env_name = _API_KEY_ENV_BY_PROVIDER.get(provider, "SYNHALEES_API_KEY")
+        self.run_api_key_var.set(os.environ.get(env_name, ""))
+
+    def _refresh_judge_providers(self) -> None:
+        if not hasattr(self, "run_judge_provider_combo"):
+            return
+        try:
+            providers = saved_judge_providers()
+        except RuntimeError as exc:
+            providers = []
+            self._append_log(f"[ERR] {exc}\n", "err")
+            self.run_judge_status_var.set("Could not read saved API keys. Check the console log.")
+        else:
+            self.run_judge_status_var.set(
+                "Choose a provider to load its judge models."
+                if providers
+                else "Save an API key in Settings → Tokens & Keys to enable judge providers."
+            )
+        self.run_judge_provider_combo.configure(
+            values=providers,
+            state="readonly" if providers else "disabled",
+        )
+        self.run_judge_provider_var.set("")
+        self.run_judge_model_combo.configure(values=(), state="disabled")
+        self.run_judge_var.set("")
+
+    def _on_judge_provider_selected(self, _event: Any = None) -> None:
+        provider = self.run_judge_provider_var.get().strip().lower()
+        self.run_judge_var.set("")
+        self.run_judge_model_combo.configure(values=(), state="disabled")
+        if not provider:
+            self.run_judge_status_var.set(
+                "Save an API key in Settings → Tokens & Keys to enable judge providers."
+            )
+            return
+        try:
+            providers = saved_judge_providers()
+        except RuntimeError as exc:
+            self.run_judge_status_var.set("Could not read saved API keys. Check the console log.")
+            self._append_log(f"[ERR] {exc}\n", "err")
+            return
+        if provider not in providers:
+            self.run_judge_status_var.set(
+                f"Save the {provider} API key in Settings → Tokens & Keys first."
+            )
+            return
+        key_env = _API_KEY_ENV_BY_PROVIDER[provider]
+        api_key = os.environ.get(key_env, "").strip()
+        if not api_key:
+            self.run_judge_status_var.set(
+                f"Save the {provider} API key in Settings → Tokens & Keys first."
+            )
+            return
+
+        self.run_judge_status_var.set(f"Loading {provider} models...")
+
+        def worker() -> None:
+            probe = probe_endpoint(provider=provider, api_key=api_key)
+            self._log_queue.put(("judge_probe", (provider, probe)))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _apply_judge_probe_result(self, provider: str, probe: EndpointProbe) -> None:
+        if provider != self.run_judge_provider_var.get().strip().lower():
+            return
+        model_ids = list(dict.fromkeys(model.strip() for model in probe.models if model.strip()))
+        model_specs = [f"{provider}:{model}" for model in model_ids] if probe.ok else []
+        self.run_judge_model_combo.configure(
+            values=model_specs,
+            state="readonly" if model_specs else "disabled",
+        )
+        if model_specs:
+            self.run_judge_status_var.set(f"{len(model_specs)} {provider} judge model(s) available.")
+            return
+        if probe.ok:
+            self.run_judge_status_var.set(
+                "Connected, but this provider did not advertise any judge models."
+            )
+        else:
+            self.run_judge_status_var.set(
+                f"Could not load {provider} models. Save/check its API key in Settings → Tokens & Keys."
+            )
+            self._append_log(f"[ERR] Judge provider: {probe.summary()}\n", "err")
 
     def _ensure_kaggle_auth(self, then_call: Callable[[], None]) -> bool:
         if kaggle_auth_status() != "Not configured":
@@ -3463,15 +3780,13 @@ class SynhaleesGUI:
         return False
 
     def _ensure_local_api_key(self, model_spec: str, judge_spec: str, then_call: Callable[[], None]) -> bool:
-        key_map = {
-            "gemini": "GEMINI_API_KEY",
-            "openai": "OPENAI_API_KEY",
-            "anthropic": "ANTHROPIC_API_KEY",
-            "openrouter": "OPENROUTER_API_KEY",
-        }
+        # Self-hosted endpoints (Colab/vLLM, llama.cpp) take an optional key, so
+        # never block the run on a cloud API key when a Base URL is set.
+        if self.run_base_url_var.get().strip():
+            return True
         for spec in (model_spec, judge_spec):
             prov = spec.split(":", 1)[0].strip().lower() if ":" in spec else ""
-            env_var = key_map.get(prov)
+            env_var = _API_KEY_ENV_BY_PROVIDER.get(prov)
             if env_var and not os.environ.get(env_var, "").strip():
                 self._open_tokens_dialog(
                     reason=f"{env_var} is required before running '{spec}'.",
@@ -3481,10 +3796,16 @@ class SynhaleesGUI:
         return True
 
     def _start_local_run(self) -> None:
+        if not self._run_connection_ready:
+            self._append_log(
+                "[ERR] Test the connection and select an advertised model before starting a run.\n",
+                "err",
+            )
+            return
         mspec = self.run_model_var.get().strip()
         jspec = self.run_judge_var.get().strip()
         if not mspec:
-            self._append_log("[ERR] Please enter a model spec (e.g. ollama:llama3.1:8b).\n", "err")
+            self._append_log("[ERR] Select a model advertised by the tested endpoint.\n", "err")
             return
         if not self._ensure_local_api_key(mspec, jspec, self._start_local_run):
             return
@@ -3496,9 +3817,94 @@ class SynhaleesGUI:
                     modality=self.run_modality_var.get(),
                     pillars=self.run_pillars_var.get(),
                     fresh=self.run_fresh_var.get(),
+                    base_url=self.run_base_url_var.get(),
+                    api_key=self.run_api_key_var.get(),
                 )
             )
         )
+
+    def _test_local_connection(self) -> None:
+        """Probe the configured endpoint (no tokens) and report in the log."""
+        provider = self.run_provider_var.get().strip().lower()
+        if not provider:
+            self._append_log("[ERR] Enter a provider prefix before testing the connection.\n", "err")
+            return
+        if provider != self.run_provider_var.get():
+            self.run_provider_var.set(provider)
+        base_url = self.run_base_url_var.get().strip()
+        api_key = self.run_api_key_var.get().strip()
+        key_env = _API_KEY_ENV_BY_PROVIDER.get(provider, "SYNHALEES_API_KEY")
+        try:
+            notes = apply_tokens(
+                api_keys={
+                    "SYNHALEES_PROVIDER": provider,
+                    "SYNHALEES_BASE_URL": base_url,
+                    key_env: api_key,
+                }
+            )
+        except OSError as exc:
+            self._append_log(f"[ERR] Could not save endpoint settings locally: {exc}\n", "err")
+            return
+        for note in notes:
+            self._append_log(f"[OK] {note}\n", "ok")
+        self._refresh_judge_providers()
+        target = base_url or provider or "endpoint"
+        self._clear_run_model_selection()
+        self.run_probe_var.set(f"Testing {target} ...")
+        self.run_probe_label.configure(fg=PALETTE["info"])
+        self.run_probe_btn.configure(state="disabled")
+        for widget in self._run_connection_inputs:
+            widget.configure(state="disabled")
+        self._append_log(f"[..] Testing connection to {target} ...\n", "cmd")
+
+        def worker() -> None:
+            probe = probe_endpoint(
+                provider=provider,
+                base_url=base_url,
+                api_key=api_key,
+            )
+            self._log_queue.put(("probe", probe))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _apply_probe_result(self, probe: EndpointProbe) -> None:
+        """Render a finished connection probe (called on the Tk main thread)."""
+        self.run_probe_btn.configure(state="normal")
+        for widget in self._run_connection_inputs:
+            widget.configure(state="normal")
+        self._clear_run_model_selection()
+        if probe.ok:
+            provider = self.run_provider_var.get().strip().lower()
+            model_ids = list(dict.fromkeys(model.strip() for model in probe.models if model.strip()))
+            model_specs = [f"{provider}:{model}" for model in model_ids]
+            if model_specs:
+                self._run_model_specs = model_specs
+                self.run_model_combo.configure(values=model_specs, state="readonly")
+                self.run_model_var.set(model_specs[0])
+                self._run_connection_ready = True
+                self.run_start_btn.configure(state="normal")
+                self.run_probe_var.set(f"Connected · {probe.latency_ms} ms · {len(model_specs)} model(s)")
+            else:
+                self.run_probe_var.set(f"Connected · {probe.latency_ms} ms · no models advertised")
+            self.run_probe_label.configure(fg=PALETTE["ok"])
+            self._append_log(f"[OK] Connection test: {probe.summary()}\n", "ok")
+            if not model_specs:
+                self._append_log(
+                    "[HINT] The endpoint responded but advertised no model IDs; model selection and benchmark runs remain disabled.\n",
+                    "warn",
+                )
+        else:
+            reason = probe.detail or "unknown error"
+            if probe.hint:
+                reason = f"{reason} — {probe.hint}"
+            self.run_probe_var.set(f"Failed · {_shorten(reason, 78)}")
+            self.run_probe_label.configure(fg=PALETTE["accent"])
+            self._append_log(f"[ERR] Connection test: {probe.summary()}\n", "err")
+            # The full reason lives in the log; surface it instead of hiding it.
+            if not self._console_visible:
+                self._toggle_console()
+        if probe.hint and (not probe.ok or probe.models):
+            self._append_log(f"[HINT] {probe.hint}\n", "warn")
 
     def _start_worker_if_free(self, fn: Callable[[], None]) -> None:
         fn()
@@ -3576,6 +3982,7 @@ class SynhaleesGUI:
             "OPENAI_API_KEY": tk.StringVar(value=os.environ.get("OPENAI_API_KEY", "")),
             "ANTHROPIC_API_KEY": tk.StringVar(value=os.environ.get("ANTHROPIC_API_KEY", "")),
             "OPENROUTER_API_KEY": tk.StringVar(value=os.environ.get("OPENROUTER_API_KEY", "")),
+            "SYNHALEES_API_KEY": tk.StringVar(value=os.environ.get("SYNHALEES_API_KEY", "")),
         }
 
         form = tk.Frame(wrap, bg=PALETTE["card"], padx=self._px(12), pady=self._px(10))
@@ -3610,6 +4017,7 @@ class SynhaleesGUI:
         _row(5, "OPENAI_API_KEY", api_vars["OPENAI_API_KEY"], secret=True)
         _row(6, "ANTHROPIC_API_KEY", api_vars["ANTHROPIC_API_KEY"], secret=True)
         _row(7, "OPENROUTER_API_KEY", api_vars["OPENROUTER_API_KEY"], secret=True)
+        _row(8, "SYNHALEES_API_KEY (custom)", api_vars["SYNHALEES_API_KEY"], secret=True)
 
         def _toggle_show() -> None:
             mask = "" if show_var.get() else "*"
@@ -3646,6 +4054,7 @@ class SynhaleesGUI:
             else:
                 self._append_log("[WARN] No tokens saved.\n", "warn")
             self._sync_token_button()
+            self._refresh_judge_providers()
             dlg.destroy()
             if on_saved is not None:
                 self.root.after(10, on_saved)
@@ -3664,6 +4073,7 @@ class SynhaleesGUI:
                 api_keys={k: v.get() for k, v in api_vars.items()},
             )
             self._sync_token_button()
+            self._refresh_judge_providers()
             self._append_log("[OK] Cleared saved Kaggle token overrides (will use ~/.kaggle/kaggle.json if present).\n", "ok")
             dlg.destroy()
 
@@ -4352,6 +4762,11 @@ class SynhaleesGUI:
                             "and launch with `py -3.11 -m synhalees gui`, or use Colab (`kaggle/colab_slim_export.ipynb`).\n",
                             "warn",
                         )
+                elif kind == "probe":
+                    self._apply_probe_result(payload)
+                elif kind == "judge_probe":
+                    provider, probe = payload
+                    self._apply_judge_probe_result(provider, probe)
                 elif kind == "discovered":
                     total_avail, pending = payload
                     self.kg_new_tree.delete(*self.kg_new_tree.get_children())
@@ -4640,11 +5055,15 @@ class SynhaleesGUI:
         self.console.delete("1.0", "end")
         self.console.configure(state="disabled")
 
-    def _copy_last_cmd(self) -> None:
-        preview = self._last_cmd_text or format_cmd_preview(self._last_args)
+    def _copy_log(self) -> None:
+        log_text = self.console.get("1.0", "end-1c")
+        if not log_text.strip():
+            self._append_log("[WARN] The log is empty — nothing to copy.\n", "warn")
+            return
         self.root.clipboard_clear()
-        self.root.clipboard_append(preview)
-        self._append_log(f"[OK] Copied to clipboard: {preview}\n", "muted")
+        self.root.clipboard_append(log_text)
+        self.root.update()
+        self._append_log("[OK] Log copied to clipboard.\n", "muted")
 
 
 # ---------------------------------------------------------------------------

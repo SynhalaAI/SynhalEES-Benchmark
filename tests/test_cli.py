@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 from unittest import mock
 
@@ -488,6 +489,21 @@ class TestGUI(unittest.TestCase):
         self.assertEqual(snap.pillar_count, 15)
         self.assertGreater(snap.submission_models, 0)
 
+    def test_judge_call_count_uses_runnable_eval_rows(self) -> None:
+        from synhalees.gui import count_judge_calls
+
+        rows = iter(
+            [
+                {"eval_type": "llm_judge"},
+                {"eval_type": "exact_match"},
+                {"eval_type": "llm_judge"},
+            ]
+        )
+        with mock.patch("synhalees.runner.iter_items", return_value=rows) as iter_items:
+            count = count_judge_calls(["04_kavi_sindu"], ["vision"])
+        self.assertEqual(count, 2)
+        iter_items.assert_called_once_with(["04_kavi_sindu"], ["vision"])
+
     def test_gui_apply_tokens_isolated(self) -> None:
         import os
         from synhalees import gui
@@ -499,16 +515,26 @@ class TestGUI(unittest.TestCase):
                 notes = gui.apply_tokens(
                     kaggle_token='{"username": "synhala", "key": "secret123"}',
                     save_kaggle_json=True,
-                    api_keys={"GEMINI_API_KEY": "gem-test"},
+                    api_keys={
+                        "GEMINI_API_KEY": "gem-test",
+                        "OPENAI_API_KEY": "openai-test",
+                        "SYNHALEES_API_KEY": "custom-test",
+                        "SYNHALEES_BASE_URL": "https://saved.example/v1",
+                        "SYNHALEES_PROVIDER": "colab",
+                    },
                     kaggle_dir=kdir,
                     tokens_file=tfile,
                 )
                 self.assertEqual(os.environ.get("KAGGLE_USERNAME"), "synhala")
                 self.assertEqual(os.environ.get("KAGGLE_KEY"), "secret123")
                 self.assertEqual(os.environ.get("GEMINI_API_KEY"), "gem-test")
+                self.assertEqual(os.environ.get("SYNHALEES_BASE_URL"), "https://saved.example/v1")
+                self.assertEqual(gui.saved_judge_providers(tfile), ["openai", "gemini"])
                 self.assertTrue((kdir / "kaggle.json").is_file())
                 self.assertTrue(tfile.is_file())
                 self.assertTrue(any("Saved" in n for n in notes))
+                os.environ["ANTHROPIC_API_KEY"] = "external-only"
+                self.assertEqual(gui.saved_judge_providers(tfile), ["openai", "gemini"])
 
                 gui.apply_tokens(kaggle_token="KGAT_abc123", tokens_file=tfile)
                 self.assertEqual(os.environ.get("KAGGLE_API_TOKEN"), "KGAT_abc123")
@@ -520,6 +546,8 @@ class TestGUI(unittest.TestCase):
                 self.assertGreaterEqual(loaded, 3)
                 self.assertEqual(os.environ.get("KAGGLE_API_TOKEN"), "KGAT_abc123")
                 self.assertEqual(os.environ.get("GEMINI_API_KEY"), "gem-test")
+                self.assertEqual(os.environ.get("SYNHALEES_BASE_URL"), "https://saved.example/v1")
+                self.assertEqual(os.environ.get("SYNHALEES_PROVIDER"), "colab")
 
     def test_gui_save_model_display_names_isolated(self) -> None:
         import json
@@ -589,6 +617,52 @@ class TestGUI(unittest.TestCase):
             self.assertGreater(len(app.mgmt_models_tree.get_children()), 0)
             self.assertGreater(len(app.mgmt_orgs_tree.get_children()), 0)
             self.assertEqual(len(app.site_gate_cards), 4)
+            from synhalees.gui import count_judge_calls
+
+            app.run_pillars_var.set("04_kavi_sindu")
+            app.run_modality_var.set("all")
+            expected_judge_calls = count_judge_calls(
+                ["04_kavi_sindu"], ["text", "vision", "audio"]
+            )
+            self.assertIn(
+                f"Estimated judge API calls: {expected_judge_calls}",
+                app.run_judge_count_var.get(),
+            )
+            self.assertEqual(app.run_probe_btn.cget("text"), "Test Connection")
+            self.assertEqual(app.run_probe_var.get(), "")
+
+            # A failed probe must show the reason inline (and reveal the log).
+            from synhalees.gui_helpers import EndpointProbe
+
+            app._apply_probe_result(
+                EndpointProbe(
+                    ok=False,
+                    target="http://127.0.0.1:1/v1/models",
+                    detail="connection refused — server not running or wrong port",
+                    hint="Is the Colab tunnel still running?",
+                )
+            )
+            self.assertIn("connection refused", app.run_probe_var.get())
+            self.assertTrue(app._console_visible)
+            self.assertFalse(app.run_model_combo["values"])
+            self.assertEqual(str(app.run_start_btn.cget("state")), "disabled")
+            app._apply_probe_result(
+                EndpointProbe(ok=True, target="http://x/v1/models", detail="1 model(s) advertised", latency_ms=12, models=["m"])
+            )
+            self.assertIn("Connected", app.run_probe_var.get())
+            self.assertEqual(app.run_model_combo["values"], ("colab:m",))
+            self.assertEqual(app.run_model_var.get(), "colab:m")
+            self.assertEqual(str(app.run_start_btn.cget("state")), "normal")
+            app.run_base_url_var.set("https://changed.example/v1")
+            self.assertFalse(app.run_model_combo["values"])
+            self.assertEqual(str(app.run_start_btn.cget("state")), "disabled")
+
+            # Copy Log copies the console content, not the command preview.
+            app._copy_log()
+            copied_log = app.root.clipboard_get()
+            self.assertIn("[ERR] Connection test:", copied_log)
+            self.assertNotIn("[OK] Log copied to clipboard.", copied_log)
+            self.assertIn("[OK] Log copied to clipboard.", app.console.get("1.0", "end"))
             # Verify 3-tier logo icon renderer (PNG + SVG + monogram)
             self.assertIsNotNone(app._make_org_preview_icon("openai", "#10A37F"))
             self.assertIsNotNone(app._make_org_preview_icon("nonexistent-org", "#4285F4"))
@@ -598,6 +672,104 @@ class TestGUI(unittest.TestCase):
             self.assertEqual(app.status_badge.cget("text"), "IDLE")
         finally:
             root.destroy()
+
+    def test_only_models_advertised_by_a_successful_probe_are_selectable(self) -> None:
+        from synhalees.gui import SynhaleesGUI
+        from synhalees.gui_helpers import EndpointProbe
+
+        app = object.__new__(SynhaleesGUI)
+        app.run_provider_var = mock.Mock()
+        app.run_provider_var.get.return_value = "colab"
+        app.run_probe_btn = mock.Mock()
+        app.run_probe_var = mock.Mock()
+        app.run_probe_label = mock.Mock()
+        app.run_model_combo = mock.Mock()
+        app.run_model_var = mock.Mock()
+        app.run_start_btn = mock.Mock()
+        app._run_connection_inputs = ()
+        app._run_connection_ready = False
+        app._run_model_specs = []
+        app._console_visible = True
+        app._append_log = mock.Mock()
+
+        app._apply_probe_result(
+            EndpointProbe(
+                ok=True,
+                target="https://endpoint/v1/models",
+                detail="1 model(s) advertised",
+                models=["qwen2.5-7b-instruct"],
+            )
+        )
+
+        self.assertEqual(
+            app.run_model_combo.configure.call_args.kwargs["values"],
+            ["colab:qwen2.5-7b-instruct"],
+        )
+        self.assertEqual(
+            app.run_model_var.set.call_args.args[0],
+            "colab:qwen2.5-7b-instruct",
+        )
+        self.assertTrue(app._run_connection_ready)
+        app.run_start_btn.configure.assert_called_with(state="normal")
+
+        app._apply_probe_result(
+            EndpointProbe(
+                ok=False,
+                target="https://endpoint/v1/models",
+                detail="authentication rejected",
+                status=401,
+            )
+        )
+        self.assertFalse(app._run_connection_ready)
+        self.assertEqual(app._run_model_specs, [])
+        self.assertEqual(
+            app.run_model_combo.configure.call_args.kwargs,
+            {"values": (), "state": "disabled"},
+        )
+        app.run_start_btn.configure.assert_called_with(state="disabled")
+
+    def test_judge_models_are_loaded_from_selected_saved_provider(self) -> None:
+        from synhalees.gui import SynhaleesGUI
+        from synhalees.gui_helpers import EndpointProbe
+
+        app = object.__new__(SynhaleesGUI)
+        app.run_judge_provider_var = mock.Mock()
+        app.run_judge_provider_var.get.return_value = "openai"
+        app.run_judge_model_combo = mock.Mock()
+        app.run_judge_status_var = mock.Mock()
+        app.run_judge_var = mock.Mock()
+        app._append_log = mock.Mock()
+
+        app._apply_judge_probe_result(
+            "openai",
+            EndpointProbe(
+                ok=True,
+                target="https://api.openai.com/v1/models",
+                detail="1 model(s) listed",
+                models=["gpt-4.1-mini"],
+            ),
+        )
+        self.assertEqual(
+            app.run_judge_model_combo.configure.call_args.kwargs["values"],
+            ["openai:gpt-4.1-mini"],
+        )
+        self.assertEqual(
+            app.run_judge_model_combo.configure.call_args.kwargs["state"],
+            "readonly",
+        )
+
+        app.run_judge_model_combo.configure.reset_mock()
+        app.run_judge_provider_var.get.return_value = "gemini"
+        app._apply_judge_probe_result(
+            "openai",
+            EndpointProbe(
+                ok=True,
+                target="https://api.openai.com/v1/models",
+                detail="1 model(s) listed",
+                models=["gpt-4.1-mini"],
+            ),
+        )
+        app.run_judge_model_combo.configure.assert_not_called()
 
     def test_gui_management_org_and_model_crud_isolated(self) -> None:
         from synhalees.gui import (
@@ -725,6 +897,251 @@ class TestGUI(unittest.TestCase):
         self.assertIsNotNone(sc.modalities["text"])
         cmp = compare_model_scorecards("gemini-4-argon", "gemini-4-argon", modality="text")
         self.assertEqual(len(cmp["rows"]), 15)
+
+
+class TestSelfHostedEndpoint(unittest.TestCase):
+    """`--base-url` support for OpenAI-compatible servers (Colab + vLLM, llama.cpp)."""
+
+    def test_custom_provider_needs_base_url_and_defaults_key(self) -> None:
+        import os
+
+        from synhalees.models import APIModelError, OpenAIModel, get_model
+
+        with self.assertRaises(APIModelError):
+            get_model("colab:qwen2.5-7b-instruct")
+
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("SYNHALEES_API_KEY", None)
+            model = get_model("colab:qwen2.5-7b-instruct", base_url="https://x.trycloudflare.com/v1/")
+        self.assertIsInstance(model, OpenAIModel)
+        self.assertEqual(model.base_url, "https://x.trycloudflare.com/v1")
+        self.assertEqual(model.name, "qwen2.5-7b-instruct")
+        self.assertEqual(model.api_key, "local")
+
+        explicit = get_model("colab:x", base_url="https://y/v1", api_key="secret")
+        self.assertEqual(explicit.api_key, "secret")
+
+        with mock.patch.dict(os.environ, {"SYNHALEES_API_KEY": "env-key"}):
+            env_model = get_model("colab:x", base_url="https://y/v1")
+        self.assertEqual(env_model.api_key, "env-key")
+
+    def test_run_flags_env_fallback_and_runner_wiring(self) -> None:
+        import os
+
+        import run_benchmark
+        from synhalees.runner import SynhalEESBenchmark
+
+        rc, out, _ = _run_cli("run", "--help")
+        self.assertEqual(rc, 0)
+        self.assertIn("--base-url", out)
+        self.assertIn("--api-key", out)
+
+        args = run_benchmark.parse_args(
+            ["--model", "colab:qwen2.5-7b-instruct", "--base-url", "https://flag/v1", "--api-key", "k1"]
+        )
+        self.assertEqual(run_benchmark.resolve_endpoint(args), ("https://flag/v1", "k1"))
+
+        with mock.patch.dict(
+            os.environ,
+            {"SYNHALEES_BASE_URL": "https://env/v1", "SYNHALEES_API_KEY": "env-k"},
+        ):
+            env_args = run_benchmark.parse_args(["--model", "colab:qwen2.5-7b-instruct"])
+            self.assertEqual(run_benchmark.resolve_endpoint(env_args), ("https://env/v1", "env-k"))
+            # explicit flags always win over the environment
+            self.assertEqual(run_benchmark.resolve_endpoint(args), ("https://flag/v1", "k1"))
+
+        bench = SynhalEESBenchmark(
+            "colab:qwen2.5-7b-instruct",
+            base_url="https://flag/v1",
+            api_key="k1",
+            checkpoint=None,
+            modalities=("text",),
+            pillars=["01_buddhist_culture"],
+        )
+        self.assertEqual(bench.model.base_url, "https://flag/v1")
+        self.assertIs(bench.judge_model, bench.model)
+
+        same_provider = SynhalEESBenchmark(
+            "colab:qwen2.5-7b-instruct",
+            judge_model="colab:judge-model",
+            base_url="https://flag/v1",
+            checkpoint=None,
+            pillars=["01_buddhist_culture"],
+        )
+        self.assertEqual(same_provider.judge_model.base_url, "https://flag/v1")
+
+        with mock.patch.dict(os.environ, {"GEMINI_API_KEY": "gem"}):
+            other_provider = SynhalEESBenchmark(
+                "colab:qwen2.5-7b-instruct",
+                judge_model="gemini:gemini-2.5-flash",
+                base_url="https://flag/v1",
+                checkpoint=None,
+                pillars=["01_buddhist_culture"],
+            )
+        self.assertNotEqual(other_provider.judge_model.base_url, "https://flag/v1")
+
+    def test_gui_run_args_carry_endpoint(self) -> None:
+        from synhalees import gui
+
+        self.assertEqual(
+            gui.build_run_args(
+                model="colab:qwen2.5-7b-instruct",
+                base_url="https://x.trycloudflare.com/v1",
+                api_key="k1",
+            ),
+            [
+                "run", "--model", "colab:qwen2.5-7b-instruct",
+                "--base-url", "https://x.trycloudflare.com/v1",
+                "--api-key", "k1",
+            ],
+        )
+        # empty endpoint fields stay out of the preview / command line
+        self.assertEqual(
+            gui.build_run_args(model="ollama:llama3.1:8b", base_url="  ", api_key=""),
+            ["run", "--model", "ollama:llama3.1:8b"],
+        )
+        # the console preview never echoes the endpoint key
+        preview = gui.format_cmd_preview(
+            gui.build_run_args(model="colab:x", base_url="https://x/v1", api_key="s3cret")
+        )
+        self.assertIn("--api-key ***", preview)
+        self.assertNotIn("s3cret", preview)
+
+
+class TestEndpointProbe(unittest.TestCase):
+    """`Test Connection` button backend and HTTPS verification."""
+
+    def test_https_helper_keeps_certificate_verification_enabled(self) -> None:
+        import ssl
+
+        from synhalees.http import _default_ssl_context
+
+        context = _default_ssl_context()
+        self.assertTrue(context.check_hostname)
+        self.assertEqual(context.verify_mode, ssl.CERT_REQUIRED)
+        self.assertTrue(context.get_ca_certs())
+
+    def test_untrusted_certificate_error_is_actionable(self) -> None:
+        from synhalees.gui_helpers import _friendly_error
+
+        message = _friendly_error(
+            "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: "
+            "unable to get local issuer certificate (_ssl.c:1010)"
+        )
+        self.assertIn("CA certificates", message)
+        self.assertIn("CERTIFICATE_VERIFY_FAILED", message)
+
+    def _serve(self, **attrs):
+        import threading
+        from http.server import ThreadingHTTPServer
+
+        handler = type("ProbeHandler", (_ProbeHandler,), attrs)
+        srv = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        self.addCleanup(srv.server_close)
+        self.addCleanup(srv.shutdown)
+        return srv, f"http://127.0.0.1:{srv.server_address[1]}/v1"
+
+    def test_openai_compatible_models_probe(self) -> None:
+        from synhalees.gui_helpers import probe_endpoint
+
+        _srv, base = self._serve(models=["qwen2.5-7b-instruct"])
+        probe = probe_endpoint(base_url=base, api_key="k")
+        self.assertTrue(probe.ok, probe.summary())
+        self.assertEqual(probe.status, 200)
+        self.assertIn("qwen2.5-7b-instruct", probe.models)
+        self.assertIn("ms", probe.summary())
+        self.assertGreaterEqual(probe.latency_ms, 0)
+        self.assertEqual(probe.hint, "")
+
+    def test_falls_back_to_model_free_chat_probe_when_models_missing(self) -> None:
+        from synhalees.gui_helpers import probe_endpoint
+
+        srv, base = self._serve(models_status=404, chat_status=400)
+        probe = probe_endpoint(base_url=base)
+        self.assertTrue(probe.ok, probe.summary())
+        self.assertIn("/chat/completions", probe.target)
+        self.assertNotIn("model", srv.RequestHandlerClass.received_chat_payload)
+        self.assertIn("inference not tested", probe.detail)
+        self.assertIn("Select a model only when starting", probe.hint)
+
+        # Nothing at /models or /chat/completions -> actionable "/v1" guidance.
+        _srv2, base2 = self._serve(models_status=404, chat_status=404)
+        wrong = probe_endpoint(base_url=base2)
+        self.assertFalse(wrong.ok)
+        self.assertIn("/v1", wrong.detail + wrong.hint)
+
+    def test_auth_failure_and_unreachable(self) -> None:
+        from synhalees.gui_helpers import probe_endpoint
+
+        srv, base = self._serve(models_status=401, chat_status=401)
+        self.addCleanup(srv.shutdown)
+        probe = probe_endpoint(base_url=base, api_key="wrong")
+        self.assertFalse(probe.ok)
+        self.assertEqual(probe.status, 401)
+        self.assertTrue(probe.hint)
+
+        import socket
+
+        with socket.socket() as sock:  # grab a free port, then close it -> refused
+            sock.bind(("127.0.0.1", 0))
+            dead_port = sock.getsockname()[1]
+        dead = probe_endpoint(base_url=f"http://127.0.0.1:{dead_port}/v1", timeout=2)
+        self.assertFalse(dead.ok)
+        self.assertTrue(
+            "refused" in dead.summary() or "timed out" in dead.summary(),
+            dead.summary(),
+        )
+
+    def test_missing_base_url_and_provider_key(self) -> None:
+        import os
+
+        from synhalees.gui_helpers import probe_endpoint
+
+        no_target = probe_endpoint(provider="mystery")
+        self.assertFalse(no_target.ok)
+        self.assertIn("Set a Base URL", no_target.detail)
+
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("GEMINI_API_KEY", None)
+            os.environ.pop("GOOGLE_API_KEY", None)
+            gemini = probe_endpoint(provider="gemini")
+        self.assertFalse(gemini.ok)
+        self.assertIn("GEMINI_API_KEY", gemini.detail)
+
+
+class _ProbeHandler(BaseHTTPRequestHandler):
+    """Tiny OpenAI-compatible stub used by the connection-probe tests."""
+
+    models_status = 200
+    chat_status = 200
+    models: list[str] = []
+    received_chat_payload: dict = {}
+
+    def _json(self, status: int, payload: dict) -> None:
+        body = json.dumps(payload).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_GET(self) -> None:  # noqa: N802 - http.server API
+        if self.path.endswith("/models"):
+            if self.models_status != 200:
+                return self._json(self.models_status, {"error": "models disabled"})
+            return self._json(200, {"data": [{"id": m} for m in self.models]})
+        return self._json(404, {"error": "not found"})
+
+    def do_POST(self) -> None:  # noqa: N802 - http.server API
+        length = int(self.headers.get("Content-Length") or 0)
+        self.__class__.received_chat_payload = json.loads(self.rfile.read(length) or b"{}")
+        if self.chat_status != 200:
+            return self._json(self.chat_status, {"error": "chat disabled"})
+        return self._json(200, {"choices": [{"message": {"content": "ok"}}]})
+
+    def log_message(self, *args) -> None:
+        pass
 
 
 if __name__ == "__main__":

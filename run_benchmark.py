@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 _VALID_MODALITIES = ("text", "vision", "audio", "all")
@@ -67,7 +68,31 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> argparse.ArgumentParse
         default="runs",
         help="Root directory for per-model run folders (default: runs).",
     )
+    parser.add_argument(
+        "--base-url",
+        default=None,
+        help="OpenAI-compatible base URL for a self-hosted endpoint (Colab + "
+        'vLLM, llama.cpp, LM Studio), e.g. "https://xxxx.trycloudflare.com/v1". '
+        "Overrides the provider default; env fallback SYNHALEES_BASE_URL.",
+    )
+    parser.add_argument(
+        "--api-key",
+        default=None,
+        help="API key for --base-url (default: SYNHALEES_API_KEY, else a "
+        "placeholder, since self-hosted servers usually ignore it).",
+    )
     return parser
+
+
+def resolve_endpoint(args: argparse.Namespace) -> tuple[str | None, str | None]:
+    """Resolve ``(base_url, api_key)`` from flags with env fallbacks."""
+    base_url = (
+        getattr(args, "base_url", None) or os.environ.get("SYNHALEES_BASE_URL") or ""
+    ).strip()
+    api_key = (
+        getattr(args, "api_key", None) or os.environ.get("SYNHALEES_API_KEY") or ""
+    ).strip()
+    return (base_url or None), (api_key or None)
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -91,6 +116,7 @@ def run_from_args(args: argparse.Namespace) -> int:
     checkpoint = args.checkpoint or run_dir / "checkpoint.jsonl"
     output = args.output or run_dir / "submission.csv"
     pillars = [p.strip() for p in args.pillars.split(",")] if args.pillars else None
+    base_url, api_key = resolve_endpoint(args)
     benchmark = SynhalEESBenchmark(
         args.model,
         judge_model=args.judge,
@@ -98,6 +124,8 @@ def run_from_args(args: argparse.Namespace) -> int:
         pillars=pillars,
         checkpoint=checkpoint,
         fresh=args.fresh,
+        base_url=base_url,
+        api_key=api_key,
     )
     results = benchmark.run()
     results.print_scorecard()
@@ -107,6 +135,7 @@ def run_from_args(args: argparse.Namespace) -> int:
         "provider": results.provider,
         "spec": args.model,
         "judge": args.judge,
+        "base_url": base_url or "",
         "date": results.run_date,
         "items": len(results.records),
         "overall": round(results.score * 100, 1),

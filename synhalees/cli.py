@@ -1167,7 +1167,9 @@ def build_parser() -> argparse.ArgumentParser:
             "Examples:\n"
             "  synhalees run --model ollama:llama3.1:8b --pillars 01_buddhist_culture\n"
             "  synhalees run --model gemini:gemini-2.5-flash --judge gemini:gemini-2.5-pro\n"
-            "  synhalees run --model openrouter:openai/gpt-4o-mini --modality all"
+            "  synhalees run --model openrouter:openai/gpt-4o-mini --modality all\n"
+            "  synhalees run --model colab:qwen2.5-7b-instruct "
+            "--base-url https://xxxx.trycloudflare.com/v1"
         ),
     )
     if (ROOT / "run_benchmark.py").is_file():
