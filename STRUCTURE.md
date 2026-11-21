@@ -60,6 +60,7 @@ SynhalEES/
 │   └── runner.py                              # Checkpointed runner + SynhalEESBenchmark (resume-safe)
 │
 ├── kaggle/                                      # Kaggle Benchmarks tasks & results
+│   ├── README.md                                # Kaggle scoring system & 1:1 local parity specification
 │   ├── colab_slim_export.ipynb                  # Colab export notebook (tracked helper)
 │   ├── generate_tasks.py                        # regenerates the 17 task files
 │   ├── synhalees_task.py                        # all-in-one master task (15 pillars, text)
