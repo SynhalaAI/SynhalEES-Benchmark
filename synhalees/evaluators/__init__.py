@@ -13,10 +13,32 @@ Everything here is pure stdlib so it can be unit-tested offline.
 from __future__ import annotations
 
 import json
+import re
 import textwrap
 
 #: Maximum Word Error Rate tolerated for a ``wer`` row to pass.
 WER_THRESHOLD = 0.3
+
+
+def strip_thinking(text: str) -> str:
+    """Remove chain-of-thought blocks so only the clean final answer is evaluated.
+
+    Strips <think>...</think>, <thought>...</thought>, <reasoning>...</reasoning>,
+    and unclosed leading/trailing thinking tags.
+    """
+    if not text:
+        return ""
+    # Strip paired <think>...</think>, <thought>...</thought>, <reasoning>...</reasoning>
+    cleaned = re.sub(
+        r"(?is)<\s*(?:think|thought|reasoning)\s*>.*?<\s*/\s*(?:think|thought|reasoning)\s*>",
+        "",
+        str(text),
+    )
+    # Strip unclosed leading tag (e.g. <think>... with no closing tag before end of string)
+    cleaned = re.sub(r"(?is)^<\s*(?:think|thought|reasoning)\s*>.*$", "", cleaned)
+    # Strip dangling close tag at the beginning
+    cleaned = re.sub(r"(?is)^.*?<\s*/\s*(?:think|thought|reasoning)\s*>", "", cleaned)
+    return cleaned.strip()
 
 
 def _normalize(text: str) -> str:
@@ -164,14 +186,15 @@ def score_response(
     ``llm_judge`` rows require ``judge_passed`` (the verdict parsed from the
     judge model); the other three eval types are fully deterministic.
     """
-    norm_resp = _normalize(response)
+    clean_resp = strip_thinking(response)
+    norm_resp = _normalize(clean_resp)
     norm_truth = _normalize(ground_truth)
     if eval_type == "exact_match":
         return norm_resp == norm_truth or norm_truth in norm_resp
     if eval_type == "classification":
         return norm_truth in norm_resp
     if eval_type == "wer":
-        return word_error_rate(ground_truth, response) <= wer_threshold
+        return word_error_rate(ground_truth, clean_resp) <= wer_threshold
     if eval_type == "llm_judge":
         if judge_passed is None:
             raise ValueError("llm_judge rows need judge_passed")
@@ -185,5 +208,6 @@ __all__ = [
     "build_judge_prompt",
     "parse_judge_verdict",
     "score_response",
+    "strip_thinking",
     "word_error_rate",
 ]

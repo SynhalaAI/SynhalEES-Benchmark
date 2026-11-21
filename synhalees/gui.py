@@ -62,6 +62,7 @@ from synhalees.kaggle_ops import (
     parse_kaggle_models_output,
     run_kaggle_captured,
 )
+from synhalees.evaluators import strip_thinking
 from synhalees.registry import MODELS_JSON, canonical_model_slug, default_registry
 
 
@@ -2187,9 +2188,9 @@ class SynhaleesGUI:
         self.run_api_key_var = tk.StringVar(value=os.environ.get(api_key_env, ""))
         self.run_judge_status_var = tk.StringVar(value="")
         self.run_judge_count_var = tk.StringVar(value="")
-        self.run_reasoning_var = tk.StringVar(value="default")
+        self.run_reasoning_var = tk.StringVar(value="high")
         self.run_reasoning_status_var = tk.StringVar(
-            value="Select an advertised model to test high reasoning usage."
+            value="Reasoning effort: High (default)."
         )
         self._run_connection_ready = False
         self._run_model_specs: list[str] = []
@@ -2293,7 +2294,7 @@ class SynhaleesGUI:
         self.run_reasoning_combo = ttk.Combobox(
             form,
             textvariable=self.run_reasoning_var,
-            values=["default", "high", "medium", "low", "off"],
+            values=["high", "medium", "low", "off"],
             state="readonly",
         )
         self.run_reasoning_combo.grid(row=2, column=1, sticky="ew", padx=(0, 14), pady=5)
@@ -3725,15 +3726,13 @@ class SynhaleesGUI:
         choice = (
             self.run_reasoning_var.get().strip().lower()
             if hasattr(self, "run_reasoning_var")
-            else ""
+            else "high"
         )
         if choice in ("low", "medium", "high", "off", "none"):
-            return choice
+            return choice if choice not in ("off", "none") else "off"
         if self._run_reasoning_effort and self._run_reasoning_model == model:
             return self._run_reasoning_effort
-        if model and is_reasoning_model(model):
-            return "high"
-        return ""
+        return "high"
 
     def _update_run_preview(self) -> None:
         model = self.run_model_var.get().strip() if hasattr(self, "run_model_var") else ""
@@ -3758,24 +3757,14 @@ class SynhaleesGUI:
             self._run_reasoning_model = ""
             self._reasoning_test_running = False
             if hasattr(self, "run_reasoning_var"):
-                if is_reasoning_model(model):
-                    self.run_reasoning_var.set("high")
-                    self.run_reasoning_status_var.set(
-                        f"Reasoning model detected; extended thinking set to High."
-                    )
-                else:
-                    self.run_reasoning_var.set("default")
-                    self.run_reasoning_status_var.set(
-                        "Select an advertised model to test or configure reasoning effort."
-                        if not model
-                        else "Run the reasoning test for this model or select High/Medium/Low."
-                    )
-            elif hasattr(self, "run_reasoning_status_var"):
+                self.run_reasoning_var.set("high")
                 self.run_reasoning_status_var.set(
-                    "Select an advertised model to test high reasoning usage."
-                    if not model
-                    else "Run the high-reasoning test for this model to confirm usage."
+                    f"Model selected ({model}); reasoning effort set to High (default)."
+                    if model
+                    else "Reasoning effort: High (default)."
                 )
+            elif hasattr(self, "run_reasoning_status_var"):
+                self.run_reasoning_status_var.set("Reasoning effort: High (default).")
         self._update_reasoning_button_state()
         self._update_run_preview()
 
@@ -3846,7 +3835,7 @@ class SynhaleesGUI:
         else:
             self._run_reasoning_effort = None
             if hasattr(self, "run_reasoning_var"):
-                self.run_reasoning_var.set("default")
+                self.run_reasoning_var.set("off")
             self.run_reasoning_status_var.set(probe.detail)
             self._append_log(f"[WARN] Reasoning test: {probe.detail}\n", "warn")
         self._update_reasoning_button_state()
@@ -4286,12 +4275,10 @@ class SynhaleesGUI:
         item = self._eval_detail_items[index]
         if phase == "model_response":
             response = str(event.get("response", ""))
-            reasoning = str(event.get("reasoning", "")).strip()
-            if reasoning:
-                display_text = f"💭 [Thinking Process]\n{reasoning}\n\n📝 [Final Answer]\n{response if response else '(Empty)'}"
-            else:
-                display_text = response if response else "(Model returned an empty response.)"
-            item["response"] = display_text
+            clean_resp = strip_thinking(response)
+            item["response"] = (
+                clean_resp if clean_resp else "(Model returned an empty response.)"
+            )
             item["status"] = "Response received; scoring…"
             item["status_color"] = PALETTE["info"]
         elif phase == "judge_waiting":

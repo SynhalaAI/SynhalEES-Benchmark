@@ -1500,6 +1500,20 @@ class TestKaggleScoringParity(unittest.TestCase):
         self.assertEqual(events[0]["expected"], "Reference")
         self.assertEqual(events[1]["response"], "Model response")
 
+    def test_strip_thinking_and_exact_match_isolation(self) -> None:
+        from synhalees.evaluators import score_response, strip_thinking
+
+        # 1. Stripping thinking tags
+        raw = "<think>\nLet's analyze step-by-step: the answer is Colombo.\n</think>\nකොළඹ"
+        self.assertEqual(strip_thinking(raw), "කොළඹ")
+
+        # 2. Exact match passes on clean answer, ignoring thinking blocks
+        self.assertTrue(score_response(raw, "කොළඹ", "exact_match"))
+
+        # 3. Unclosed tag handling
+        unclosed = "<thought>Thinking only..."
+        self.assertEqual(strip_thinking(unclosed), "")
+
 
 if __name__ == "__main__":
     unittest.main()

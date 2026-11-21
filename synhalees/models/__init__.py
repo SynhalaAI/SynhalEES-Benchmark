@@ -176,13 +176,21 @@ class OpenAIModel(BaseModel):
             )
         message = (message or "").strip()
         # For thinking models emitting thought tags (e.g. DeepSeek-R1 / QwQ)
-        if "<think>" in message and "</think>" in message:
-            thought_match = re.search(r"<think>(.*?)</think>", message, flags=re.DOTALL)
-            if thought_match and not reasoning_content:
-                reasoning_content = thought_match.group(1).strip()
-            cleaned = re.sub(r"<think>.*?</think>", "", message, flags=re.DOTALL).strip()
-            if cleaned:
-                message = cleaned
+        thought_match = re.search(
+            r"(?is)<\s*(?:think|thought|reasoning)\s*>(.*?)<\s*/\s*(?:think|thought|reasoning)\s*>",
+            message,
+        )
+        if thought_match and not reasoning_content:
+            reasoning_content = thought_match.group(1).strip()
+        cleaned = re.sub(
+            r"(?is)<\s*(?:think|thought|reasoning)\s*>.*?<\s*/\s*(?:think|thought|reasoning)\s*>",
+            "",
+            message,
+        ).strip()
+        cleaned = re.sub(r"(?is)^<\s*(?:think|thought|reasoning)\s*>.*$", "", cleaned).strip()
+        cleaned = re.sub(r"(?is)^.*?<\s*/\s*(?:think|thought|reasoning)\s*>", "", cleaned).strip()
+        if cleaned:
+            message = cleaned
         usage = result.get("usage")
         usage_dict = dict(usage) if isinstance(usage, dict) else {}
         if reasoning_content:

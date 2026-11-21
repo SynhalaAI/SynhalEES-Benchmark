@@ -32,6 +32,7 @@ from .evaluators import (
     build_judge_prompt,
     parse_judge_verdict,
     score_response,
+    strip_thinking,
 )
 from .models import APIModelError, BaseModel, OpenAIModel, get_model
 
@@ -345,6 +346,8 @@ class SynhalEESBenchmark:
 
         if reasoning:
             record["reasoning"] = reasoning
+
+        response = strip_thinking(response)
 
         if on_model_response is not None:
             try:
