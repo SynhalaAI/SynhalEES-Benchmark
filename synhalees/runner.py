@@ -24,7 +24,7 @@ import threading
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
-from typing import Any, Iterable, Iterator
+from typing import Any, Callable, Iterable, Iterator
 
 from . import data as _data
 from .evaluators import (
@@ -33,7 +33,7 @@ from .evaluators import (
     parse_judge_verdict,
     score_response,
 )
-from .models import APIModelError, BaseModel, get_model
+from .models import APIModelError, BaseModel, OpenAIModel, get_model
 
 
 def model_slug(spec: str) -> str:
@@ -263,6 +263,7 @@ class SynhalEESBenchmark:
         fresh: bool = False,
         base_url: str | None = None,
         api_key: str | None = None,
+        reasoning_effort: str | None = None,
     ) -> None:
         self.model_spec = model if isinstance(model, str) else None
         endpoint: dict[str, str] = {}
@@ -273,6 +274,9 @@ class SynhalEESBenchmark:
         self.model = (
             get_model(model, **endpoint) if isinstance(model, str) else model
         )
+        if reasoning_effort not in (None, "low", "medium", "high", "none", "off"):
+            raise ValueError("reasoning_effort must be low, medium, high, none, off, or None.")
+        self.reasoning_effort = reasoning_effort
         judge_endpoint = (
             endpoint
             if isinstance(judge_model, str)
@@ -290,23 +294,69 @@ class SynhalEESBenchmark:
         self.data_root = data_root
         self.store = CheckpointStore(checkpoint, fresh=fresh)
 
-    def _run_item(self, row: dict[str, Any]) -> dict[str, Any]:
+    def _run_item(
+        self,
+        row: dict[str, Any],
+        *,
+        on_model_response: Callable[[str], None] | None = None,
+        on_judge_start: Callable[[], None] | None = None,
+    ) -> dict[str, Any]:
         """Evaluate one dataset row and return its checkpoint record."""
         key = item_key(row["pillar"], row["modality"], row["id"])
         record: dict[str, Any] = {"key": key, **row}
+        reasoning = ""
         try:
-            response = self.model.complete(
-                row["prompt"],
-                image_path=row["media_path"] if row["modality"] == "vision" else None,
-                audio_path=row["media_path"] if row["modality"] == "audio" else None,
-            )
+            model = self.model
+            image_path = row["media_path"] if row["modality"] == "vision" else None
+            audio_path = row["media_path"] if row["modality"] == "audio" else None
+            if self.reasoning_effort:
+                if isinstance(model, OpenAIModel):
+                    response, _usage = model.complete_with_usage(
+                        row["prompt"],
+                        image_path=image_path,
+                        audio_path=audio_path,
+                        reasoning_effort=self.reasoning_effort,
+                    )
+                    reasoning = _usage.get("reasoning_content") or ""
+                else:
+                    response = model.complete(
+                        row["prompt"],
+                        image_path=image_path,
+                        audio_path=audio_path,
+                        reasoning_effort=self.reasoning_effort,
+                    )
+            else:
+                if isinstance(model, OpenAIModel):
+                    response, _usage = model.complete_with_usage(
+                        row["prompt"],
+                        image_path=image_path,
+                        audio_path=audio_path,
+                    )
+                    reasoning = _usage.get("reasoning_content") or ""
+                else:
+                    response = model.complete(
+                        row["prompt"],
+                        image_path=image_path,
+                        audio_path=audio_path,
+                    )
         except APIModelError as exc:
             record.update(is_correct=False, response="", error=str(exc))
             return record
 
+        if reasoning:
+            record["reasoning"] = reasoning
+
+        if on_model_response is not None:
+            try:
+                on_model_response(response, reasoning)
+            except TypeError:
+                on_model_response(response)
+
         judge_passed = None
         judge_reason = ""
         if row["eval_type"] == "llm_judge":
+            if on_judge_start is not None:
+                on_judge_start()
             verdict = self.judge_model.complete(
                 build_judge_prompt(response, row["ground_truth"])
             )
@@ -322,7 +372,12 @@ class SynhalEESBenchmark:
         )
         return record
 
-    def run(self, *, progress: bool = True) -> BenchmarkResults:
+    def run(
+        self,
+        *,
+        progress: bool = True,
+        item_event: Callable[[dict[str, Any]], None] | None = None,
+    ) -> BenchmarkResults:
         """Evaluate every pending row; resume skips checkpointed ones."""
         rows = add_kaggle_classification_prompts(
             iter_items(self.pillars, self.modalities, self.data_root)
@@ -333,17 +388,46 @@ class SynhalEESBenchmark:
                 item_key(row["pillar"], row["modality"], row["id"])
             )
         ]
-        total = len(pending) + sum(
-            1 for k in self.store.records if k.split("/")[0] in self.pillars
-        )
+        total = len(rows)
         if progress and self.store.records:
             print(
                 f"[SynhalEES] resuming: {len(self.store.records)} done, "
                 f"{len(pending)} pending"
             )
+        done_before = total - len(pending)
         for index, row in enumerate(pending, start=1):
-            record = self._run_item(row)
+            key = item_key(row["pillar"], row["modality"], row["id"])
+
+            def emit(phase: str, **details: Any) -> None:
+                if item_event is not None:
+                    item_event({"phase": phase, "key": key, **details})
+
+            emit(
+                "item_start",
+                index=done_before + index,
+                total=total,
+                pillar=row["pillar"],
+                modality=row["modality"],
+                id=row["id"],
+                prompt=row["prompt"],
+                expected=row["ground_truth"],
+                eval_type=row["eval_type"],
+            )
+            record = self._run_item(
+                row,
+                on_model_response=lambda response, reasoning="": emit(
+                    "model_response", response=response, reasoning=reasoning
+                ),
+                on_judge_start=lambda: emit("judge_waiting"),
+            )
             self.store.append(record)
+            emit(
+                "item_result",
+                is_correct=bool(record["is_correct"]),
+                response=record.get("response", ""),
+                error=record.get("error", ""),
+                judge_reason=record.get("judge_reason", ""),
+            )
             if progress:
                 status = "PASS" if record["is_correct"] else "fail"
                 done = total - len(pending) + index

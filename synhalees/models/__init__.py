@@ -27,9 +27,11 @@ import base64
 import json
 import mimetypes
 import os
+import re
 import time
 import urllib.error
 from pathlib import Path
+from typing import Any
 
 from synhalees.http import open_url
 
@@ -51,6 +53,7 @@ class BaseModel:
         *,
         image_path: str | None = None,
         audio_path: str | None = None,
+        reasoning_effort: str | None = None,
     ) -> str:
         raise NotImplementedError
 
@@ -110,7 +113,30 @@ class OpenAIModel(BaseModel):
         self.timeout = timeout
         self.max_retries = max_retries
 
-    def complete(self, prompt, *, image_path=None, audio_path=None) -> str:
+    def complete(
+        self,
+        prompt,
+        *,
+        image_path=None,
+        audio_path=None,
+        reasoning_effort=None,
+    ) -> str:
+        message, _usage = self.complete_with_usage(
+            prompt,
+            image_path=image_path,
+            audio_path=audio_path,
+            reasoning_effort=reasoning_effort,
+        )
+        return message
+
+    def complete_with_usage(
+        self,
+        prompt,
+        *,
+        image_path=None,
+        audio_path=None,
+        reasoning_effort: str | None = None,
+    ) -> tuple[str, dict[str, Any]]:
         content: list[dict] = [{"type": "text", "text": prompt}]
         if image_path:
             data, mime = _b64(image_path)
@@ -128,6 +154,8 @@ class OpenAIModel(BaseModel):
             "model": self.name,
             "messages": [{"role": "user", "content": content}],
         }
+        if reasoning_effort and reasoning_effort not in ("none", "off"):
+            payload["reasoning_effort"] = reasoning_effort
         result = _post_json(
             f"{self.base_url}/chat/completions",
             {"Authorization": f"Bearer {self.api_key}"},
@@ -136,14 +164,30 @@ class OpenAIModel(BaseModel):
             max_retries=self.max_retries,
         )
         try:
-            message = result["choices"][0]["message"]["content"]
+            choice = result["choices"][0]
+            message_obj = choice.get("message", {})
+            message = message_obj.get("content", "")
+            reasoning_content = message_obj.get("reasoning_content") or choice.get("reasoning_content")
         except (KeyError, IndexError, TypeError) as exc:
             raise APIModelError(f"unexpected response shape: {result!r:.300}") from exc
         if isinstance(message, list):  # some providers return content blocks
             message = " ".join(
                 part.get("text", "") for part in message if isinstance(part, dict)
             )
-        return (message or "").strip()
+        message = (message or "").strip()
+        # For thinking models emitting thought tags (e.g. DeepSeek-R1 / QwQ)
+        if "<think>" in message and "</think>" in message:
+            thought_match = re.search(r"<think>(.*?)</think>", message, flags=re.DOTALL)
+            if thought_match and not reasoning_content:
+                reasoning_content = thought_match.group(1).strip()
+            cleaned = re.sub(r"<think>.*?</think>", "", message, flags=re.DOTALL).strip()
+            if cleaned:
+                message = cleaned
+        usage = result.get("usage")
+        usage_dict = dict(usage) if isinstance(usage, dict) else {}
+        if reasoning_content:
+            usage_dict["reasoning_content"] = reasoning_content
+        return message, usage_dict
 
 
 class AnthropicModel(BaseModel):
@@ -171,7 +215,14 @@ class AnthropicModel(BaseModel):
         self.timeout = timeout
         self.max_retries = max_retries
 
-    def complete(self, prompt, *, image_path=None, audio_path=None) -> str:
+    def complete(
+        self,
+        prompt,
+        *,
+        image_path=None,
+        audio_path=None,
+        reasoning_effort=None,
+    ) -> str:
         if audio_path:
             raise APIModelError(
                 "Anthropic Messages API has no audio input; run audio rows "
@@ -185,11 +236,16 @@ class AnthropicModel(BaseModel):
                 "source": {"type": "base64", "media_type": mime, "data": data},
             })
         content.append({"type": "text", "text": prompt})
-        payload = {
+        payload: dict[str, Any] = {
             "model": self.name,
             "max_tokens": 1024,
             "messages": [{"role": "user", "content": content}],
         }
+        if reasoning_effort and str(reasoning_effort).lower() not in ("none", "off", "0"):
+            budget_map = {"low": 1024, "medium": 2048, "high": 4096}
+            budget = budget_map.get(str(reasoning_effort).lower(), 2048)
+            payload["thinking"] = {"type": "enabled", "budget_tokens": budget}
+            payload["max_tokens"] = budget + 2048
         result = _post_json(
             f"{self.base_url}/v1/messages",
             {"x-api-key": self.api_key, "anthropic-version": "2023-06-01"},
@@ -199,7 +255,16 @@ class AnthropicModel(BaseModel):
         )
         try:
             blocks = result["content"]
-            return " ".join(b.get("text", "") for b in blocks).strip()
+            text_blocks = [
+                b.get("text", "") for b in blocks
+                if isinstance(b, dict) and b.get("type") == "text"
+            ]
+            if not text_blocks:
+                text_blocks = [
+                    b.get("text", "") for b in blocks
+                    if isinstance(b, dict) and "text" in b
+                ]
+            return " ".join(text_blocks).strip()
         except (KeyError, TypeError) as exc:
             raise APIModelError(f"unexpected response shape: {result!r:.300}") from exc
 
@@ -239,7 +304,14 @@ class GeminiModel(BaseModel):
         self.timeout = timeout
         self.max_retries = max_retries
 
-    def complete(self, prompt, *, image_path=None, audio_path=None) -> str:
+    def complete(
+        self,
+        prompt,
+        *,
+        image_path=None,
+        audio_path=None,
+        reasoning_effort=None,
+    ) -> str:
         parts: list[dict] = [{"text": prompt}]
         if image_path:
             data, mime = _b64(image_path)
@@ -249,7 +321,21 @@ class GeminiModel(BaseModel):
             if audio_path.lower().endswith(".mp3"):
                 mime = "audio/mp3"
             parts.append({"inline_data": {"mime_type": mime, "data": data}})
-        payload = {"contents": [{"role": "user", "parts": parts}]}
+        payload: dict[str, Any] = {"contents": [{"role": "user", "parts": parts}]}
+        gen_config: dict[str, Any] = {}
+        effort = str(reasoning_effort).lower() if reasoning_effort else ""
+        if effort in ("none", "off", "0"):
+            gen_config["thinkingConfig"] = {"thinkingBudget": 0}
+        elif effort == "low":
+            gen_config["thinkingConfig"] = {"thinkingBudget": 1024}
+        elif effort == "medium":
+            gen_config["thinkingConfig"] = {"thinkingBudget": 2048}
+        elif effort == "high":
+            gen_config["thinkingConfig"] = {"thinkingBudget": 8192}
+        elif "thinking" in self.name.lower():
+            gen_config["thinkingConfig"] = {"thinkingBudget": -1}
+        if gen_config:
+            payload["generationConfig"] = gen_config
         url = (
             f"{self.base_url}/v1beta/models/{self.name}:generateContent"
             f"?key={self.api_key}"
@@ -259,7 +345,14 @@ class GeminiModel(BaseModel):
         )
         try:
             out_parts = result["candidates"][0]["content"]["parts"]
-            return "".join(p.get("text", "") for p in out_parts).strip()
+            # Exclude thought parts from the scoreable text answer
+            text_parts = [
+                p.get("text", "") for p in out_parts
+                if not p.get("thought", False)
+            ]
+            if not text_parts:
+                text_parts = [p.get("text", "") for p in out_parts]
+            return "".join(text_parts).strip()
         except (KeyError, IndexError, TypeError) as exc:
             raise APIModelError(f"unexpected response shape: {result!r:.300}") from exc
 

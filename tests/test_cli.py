@@ -450,6 +450,7 @@ class TestGUI(unittest.TestCase):
             modality="vision",
             pillars="01_buddhist_culture",
             fresh=True,
+            reasoning_effort="high",
         )
         self.assertEqual(
             run_args,
@@ -460,8 +461,24 @@ class TestGUI(unittest.TestCase):
                 "--modality", "vision",
                 "--pillars", "01_buddhist_culture",
                 "--fresh",
+                "--reasoning-effort", "high",
             ],
         )
+        self.assertEqual(
+            gui.build_run_args(model="gemini:gemini-2.5-flash", gui_item_events=True),
+            ["run", "--model", "gemini:gemini-2.5-flash", "--gui-item-events"],
+        )
+        import run_benchmark
+
+        parsed = run_benchmark.parse_args(
+            [
+                "--model", "gemini:gemini-2.5-flash",
+                "--gui-item-events",
+                "--reasoning-effort", "high",
+            ]
+        )
+        self.assertTrue(parsed.gui_item_events)
+        self.assertEqual(parsed.reasoning_effort, "high")
 
         kg_pull = gui.build_kaggle_args(
             "pull",
@@ -628,6 +645,76 @@ class TestGUI(unittest.TestCase):
                 f"Estimated judge API calls: {expected_judge_calls}",
                 app.run_judge_count_var.get(),
             )
+            app._open_eval_item_window()
+            self.assertEqual(str(app._eval_detail_prev_btn.cget("state")), "disabled")
+            self.assertEqual(str(app._eval_detail_next_btn.cget("state")), "disabled")
+            app._apply_eval_detail_event(
+                {
+                    "phase": "item_start",
+                    "index": 1,
+                    "total": 2,
+                    "key": "04_kavi_sindu/text/TXT_001",
+                    "prompt": "Prompt text",
+                    "expected": "Expected text",
+                }
+            )
+            self.assertIn("Waiting for model response", app._eval_detail_status_var.get())
+            self.assertEqual(
+                app._eval_detail_text_widgets["prompt"].get("1.0", "end-1c"),
+                "Prompt text",
+            )
+            self.assertEqual(
+                app._eval_detail_text_widgets["expected"].get("1.0", "end-1c"),
+                "Expected text",
+            )
+            app._apply_eval_detail_event(
+                {
+                    "phase": "model_response",
+                    "key": "04_kavi_sindu/text/TXT_001",
+                    "response": "Model output",
+                }
+            )
+            self.assertEqual(
+                app._eval_detail_text_widgets["response"].get("1.0", "end-1c"),
+                "Model output",
+            )
+            app._apply_eval_detail_event(
+                {
+                    "phase": "item_result",
+                    "key": "04_kavi_sindu/text/TXT_001",
+                    "is_correct": False,
+                }
+            )
+            self.assertTrue(app._eval_detail_status_var.get().startswith("FAILED"))
+            app._apply_eval_detail_event(
+                {
+                    "phase": "item_start",
+                    "index": 2,
+                    "total": 2,
+                    "key": "04_kavi_sindu/text/TXT_002",
+                    "prompt": "Next prompt",
+                    "expected": "Next expected",
+                }
+            )
+            self.assertIn("Item 1 of 2", app._eval_detail_nav_var.get())
+            self.assertEqual(str(app._eval_detail_prev_btn.cget("state")), "disabled")
+            self.assertEqual(str(app._eval_detail_next_btn.cget("state")), "normal")
+            self.assertEqual(
+                app._eval_detail_text_widgets["prompt"].get("1.0", "end-1c"),
+                "Prompt text",
+            )
+            app._show_next_eval_item()
+            self.assertEqual(str(app._eval_detail_prev_btn.cget("state")), "normal")
+            self.assertEqual(str(app._eval_detail_next_btn.cget("state")), "disabled")
+            self.assertEqual(
+                app._eval_detail_text_widgets["prompt"].get("1.0", "end-1c"),
+                "Next prompt",
+            )
+            app._show_previous_eval_item()
+            self.assertEqual(str(app._eval_detail_prev_btn.cget("state")), "disabled")
+            self.assertEqual(str(app._eval_detail_next_btn.cget("state")), "normal")
+            self.assertTrue(app._eval_detail_status_var.get().startswith("FAILED"))
+            app._close_eval_item_window()
             self.assertEqual(app.run_probe_btn.cget("text"), "Test Connection")
             self.assertEqual(app.run_probe_var.get(), "")
 
@@ -729,6 +816,8 @@ class TestGUI(unittest.TestCase):
         app.run_start_btn.configure.assert_called_with(state="disabled")
 
     def test_judge_models_are_loaded_from_selected_saved_provider(self) -> None:
+        import os
+
         from synhalees.gui import SynhaleesGUI
         from synhalees.gui_helpers import EndpointProbe
 
@@ -739,16 +828,21 @@ class TestGUI(unittest.TestCase):
         app.run_judge_status_var = mock.Mock()
         app.run_judge_var = mock.Mock()
         app._append_log = mock.Mock()
+        app._save_judge_selection = mock.Mock()
 
-        app._apply_judge_probe_result(
-            "openai",
-            EndpointProbe(
-                ok=True,
-                target="https://api.openai.com/v1/models",
-                detail="1 model(s) listed",
-                models=["gpt-4.1-mini"],
-            ),
-        )
+        with mock.patch.dict(
+            os.environ,
+            {"SYNHALEES_GUI_JUDGE_MODEL": "openai:gpt-4.1-mini"},
+        ):
+            app._apply_judge_probe_result(
+                "openai",
+                EndpointProbe(
+                    ok=True,
+                    target="https://api.openai.com/v1/models",
+                    detail="1 model(s) listed",
+                    models=["gpt-4.1-mini"],
+                ),
+            )
         self.assertEqual(
             app.run_judge_model_combo.configure.call_args.kwargs["values"],
             ["openai:gpt-4.1-mini"],
@@ -757,6 +851,8 @@ class TestGUI(unittest.TestCase):
             app.run_judge_model_combo.configure.call_args.kwargs["state"],
             "readonly",
         )
+        app.run_judge_var.set.assert_called_with("openai:gpt-4.1-mini")
+        app._save_judge_selection.assert_called_with("openai", "openai:gpt-4.1-mini")
 
         app.run_judge_model_combo.configure.reset_mock()
         app.run_judge_provider_var.get.return_value = "gemini"
@@ -770,6 +866,32 @@ class TestGUI(unittest.TestCase):
             ),
         )
         app.run_judge_model_combo.configure.assert_not_called()
+
+    def test_judge_provider_restores_last_saved_provider(self) -> None:
+        import os
+
+        from synhalees import gui
+        from synhalees.gui import SynhaleesGUI
+
+        app = object.__new__(SynhaleesGUI)
+        app.run_judge_provider_combo = mock.Mock()
+        app.run_judge_provider_var = mock.Mock()
+        app.run_judge_provider_var.get.return_value = ""
+        app.run_judge_model_combo = mock.Mock()
+        app.run_judge_var = mock.Mock()
+        app.run_judge_status_var = mock.Mock()
+        app._on_judge_provider_selected = mock.Mock()
+        with (
+            mock.patch.dict(
+                os.environ,
+                {gui._JUDGE_PROVIDER_PREF: "gemini"},
+            ),
+            mock.patch("synhalees.gui.saved_judge_providers", return_value=["openai", "gemini"]),
+        ):
+            app._refresh_judge_providers()
+
+        app.run_judge_provider_var.set.assert_called_with("gemini")
+        app._on_judge_provider_selected.assert_called_once_with()
 
     def test_gui_management_org_and_model_crud_isolated(self) -> None:
         from synhalees.gui import (
@@ -841,6 +963,7 @@ class TestGUI(unittest.TestCase):
             install_organization_logo,
             load_model_scorecard_summary,
             parse_eval_item_outcome,
+            parse_gui_item_event,
             parse_progress_line,
             rasterize_svg_to_grid,
             render_monogram_grid,
@@ -851,6 +974,14 @@ class TestGUI(unittest.TestCase):
         assert prog is not None
         self.assertEqual(prog[:2], (7, 17))
         self.assertEqual(parse_eval_item_outcome("[12/225] 01_buddhist_culture/text/T012 PASS"), (12, 225, True))
+        event = {"phase": "item_start", "prompt": "Question", "expected": "Answer"}
+        self.assertEqual(
+            parse_gui_item_event(
+                "@@SYNHALEES_GUI_ITEM@@" + json.dumps(event)
+            ),
+            event,
+        )
+        self.assertIsNone(parse_gui_item_event("ordinary console output"))
         self.assertEqual(
             extract_failed_tasks("download failed for 2 task(s): synhalees-audio, synhalees-vision"),
             ["synhalees-audio", "synhalees-vision"],
@@ -935,6 +1066,7 @@ class TestSelfHostedEndpoint(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertIn("--base-url", out)
         self.assertIn("--api-key", out)
+        self.assertIn("--reasoning-effort", out)
 
         args = run_benchmark.parse_args(
             ["--model", "colab:qwen2.5-7b-instruct", "--base-url", "https://flag/v1", "--api-key", "k1"]
@@ -1007,6 +1139,111 @@ class TestSelfHostedEndpoint(unittest.TestCase):
         self.assertIn("--api-key ***", preview)
         self.assertNotIn("s3cret", preview)
 
+    def test_reasoning_probe_requires_reported_reasoning_tokens(self) -> None:
+        from synhalees.gui_helpers import probe_reasoning
+
+        cases = (
+            ({"completion_tokens_details": {"reasoning_tokens": 12}}, True),
+            ({"completion_tokens_details": {"reasoning_tokens": 0}}, False),
+            ({"completion_tokens_details": {}}, False),
+            ({}, False),
+        )
+        for usage, confirmed in cases:
+            with self.subTest(usage=usage), mock.patch(
+                "synhalees.models._post_json",
+                return_value={
+                    "choices": [{"message": {"content": "3"}}],
+                    "usage": usage,
+                },
+            ) as post:
+                probe = probe_reasoning(
+                    model_spec="openai:test-model",
+                    api_key="test-key",
+                )
+                self.assertEqual(probe.confirmed, confirmed)
+                self.assertEqual(
+                    post.call_args.args[2]["reasoning_effort"],
+                    "high",
+                )
+
+    def test_runner_applies_reasoning_effort_only_to_main_model(self) -> None:
+        from synhalees.models import OpenAIModel
+        from synhalees.runner import SynhalEESBenchmark
+
+        model = OpenAIModel("main", api_key="main-key")
+        judge = OpenAIModel("judge", api_key="judge-key")
+        judge_report = json.dumps(
+            {
+                "results": [
+                    {"criterion": "meaning", "passed": True, "reason": "ok", "confidence": 90},
+                    {"criterion": "style", "passed": True, "reason": "ok", "confidence": 90},
+                ]
+            }
+        )
+        benchmark = SynhalEESBenchmark(
+            model,
+            judge_model=judge,
+            reasoning_effort="high",
+            checkpoint=None,
+            pillars=["p1"],
+        )
+        row = {
+            "pillar": "p1",
+            "modality": "text",
+            "id": "item-1",
+            "prompt": "Question",
+            "ground_truth": "Reference",
+            "eval_type": "llm_judge",
+            "media_path": "",
+        }
+        with (
+            mock.patch.object(
+                model,
+                "complete_with_usage",
+                return_value=("Candidate answer", {}),
+            ) as model_call,
+            mock.patch.object(judge, "complete", return_value=judge_report) as judge_call,
+        ):
+            benchmark._run_item(row)
+
+        self.assertEqual(model_call.call_args.kwargs["reasoning_effort"], "high")
+        self.assertNotIn("reasoning_effort", judge_call.call_args.kwargs)
+
+    def test_gui_enables_reasoning_only_after_positive_probe(self) -> None:
+        from synhalees.gui import SynhaleesGUI
+
+        app = object.__new__(SynhaleesGUI)
+        app.run_model_var = mock.Mock()
+        app.run_model_var.get.return_value = "openai:test-model"
+        app._reasoning_test_running = True
+        app._run_reasoning_effort = None
+        app._run_reasoning_model = ""
+        app._run_reasoning_probe_generation = 1
+        app.run_reasoning_status_var = mock.Mock()
+        app._append_log = mock.Mock()
+        app._update_reasoning_button_state = mock.Mock()
+        app._update_run_preview = mock.Mock()
+
+        app._apply_reasoning_probe_result(
+            "openai:test-model",
+            1,
+            mock.Mock(confirmed=True, detail="High reasoning confirmed (12 tokens)."),
+        )
+        self.assertEqual(app._run_reasoning_effort, "high")
+        self.assertEqual(app._run_reasoning_model, "openai:test-model")
+
+        app._apply_reasoning_probe_result(
+            "openai:test-model",
+            1,
+            mock.Mock(confirmed=False, detail="No reasoning token metadata."),
+        )
+        self.assertIsNone(app._run_reasoning_effort)
+        app._apply_reasoning_probe_result(
+            "openai:test-model",
+            0,
+            mock.Mock(confirmed=True, detail="stale positive result"),
+        )
+        self.assertIsNone(app._run_reasoning_effort)
 
 class TestEndpointProbe(unittest.TestCase):
     """`Test Connection` button backend and HTTPS verification."""
@@ -1213,6 +1450,55 @@ class TestKaggleScoringParity(unittest.TestCase):
         report["results"][1]["passed"] = False
         self.assertFalse(parse_judge_verdict(json.dumps(report))[0])
         self.assertFalse(parse_judge_verdict('{"passed": true}')[0])
+
+    def test_runner_emits_live_events_before_and_after_judging(self) -> None:
+        from synhalees.models import BaseModel
+        from synhalees.runner import SynhalEESBenchmark
+
+        class StaticModel(BaseModel):
+            def __init__(self, name: str, answer: str) -> None:
+                self.name = name
+                self.answer = answer
+
+            def complete(self, prompt, *, image_path=None, audio_path=None) -> str:
+                return self.answer
+
+        row = {
+            "pillar": "p1",
+            "modality": "text",
+            "id": "item-1",
+            "prompt": "Question",
+            "ground_truth": "Reference",
+            "eval_type": "llm_judge",
+            "media_path": "",
+        }
+        judge_report = json.dumps(
+            {
+                "results": [
+                    {"criterion": "meaning", "passed": True, "reason": "ok", "confidence": 90},
+                    {"criterion": "style", "passed": True, "reason": "ok", "confidence": 90},
+                ]
+            }
+        )
+        benchmark = SynhalEESBenchmark(
+            StaticModel("main", "Model response"),
+            judge_model=StaticModel("judge", judge_report),
+            modalities=("text",),
+            pillars=["p1"],
+            checkpoint=None,
+        )
+        events: list[dict] = []
+        with mock.patch("synhalees.runner.iter_items", return_value=iter([row])):
+            result = benchmark.run(progress=False, item_event=events.append)
+
+        self.assertTrue(result.records[0]["is_correct"])
+        self.assertEqual(
+            [event["phase"] for event in events],
+            ["item_start", "model_response", "judge_waiting", "item_result"],
+        )
+        self.assertEqual(events[0]["prompt"], "Question")
+        self.assertEqual(events[0]["expected"], "Reference")
+        self.assertEqual(events[1]["response"], "Model response")
 
 
 if __name__ == "__main__":

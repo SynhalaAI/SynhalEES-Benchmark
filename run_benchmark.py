@@ -81,6 +81,13 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> argparse.ArgumentParse
         help="API key for --base-url (default: SYNHALEES_API_KEY, else a "
         "placeholder, since self-hosted servers usually ignore it).",
     )
+    parser.add_argument(
+        "--reasoning-effort",
+        choices=("low", "medium", "high", "none", "off"),
+        default=None,
+        help="Request reasoning effort on supported chat models (low, medium, high, off).",
+    )
+    parser.add_argument("--gui-item-events", action="store_true", help=argparse.SUPPRESS)
     return parser
 
 
@@ -126,8 +133,21 @@ def run_from_args(args: argparse.Namespace) -> int:
         fresh=args.fresh,
         base_url=base_url,
         api_key=api_key,
+        reasoning_effort=args.reasoning_effort,
     )
-    results = benchmark.run()
+    item_event = None
+    if args.gui_item_events:
+        from synhalees.gui_helpers import GUI_ITEM_EVENT_PREFIX
+
+        def emit_item_event(event: dict) -> None:
+            print(
+                GUI_ITEM_EVENT_PREFIX
+                + json.dumps(event, ensure_ascii=False, separators=(",", ":")),
+                flush=True,
+            )
+
+        item_event = emit_item_event
+    results = benchmark.run(item_event=item_event)
     results.print_scorecard()
     results.save_submission(output)
     meta = {
@@ -135,6 +155,7 @@ def run_from_args(args: argparse.Namespace) -> int:
         "provider": results.provider,
         "spec": args.model,
         "judge": args.judge,
+        "reasoning_effort": args.reasoning_effort,
         "base_url": base_url or "",
         "date": results.run_date,
         "items": len(results.records),

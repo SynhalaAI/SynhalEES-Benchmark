@@ -40,6 +40,7 @@ _STEP_PROGRESS_RE = re.compile(
 )
 _EVAL_PROGRESS_RE = re.compile(r"^\[(\d+)\s*/\s*(\d+)\]\s+(\S+)\s+(PASS|fail)\b")
 _FAILED_TASKS_RE = re.compile(r"(?:download|import)\s+failed\s+for\s+\d+\s+task\(s\):\s*(.+)$", re.IGNORECASE)
+GUI_ITEM_EVENT_PREFIX = "@@SYNHALEES_GUI_ITEM@@"
 
 # Pillar titles mirrored from tools/build_leaderboard.py without importing it eagerly
 _PILLAR_TITLES: tuple[tuple[str, str, str], ...] = (
@@ -103,6 +104,20 @@ def parse_eval_item_outcome(line: str) -> tuple[int, int, bool] | None:
     return int(m.group(1)), max(1, int(m.group(2))), m.group(4) == "PASS"
 
 
+def parse_gui_item_event(line: str) -> dict[str, Any] | None:
+    """Decode one structured live item event emitted for the GUI."""
+    clean = line.strip()
+    if not clean.startswith(GUI_ITEM_EVENT_PREFIX):
+        return None
+    try:
+        event = json.loads(clean[len(GUI_ITEM_EVENT_PREFIX):])
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(event, dict) or not isinstance(event.get("phase"), str):
+        return None
+    return event
+
+
 def extract_failed_tasks(line: str) -> list[str]:
     """Parse task names from ``download failed for N task(s): t1, t2`` lines."""
     m = _FAILED_TASKS_RE.search(line.strip())
@@ -146,6 +161,15 @@ class EndpointProbe:
         if self.status:
             head += f" [HTTP {self.status}]"
         return f"{head} — {self.detail}"
+
+
+@dataclass(frozen=True)
+class ReasoningProbe:
+    """Outcome of requesting high reasoning and inspecting returned token usage."""
+
+    confirmed: bool
+    reasoning_tokens: int | None
+    detail: str
 
 
 def _env_api_key(provider: str) -> str:
@@ -344,6 +368,98 @@ def probe_endpoint(
         )
     except Exception as exc:  # a probe must never break the GUI loop
         return EndpointProbe(False, base or provider or "endpoint", f"probe failed: {exc}"[:220])
+
+
+def probe_reasoning(
+    *,
+    model_spec: str,
+    base_url: str = "",
+    api_key: str = "",
+    timeout: int = 120,
+) -> ReasoningProbe:
+    """Request high reasoning once and confirm it from reported usage metadata."""
+    from synhalees.models import (
+        APIModelError,
+        AnthropicModel,
+        GeminiModel,
+        OpenAIModel,
+        get_model,
+    )
+
+    endpoint: dict[str, Any] = {"timeout": timeout}
+    if base_url.strip():
+        endpoint["base_url"] = base_url.strip()
+    if api_key.strip():
+        endpoint["api_key"] = api_key.strip()
+    try:
+        model = get_model(model_spec, **endpoint)
+        if isinstance(model, OpenAIModel):
+            _response, usage = model.complete_with_usage(
+                "A shop has 17 boxes, receives 9 more, sells 11, then splits "
+                "the remainder equally across 5 shelves. Reply with only the number.",
+                reasoning_effort="high",
+            )
+            if usage.get("reasoning_content"):
+                return ReasoningProbe(
+                    True,
+                    None,
+                    "High reasoning confirmed via reasoning content.",
+                )
+            completion = usage.get("completion_tokens_details")
+            if not isinstance(completion, dict):
+                return ReasoningProbe(
+                    False,
+                    None,
+                    "The endpoint did not report completion_tokens_details; high reasoning is unconfirmed.",
+                )
+            tokens = completion.get("reasoning_tokens")
+            if type(tokens) is not int:
+                return ReasoningProbe(
+                    False,
+                    None,
+                    "The endpoint did not report an integer reasoning_tokens value; high reasoning is unconfirmed.",
+                )
+            if tokens <= 0:
+                return ReasoningProbe(
+                    False,
+                    tokens,
+                    "The endpoint reported 0 reasoning tokens; high reasoning is unconfirmed.",
+                )
+            return ReasoningProbe(
+                True,
+                tokens,
+                f"High reasoning confirmed ({tokens} reasoning tokens).",
+            )
+        elif isinstance(model, GeminiModel):
+            _response = model.complete(
+                "A shop has 17 boxes, receives 9 more, sells 11, then splits "
+                "the remainder equally across 5 shelves. Reply with only the number.",
+                reasoning_effort="high",
+            )
+            return ReasoningProbe(
+                True,
+                None,
+                "Gemini extended thinking request confirmed.",
+            )
+        elif isinstance(model, AnthropicModel):
+            _response = model.complete(
+                "A shop has 17 boxes, receives 9 more, sells 11, then splits "
+                "the remainder equally across 5 shelves. Reply with only the number.",
+                reasoning_effort="high",
+            )
+            return ReasoningProbe(
+                True,
+                None,
+                "Anthropic extended thinking request confirmed.",
+            )
+        else:
+            return ReasoningProbe(
+                False,
+                None,
+                f"Reasoning probe not supported for {type(model).__name__}.",
+            )
+    except (APIModelError, OSError, ValueError) as exc:
+        return ReasoningProbe(False, None, f"High-reasoning test failed: {exc}")
 
 
 def find_unregistered_slim_models(

@@ -33,6 +33,7 @@ from synhalees.data import list_pillars, load_pillar
 from synhalees.gui_dialogs import open_pillar_inspector, open_scorecard_inspector
 from synhalees.gui_helpers import (
     EndpointProbe,
+    ReasoningProbe,
     adopt_and_sync_scorecards,
     collect_local_runs_summary,
     compare_model_scorecards,
@@ -44,8 +45,10 @@ from synhalees.gui_helpers import (
     load_model_scorecard_summary,
     load_svg_sources_map,
     parse_eval_item_outcome,
+    parse_gui_item_event,
     parse_progress_line,
     probe_endpoint,
+    probe_reasoning,
     rasterize_svg_to_grid,
     render_monogram_grid,
     save_organization_family,
@@ -168,6 +171,8 @@ def build_run_args(
     fresh: bool = False,
     base_url: str = "",
     api_key: str = "",
+    reasoning_effort: str = "",
+    gui_item_events: bool = False,
 ) -> list[str]:
     """Build `synhalees run ...` CLI arguments from form values."""
     args = ["run", "--model", model.strip()]
@@ -183,6 +188,10 @@ def build_run_args(
         args.extend(["--pillars", pillars.strip()])
     if fresh:
         args.append("--fresh")
+    if reasoning_effort.strip():
+        args.extend(["--reasoning-effort", reasoning_effort.strip()])
+    if gui_item_events:
+        args.append("--gui-item-events")
     return args
 
 
@@ -586,17 +595,19 @@ _API_KEY_ENV_BY_PROVIDER = {
     "gemini": "GEMINI_API_KEY",
     "anthropic": "ANTHROPIC_API_KEY",
 }
+_JUDGE_PROVIDER_PREF = "SYNHALEES_GUI_JUDGE_PROVIDER"
+_JUDGE_MODEL_PREF = "SYNHALEES_GUI_JUDGE_MODEL"
 
 
 def saved_judge_providers(tokens_file: Path | None = None) -> list[str]:
     """Return providers whose API keys were saved in the local Tokens & Keys settings."""
     path = tokens_file or TOKENS_FILE
-    if not path.is_file():
-        return []
     try:
+        if not path.is_file():
+            return []
         data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise RuntimeError(f"Could not read saved API keys from {path}: {exc}") from exc
+    except (OSError, json.JSONDecodeError):
+        return []
     if not isinstance(data, dict):
         raise RuntimeError(f"Saved API keys in {path} must be a JSON object.")
     return [
@@ -639,6 +650,26 @@ def kaggle_auth_status() -> str:
     except OSError:
         pass
     return "Not configured"
+
+
+def is_reasoning_model(model_name: str) -> bool:
+    """Return True if model name indicates an extended thinking / reasoning model."""
+    low = model_name.lower()
+    return any(
+        k in low
+        for k in (
+            "thinking",
+            "think",
+            "reason",
+            "deepseek-r1",
+            "-r1",
+            "/r1",
+            "qwq",
+            "o1",
+            "o3",
+            "o4",
+        )
+    )
 
 
 def apply_tokens(
@@ -843,6 +874,13 @@ class SynhaleesGUI:
         self._failed_kaggle_tasks: list[str] = []
         self._eval_done = 0
         self._eval_pass = 0
+        self._eval_detail_window: Any = None
+        self._eval_detail_text_widgets: dict[str, Any] = {}
+        self._eval_detail_seen_item = False
+        self._eval_detail_items: list[dict[str, Any]] = []
+        self._eval_detail_item_indexes: dict[str, int] = {}
+        self._eval_detail_index = -1
+        self._eval_detail_active_key: str | None = None
 
         self._configure_styles()
         self._build_topbar()
@@ -2149,8 +2187,16 @@ class SynhaleesGUI:
         self.run_api_key_var = tk.StringVar(value=os.environ.get(api_key_env, ""))
         self.run_judge_status_var = tk.StringVar(value="")
         self.run_judge_count_var = tk.StringVar(value="")
+        self.run_reasoning_var = tk.StringVar(value="default")
+        self.run_reasoning_status_var = tk.StringVar(
+            value="Select an advertised model to test high reasoning usage."
+        )
         self._run_connection_ready = False
         self._run_model_specs: list[str] = []
+        self._run_reasoning_effort: str | None = None
+        self._run_reasoning_model = ""
+        self._run_reasoning_probe_generation = 0
+        self._reasoning_test_running = False
 
         s1 = self._step_card(
             parent,
@@ -2243,14 +2289,26 @@ class SynhaleesGUI:
         ttk.Label(form, text="Pillars", style="CardText.TLabel").grid(row=1, column=2, sticky="w", padx=(0, 8), pady=5)
         ttk.Combobox(form, textvariable=self.run_pillars_var, values=["all", *list_pillars()]).grid(row=1, column=3, sticky="ew", pady=5)
 
-        ttk.Label(form, text="Judge model (opt)", style="CardText.TLabel").grid(row=2, column=0, sticky="w", padx=(0, 8), pady=5)
+        ttk.Label(form, text="Reasoning / Thinking", style="CardText.TLabel").grid(row=2, column=0, sticky="w", padx=(0, 8), pady=5)
+        self.run_reasoning_combo = ttk.Combobox(
+            form,
+            textvariable=self.run_reasoning_var,
+            values=["default", "high", "medium", "low", "off"],
+            state="readonly",
+        )
+        self.run_reasoning_combo.grid(row=2, column=1, sticky="ew", padx=(0, 14), pady=5)
+
+        ttk.Label(form, text="Judge model (opt)", style="CardText.TLabel").grid(row=2, column=2, sticky="w", padx=(0, 8), pady=5)
         self.run_judge_model_combo = ttk.Combobox(
             form,
             textvariable=self.run_judge_var,
             values=(),
             state="disabled",
         )
-        self.run_judge_model_combo.grid(row=2, column=1, columnspan=3, sticky="ew", pady=5)
+        self.run_judge_model_combo.grid(row=2, column=3, sticky="ew", pady=5)
+        self.run_judge_model_combo.bind(
+            "<<ComboboxSelected>>", self._on_judge_model_selected
+        )
 
         ttk.Label(
             form,
@@ -2290,8 +2348,10 @@ class SynhaleesGUI:
             self.run_modality_var,
             self.run_pillars_var,
             self.run_fresh_var,
+            self.run_reasoning_var,
         ):
             var.trace_add("write", lambda *_: self._update_run_preview())
+        self.run_model_var.trace_add("write", lambda *_: self._on_run_model_changed())
         for var in (self.run_provider_var, self.run_base_url_var, self.run_api_key_var):
             var.trace_add("write", lambda *_: self._on_run_connection_input_changed())
         for var in (self.run_modality_var, self.run_pillars_var):
@@ -2317,6 +2377,20 @@ class SynhaleesGUI:
             r1, text="Start Local Run", style="Accent.TButton", command=self._start_local_run, state="disabled"
         )
         self.run_start_btn.pack(side="left")
+        self.run_reasoning_btn = ttk.Button(
+            r1,
+            text="Test Reasoning (High)",
+            style="Ghost.TButton",
+            command=self._test_run_reasoning,
+            state="disabled",
+        )
+        self.run_reasoning_btn.pack(side="left", padx=(self._px(8), 0))
+        ttk.Label(
+            r1,
+            textvariable=self.run_reasoning_status_var,
+            style="Muted.TLabel",
+            wraplength=self._px(500),
+        ).pack(side="left", padx=(self._px(10), 0), fill="x", expand=True)
 
         # STEP 3: Local Runs Status & Compare
         s3 = self._step_card(
@@ -3639,6 +3713,7 @@ class SynhaleesGUI:
         self.run_model_combo.configure(values=(), state="disabled")
         self.run_model_var.set("")
         self.run_start_btn.configure(state="disabled")
+        self._update_reasoning_button_state()
 
     def _on_run_connection_input_changed(self) -> None:
         self._clear_run_model_selection()
@@ -3646,17 +3721,136 @@ class SynhaleesGUI:
         self.run_probe_label.configure(fg=PALETTE["muted"])
         self._update_run_preview()
 
-    def _update_run_preview(self) -> None:
-        args = build_run_args(
-            model=self.run_model_var.get(),
-            judge=self.run_judge_var.get(),
-            modality=self.run_modality_var.get(),
-            pillars=self.run_pillars_var.get(),
-            fresh=self.run_fresh_var.get(),
-            base_url=self.run_base_url_var.get(),
-            api_key=self.run_api_key_var.get(),
+    def _effective_reasoning_effort(self, model: str) -> str:
+        choice = (
+            self.run_reasoning_var.get().strip().lower()
+            if hasattr(self, "run_reasoning_var")
+            else ""
         )
-        self.run_preview_var.set(format_cmd_preview(args))
+        if choice in ("low", "medium", "high", "off", "none"):
+            return choice
+        if self._run_reasoning_effort and self._run_reasoning_model == model:
+            return self._run_reasoning_effort
+        if model and is_reasoning_model(model):
+            return "high"
+        return ""
+
+    def _update_run_preview(self) -> None:
+        model = self.run_model_var.get().strip() if hasattr(self, "run_model_var") else ""
+        args = build_run_args(
+            model=model,
+            judge=self.run_judge_var.get() if hasattr(self, "run_judge_var") else "",
+            modality=self.run_modality_var.get() if hasattr(self, "run_modality_var") else "text",
+            pillars=self.run_pillars_var.get() if hasattr(self, "run_pillars_var") else "all",
+            fresh=self.run_fresh_var.get() if hasattr(self, "run_fresh_var") else False,
+            base_url=self.run_base_url_var.get() if hasattr(self, "run_base_url_var") else "",
+            api_key=self.run_api_key_var.get() if hasattr(self, "run_api_key_var") else "",
+            reasoning_effort=self._effective_reasoning_effort(model),
+        )
+        if hasattr(self, "run_preview_var"):
+            self.run_preview_var.set(format_cmd_preview(args))
+
+    def _on_run_model_changed(self) -> None:
+        model = self.run_model_var.get().strip()
+        if model != self._run_reasoning_model:
+            self._run_reasoning_probe_generation += 1
+            self._run_reasoning_effort = None
+            self._run_reasoning_model = ""
+            self._reasoning_test_running = False
+            if hasattr(self, "run_reasoning_var"):
+                if is_reasoning_model(model):
+                    self.run_reasoning_var.set("high")
+                    self.run_reasoning_status_var.set(
+                        f"Reasoning model detected; extended thinking set to High."
+                    )
+                else:
+                    self.run_reasoning_var.set("default")
+                    self.run_reasoning_status_var.set(
+                        "Select an advertised model to test or configure reasoning effort."
+                        if not model
+                        else "Run the reasoning test for this model or select High/Medium/Low."
+                    )
+            elif hasattr(self, "run_reasoning_status_var"):
+                self.run_reasoning_status_var.set(
+                    "Select an advertised model to test high reasoning usage."
+                    if not model
+                    else "Run the high-reasoning test for this model to confirm usage."
+                )
+        self._update_reasoning_button_state()
+        self._update_run_preview()
+
+    def _update_reasoning_button_state(self) -> None:
+        if not hasattr(self, "run_reasoning_btn"):
+            return
+        model = self.run_model_var.get().strip()
+        enabled = (
+            self._run_connection_ready
+            and bool(model)
+            and not self._reasoning_test_running
+        )
+        self.run_reasoning_btn.configure(state="normal" if enabled else "disabled")
+
+    def _test_run_reasoning(self) -> None:
+        model_spec = self.run_model_var.get().strip()
+        if not self._run_connection_ready or not model_spec:
+            self._append_log(
+                "[ERR] Test the connection and select an advertised model before testing reasoning.\n",
+                "err",
+            )
+            return
+        self._run_reasoning_effort = None
+        self._run_reasoning_model = model_spec
+        self._run_reasoning_probe_generation += 1
+        probe_generation = self._run_reasoning_probe_generation
+        self._reasoning_test_running = True
+        self.run_reasoning_status_var.set("Testing high reasoning usage...")
+        self._update_reasoning_button_state()
+        base_url = self.run_base_url_var.get()
+        api_key = self.run_api_key_var.get()
+        self._append_log(
+            f"[..] Testing high reasoning usage for {model_spec} ...\n",
+            "cmd",
+        )
+
+        def worker() -> None:
+            probe = probe_reasoning(
+                model_spec=model_spec,
+                base_url=base_url,
+                api_key=api_key,
+            )
+            self._log_queue.put(
+                ("reasoning_probe", (model_spec, probe_generation, probe))
+            )
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _apply_reasoning_probe_result(
+        self,
+        model_spec: str,
+        probe_generation: int,
+        probe: ReasoningProbe,
+    ) -> None:
+        if (
+            probe_generation != self._run_reasoning_probe_generation
+            or model_spec != self.run_model_var.get().strip()
+        ):
+            return
+        self._reasoning_test_running = False
+        self._run_reasoning_model = model_spec
+        if probe.confirmed:
+            self._run_reasoning_effort = "high"
+            if hasattr(self, "run_reasoning_var"):
+                self.run_reasoning_var.set("high")
+            self.run_reasoning_status_var.set(probe.detail)
+            self._append_log(f"[OK] Reasoning test: {probe.detail}\n", "ok")
+        else:
+            self._run_reasoning_effort = None
+            if hasattr(self, "run_reasoning_var"):
+                self.run_reasoning_var.set("default")
+            self.run_reasoning_status_var.set(probe.detail)
+            self._append_log(f"[WARN] Reasoning test: {probe.detail}\n", "warn")
+        self._update_reasoning_button_state()
+        self._update_run_preview()
 
     def _update_judge_call_estimate(self) -> None:
         selected = self.run_pillars_var.get().strip()
@@ -3708,9 +3902,33 @@ class SynhaleesGUI:
             values=providers,
             state="readonly" if providers else "disabled",
         )
-        self.run_judge_provider_var.set("")
+        preferred = os.environ.get(_JUDGE_PROVIDER_PREF, "").strip().lower()
+        current = self.run_judge_provider_var.get().strip().lower()
+        selected = (
+            preferred
+            if preferred in providers
+            else current
+            if current in providers
+            else providers[0]
+            if providers
+            else ""
+        )
+        self.run_judge_provider_var.set(selected)
         self.run_judge_model_combo.configure(values=(), state="disabled")
         self.run_judge_var.set("")
+        if selected:
+            self._on_judge_provider_selected()
+
+    def _save_judge_selection(self, provider: str, model: str = "") -> None:
+        try:
+            apply_tokens(
+                api_keys={
+                    _JUDGE_PROVIDER_PREF: provider,
+                    _JUDGE_MODEL_PREF: model,
+                }
+            )
+        except OSError as exc:
+            self._append_log(f"[ERR] Could not save judge selection locally: {exc}\n", "err")
 
     def _on_judge_provider_selected(self, _event: Any = None) -> None:
         provider = self.run_judge_provider_var.get().strip().lower()
@@ -3721,6 +3939,9 @@ class SynhaleesGUI:
                 "Save an API key in Settings → Tokens & Keys to enable judge providers."
             )
             return
+        previous_provider = os.environ.get(_JUDGE_PROVIDER_PREF, "").strip().lower()
+        if provider != previous_provider:
+            self._save_judge_selection(provider)
         try:
             providers = saved_judge_providers()
         except RuntimeError as exc:
@@ -3748,6 +3969,12 @@ class SynhaleesGUI:
 
         threading.Thread(target=worker, daemon=True).start()
 
+    def _on_judge_model_selected(self, _event: Any = None) -> None:
+        provider = self.run_judge_provider_var.get().strip().lower()
+        model = self.run_judge_var.get().strip()
+        if provider and model:
+            self._save_judge_selection(provider, model)
+
     def _apply_judge_probe_result(self, provider: str, probe: EndpointProbe) -> None:
         if provider != self.run_judge_provider_var.get().strip().lower():
             return
@@ -3758,6 +3985,14 @@ class SynhaleesGUI:
             state="readonly" if model_specs else "disabled",
         )
         if model_specs:
+            preferred_model = os.environ.get(_JUDGE_MODEL_PREF, "").strip()
+            selected_model = (
+                preferred_model
+                if preferred_model in model_specs
+                else model_specs[0]
+            )
+            self.run_judge_var.set(selected_model)
+            self._save_judge_selection(provider, selected_model)
             self.run_judge_status_var.set(f"{len(model_specs)} {provider} judge model(s) available.")
             return
         if probe.ok:
@@ -3809,19 +4044,279 @@ class SynhaleesGUI:
             return
         if not self._ensure_local_api_key(mspec, jspec, self._start_local_run):
             return
-        self._start_worker_if_free(
-            lambda: self.run_cli(
-                build_run_args(
-                    model=mspec,
-                    judge=jspec,
-                    modality=self.run_modality_var.get(),
-                    pillars=self.run_pillars_var.get(),
-                    fresh=self.run_fresh_var.get(),
-                    base_url=self.run_base_url_var.get(),
-                    api_key=self.run_api_key_var.get(),
-                )
-            )
+        args = build_run_args(
+            model=mspec,
+            judge=jspec,
+            modality=self.run_modality_var.get(),
+            pillars=self.run_pillars_var.get(),
+            fresh=self.run_fresh_var.get(),
+            base_url=self.run_base_url_var.get(),
+            api_key=self.run_api_key_var.get(),
+            reasoning_effort=self._effective_reasoning_effort(mspec),
+            gui_item_events=True,
         )
+        self._open_eval_item_window()
+        self._start_worker_if_free(
+            lambda: self.run_cli(args)
+        )
+
+    def _open_eval_item_window(self) -> None:
+        tk, ttk = self.tk, self.ttk
+        if self._eval_detail_window is not None and self._eval_detail_window.winfo_exists():
+            window = self._eval_detail_window
+        else:
+            window = tk.Toplevel(self.root)
+            window.withdraw()
+            self._eval_detail_window = window
+            window.title("Live Benchmark Item")
+            window.configure(bg=PALETTE["surface"])
+            window.transient(self.root)
+            window.minsize(self._px(620), self._px(620))
+            self._center_dialog(window, self._px(760), self._px(780))
+
+            wrap = tk.Frame(
+                window,
+                bg=PALETTE["surface"],
+                padx=self._px(16),
+                pady=self._px(14),
+            )
+            wrap.pack(fill="both", expand=True)
+            tk.Label(
+                wrap,
+                text="Live Benchmark Check",
+                bg=PALETTE["surface"],
+                fg=PALETTE["text"],
+                font=("Segoe UI", 13, "bold"),
+            ).pack(anchor="w")
+            self._eval_detail_item_var = tk.StringVar(value="Waiting for first item…")
+            tk.Label(
+                wrap,
+                textvariable=self._eval_detail_item_var,
+                bg=PALETTE["surface"],
+                fg=PALETTE["muted"],
+                font=("Segoe UI", 9),
+                anchor="w",
+            ).pack(fill="x", pady=(self._px(5), self._px(8)))
+
+            self._eval_detail_status_var = tk.StringVar(value="Starting benchmark…")
+            self._eval_detail_status_label = tk.Label(
+                wrap,
+                textvariable=self._eval_detail_status_var,
+                bg=PALETTE["surface"],
+                fg=PALETTE["info"],
+                font=("Segoe UI", 10, "bold"),
+                anchor="w",
+            )
+            self._eval_detail_status_label.pack(fill="x", pady=(0, self._px(10)))
+
+            self._eval_detail_text_widgets = {}
+            for key, title, height in (
+                ("prompt", "Prompt", 6),
+                ("expected", "Expected answer", 4),
+                ("response", "Model response", 7),
+            ):
+                tk.Label(
+                    wrap,
+                    text=title,
+                    bg=PALETTE["surface"],
+                    fg=PALETTE["muted"],
+                    font=("Segoe UI", 9, "bold"),
+                    anchor="w",
+                ).pack(fill="x", pady=(self._px(4), self._px(3)))
+                text_frame = tk.Frame(wrap, bg=PALETTE["surface"])
+                text_frame.pack(fill="both", expand=key == "response")
+                text_widget = tk.Text(
+                    text_frame,
+                    height=height,
+                    wrap="word",
+                    state="disabled",
+                    bg=PALETTE["console_bg"],
+                    fg=PALETTE["text"],
+                    insertbackground=PALETTE["text"],
+                    relief="flat",
+                    padx=self._px(8),
+                    pady=self._px(6),
+                    font=("Segoe UI", 9),
+                )
+                scrollbar = ttk.Scrollbar(
+                    text_frame, orient="vertical", command=text_widget.yview
+                )
+                text_widget.configure(yscrollcommand=scrollbar.set)
+                text_widget.pack(side="left", fill="both", expand=True)
+                scrollbar.pack(side="right", fill="y")
+                self._eval_detail_text_widgets[key] = text_widget
+
+            nav = tk.Frame(wrap, bg=PALETTE["surface"])
+            nav.pack(fill="x", pady=(self._px(10), 0))
+            self._eval_detail_prev_btn = ttk.Button(
+                nav,
+                text="← Back",
+                style="Ghost.TButton",
+                command=self._show_previous_eval_item,
+            )
+            self._eval_detail_prev_btn.pack(side="left")
+            self._eval_detail_nav_var = tk.StringVar(value="No items yet")
+            tk.Label(
+                nav,
+                textvariable=self._eval_detail_nav_var,
+                bg=PALETTE["surface"],
+                fg=PALETTE["muted"],
+                font=("Segoe UI", 9),
+            ).pack(side="left", expand=True)
+            self._eval_detail_next_btn = ttk.Button(
+                nav,
+                text="Next →",
+                style="Ghost.TButton",
+                command=self._show_next_eval_item,
+            )
+            self._eval_detail_next_btn.pack(side="right")
+
+            window.protocol("WM_DELETE_WINDOW", self._close_eval_item_window)
+
+        self._eval_detail_seen_item = False
+        self._eval_detail_items = []
+        self._eval_detail_item_indexes = {}
+        self._eval_detail_index = -1
+        self._eval_detail_active_key = None
+        self._eval_detail_item_var.set("Waiting for first item…")
+        self._set_eval_detail_text("prompt", "")
+        self._set_eval_detail_text("expected", "")
+        self._set_eval_detail_text("response", "Waiting for model response…")
+        self._set_eval_detail_status("Starting benchmark…", PALETTE["info"])
+        self._update_eval_detail_nav()
+        window.deiconify()
+        window.lift()
+
+    def _close_eval_item_window(self) -> None:
+        if self._eval_detail_window is not None:
+            self._eval_detail_window.destroy()
+        self._eval_detail_window = None
+        self._eval_detail_text_widgets = {}
+        self._eval_detail_items = []
+        self._eval_detail_item_indexes = {}
+        self._eval_detail_index = -1
+        self._eval_detail_active_key = None
+
+    def _update_eval_detail_nav(self) -> None:
+        if self._eval_detail_window is None or not self._eval_detail_window.winfo_exists():
+            return
+        count = len(self._eval_detail_items)
+        if self._eval_detail_index < 0:
+            self._eval_detail_nav_var.set("No items yet")
+        else:
+            self._eval_detail_nav_var.set(
+                f"Item {self._eval_detail_index + 1} of {count}"
+            )
+        self._eval_detail_prev_btn.configure(
+            state="normal" if self._eval_detail_index > 0 else "disabled"
+        )
+        self._eval_detail_next_btn.configure(
+            state="normal"
+            if 0 <= self._eval_detail_index < count - 1
+            else "disabled"
+        )
+
+    def _show_eval_item(self, index: int) -> None:
+        if not 0 <= index < len(self._eval_detail_items):
+            return
+        self._eval_detail_index = index
+        item = self._eval_detail_items[index]
+        self._eval_detail_item_var.set(
+            f"[{item['progress_index']}/{item['progress_total']}] {item['key']}"
+        )
+        self._set_eval_detail_text("prompt", item["prompt"])
+        self._set_eval_detail_text("expected", item["expected"])
+        self._set_eval_detail_text("response", item["response"])
+        self._set_eval_detail_status(item["status"], item["status_color"])
+        self._update_eval_detail_nav()
+
+    def _show_previous_eval_item(self) -> None:
+        self._show_eval_item(self._eval_detail_index - 1)
+
+    def _show_next_eval_item(self) -> None:
+        self._show_eval_item(self._eval_detail_index + 1)
+
+    def _set_eval_detail_text(self, key: str, value: str) -> None:
+        if self._eval_detail_window is None or not self._eval_detail_window.winfo_exists():
+            return
+        widget = self._eval_detail_text_widgets.get(key)
+        if widget is None:
+            return
+        widget.configure(state="normal")
+        widget.delete("1.0", "end")
+        widget.insert("1.0", value)
+        widget.configure(state="disabled")
+
+    def _set_eval_detail_status(self, message: str, color: str) -> None:
+        if self._eval_detail_window is None or not self._eval_detail_window.winfo_exists():
+            return
+        self._eval_detail_status_var.set(message)
+        self._eval_detail_status_label.configure(fg=color)
+
+    def _apply_eval_detail_event(self, event: dict[str, Any]) -> None:
+        if self._eval_detail_window is None or not self._eval_detail_window.winfo_exists():
+            return
+        phase = event.get("phase")
+        if phase == "item_start":
+            self._eval_detail_seen_item = True
+            key = str(event.get("key", ""))
+            item = {
+                "key": key,
+                "progress_index": event.get("index", "?"),
+                "progress_total": event.get("total", "?"),
+                "prompt": str(event.get("prompt", "")),
+                "expected": str(event.get("expected", "")),
+                "response": "Waiting for model response…",
+                "status": "Waiting for model response…",
+                "status_color": PALETTE["info"],
+            }
+            self._eval_detail_item_indexes[key] = len(self._eval_detail_items)
+            self._eval_detail_items.append(item)
+            self._eval_detail_active_key = key
+            if self._eval_detail_index < 0:
+                self._show_eval_item(0)
+            else:
+                self._update_eval_detail_nav()
+            return
+
+        key = str(event.get("key", ""))
+        index = self._eval_detail_item_indexes.get(key)
+        if index is None:
+            return
+        item = self._eval_detail_items[index]
+        if phase == "model_response":
+            response = str(event.get("response", ""))
+            reasoning = str(event.get("reasoning", "")).strip()
+            if reasoning:
+                display_text = f"💭 [Thinking Process]\n{reasoning}\n\n📝 [Final Answer]\n{response if response else '(Empty)'}"
+            else:
+                display_text = response if response else "(Model returned an empty response.)"
+            item["response"] = display_text
+            item["status"] = "Response received; scoring…"
+            item["status_color"] = PALETTE["info"]
+        elif phase == "judge_waiting":
+            item["status"] = "Response received; waiting for judge verdict…"
+            item["status_color"] = PALETTE["info"]
+        elif phase == "item_result":
+            error = str(event.get("error", "")).strip()
+            if error:
+                item["response"] = f"Model request failed:\n{error}"
+                item["status"] = "FAILED — model request error"
+                item["status_color"] = PALETTE["accent"]
+            else:
+                passed = bool(event.get("is_correct"))
+                reason = str(event.get("judge_reason", "")).strip()
+                status = "PASSED" if passed else "FAILED"
+                if reason:
+                    status += f" — {reason}"
+                item["status"] = status[:240]
+                item["status_color"] = (
+                    PALETTE["ok"] if passed else PALETTE["accent"]
+                )
+            if self._eval_detail_active_key == key:
+                self._eval_detail_active_key = None
+        if index == self._eval_detail_index:
+            self._show_eval_item(index)
 
     def _test_local_connection(self) -> None:
         """Probe the configured endpoint (no tokens) and report in the log."""
@@ -3893,6 +4388,7 @@ class SynhaleesGUI:
                     "[HINT] The endpoint responded but advertised no model IDs; model selection and benchmark runs remain disabled.\n",
                     "warn",
                 )
+            self._update_reasoning_button_state()
         else:
             reason = probe.detail or "unknown error"
             if probe.hint:
@@ -4679,12 +5175,17 @@ class SynhaleesGUI:
             self.progress_pct_var.set("")
             self.progress_wrap.pack_forget()
             self._set_workflow_buttons_state("normal")
+            self._update_reasoning_button_state()
 
     def _drain_queue(self) -> None:
         try:
             while True:
                 kind, payload = self._log_queue.get_nowait()
                 if kind == "line":
+                    item_event = parse_gui_item_event(str(payload))
+                    if item_event is not None:
+                        self._apply_eval_detail_event(item_event)
+                        continue
                     tag = None
                     if "[OK]" in payload or payload.startswith("OK:") or "[NEW]" in payload:
                         tag = "ok"
@@ -4767,6 +5268,13 @@ class SynhaleesGUI:
                 elif kind == "judge_probe":
                     provider, probe = payload
                     self._apply_judge_probe_result(provider, probe)
+                elif kind == "reasoning_probe":
+                    model_spec, probe_generation, probe = payload
+                    self._apply_reasoning_probe_result(
+                        model_spec,
+                        probe_generation,
+                        probe,
+                    )
                 elif kind == "discovered":
                     total_avail, pending = payload
                     self.kg_new_tree.delete(*self.kg_new_tree.get_children())
@@ -4790,6 +5298,8 @@ class SynhaleesGUI:
                 elif kind == "done":
                     self._last_auth_url = None
                     rc = int(payload)
+                    if "--gui-item-events" in self._last_args:
+                        self._finish_eval_item_window(rc)
                     self._set_running(False)
                     if rc == 0:
                         self._append_log("[OK] Finished (exit 0).\n", "ok")
@@ -4873,6 +5383,34 @@ class SynhaleesGUI:
             if tok.startswith("--model="):
                 return model_slug(tok.split("=", 1)[1])
         return ""
+
+    def _finish_eval_item_window(self, return_code: int) -> None:
+        if self._eval_detail_window is None or not self._eval_detail_window.winfo_exists():
+            return
+        if return_code == 0:
+            if not self._eval_detail_seen_item:
+                self._set_eval_detail_status(
+                    "Run complete — no new runnable items.",
+                    PALETTE["ok"],
+                )
+            return
+        active_key = self._eval_detail_active_key
+        active_index = self._eval_detail_item_indexes.get(active_key or "")
+        if active_index is not None:
+            active_item = self._eval_detail_items[active_index]
+            active_item["status"] = (
+                "Run stopped — this item did not receive a final score. "
+                "Check the run log."
+            )
+            active_item["status_color"] = PALETTE["accent"]
+            self._eval_detail_active_key = None
+            if active_index == self._eval_detail_index:
+                self._show_eval_item(active_index)
+        elif not self._eval_detail_seen_item:
+            self._set_eval_detail_status(
+                "Run failed before a benchmark item started. Check the run log.",
+                PALETTE["accent"],
+            )
 
     def _open_run_complete_dialog(self, slug: str) -> None:
         """Notify when a local evaluation completes and offer Publish or Compare."""
