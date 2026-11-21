@@ -172,6 +172,20 @@ class ReasoningProbe:
     detail: str
 
 
+@dataclass(frozen=True)
+class JudgeProbe:
+    """Outcome of testing a candidate judge model with a real JSON rubric evaluation."""
+
+    ok: bool
+    detail: str
+    latency_ms: int = 0
+
+    def summary(self) -> str:
+        if self.ok:
+            return f"Judge ready ({self.latency_ms} ms) — {self.detail}"
+        return f"Judge failed — {self.detail}"
+
+
 def _env_api_key(provider: str) -> str:
     import os
 
@@ -460,6 +474,47 @@ def probe_reasoning(
             )
     except (APIModelError, OSError, ValueError) as exc:
         return ReasoningProbe(False, None, f"High-reasoning test failed: {exc}")
+
+
+def probe_judge(
+    *,
+    judge_spec: str,
+    base_url: str = "",
+    api_key: str = "",
+    timeout: int = 30,
+) -> JudgeProbe:
+    """Send a real evaluation prompt to the judge model and verify JSON rubric parsing."""
+    from synhalees.evaluators import build_judge_prompt, parse_judge_verdict
+    from synhalees.models import APIModelError, get_model
+
+    judge_spec = (judge_spec or "").strip()
+    if not judge_spec:
+        return JudgeProbe(False, "No judge model specified.")
+
+    endpoint: dict[str, Any] = {"timeout": timeout}
+    if base_url.strip():
+        endpoint["base_url"] = base_url.strip()
+    if api_key.strip():
+        endpoint["api_key"] = api_key.strip()
+
+    started = time.perf_counter()
+    try:
+        model = get_model(judge_spec, **endpoint)
+        test_prompt = build_judge_prompt(
+            response="ශ්‍රී ලංකාවේ අගනුවර කොළඹ වේ.",
+            ground_truth="ශ්‍රී ලංකාවේ අගනුවර කොළඹ වේ.",
+        )
+        verdict = model.complete(test_prompt)
+        latency_ms = int((time.perf_counter() - started) * 1000)
+        passed, reason = parse_judge_verdict(verdict)
+        if passed:
+            return JudgeProbe(True, "Criteria verified & valid assessment JSON returned.", latency_ms)
+        if "did not match" not in reason.lower() and "not valid" not in reason.lower():
+            return JudgeProbe(True, f"Model responded with valid JSON ({reason}).", latency_ms)
+        return JudgeProbe(False, f"Invalid judge response: {reason}", latency_ms)
+    except (APIModelError, OSError, ValueError, TimeoutError, RuntimeError) as exc:
+        latency_ms = int((time.perf_counter() - started) * 1000)
+        return JudgeProbe(False, str(exc), latency_ms)
 
 
 def find_unregistered_slim_models(

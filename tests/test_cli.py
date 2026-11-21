@@ -893,6 +893,33 @@ class TestGUI(unittest.TestCase):
         app.run_judge_provider_var.set.assert_called_with("gemini")
         app._on_judge_provider_selected.assert_called_once_with()
 
+    def test_delete_selected_local_run(self) -> None:
+        from synhalees.gui import SynhaleesGUI
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_runs = Path(tmp) / "runs"
+            dummy_run = tmp_runs / "dummy-run"
+            dummy_run.mkdir(parents=True)
+            (dummy_run / "submission.csv").write_text("model,score\ndummy,10.0\n", encoding="utf-8")
+
+            app = object.__new__(SynhaleesGUI)
+            app.local_runs_tree = mock.Mock()
+            app.local_runs_tree.selection.return_value = ("item1",)
+            app.local_runs_tree.item.return_value = ("dummy-run", "10", "0", "10.0%", "Ready (CSV)")
+            app.messagebox = mock.Mock()
+            app.messagebox.askyesno.return_value = True
+            app._append_log = mock.Mock()
+            app._populate_local_runs_table = mock.Mock()
+            app.pub_combo = {"values": ["dummy-run"]}
+            app.pub_slug_var = mock.Mock()
+            app.pub_slug_var.get.return_value = "dummy-run"
+
+            with mock.patch("synhalees.gui.RUNS", tmp_runs):
+                app._delete_selected_local_run()
+
+            self.assertFalse(dummy_run.exists())
+            app._populate_local_runs_table.assert_called_once()
+            app.pub_slug_var.set.assert_called_with("")
+
     def test_gui_management_org_and_model_crud_isolated(self) -> None:
         from synhalees.gui import (
             bulk_update_model_registry_entries,
@@ -1138,6 +1165,33 @@ class TestSelfHostedEndpoint(unittest.TestCase):
         )
         self.assertIn("--api-key ***", preview)
         self.assertNotIn("s3cret", preview)
+
+    def test_openai_model_audio_fallback_to_audio_url(self) -> None:
+        import tempfile
+        from pathlib import Path
+        from synhalees.models import APIModelError, OpenAIModel
+
+        model = OpenAIModel("test-audio", api_key="dummy", base_url="https://test/v1")
+        tmp_path = Path("tests") / "_temp_test_audio.mp3"
+        tmp_path.write_bytes(b"fake mp3 bytes")
+        try:
+            calls = []
+            def fake_post(url, headers, payload, **kwargs):
+                calls.append(payload)
+                if len(calls) == 1:
+                    raise APIModelError("HTTP 400: input_audio not supported")
+                return {"choices": [{"message": {"content": "transcribed text"}}]}
+
+            with mock.patch("synhalees.models._post_json", side_effect=fake_post):
+                resp = model.complete("Transcribe", audio_path=str(tmp_path))
+
+            self.assertEqual(resp, "transcribed text")
+            self.assertEqual(len(calls), 2)
+            self.assertEqual(calls[0]["messages"][0]["content"][1]["type"], "input_audio")
+            self.assertEqual(calls[1]["messages"][0]["content"][1]["type"], "audio_url")
+        finally:
+            if tmp_path.exists():
+                tmp_path.unlink()
 
     def test_reasoning_probe_requires_reported_reasoning_tokens(self) -> None:
         from synhalees.gui_helpers import probe_reasoning
@@ -1447,6 +1501,18 @@ class TestKaggleScoringParity(unittest.TestCase):
             parse_judge_verdict(json.dumps(report)),
             (True, "Meaning matches.; Natural Sinhala."),
         )
+        # Markdown code fence wrapping
+        fenced = f"```json\n{json.dumps(report)}\n```"
+        self.assertEqual(
+            parse_judge_verdict(fenced),
+            (True, "Meaning matches.; Natural Sinhala."),
+        )
+        # Conversational text preamble + code fence
+        wrapped = f"Here is the evaluation:\n```json\n{json.dumps(report)}\n```\nDone."
+        self.assertEqual(
+            parse_judge_verdict(wrapped),
+            (True, "Meaning matches.; Natural Sinhala."),
+        )
         report["results"][1]["passed"] = False
         self.assertFalse(parse_judge_verdict(json.dumps(report))[0])
         self.assertFalse(parse_judge_verdict('{"passed": true}')[0])
@@ -1513,6 +1579,119 @@ class TestKaggleScoringParity(unittest.TestCase):
         # 3. Unclosed tag handling
         unclosed = "<thought>Thinking only..."
         self.assertEqual(strip_thinking(unclosed), "")
+
+    def test_judge_model_api_error_does_not_crash_benchmark(self) -> None:
+        from synhalees.models import APIModelError, BaseModel
+        from synhalees.runner import SynhalEESBenchmark
+
+        class FlakyJudgeModel(BaseModel):
+            def __init__(self) -> None:
+                self.name = "flaky-judge"
+                self.calls = 0
+
+            def complete(self, prompt, *, image_path=None, audio_path=None, reasoning_effort=None) -> str:
+                self.calls += 1
+                if self.calls == 1:
+                    # Preflight check passes
+                    return json.dumps({
+                        "results": [
+                            {"criterion": "meaning", "passed": True, "reason": "ok", "confidence": 90},
+                            {"criterion": "style", "passed": True, "reason": "ok", "confidence": 90},
+                        ]
+                    })
+                # Item execution call fails
+                raise APIModelError("The read operation timed out")
+
+        class MainModel(BaseModel):
+            def __init__(self) -> None:
+                self.name = "main"
+
+            def complete(self, prompt, *, image_path=None, audio_path=None, reasoning_effort=None) -> str:
+                return "Model answer"
+
+        row = {
+            "pillar": "p1",
+            "modality": "text",
+            "id": "item-1",
+            "prompt": "Question",
+            "ground_truth": "Reference",
+            "eval_type": "llm_judge",
+            "media_path": "",
+        }
+        benchmark = SynhalEESBenchmark(
+            MainModel(),
+            judge_model=FlakyJudgeModel(),
+            modalities=("text",),
+            pillars=["p1"],
+            checkpoint=None,
+        )
+        with mock.patch("synhalees.runner.iter_items", return_value=iter([row])):
+            results = benchmark.run(progress=False)
+
+        self.assertEqual(len(results.records), 1)
+        record = results.records[0]
+        self.assertFalse(record["is_correct"])
+        self.assertIn("The read operation timed out", record["error"])
+        self.assertIn("Judge failed", record["judge_reason"])
+
+    def test_judge_model_preflight_fails_fast_when_judge_unreachable(self) -> None:
+        from synhalees.models import APIModelError, BaseModel
+        from synhalees.runner import SynhalEESBenchmark
+
+        class BrokenJudge(BaseModel):
+            name = "broken-judge"
+
+            def complete(self, prompt, *, image_path=None, audio_path=None, reasoning_effort=None) -> str:
+                raise APIModelError("The read operation timed out")
+
+        class DummyModel(BaseModel):
+            name = "dummy"
+
+            def complete(self, prompt, *, image_path=None, audio_path=None, reasoning_effort=None) -> str:
+                return "answer"
+
+        row = {
+            "pillar": "p1",
+            "modality": "text",
+            "id": "item-1",
+            "prompt": "Question",
+            "ground_truth": "Reference",
+            "eval_type": "llm_judge",
+            "media_path": "",
+        }
+        benchmark = SynhalEESBenchmark(
+            DummyModel(),
+            judge_model=BrokenJudge(),
+            modalities=("text",),
+            pillars=["p1"],
+            checkpoint=None,
+        )
+        with mock.patch("synhalees.runner.iter_items", return_value=iter([row])):
+            with self.assertRaises(APIModelError) as cm:
+                benchmark.run(progress=False)
+        self.assertIn("preflight check failed", str(cm.exception))
+
+    def test_probe_judge_success_and_failure(self) -> None:
+        from synhalees.gui_helpers import probe_judge
+
+        with mock.patch("synhalees.models.get_model") as mock_get:
+            mock_model = mock.MagicMock()
+            mock_model.complete.return_value = json.dumps({
+                "results": [
+                    {"criterion": "meaning", "passed": True, "reason": "ok", "confidence": 90},
+                    {"criterion": "style", "passed": True, "reason": "ok", "confidence": 90},
+                ]
+            })
+            mock_get.return_value = mock_model
+            probe = probe_judge(judge_spec="gemini:gemini-2.5-flash")
+            self.assertTrue(probe.ok)
+            self.assertIn("Criteria verified", probe.detail)
+
+            # Failure case
+            mock_model.complete.side_effect = RuntimeError("Endpoint timed out")
+            probe = probe_judge(judge_spec="gemini:broken-model")
+            self.assertFalse(probe.ok)
+            self.assertIn("Endpoint timed out", probe.detail)
 
 
 if __name__ == "__main__":

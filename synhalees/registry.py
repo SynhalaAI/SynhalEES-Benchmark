@@ -165,8 +165,16 @@ class Registry:
         """Get formatted model display name."""
         if model_slug in self.display_names:
             return self.display_names[model_slug]
+        if model_slug.lower() in self.display_names:
+            return self.display_names[model_slug.lower()]
 
-        clean = model_slug.replace("_", "-")
+        canon = canonical_model_slug(model_slug)
+        if canon in self.display_names:
+            return self.display_names[canon]
+        if canon.lower() in self.display_names:
+            return self.display_names[canon.lower()]
+
+        clean = canon.replace("_", "-")
         parts = clean.split("-")
         out_words: List[str] = []
         for p in parts:

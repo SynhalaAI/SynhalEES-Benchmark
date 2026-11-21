@@ -360,10 +360,15 @@ class SynhalEESBenchmark:
         if row["eval_type"] == "llm_judge":
             if on_judge_start is not None:
                 on_judge_start()
-            verdict = self.judge_model.complete(
-                build_judge_prompt(response, row["ground_truth"])
-            )
-            judge_passed, judge_reason = parse_judge_verdict(verdict)
+            try:
+                verdict = self.judge_model.complete(
+                    build_judge_prompt(response, row["ground_truth"])
+                )
+                judge_passed, judge_reason = parse_judge_verdict(verdict)
+            except APIModelError as exc:
+                judge_passed = False
+                judge_reason = f"Judge failed: {exc}"
+                record["error"] = str(exc)
 
         record.update(
             response=response,
@@ -397,6 +402,32 @@ class SynhalEESBenchmark:
                 f"[SynhalEES] resuming: {len(self.store.records)} done, "
                 f"{len(pending)} pending"
             )
+
+        # Preflight: If there are pending llm_judge items, verify that the judge model responds!
+        pending_judge = [
+            row for row in pending if row.get("eval_type") == "llm_judge"
+        ]
+        if pending_judge and self.judge_model is not None:
+            judge_name = getattr(self.judge_model, "name", "judge")
+            if progress:
+                print(
+                    f"[SynhalEES] Preflight: Verifying judge model '{judge_name}'..."
+                )
+            test_prompt = build_judge_prompt(
+                response="ශ්‍රී ලංකාවේ අගනුවර කොළඹ වේ.",
+                ground_truth="ශ්‍රී ලංකාවේ අගනුවර කොළඹ වේ.",
+            )
+            try:
+                verdict = self.judge_model.complete(test_prompt)
+                passed, reason = parse_judge_verdict(verdict)
+                if progress:
+                    print(f"[SynhalEES] Judge verified successfully ({reason or 'ready'}).")
+            except APIModelError as exc:
+                err_msg = f"Judge model preflight check failed for '{judge_name}': {exc}"
+                if progress:
+                    print(f"[SynhalEES] ERROR: {err_msg}")
+                raise APIModelError(err_msg) from exc
+
         done_before = total - len(pending)
         for index, row in enumerate(pending, start=1):
             key = item_key(row["pillar"], row["modality"], row["id"])

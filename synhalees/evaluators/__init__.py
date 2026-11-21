@@ -147,11 +147,42 @@ The results must be in the same order as the criteria. confidence must be an int
     ).strip()
 
 
+def _extract_json_payload(text: str) -> Any:
+    """Extract and parse JSON from raw text, markdown code blocks, or wrapped commentary."""
+    clean = strip_thinking(text).strip()
+    if not clean:
+        return None
+
+    # 1. Direct parse attempt
+    try:
+        return json.loads(clean)
+    except json.JSONDecodeError:
+        pass
+
+    # 2. Extract from markdown code fence ```json ... ``` or ``` ... ```
+    fence_match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", clean)
+    if fence_match:
+        try:
+            return json.loads(fence_match.group(1).strip())
+        except json.JSONDecodeError:
+            pass
+
+    # 3. Find outermost JSON object { ... }
+    start_brace = clean.find("{")
+    end_brace = clean.rfind("}")
+    if start_brace != -1 and end_brace > start_brace:
+        try:
+            return json.loads(clean[start_brace : end_brace + 1])
+        except json.JSONDecodeError:
+            pass
+
+    return None
+
+
 def parse_judge_verdict(text: str) -> tuple[bool, str]:
     """Parse Kaggle's per-criterion assessment report into an all-pass verdict."""
-    try:
-        payload = json.loads(text)
-    except json.JSONDecodeError:
+    payload = _extract_json_payload(text)
+    if payload is None:
         return False, "Judge response was not valid assessment JSON"
     if not isinstance(payload, dict):
         return False, "Judge response was not an assessment object"
@@ -159,14 +190,22 @@ def parse_judge_verdict(text: str) -> tuple[bool, str]:
     if not isinstance(results, list) or len(results) != len(_JUDGE_CRITERIA):
         return False, "Judge response must contain one result per criterion"
     for result in results:
-        if (
-            not isinstance(result, dict)
-            or not isinstance(result.get("criterion"), str)
-            or type(result.get("passed")) is not bool
-            or not isinstance(result.get("reason"), str)
-            or type(result.get("confidence")) is not int
-        ):
+        if not isinstance(result, dict):
             return False, "Judge response did not match the assessment schema"
+        passed_val = result.get("passed")
+        if not isinstance(passed_val, bool):
+            if isinstance(passed_val, str) and passed_val.lower() in ("true", "1"):
+                result["passed"] = True
+            elif isinstance(passed_val, (int, float)) and passed_val == 1:
+                result["passed"] = True
+            elif isinstance(passed_val, str) and passed_val.lower() in ("false", "0"):
+                result["passed"] = False
+            elif isinstance(passed_val, (int, float)) and passed_val == 0:
+                result["passed"] = False
+            else:
+                return False, "Judge response did not match the assessment schema"
+        if not isinstance(result.get("reason"), str):
+            result["reason"] = str(result.get("reason", ""))
     return (
         all(result["passed"] for result in results),
         "; ".join(result["reason"] for result in results)[:200],

@@ -49,7 +49,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from synhalees.registry import default_registry
+from synhalees.registry import canonical_model_slug, default_registry
 
 OUT = ROOT / "docs" / "assets" / "data" / "leaderboard.json"
 # Committed, one CSV per model: the published source of truth for the site.
@@ -188,12 +188,18 @@ def pretty_provider(host: str, model_id: str = "") -> str:
 
 def pretty_model(name: str) -> str:
     """``"gemini-3.5-flash-lite"`` -> ``"Gemini 3.5 Flash Lite"``."""
-    raw = (name or "").strip()
-    reg_disp = default_registry.get_model_display_name(raw)
+    raw = canonical_model_slug(name or "").strip()
     if raw in default_registry.display_names:
+        return default_registry.display_names[raw]
+    if raw.lower() in default_registry.display_names:
+        return default_registry.display_names[raw.lower()]
+    reg_disp = default_registry.get_model_display_name(raw)
+    if reg_disp != raw:
         return reg_disp
     if raw in MODEL_DISPLAY:
         return MODEL_DISPLAY[raw]
+    if raw.lower() in MODEL_DISPLAY:
+        return MODEL_DISPLAY[raw.lower()]
     words = raw.replace("_", "-").split("-")
     fixed = {"gpt": "GPT", "llama": "Llama", "qwen": "Qwen",
              "mistral": "Mistral", "deepseek": "DeepSeek", "claude": "Claude",
@@ -425,7 +431,7 @@ def build_real(csv_paths: list[Path]) -> dict:
     for path in csv_paths:
         with path.open(newline="", encoding="utf-8-sig") as fh:
             for row in csv.DictReader(fh):
-                key = row["model"]
+                key = canonical_model_slug(row["model"]).lower()
                 raw_prov = row.get("provider", "")
                 prov = pretty_provider(raw_prov, key)
                 explicit_type = row.get("type") or row.get("open_source") or row.get("license") or ""

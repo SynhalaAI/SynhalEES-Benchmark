@@ -78,10 +78,16 @@ def _post_json(url: str, headers: dict, payload: dict, *, timeout: int,
             with open_url(request, timeout=timeout) as resp:
                 return json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
-            last_error = exc
-            if exc.code not in (408, 409, 429) and not 500 <= exc.code < 600:
+            try:
                 detail = exc.read().decode("utf-8", errors="replace")[:500]
-                raise APIModelError(f"HTTP {exc.code}: {detail}") from exc
+            except Exception:
+                detail = ""
+            last_error = f"HTTP {exc.code}: {detail}" if detail else str(exc)
+            if exc.code not in (408, 409, 429) and not 500 <= exc.code < 600:
+                raise APIModelError(last_error) from exc
+            lower_detail = detail.lower()
+            if any(term in lower_detail for term in ("input_audio", "audio", "modality", "unsupported", "cannot process", "not implemented")):
+                raise APIModelError(f"Model/endpoint does not support audio modality: {last_error}") from exc
         except (urllib.error.URLError, TimeoutError) as exc:
             last_error = exc
         if attempt < max_retries:
@@ -145,7 +151,9 @@ class OpenAIModel(BaseModel):
                 "image_url": {"url": f"data:{mime};base64,{data}"},
             })
         if audio_path:
-            data, _ = _b64(audio_path)
+            data, mime = _b64(audio_path)
+            if audio_path.lower().endswith(".mp3"):
+                mime = "audio/mp3"
             content.append({
                 "type": "input_audio",
                 "input_audio": {"data": data, "format": "mp3"},
@@ -156,13 +164,35 @@ class OpenAIModel(BaseModel):
         }
         if reasoning_effort and reasoning_effort not in ("none", "off"):
             payload["reasoning_effort"] = reasoning_effort
-        result = _post_json(
-            f"{self.base_url}/chat/completions",
-            {"Authorization": f"Bearer {self.api_key}"},
-            payload,
-            timeout=self.timeout,
-            max_retries=self.max_retries,
-        )
+        try:
+            result = _post_json(
+                f"{self.base_url}/chat/completions",
+                {"Authorization": f"Bearer {self.api_key}"},
+                payload,
+                timeout=self.timeout,
+                max_retries=self.max_retries,
+            )
+        except APIModelError as exc:
+            # If input_audio failed and audio_path was present, try audio_url (vLLM / HuggingFace schema)
+            if audio_path and content:
+                fallback_content = list(content[:-1]) + [{
+                    "type": "audio_url",
+                    "audio_url": {"url": f"data:{mime};base64,{data}"},
+                }]
+                fallback_payload = dict(payload)
+                fallback_payload["messages"] = [{"role": "user", "content": fallback_content}]
+                try:
+                    result = _post_json(
+                        f"{self.base_url}/chat/completions",
+                        {"Authorization": f"Bearer {self.api_key}"},
+                        fallback_payload,
+                        timeout=self.timeout,
+                        max_retries=self.max_retries,
+                    )
+                except APIModelError:
+                    raise exc
+            else:
+                raise
         try:
             choice = result["choices"][0]
             message_obj = choice.get("message", {})

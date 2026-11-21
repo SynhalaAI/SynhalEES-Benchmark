@@ -48,6 +48,7 @@ from synhalees.gui_helpers import (
     parse_gui_item_event,
     parse_progress_line,
     probe_endpoint,
+    probe_judge,
     probe_reasoning,
     rasterize_svg_to_grid,
     render_monogram_grid,
@@ -2315,14 +2316,23 @@ class SynhaleesGUI:
             form,
             textvariable=self.run_judge_status_var,
             style="Muted.TLabel",
-            wraplength=self._px(600),
-        ).grid(row=3, column=0, columnspan=3, sticky="w", pady=4)
+            wraplength=self._px(550),
+        ).grid(row=3, column=0, columnspan=2, sticky="w", pady=4)
+        judge_btn_box = tk.Frame(form, bg=PALETTE["card"])
+        judge_btn_box.grid(row=3, column=2, columnspan=2, sticky="e", pady=4)
+        self.run_test_judge_btn = ttk.Button(
+            judge_btn_box,
+            text="Test Judge",
+            style="Ghost.TButton",
+            command=self._test_judge_model,
+        )
+        self.run_test_judge_btn.pack(side="right", padx=(6, 0))
         ttk.Button(
-            form,
+            judge_btn_box,
             text="API Key Settings",
             style="Ghost.TButton",
             command=self._open_tokens_dialog,
-        ).grid(row=3, column=3, sticky="e", pady=4)
+        ).pack(side="right")
 
         ttk.Label(
             form,
@@ -2429,6 +2439,12 @@ class SynhaleesGUI:
             text="Inspect Run Scorecard",
             style="Ghost.TButton",
             command=lambda: open_scorecard_inspector(self, self.pub_slug_var.get().strip()),
+        ).pack(side="left", padx=(0, 8))
+        ttk.Button(
+            s3_btns,
+            text="Delete Run",
+            style="Ghost.TButton",
+            command=self._delete_selected_local_run,
         ).pack(side="left")
 
         # STEP 4: Publish
@@ -3708,6 +3724,36 @@ class SynhaleesGUI:
         self.run_fresh_var.set(False)
         self._start_local_run()
 
+    def _delete_selected_local_run(self) -> None:
+        sel = self.local_runs_tree.selection()
+        if not sel or sel[0] == "__empty__":
+            self.messagebox.showinfo("Select Run", "Select a local run in Step 3 first.")
+            return
+        slug = str(self.local_runs_tree.item(sel[0], "values")[0])
+        target = RUNS / slug
+        if not target.is_dir():
+            self.messagebox.showinfo("Delete Run", f"Run folder '{slug}' does not exist.")
+            return
+        if not self.messagebox.askyesno(
+            "Delete Local Run",
+            f"Are you sure you want to delete local run '{slug}' from runs/?\n\n"
+            f"This will remove its checkpoints and raw outputs from disk.\n"
+            f"(It will NOT affect any published scorecards in submissions/)."
+        ):
+            return
+        import shutil
+        shutil.rmtree(target, ignore_errors=True)
+        self._append_log(f"[OK] Deleted local run '{slug}' from runs/.\n", "ok")
+        self._populate_local_runs_table()
+        available = (
+            sorted(d.name for d in RUNS.iterdir() if d.is_dir() and (d / "submission.csv").is_file())
+            if RUNS.is_dir()
+            else []
+        )
+        self.pub_combo["values"] = available
+        if self.pub_slug_var.get() == slug:
+            self.pub_slug_var.set(available[0] if available else "")
+
     def _clear_run_model_selection(self) -> None:
         self._run_connection_ready = False
         self._run_model_specs = []
@@ -3963,6 +4009,34 @@ class SynhaleesGUI:
         model = self.run_judge_var.get().strip()
         if provider and model:
             self._save_judge_selection(provider, model)
+            self._test_judge_model()
+
+    def _test_judge_model(self) -> None:
+        jspec = self.run_judge_var.get().strip()
+        if not jspec:
+            self.run_judge_status_var.set("Select a judge model first.")
+            return
+        provider = jspec.partition(":")[0].lower()
+        key_env = _API_KEY_ENV_BY_PROVIDER.get(provider, "")
+        api_key = os.environ.get(key_env, "").strip() if key_env else ""
+        self.run_judge_status_var.set(f"Testing judge model {jspec}...")
+        self._append_log(f"Testing judge model {jspec}...\n", "cmd")
+
+        def worker() -> None:
+            probe = probe_judge(judge_spec=jspec, api_key=api_key)
+            self._log_queue.put(("judge_test_result", (jspec, probe)))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _apply_judge_test_result(self, jspec: str, probe: Any) -> None:
+        if jspec != self.run_judge_var.get().strip():
+            return
+        if getattr(probe, "ok", False):
+            self.run_judge_status_var.set(f"✓ {probe.summary()}")
+            self._append_log(f"[OK] {probe.summary()}\n", "ok")
+        else:
+            self.run_judge_status_var.set(f"⚠ {probe.summary()}")
+            self._append_log(f"[ERR] {probe.summary()}\n", "err")
 
     def _apply_judge_probe_result(self, provider: str, probe: EndpointProbe) -> None:
         if provider != self.run_judge_provider_var.get().strip().lower():
@@ -3975,11 +4049,14 @@ class SynhaleesGUI:
         )
         if model_specs:
             preferred_model = os.environ.get(_JUDGE_MODEL_PREF, "").strip()
-            selected_model = (
-                preferred_model
-                if preferred_model in model_specs
-                else model_specs[0]
-            )
+            if preferred_model in model_specs:
+                selected_model = preferred_model
+            else:
+                fast_candidates = [
+                    m for m in model_specs
+                    if any(token in m.lower() for token in ("flash", "mini", "haiku"))
+                ]
+                selected_model = fast_candidates[0] if fast_candidates else model_specs[0]
             self.run_judge_var.set(selected_model)
             self._save_judge_selection(provider, selected_model)
             self.run_judge_status_var.set(f"{len(model_specs)} {provider} judge model(s) available.")
@@ -5255,6 +5332,9 @@ class SynhaleesGUI:
                 elif kind == "judge_probe":
                     provider, probe = payload
                     self._apply_judge_probe_result(provider, probe)
+                elif kind == "judge_test_result":
+                    jspec, probe = payload
+                    self._apply_judge_test_result(jspec, probe)
                 elif kind == "reasoning_probe":
                     model_spec, probe_generation, probe = payload
                     self._apply_reasoning_probe_result(
